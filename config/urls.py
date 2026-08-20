@@ -6,6 +6,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include("allauth.urls")),
     path("accounts/", include("apps.accounts.urls")),
+    path("anagrafica/", include("apps.anagrafica.urls")),
     path("hijack/", include("hijack.urls")),
     path("", include("apps.core.urls")),
 ]

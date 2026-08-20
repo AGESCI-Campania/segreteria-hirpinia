@@ -128,8 +128,8 @@ apps/
 ```
 
 > I file di anagrafica reali (CSV di Buona Caccia, PDF di autorizzazione) contengono
-> dati personali e **non vanno mai versionati**: `data/`, `uploads/` e le fixture PDF
-> sono esclusi in `.gitignore`.
+> dati personali e **non vanno mai versionati**: `data/`, `uploads/` e le fixture PDF e
+> CSV sono esclusi in `.gitignore`.
 
 ## Documentazione
 
