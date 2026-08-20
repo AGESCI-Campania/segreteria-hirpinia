@@ -15,3 +15,9 @@ CACHES = {
 }
 
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+
+# Come EMAIL_BACKEND sopra: i test non devono dipendere da un .env locale,
+# altrimenti passano solo su chi ce l'ha configurato e falliscono in CI
+# (dove DOMINI_RUOLI_EFFETTIVI non è impostata). Hardcoded, non letto
+# dall'ambiente.
+DOMINI_RUOLI_EFFETTIVI = ["campania.agesci.it", "zonahirpinia.org"]
