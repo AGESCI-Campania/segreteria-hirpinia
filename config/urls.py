@@ -7,6 +7,7 @@ urlpatterns = [
     path("accounts/", include("allauth.urls")),
     path("accounts/", include("apps.accounts.urls")),
     path("anagrafica/", include("apps.anagrafica.urls")),
+    path("contributi/", include("apps.contributi.urls")),
     path("hijack/", include("hijack.urls")),
     path("", include("apps.core.urls")),
 ]

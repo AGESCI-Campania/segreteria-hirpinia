@@ -1,0 +1,250 @@
+"""Viste di `contributi`: apertura campagna, inserimento manuale, caricamento
+massivo a due fasi (D-21) — stesso schema anteprima/conferma già in uso in
+`apps/anagrafica/views.py` (mai una scrittura prima della conferma esplicita,
+CLAUDE.md)."""
+
+import base64
+import io
+
+from django.contrib import messages
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.files.base import ContentFile
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.views import View
+from django.views.generic import ListView
+from openpyxl import Workbook
+
+from apps.accounts.mixins import RuoloRequiredMixin
+
+from .campagne import RUOLI_GESTIONE_CAMPAGNA, apri_campagna
+from .forms import CampagnaForm, ImportazionePartecipazioniForm, PartecipazioneManualeForm
+from .importazione_partecipazioni import (
+    COLONNE_TRACCIATO,
+    applica_piano_partecipazioni,
+    costruisci_piano_partecipazioni,
+    leggi_righe_csv,
+    leggi_righe_xlsx,
+)
+from .inserimento import RUOLI_GESTIONE_PARTECIPAZIONI, inserisci_partecipazione_manuale
+from .models import Campagna, ImportazionePartecipazioni
+from .visibilita import partecipazioni_visibili
+
+_SESSION_FILE_B64 = "contributi_import_file_b64"
+_SESSION_NOME_FILE = "contributi_import_nome_file"
+_SESSION_CAMPAGNA_ID = "contributi_import_campagna_id"
+_SESSION_UTENTE_ID = "contributi_import_utente_id"
+
+
+class CampagnaListaView(RuoloRequiredMixin, ListView):
+    ruoli_ammessi = RUOLI_GESTIONE_PARTECIPAZIONI
+    template_name = "contributi/campagna_lista.html"
+    context_object_name = "campagne"
+
+    def get_queryset(self):
+        return Campagna.objects.all()
+
+
+class CampagnaCreaView(RuoloRequiredMixin, View):
+    ruoli_ammessi = RUOLI_GESTIONE_CAMPAGNA
+    ruoli_ammessi_solo_diretti = True
+    template_name = "contributi/campagna_crea.html"
+
+    def get(self, request):
+        return render(request, self.template_name, {"form": CampagnaForm()})
+
+    def post(self, request):
+        form = CampagnaForm(request.POST)
+        if not form.is_valid():
+            return render(request, self.template_name, {"form": form})
+
+        try:
+            campagna = apri_campagna(utente=request.user, **form.cleaned_data)
+        except (PermissionDenied, ValidationError) as exc:
+            form.add_error(None, _messaggio(exc))
+            return render(request, self.template_name, {"form": form})
+
+        messages.success(request, "Campagna creata.")
+        return redirect(reverse("contributi:campagna_dettaglio", args=[campagna.pk]))
+
+
+class CampagnaDettaglioView(RuoloRequiredMixin, View):
+    ruoli_ammessi = RUOLI_GESTIONE_PARTECIPAZIONI
+    template_name = "contributi/campagna_dettaglio.html"
+
+    def get(self, request, pk):
+        campagna = get_object_or_404(Campagna, pk=pk)
+        partecipazioni = partecipazioni_visibili(request.user, campagna).select_related(
+            "capo", "gruppo", "tipologia"
+        )
+        return render(
+            request,
+            self.template_name,
+            {"campagna": campagna, "partecipazioni": partecipazioni},
+        )
+
+
+class PartecipazioneInserisciView(RuoloRequiredMixin, View):
+    ruoli_ammessi = RUOLI_GESTIONE_PARTECIPAZIONI
+    template_name = "contributi/partecipazione_inserisci.html"
+
+    def get(self, request, campagna_id):
+        campagna = get_object_or_404(Campagna, pk=campagna_id)
+        return render(
+            request, self.template_name, {"campagna": campagna, "form": PartecipazioneManualeForm()}
+        )
+
+    def post(self, request, campagna_id):
+        campagna = get_object_or_404(Campagna, pk=campagna_id)
+        form = PartecipazioneManualeForm(request.POST)
+        if not form.is_valid():
+            return render(request, self.template_name, {"campagna": campagna, "form": form})
+
+        dati = form.cleaned_data
+        try:
+            inserisci_partecipazione_manuale(
+                utente=request.user,
+                campagna=campagna,
+                codice_socio=dati["codice_socio"],
+                tipologia=dati["tipologia"],
+                data_inizio=dati["data_inizio"],
+                data_fine=dati["data_fine"],
+                luogo=dati["luogo"],
+                quota_versata=dati["quota_versata"],
+            )
+        except (PermissionDenied, ValidationError) as exc:
+            form.add_error(None, _messaggio(exc))
+            return render(request, self.template_name, {"campagna": campagna, "form": form})
+
+        messages.success(request, "Partecipazione inserita.")
+        return redirect(reverse("contributi:campagna_dettaglio", args=[campagna.pk]))
+
+
+class PartecipazioniImportAnteprimaView(RuoloRequiredMixin, View):
+    """L'anteprima non scrive nulla: il file caricato si legge solo in
+    memoria e i bytes originali si tengono in sessione (DB-backed, base64)
+    per la conferma, mai su disco (D-17)."""
+
+    ruoli_ammessi = RUOLI_GESTIONE_PARTECIPAZIONI
+    template_name = "contributi/partecipazioni_import_anteprima.html"
+
+    def get(self, request, campagna_id):
+        campagna = get_object_or_404(Campagna, pk=campagna_id)
+        return render(
+            request,
+            self.template_name,
+            {"campagna": campagna, "form": ImportazionePartecipazioniForm()},
+        )
+
+    def post(self, request, campagna_id):
+        campagna = get_object_or_404(Campagna, pk=campagna_id)
+        form = ImportazionePartecipazioniForm(request.POST, request.FILES)
+        if not form.is_valid():
+            return render(request, self.template_name, {"campagna": campagna, "form": form})
+
+        file = form.cleaned_data["file"]
+        contenuto = file.read()
+        righe = _leggi_righe(file.name, contenuto)
+        piano = costruisci_piano_partecipazioni(righe, campagna=campagna, utente=request.user)
+
+        request.session[_SESSION_FILE_B64] = base64.b64encode(contenuto).decode("ascii")
+        request.session[_SESSION_NOME_FILE] = file.name
+        request.session[_SESSION_CAMPAGNA_ID] = campagna.pk
+        request.session[_SESSION_UTENTE_ID] = request.user.pk
+
+        return render(request, self.template_name, {"campagna": campagna, "piano": piano})
+
+
+class PartecipazioniImportConfermaView(RuoloRequiredMixin, View):
+    """POST-only: rilegge il file dalla sessione e ricalcola il piano da zero
+    (mai riusa quello dell'anteprima), poi applica."""
+
+    ruoli_ammessi = RUOLI_GESTIONE_PARTECIPAZIONI
+
+    def post(self, request, campagna_id):
+        campagna = get_object_or_404(Campagna, pk=campagna_id)
+
+        file_b64 = request.session.get(_SESSION_FILE_B64)
+        utente_id = request.session.get(_SESSION_UTENTE_ID)
+        campagna_sessione_id = request.session.get(_SESSION_CAMPAGNA_ID)
+        if not file_b64 or utente_id != request.user.pk or campagna_sessione_id != campagna.pk:
+            messages.error(
+                request, "L'anteprima è scaduta o non è più valida: ripeti il caricamento del file."
+            )
+            return redirect(
+                reverse("contributi:partecipazioni_import_anteprima", args=[campagna.pk])
+            )
+
+        nome_file = request.session.get(_SESSION_NOME_FILE) or "partecipazioni"
+        contenuto = base64.b64decode(file_b64)
+        righe = _leggi_righe(nome_file, contenuto)
+        piano = costruisci_piano_partecipazioni(righe, campagna=campagna, utente=request.user)
+
+        if not piano.valido:
+            messages.error(request, "Il caricamento non è più valido: ripeti l'operazione.")
+            return redirect(
+                reverse("contributi:partecipazioni_import_anteprima", args=[campagna.pk])
+            )
+
+        file_originale = ContentFile(contenuto, name=nome_file)
+        importazione = applica_piano_partecipazioni(
+            piano, file_originale=file_originale, utente=request.user
+        )
+
+        for chiave in (
+            _SESSION_FILE_B64,
+            _SESSION_NOME_FILE,
+            _SESSION_CAMPAGNA_ID,
+            _SESSION_UTENTE_ID,
+        ):
+            request.session.pop(chiave, None)
+
+        messages.success(request, "Importazione partecipazioni completata.")
+        return redirect(
+            reverse("contributi:importazione_partecipazioni_dettaglio", args=[importazione.pk])
+        )
+
+
+class ImportazionePartecipazioniDettaglioView(RuoloRequiredMixin, View):
+    ruoli_ammessi = RUOLI_GESTIONE_PARTECIPAZIONI
+    template_name = "contributi/importazione_partecipazioni_dettaglio.html"
+
+    def get(self, request, pk):
+        importazione = get_object_or_404(
+            ImportazionePartecipazioni.objects.select_related("campagna", "utente"), pk=pk
+        )
+        return render(request, self.template_name, {"importazione": importazione})
+
+
+class ModelloXlsxPartecipazioniView(RuoloRequiredMixin, View):
+    """Genera al volo (mai su disco) il modello xlsx vuoto con le colonne del
+    tracciato di D-21."""
+
+    ruoli_ammessi = RUOLI_GESTIONE_PARTECIPAZIONI
+
+    def get(self, request, campagna_id):
+        get_object_or_404(Campagna, pk=campagna_id)
+        cartella = Workbook()
+        foglio = cartella.active
+        foglio.append(list(COLONNE_TRACCIATO))
+        buffer = io.BytesIO()
+        cartella.save(buffer)
+        response = HttpResponse(
+            buffer.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = 'attachment; filename="modello_partecipazioni.xlsx"'
+        return response
+
+
+def _leggi_righe(nome_file: str, contenuto: bytes):
+    if nome_file.lower().endswith(".csv"):
+        return leggi_righe_csv(contenuto.decode("utf-8-sig"))
+    return leggi_righe_xlsx(contenuto)
+
+
+def _messaggio(exc: Exception) -> str:
+    if hasattr(exc, "messages"):
+        return "; ".join(exc.messages)
+    return str(exc)

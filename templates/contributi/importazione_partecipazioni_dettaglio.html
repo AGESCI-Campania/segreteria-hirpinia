@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block page_title %}Importazione del {{ importazione.eseguita_il|date:"d/m/Y" }}{% endblock %}
+
+{% block content %}
+  <h1>Importazione partecipazioni — campagna {{ importazione.campagna.anno }}</h1>
+  <p>Eseguita da {{ importazione.utente|default:"—" }} il {{ importazione.eseguita_il }}.</p>
+
+  <h2>Conteggi</h2>
+  <table class="table table-sm">
+    <tbody>
+      {% for chiave, valore in importazione.conteggi.items %}
+        <tr>
+          <th>{{ chiave }}</th>
+          <td>{{ valore }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if importazione.anomalie %}
+    <h2>Anomalie e conflitti</h2>
+    <table class="table table-sm">
+      <thead>
+        <tr>
+          <th>Riga</th>
+          <th>Livello</th>
+          <th>Campo</th>
+          <th>Dettaglio</th>
+          <th>Codice socio</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for anomalia in importazione.anomalie %}
+          <tr>
+            <td>{{ anomalia.numero_riga }}</td>
+            <td>{{ anomalia.livello }}</td>
+            <td>{{ anomalia.campo }}</td>
+            <td>{{ anomalia.dettaglio }}</td>
+            <td>{{ anomalia.codice_socio }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endblock %}

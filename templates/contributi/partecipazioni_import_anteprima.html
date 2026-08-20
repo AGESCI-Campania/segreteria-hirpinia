@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block page_title %}Import partecipazioni{% endblock %}
+
+{% block content %}
+  <h1>Carica partecipazioni — campagna {{ campagna.anno }}</h1>
+
+  <form method="post" enctype="multipart/form-data" class="mb-4">
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="mb-3">
+        {{ field.label_tag }}
+        {{ field }}
+        {{ field.errors }}
+      </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-primary">Analizza file</button>
+  </form>
+
+  {% if piano %}
+    <h2>Anteprima</h2>
+    <ul>
+      <li>Righe valide da creare: {{ piano.valide|length }}</li>
+      <li>Già presenti (nessuna scrittura): {{ piano.gia_presenti|length }}</li>
+      <li>Conflitti (da risolvere manualmente): {{ piano.conflitti|length }}</li>
+    </ul>
+
+    {% if piano.conflitti %}
+      <h3>Conflitti</h3>
+      <table class="table table-sm">
+        <thead>
+          <tr><th>Riga</th><th>Codice socio</th><th>Differenze</th></tr>
+        </thead>
+        <tbody>
+          {% for c in piano.conflitti %}
+            <tr>
+              <td>{{ c.numero_riga }}</td>
+              <td>{{ c.codice_socio }}</td>
+              <td>{{ c.differenze }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+
+    {% if piano.anomalie %}
+      <h3>Anomalie</h3>
+      <table class="table table-sm">
+        <thead>
+          <tr>
+            <th>Riga</th>
+            <th>Livello</th>
+            <th>Campo</th>
+            <th>Dettaglio</th>
+            <th>Codice socio</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for anomalia in piano.anomalie %}
+            <tr>
+              <td>{{ anomalia.numero_riga }}</td>
+              <td>{{ anomalia.livello }}</td>
+              <td>{{ anomalia.campo }}</td>
+              <td>{{ anomalia.dettaglio }}</td>
+              <td>{{ anomalia.codice_socio }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+
+    {% if piano.valido %}
+      <form method="post" action="{% url 'contributi:partecipazioni_import_conferma' campagna.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success">Conferma importazione</button>
+      </form>
+    {% else %}
+      <p class="text-danger">
+        La campagna non è aperta all'inserimento o è fuori dalla finestra prevista.
+      </p>
+    {% endif %}
+  {% endif %}
+{% endblock %}

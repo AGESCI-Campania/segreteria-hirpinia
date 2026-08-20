@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block page_title %}Campagna {{ campagna.anno }}{% endblock %}
+
+{% block content %}
+  <h1>Campagna {{ campagna.anno }} — {{ campagna.get_stato_display }}</h1>
+  <ul>
+    <li>Budget: {{ campagna.budget }}</li>
+    <li>Tetto per partecipazione: {{ campagna.tetto_per_partecipazione }}</li>
+    <li>Finestra di inserimento: {{ campagna.data_inizio_inserimento }} – {{ campagna.data_fine_inserimento }}</li>
+  </ul>
+
+  <div class="mb-3">
+    <a href="{% url 'contributi:partecipazione_inserisci' campagna.pk %}" class="btn btn-primary">
+      Inserisci partecipazione
+    </a>
+    <a href="{% url 'contributi:partecipazioni_import_anteprima' campagna.pk %}" class="btn btn-secondary">
+      Carica da xlsx/CSV
+    </a>
+    <a href="{% url 'contributi:partecipazioni_modello_xlsx' campagna.pk %}" class="btn btn-outline-secondary">
+      Scarica modello
+    </a>
+  </div>
+
+  <h2>Partecipazioni</h2>
+  <table class="table table-sm">
+    <thead>
+      <tr>
+        <th>Capo</th>
+        <th>Gruppo</th>
+        <th>Tipologia</th>
+        <th>Data inizio</th>
+        <th>Stato</th>
+        <th>Quota versata</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in partecipazioni %}
+        <tr>
+          <td>{{ p.capo }}</td>
+          <td>{{ p.gruppo }}</td>
+          <td>{{ p.tipologia }}</td>
+          <td>{{ p.data_inizio }}</td>
+          <td>{{ p.get_stato_display }}</td>
+          <td>{{ p.quota_versata }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6">Nessuna partecipazione.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
