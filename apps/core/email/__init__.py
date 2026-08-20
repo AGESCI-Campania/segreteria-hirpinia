@@ -10,17 +10,21 @@ Provider supportati — vedi § 8 del documento di progettazione:
 ===========================  ===================================================
 ``EMAIL_PROVIDER``           Backend
 ===========================  ===================================================
-``console``                  django.core.mail.backends.console.EmailBackend
+``console``                  apps.core.email.console.ConsoleFileEmailBackend
 ``locmem``                   django.core.mail.backends.locmem.EmailBackend
 ``smtp``                     django.core.mail.backends.smtp.EmailBackend
 ``gmail_service_account``    apps.core.email.gmail.GmailServiceAccountBackend
 ``gmail_oauth``              apps.core.email.gmail.GmailOAuthBackend
 ``microsoft_graph``          apps.core.email.microsoft.MicrosoftGraphBackend
 ===========================  ===================================================
+
+``console`` è solo di sviluppo: oltre a stampare ogni email sul terminale (come il
+backend console standard di Django), la duplica in un file di log — vedi
+``apps.core.email.console.ConsoleFileEmailBackend``.
 """
 
 EMAIL_BACKENDS: dict[str, str] = {
-    "console": "django.core.mail.backends.console.EmailBackend",
+    "console": "apps.core.email.console.ConsoleFileEmailBackend",
     "locmem": "django.core.mail.backends.locmem.EmailBackend",
     "smtp": "django.core.mail.backends.smtp.EmailBackend",
     "gmail_service_account": "apps.core.email.gmail.GmailServiceAccountBackend",

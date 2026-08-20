@@ -136,6 +136,8 @@ apps/
 - [`docs/Catello_Progettazione.md`](docs/Catello_Progettazione.md) — documento di
   progettazione, fonte di verità per modello dati, regole di dominio e decisioni
   architetturali
+- [`docs/email/`](docs/email/README.md) — guide passo-passo per configurare ciascun
+  provider di invio email (SMTP, Gmail, Microsoft Graph)
 - [`CLAUDE.md`](CLAUDE.md) — vincoli operativi per lo sviluppo assistito
 - [`SETUP_PYCHARM.md`](SETUP_PYCHARM.md) — configurazione dell'IDE
 
