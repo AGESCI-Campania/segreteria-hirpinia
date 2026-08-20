@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# uv
+.uv/
+
+# Django
+*.log
+db.sqlite3
+media/
+staticfiles/
+/static_collected/
+
+# Ambiente
+.env
+.env.local
+*.pem
+
+# Test e qualità
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# IDE
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/usage.statistics.xml
+.idea/shelf/
+.vscode/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Dati importati (mai versionare anagrafiche reali)
+data/input/
+data/output/
+uploads/
+backups/
+
+# Fixture con dati personali reali (vedi apps/anagrafica/tests/fixtures/pdf/README.md)
+apps/anagrafica/tests/fixtures/pdf/**/*.pdf
+apps/anagrafica/tests/fixtures/csv/**/*.csv

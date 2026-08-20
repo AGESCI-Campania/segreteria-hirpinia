@@ -1,0 +1,38 @@
+# Produzione: tutto in Docker tranne il reverse proxy.
+# Generato/adattato da ./configure-prod.sh
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: catello_db
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: catello_web
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - /srv/catello/static:/app/staticfiles
+      - /srv/catello/media:/app/media
+      - /srv/catello/log:/app/log
+
+volumes:
+  postgres_data:

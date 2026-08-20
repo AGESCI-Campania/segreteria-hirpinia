@@ -1,0 +1,22 @@
+# Sviluppo: solo il database in Docker, Django gira sull'host.
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: catello_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-catello}
+      POSTGRES_USER: ${POSTGRES_USER:-catello}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-catello}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-catello}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

@@ -1,0 +1,61 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: catello_test
+          POSTGRES_USER: catello
+          POSTGRES_PASSWORD: catello
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.test
+      SECRET_KEY: chiave-di-test-non-segreta
+      POSTGRES_DB: catello_test
+      POSTGRES_USER: catello
+      POSTGRES_PASSWORD: catello
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installa uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Installa Python
+        run: uv python install 3.14
+
+      - name: Installa le dipendenze
+        run: uv sync --all-groups
+
+      - name: Lint (ruff)
+        run: uv run ruff check .
+
+      - name: Formattazione (black)
+        run: uv run black --check .
+
+      - name: Type check (mypy)
+        run: uv run mypy apps config
+        continue-on-error: true
+
+      - name: Test
+        run: uv run pytest --cov=apps --cov-report=term-missing

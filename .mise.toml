@@ -1,0 +1,49 @@
+[tools]
+python = "3.14"
+uv = "latest"
+
+[env]
+UV_PROJECT_ENVIRONMENT = ".venv"
+
+[tasks.dev]
+description = "Avvia il server di sviluppo"
+run = "uv run python manage.py runserver"
+
+[tasks.migrate]
+description = "Applica le migrazioni"
+run = "uv run python manage.py migrate"
+
+[tasks.makemigrations]
+description = "Genera le migrazioni"
+run = "uv run python manage.py makemigrations"
+
+[tasks.shell]
+description = "Shell Django"
+run = "uv run python manage.py shell"
+
+[tasks.test]
+description = "Esegue la suite di test"
+run = "uv run pytest"
+
+[tasks.lint]
+description = "Controlli di qualita del codice"
+run = [
+    "uv run ruff check .",
+    "uv run black --check .",
+    "uv run mypy apps config",
+]
+
+[tasks.format]
+description = "Formatta il codice"
+run = [
+    "uv run ruff check --fix .",
+    "uv run black .",
+]
+
+[tasks.db-up]
+description = "Avvia PostgreSQL in Docker per lo sviluppo"
+run = "docker compose up -d db"
+
+[tasks.db-down]
+description = "Ferma PostgreSQL"
+run = "docker compose down"
