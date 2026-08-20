@@ -130,6 +130,30 @@ class TestRespingimento:
         assert partecipazione.stato == StatoPartecipazione.RESPINTA
         assert partecipazione.motivazione_respingimento == "Documentazione insufficiente."
 
+    def test_approvata_non_respingibile_da_valutazione_ordinaria(
+        self, mcz, campagna, gruppo, capo, cfm
+    ):
+        # D-24: solo la disattivazione del gruppo può respingere una
+        # partecipazione già APPROVATA, mai la valutazione ordinaria.
+        p = Partecipazione(
+            campagna=campagna,
+            capo=capo,
+            gruppo=gruppo,
+            tipologia=cfm,
+            data_inizio=datetime.date(2026, 6, 1),
+            data_fine=datetime.date(2026, 6, 8),
+            luogo="Base scout",
+            quota_versata=Decimal("51.50"),
+            stato=StatoPartecipazione.APPROVATA,
+        )
+        p.full_clean(exclude=["stato"])
+        p.save()
+
+        with pytest.raises(ValidationError):
+            respingi_partecipazione(utente=mcz, partecipazione=p, motivazione="Errore")
+        p.refresh_from_db()
+        assert p.stato == StatoPartecipazione.APPROVATA
+
 
 class TestRichiestaDocumentiEAllegato:
     def test_ciclo_completo(self, mcz, cg_gruppo, partecipazione):

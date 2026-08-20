@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block page_title %}Disattiva gruppo{% endblock %}
+
+{% block content %}
+  <h1>Disattiva {{ gruppo.nome }} ({{ gruppo.codice }})</h1>
+
+  <div class="alert alert-warning">
+    <p>Se procedi:</p>
+    <ul>
+      <li>{{ conteggi.verranno_respinte }} partecipazione/i ancora attribuite a questo gruppo
+        verranno respinte con causale «Gruppo non più attivo» (D-24).</li>
+      <li>{{ conteggi.gia_riattribuite_altrove }} partecipazione/i di capi trasferiti sono già
+        state ri-attribuite ad altri gruppi e non verranno toccate.</li>
+    </ul>
+    <p class="mb-0">
+      Se ci sono trasferimenti non ancora importati dal CSV anagrafico, importali prima di
+      procedere: dopo la disattivazione verrebbero comunque respinti (D-24, D-29).
+    </p>
+  </div>
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="mb-3">
+        {{ field.label_tag }}
+        {{ field }}
+        {{ field.errors }}
+      </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-danger">Disattiva</button>
+  </form>
+{% endblock %}

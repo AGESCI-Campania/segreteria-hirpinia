@@ -54,6 +54,11 @@ def respingi_partecipazione(
 ) -> Partecipazione:
     _verifica_ruolo_valutazione(utente)
     _verifica_in_valutazione(partecipazione)
+    if partecipazione.stato == StatoPartecipazione.APPROVATA:
+        raise ValidationError(
+            "Una partecipazione già approvata non può essere respinta dalla valutazione "
+            "ordinaria (solo la disattivazione del gruppo può farlo, D-24)."
+        )
     if not motivazione.strip():
         raise ValidationError(
             "Un respingimento senza causale non è possibile, in nessun percorso (D-12/D-24)."

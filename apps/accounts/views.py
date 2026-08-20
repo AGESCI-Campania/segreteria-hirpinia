@@ -23,6 +23,10 @@ class AttesaView(TemplateView):
     template_name = "accounts/attesa.html"
 
 
+class GruppoNonAttivoView(TemplateView):
+    template_name = "accounts/gruppo_non_attivo.html"
+
+
 @method_decorator(axes_dispatch, name="dispatch")
 class AttivazioneView(FormView):
     """Attivazione tramite OTP (D-20): precompila email/codice se arrivano

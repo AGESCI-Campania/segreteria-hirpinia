@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block page_title %}Gruppi{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Gruppi</h1>
+    <a href="{% url 'organizzazione:gruppo_crea' %}" class="btn btn-primary">Nuovo gruppo</a>
+  </div>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Codice</th>
+        <th>Nome</th>
+        <th>Stato ({{ anno_corrente }})</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for gruppo in gruppi %}
+        <tr>
+          <td>{{ gruppo.codice }}</td>
+          <td>{{ gruppo.nome }}</td>
+          <td>
+            {% if gruppo.is_comitato_zona %}
+              —
+            {% elif gruppo.attivo_anno_corrente %}
+              Attivo
+            {% else %}
+              Non attivo
+            {% endif %}
+          </td>
+          <td>
+            {% if not gruppo.is_comitato_zona %}
+              {% if gruppo.attivo_anno_corrente %}
+                <a href="{% url 'organizzazione:gruppo_disattiva' gruppo.codice %}" class="btn btn-sm btn-danger">
+                  Disattiva
+                </a>
+              {% else %}
+                <a href="{% url 'organizzazione:gruppo_riattiva' gruppo.codice %}" class="btn btn-sm btn-secondary">
+                  Riattiva
+                </a>
+              {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4">Nessun gruppo.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

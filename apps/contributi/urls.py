@@ -38,6 +38,11 @@ urlpatterns = [
         name="campagna_liquida",
     ),
     path(
+        "campagne/<int:pk>/riepilogo.pdf",
+        views.CampagnaReportPdfView.as_view(),
+        name="campagna_riepilogo_pdf",
+    ),
+    path(
         "campagne/<int:campagna_id>/partecipazioni/inserisci/",
         views.PartecipazioneInserisciView.as_view(),
         name="partecipazione_inserisci",

@@ -38,6 +38,9 @@
       <a href="{% url 'contributi:campagna_bonifici' campagna.pk %}" class="btn btn-secondary">
         Genera bonifici
       </a>
+      <a href="{% url 'contributi:campagna_riepilogo_pdf' campagna.pk %}" class="btn btn-outline-secondary">
+        Scarica riepilogo PDF
+      </a>
       <a href="{% url 'contributi:campagna_liquida' campagna.pk %}" class="btn btn-danger">
         Liquida campagna
       </a>
@@ -45,11 +48,45 @@
       <a href="{% url 'contributi:campagna_bonifici' campagna.pk %}" class="btn btn-secondary">
         Genera bonifici
       </a>
+      <a href="{% url 'contributi:campagna_riepilogo_pdf' campagna.pk %}" class="btn btn-outline-secondary">
+        Scarica riepilogo PDF
+      </a>
       <p class="mb-0">
         Liquidata il {{ campagna.liquidata_il|date:"d/m/Y" }} — riferimento: {{ campagna.riferimento_bonifico }}
       </p>
     {% endif %}
   </div>
+
+  {% if riepilogo %}
+    <h2>Riepilogo</h2>
+    <ul>
+      <li>Partecipazioni approvate (N): {{ riepilogo.n }}</li>
+      <li>Quota proporzionale: {{ riepilogo.quota_proporzionale|floatformat:2 }}</li>
+      <li>Residuo: {{ riepilogo.residuo }}</li>
+    </ul>
+  {% endif %}
+
+  {% if totali_altri_gruppi %}
+    <h2>Totali altri gruppi</h2>
+    <table class="table table-sm">
+      <thead>
+        <tr>
+          <th>Codice</th>
+          <th>Denominazione</th>
+          <th>Importo</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for totale in totali_altri_gruppi %}
+          <tr>
+            <td>{{ totale.gruppo_codice }}</td>
+            <td>{{ totale.denominazione }}</td>
+            <td>{{ totale.importo }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
 
   <h2>Partecipazioni</h2>
   <table class="table table-sm">

@@ -11,7 +11,9 @@ class ContributiConfig(AppConfig):
         from django.db.models.signals import post_save
 
         from apps.anagrafica.models import TrasferimentoCapo
+        from apps.organizzazione.models import StatoGruppoAnno
 
+        from .disattivazione_gruppo import su_disattivazione_gruppo
         from .models import (
             AllegatoPartecipazione,
             Campagna,
@@ -28,4 +30,9 @@ class ContributiConfig(AppConfig):
             su_trasferimento_capo,
             sender=TrasferimentoCapo,
             dispatch_uid="contributi_riattribuzione_trasferimento",
+        )
+        post_save.connect(
+            su_disattivazione_gruppo,
+            sender=StatoGruppoAnno,
+            dispatch_uid="contributi_respingi_disattivazione_gruppo",
         )

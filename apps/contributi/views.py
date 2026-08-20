@@ -12,6 +12,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.files.base import ContentFile
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.views import View
 from django.views.generic import ListView
@@ -46,6 +47,7 @@ from .importazione_partecipazioni import (
 )
 from .inserimento import RUOLI_GESTIONE_PARTECIPAZIONI, inserisci_partecipazione_manuale
 from .models import Campagna, ImportazionePartecipazioni, Partecipazione
+from .riepilogo import calcola_riepilogo
 from .simulazione import simula_calcolo
 from .valutazione import (
     RUOLI_VALUTAZIONE_PARTECIPAZIONI,
@@ -54,7 +56,11 @@ from .valutazione import (
     respingi_partecipazione,
     richiedi_documenti,
 )
-from .visibilita import partecipazioni_visibili
+from .visibilita import (
+    STATI_CON_VISIBILITA_CROSS_GRUPPO,
+    partecipazioni_visibili,
+    totali_altri_gruppi,
+)
 
 _SESSION_FILE_B64 = "contributi_import_file_b64"
 _SESSION_NOME_FILE = "contributi_import_nome_file"
@@ -105,11 +111,11 @@ class CampagnaDettaglioView(RuoloRequiredMixin, View):
             .select_related("capo", "gruppo", "tipologia")
             .prefetch_related("contributi")
         )
-        return render(
-            request,
-            self.template_name,
-            {"campagna": campagna, "partecipazioni": partecipazioni},
-        )
+        contesto = {"campagna": campagna, "partecipazioni": partecipazioni}
+        if campagna.stato in STATI_CON_VISIBILITA_CROSS_GRUPPO:
+            contesto["riepilogo"] = calcola_riepilogo(campagna)
+            contesto["totali_altri_gruppi"] = totali_altri_gruppi(request.user, campagna)
+        return render(request, self.template_name, contesto)
 
 
 class PartecipazioneInserisciView(RuoloRequiredMixin, View):
@@ -375,6 +381,35 @@ class CampagnaLiquidaView(RuoloRequiredMixin, View):
 
         messages.success(request, "Campagna liquidata.")
         return redirect(reverse("contributi:campagna_dettaglio", args=[campagna.pk]))
+
+
+class CampagnaReportPdfView(RuoloRequiredMixin, View):
+    # Documento per il Comitato/segreteria, stesso perimetro dei bonifici:
+    # non per i singoli gruppi (D-13 mostra i totali altri gruppi a schermo,
+    # non un PDF Zona-wide).
+    ruoli_ammessi = RUOLI_GESTIONE_CAMPAGNA
+
+    def get(self, request, pk):
+        # Import locale: le librerie native di WeasyPrint (Pango/Cairo) non
+        # sono sempre disponibili nell'ambiente di import (es. shell/test che
+        # non toccano mai questa view); un import a livello di modulo
+        # romperebbe l'avvio dell'intera app se assenti.
+        from weasyprint import HTML
+
+        campagna = get_object_or_404(Campagna, pk=pk)
+        try:
+            riepilogo = calcola_riepilogo(campagna)
+        except ValidationError as exc:
+            messages.error(request, _messaggio(exc))
+            return redirect(reverse("contributi:campagna_dettaglio", args=[campagna.pk]))
+
+        html = render_to_string(
+            "contributi/riepilogo_pdf.html", {"campagna": campagna, "riepilogo": riepilogo}
+        )
+        pdf = HTML(string=html).write_pdf()
+        response = HttpResponse(pdf, content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="riepilogo_{campagna.anno}.pdf"'
+        return response
 
 
 class PartecipazioneApprovaView(RuoloRequiredMixin, View):

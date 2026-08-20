@@ -222,12 +222,22 @@ class Partecipazione(FSMModelMixin, models.Model):
 
     @transition(
         field=stato,
-        source=[StatoPartecipazione.INSERITA, StatoPartecipazione.DOCUMENTI_RICHIESTI],
+        source=[
+            StatoPartecipazione.INSERITA,
+            StatoPartecipazione.DOCUMENTI_RICHIESTI,
+            StatoPartecipazione.APPROVATA,
+        ],
         target=StatoPartecipazione.RESPINTA,
     )
     def respingi(self) -> None:
         """Corpo vuoto: `motivazione_respingimento` è validata da `clean()`
-        sopra e impostata dal service layer, non qui."""
+        sopra e impostata dal service layer, non qui. `APPROVATA` come source
+        serve **solo** alla disattivazione di un gruppo (D-24/A-6: un
+        contributo già approvato decade se il gruppo non è più attivo,
+        "nemmeno per il periodo in cui era attivo") — la valutazione
+        ordinaria del Comitato (`apps/contributi/valutazione.py::respingi_partecipazione`)
+        blocca esplicitamente questo caso, per non allargare per errore cosa
+        un MCZ può fare da interfaccia."""
 
     @transition(
         field=stato,

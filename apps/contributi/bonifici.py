@@ -46,14 +46,22 @@ def genera_righe_bonifici(campagna: Campagna, *, causale: str) -> list[RigaBonif
         .filter(totale__gt=Decimal("0"))
         .order_by("partecipazione__gruppo")
     )
+    # .attivi(anno) esclude i gruppi disattivati per l'anno della campagna
+    # (D-24/A-10): le loro partecipazioni restano congelate in
+    # ContributoPartecipazione ma non vengono pagate, e la somma esclusa
+    # resta semplicemente fuori dal totale generato (residuo alla Zona).
     gruppi = {
         g.codice: g
-        for g in Gruppo.objects.filter(codice__in=[r["partecipazione__gruppo"] for r in totali])
+        for g in Gruppo.objects.attivi(campagna.anno).filter(
+            codice__in=[r["partecipazione__gruppo"] for r in totali]
+        )
     }
 
     righe = []
     for riga in totali:
-        gruppo = gruppi[riga["partecipazione__gruppo"]]
+        gruppo = gruppi.get(riga["partecipazione__gruppo"])
+        if gruppo is None:
+            continue
         righe.append(
             RigaBonifico(
                 gruppo_codice=gruppo.codice,
