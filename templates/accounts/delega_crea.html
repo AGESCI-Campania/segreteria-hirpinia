@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block page_title %}Nuova delega{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <h1>Concedi una delega</h1>
+      <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+          <div class="mb-3">
+            {{ field.label_tag }}
+            {{ field }}
+            {{ field.errors }}
+          </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-primary">Crea delega</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

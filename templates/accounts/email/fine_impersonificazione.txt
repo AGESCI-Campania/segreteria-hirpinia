@@ -1,0 +1,9 @@
+Ciao,
+
+ti informiamo che il {{ quando|date:"d/m/Y H:i" }} {{ amministratore }} ha
+concluso una sessione di assistenza sul tuo account Catello (impersonificazione).
+
+Se non eri a conoscenza di questa richiesta di assistenza, contatta la
+segreteria di Zona.
+
+— Catello, AGESCI Zona Hirpinia

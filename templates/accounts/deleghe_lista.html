@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block page_title %}Le mie deleghe{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Deleghe concesse</h1>
+    {% if ruoli_delegabili %}
+      <a href="{% url 'accounts:delega_crea' %}" class="btn btn-primary">Nuova delega</a>
+    {% endif %}
+  </div>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Ruolo</th>
+        <th>Delegato</th>
+        <th>Scadenza</th>
+        <th>Stato</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for delega in deleghe %}
+        <tr>
+          <td>{{ delega.ruolo }}</td>
+          <td>{{ delega.delegato }}</td>
+          <td>{{ delega.data_fine }}</td>
+          <td>{% if delega.attiva %}Attiva{% else %}Revocata{% endif %}</td>
+          <td>
+            {% if delega.attiva %}
+              <form method="post" action="{% url 'accounts:delega_revoca' delega.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-danger">Revoca</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">Nessuna delega concessa.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block page_title %}Attiva il tuo account{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <h1>Attiva il tuo account</h1>
+      <p>Inserisci il codice ricevuto via email e imposta una password.</p>
+      <form method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {% for field in form %}
+          <div class="mb-3">
+            {{ field.label_tag }}
+            {{ field }}
+            {{ field.errors }}
+          </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-primary">Attiva account</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

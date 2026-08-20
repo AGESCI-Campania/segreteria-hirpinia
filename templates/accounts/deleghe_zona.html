@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block page_title %}Deleghe della Zona{% endblock %}
+
+{% block content %}
+  <h1>Tutte le deleghe (SEGRETERIA/ADMIN)</h1>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Delegante</th>
+        <th>Ruolo</th>
+        <th>Delegato</th>
+        <th>Scadenza</th>
+        <th>Stato</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for delega in deleghe %}
+        <tr>
+          <td>{{ delega.delegante }}</td>
+          <td>{{ delega.ruolo }}</td>
+          <td>{{ delega.delegato }}</td>
+          <td>{{ delega.data_fine }}</td>
+          <td>{% if delega.attiva %}Attiva{% else %}Revocata{% endif %}</td>
+          <td>
+            {% if delega.attiva %}
+              <form method="post" action="{% url 'accounts:delega_revoca' delega.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-danger">Revoca</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6">Nessuna delega nella Zona.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

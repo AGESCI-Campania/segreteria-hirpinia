@@ -44,6 +44,8 @@ DATABASES = {
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+AUTH_USER_MODEL = "accounts.Utente"
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -51,9 +53,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # Terze parti — solo quelle che non richiedono configurazione funzionale
-    # prematura (M1+). django-allauth e django-fsm-2 sono deliberatamente
-    # esclusi: vedi CLAUDE.md / piano M0 per la motivazione.
+    # Terze parti
+    "allauth",
+    "allauth.account",
+    "allauth.mfa",
     "agesci_theme",
     "auditlog",
     "guardian",
@@ -61,6 +64,8 @@ INSTALLED_APPS = [
     "axes",
     # App locali
     "apps.core",
+    "apps.organizzazione",
+    "apps.accounts",
     "apps.anagrafica",
 ]
 
@@ -70,8 +75,20 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
+    "apps.accounts.middleware.MFAEnforcementMiddleware",
+    "apps.accounts.middleware.StatoUtenteMiddleware",
+    "apps.accounts.audit.CatelloAuditlogMiddleware",
+    "hijack.middleware.HijackUserMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "axes.middleware.AxesMiddleware",
+]
+
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -130,6 +147,43 @@ EMAIL_SEGRETERIA = os.environ.get("EMAIL_SEGRETERIA", "")
 CAUSALE_BONIFICO_DEFAULT = os.environ.get(
     "CAUSALE_BONIFICO_DEFAULT", "Contributo FoCa {anno} - AGESCI Zona Hirpinia"
 )
+
+# ─── Autenticazione (D-05, D-20, D-26, D-27) ───────────────────────────────────
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_ADAPTER = "apps.accounts.adapters.CatelloAccountAdapter"
+ACCOUNT_USER_MODEL_USERNAME_FIELD = "username"
+
+MFA_ADAPTER = "apps.accounts.adapters.CatelloMFAAdapter"
+MFA_SUPPORTED_TYPES = ["totp", "recovery_codes"]
+
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = 1  # ore
+AXES_LOCKOUT_PARAMETERS = ["username", "ip_address"]
+AXES_RESET_COOL_OFF_ON_FAILURE = False
+
+HIJACK_PERMISSION_CHECK = "apps.accounts.permessi.puo_impersonare"
+HIJACK_LOGIN_REDIRECT_URL = "/"
+HIJACK_LOGOUT_REDIRECT_URL = "/"
+HIJACK_INSERT_BEFORE = "</body>"
+
+LOGIN_URL = "account_login"
+LOGIN_REDIRECT_URL = "core:home"
+LOGOUT_REDIRECT_URL = "core:home"
+
+# D-05 impone la MFA per ADMIN/SEGRETERIA; D-20 la estende esplicitamente a RDZ
+# all'attivazione dell'account: non e' una deviazione, e' la sintesi delle due
+# decisioni.
+RUOLI_MFA_OBBLIGATORIA = {"ADMIN", "SEGRETERIA", "RDZ"}
+
+# D-26: numero massimo di deleghe attive per uno stesso ruolo.
+MAX_DELEGHE_ATTIVE_PER_RUOLO = 3
+
+# Usato per costruire link assoluti nelle email (attivazione, recupero OTP):
+# niente framework Sites, un solo valore letto dall'ambiente.
+SITE_URL = os.environ.get("SITE_URL", "http://localhost:8000")
 
 # ─── Tema (D-15) ────────────────────────────────────────────────────────────────
 AGESCI_THEME_BRANCA = "capi"

@@ -1,0 +1,6 @@
+Ciao,
+
+la delega che avevi concesso per il ruolo {{ delega.ruolo }} a
+{{ delega.delegato }} è stata revocata{% if revocata_da %} da {{ revocata_da }}{% endif %}.
+
+— Catello, AGESCI Zona Hirpinia
