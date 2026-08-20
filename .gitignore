@@ -10,10 +10,14 @@ venv/
 
 # Django
 *.log
+/log/
 db.sqlite3
 media/
 staticfiles/
 /static_collected/
+
+# configure-prod.sh
+.deploy-config
 
 # Ambiente
 .env

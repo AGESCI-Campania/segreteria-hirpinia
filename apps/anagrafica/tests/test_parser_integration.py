@@ -1,14 +1,15 @@
 """Integration tests using the real PDF files in data/input/."""
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 from apps.anagrafica.parser.autorizzazioni import parse_pdf, parse_year
 
 DATA_INPUT = Path(__file__).parent / "fixtures" / "pdf"
 
 pytestmark = pytest.mark.skipif(
-    not DATA_INPUT.exists(),
+    not any(DATA_INPUT.glob("*/*.pdf")),
     reason="fixture PDF non presenti (non versionate: contengono dati personali)",
 )
 
@@ -20,6 +21,7 @@ def records_2026():
 
 # ── Dataset-level assertions ──────────────────────────────────────────────────
 
+
 def test_total_records(records_2026):
     assert len(records_2026) == 218
 
@@ -30,8 +32,19 @@ def test_total_groups(records_2026):
 
 
 def test_all_records_have_required_fields(records_2026):
-    required = {"codice_socio", "nome", "gruppo", "codice_gruppo", "unita",
-                "branca", "genere_unita", "genere", "livello_foca", "funzione", "anno"}
+    required = {
+        "codice_socio",
+        "nome",
+        "gruppo",
+        "codice_gruppo",
+        "unita",
+        "branca",
+        "genere_unita",
+        "genere",
+        "livello_foca",
+        "funzione",
+        "anno",
+    }
     for r in records_2026:
         assert required.issubset(r.keys()), f"Missing fields in {r}"
 
@@ -75,6 +88,7 @@ def test_no_empty_unita(records_2026):
 
 # ── Deduplication: most-recent PDF wins per group ─────────────────────────────
 
+
 def test_avellino4_uses_secondaria(records_2026):
     """Secondaria Avellino4 (15/12/2025) is more recent than Primaria (31/10/2025); must be selected."""
     av4 = [r for r in records_2026 if r["codice_gruppo"] == "E2000"]
@@ -96,6 +110,7 @@ def test_avellino3_uses_secondaria(records_2026):
 
 # ── Known records: Altavilla (E3279) ─────────────────────────────────────────
 
+
 @pytest.fixture(scope="module")
 def altavilla(records_2026):
     return [r for r in records_2026 if r["codice_gruppo"] == "E3279"]
@@ -115,9 +130,7 @@ def test_altavilla_branche_present(altavilla):
 
 def test_altavilla_wrapped_function_parsed(altavilla):
     """A capo with function text that wraps across lines must be parsed correctly."""
-    capo = next(
-        (r for r in altavilla if r["codice_socio"] == "1384748"), None
-    )
+    capo = next((r for r in altavilla if r["codice_socio"] == "1384748"), None)
     assert capo is not None
     assert capo["funzione"] == "ASSISTENTE ECCLESIASTICO DI GRUPPO"
     assert capo["livello_foca"] == 2
@@ -143,15 +156,14 @@ def test_altavilla_rs_unit(altavilla):
 
 def test_altavilla_capo_in_formazione(altavilla):
     """New capi (FOCA 1-2) have livello_foca <= 2."""
-    capo = next(
-        (r for r in altavilla if r["codice_socio"] == "1346897"), None
-    )
+    capo = next((r for r in altavilla if r["codice_socio"] == "1346897"), None)
     assert capo is not None
     assert capo["livello_foca"] <= 2
     assert capo["genere"] == "F"
 
 
 # ── Known records: Avellino 4 (E2000) – unit gender ─────────────────────────
+
 
 @pytest.fixture(scope="module")
 def avellino4(records_2026):
@@ -174,6 +186,7 @@ def test_avellino4_cerchio_femminile(avellino4):
 
 # ── Error handling ────────────────────────────────────────────────────────────
 
+
 def test_missing_year_dir_raises():
     with pytest.raises(FileNotFoundError):
         parse_year(DATA_INPUT, year=1900)
@@ -191,6 +204,7 @@ def test_default_year_picks_most_recent():
 
 
 # ── API per singolo file (usata dall'importazione web) ────────────────────────
+
 
 def test_parse_pdf_da_percorso():
     """parse_pdf() su un percorso restituisce un ParseResult valido."""

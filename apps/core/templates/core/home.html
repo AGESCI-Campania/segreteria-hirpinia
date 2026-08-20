@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% load agesci_tags %}
+
+{% block page_title %}Catello — {{ agesci_theme_nome }}{% endblock %}
+
+{% block content %}
+  <div class="text-center py-5">
+    {% emblema_zona "hirpinia" css_class="img-fluid mb-4" alt=agesci_theme_nome %}
+    <h1>Catello</h1>
+    <p class="lead">Piattaforma di segreteria della AGESCI {{ agesci_theme_nome }}.</p>
+  </div>
+{% endblock %}

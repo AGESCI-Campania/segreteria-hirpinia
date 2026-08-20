@@ -1,0 +1,39 @@
+# Ambiente e segreti: mai nell'immagine
+.venv/
+.git/
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Cache di sviluppo
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Django
+media/
+staticfiles/
+*.log
+
+# IDE / sistema
+.idea/
+.vscode/
+.DS_Store
+
+# Dati personali reali: mai nell'immagine
+data/input/
+data/output/
+uploads/
+backups/
+apps/anagrafica/tests/fixtures/pdf/**/*.pdf
+apps/anagrafica/tests/fixtures/csv/**/*.csv
+
+# Documentazione: non serve nell'immagine runtime
+docs/

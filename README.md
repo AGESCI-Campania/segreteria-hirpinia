@@ -72,6 +72,19 @@ Domini: `segreteria.agescihirpinia.it` (primario), `catello.agescihirpinia.it` (
 docker compose -f compose.prod.yaml up -d
 ```
 
+Se `./configure-prod.sh` genera l'opzione `nginx-docker`, avviare invece con:
+
+```bash
+docker compose -f compose.prod.yaml -f compose.prod.nginx.yaml up -d
+```
+
+**Al primo deploy**, oltre all'avvio, va creata una tantum la tabella della cache di
+produzione (comando non idempotente, non incluso in `docker/entrypoint.sh`):
+
+```bash
+docker compose -f compose.prod.yaml exec web python manage.py createcachetable
+```
+
 ## Accessi
 
 Autenticazione locale con django-allauth (email + MFA), senza SSO. Gli account possono

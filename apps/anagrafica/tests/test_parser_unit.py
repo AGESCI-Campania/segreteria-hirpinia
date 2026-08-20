@@ -1,19 +1,18 @@
 """Unit tests for parser helper functions."""
 
-import pytest
 from datetime import datetime
 
 from apps.anagrafica.parser.autorizzazioni import (
     _branca,
+    _extract_pdf_metadata,
     _genere_unita,
     _is_formation_page,
     _parse_date,
-    _extract_pdf_metadata,
     _parse_person_block,
 )
 
-
 # ── _branca ───────────────────────────────────────────────────────────────────
+
 
 class TestBranca:
     def test_branco(self):
@@ -43,6 +42,7 @@ class TestBranca:
 
 # ── _genere_unita ─────────────────────────────────────────────────────────────
 
+
 class TestGenereUnita:
     def test_maschile(self):
         assert _genere_unita("BRANCO/CERCHIO MASCHILE") == "MASCHILE"
@@ -62,6 +62,7 @@ class TestGenereUnita:
 
 # ── _is_formation_page ────────────────────────────────────────────────────────
 
+
 class TestIsFormationPage:
     def test_detects_formation(self):
         text = "G1 COMUNITA` CAPI - Formazione e impegni formativi\nsome content"
@@ -73,6 +74,7 @@ class TestIsFormationPage:
 
 
 # ── _parse_date ───────────────────────────────────────────────────────────────
+
 
 class TestParseDate:
     def test_valid(self):
@@ -86,6 +88,7 @@ class TestParseDate:
 
 
 # ── _extract_pdf_metadata ─────────────────────────────────────────────────────
+
 
 class TestExtractPdfMetadata:
     _PAGE = (
@@ -119,6 +122,7 @@ class TestExtractPdfMetadata:
 
 
 # ── _parse_person_block ───────────────────────────────────────────────────────
+
 
 class TestParsePersonBlock:
 

@@ -1,0 +1,17 @@
+{% extends "agesci_theme/base.html" %}
+{% load agesci_tags %}
+{% load agesci_components %}
+
+{% block title %}{% block page_title %}{{ agesci_theme_nome }}{% endblock %}{% endblock %}
+
+{% block header_nav %}
+  <li>
+    <a href="{% url 'core:home' %}" class="nav-link">Home</a>
+  </li>
+{% endblock %}
+
+{% block offcanvas_nav %}
+  <li><a href="{% url 'core:home' %}" class="nav-link">Home</a></li>
+{% endblock %}
+
+{% block content %}{% endblock %}
