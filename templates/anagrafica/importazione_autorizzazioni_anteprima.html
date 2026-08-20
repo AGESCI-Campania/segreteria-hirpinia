@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block page_title %}Import autorizzazioni{% endblock %}
+
+{% block content %}
+  <h1>Import PDF di autorizzazione</h1>
+
+  <form method="post" enctype="multipart/form-data" class="mb-4">
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="mb-3">
+        {{ field.label_tag }}
+        {{ field }}
+        {{ field.errors }}
+      </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-primary">Analizza file</button>
+  </form>
+
+  {% if piano %}
+    <h2>Anteprima</h2>
+    <ul>
+      <li>PDF riconosciuti: {{ piano.pdf_processati }}</li>
+      <li>Gruppi applicabili: {{ piano.pdf_vincitori|length }}</li>
+      <li>Incarichi da scrivere: {{ piano.incarichi|length }}</li>
+    </ul>
+
+    {% if piano.anomalie %}
+      <h3>Anomalie</h3>
+      <table class="table table-sm">
+        <thead>
+          <tr>
+            <th>Livello</th>
+            <th>Campo</th>
+            <th>Dettaglio</th>
+            <th>Codice socio</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for anomalia in piano.anomalie %}
+            <tr>
+              <td>{{ anomalia.livello }}</td>
+              <td>{{ anomalia.campo }}</td>
+              <td>{{ anomalia.dettaglio }}</td>
+              <td>{{ anomalia.codice_socio }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+
+    <form method="post" action="{% url 'anagrafica:importazione_autorizzazioni_conferma' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-success">Conferma importazione</button>
+    </form>
+  {% endif %}
+{% endblock %}

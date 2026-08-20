@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block page_title %}Incarichi {{ codice_socio }}{% endblock %}
+
+{% block content %}
+  <h1>Incarichi di {{ codice_socio }} — anno {{ anno_scout }}</h1>
+
+  <table class="table table-sm">
+    <thead>
+      <tr>
+        <th>Gruppo di servizio</th>
+        <th>Unità</th>
+        <th>Funzione</th>
+        <th>Origine</th>
+        <th>Cessato il</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for incarico in incarichi %}
+        <tr>
+          <td>{{ incarico.gruppo_servizio }}</td>
+          <td>{{ incarico.codice_unita }} {{ incarico.nome_unita }}</td>
+          <td>{{ incarico.get_funzione_display }}</td>
+          <td>{{ incarico.get_origine_display }}</td>
+          <td>{{ incarico.cessato_il|default:"—" }}</td>
+          <td>
+            {% if incarico.origine == "MANUALE" and not incarico.cessato_il %}
+              <form method="post" action="{% url 'anagrafica:cessa_incarico' incarico.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-danger">Cessa</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6">Nessun incarico per questo anno.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <a href="{% url 'anagrafica:assegna_incarico' %}?codice_socio={{ codice_socio }}" class="btn btn-primary">
+    Assegna nuovo incarico
+  </a>
+{% endblock %}

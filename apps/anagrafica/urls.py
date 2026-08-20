@@ -30,4 +30,37 @@ urlpatterns = [
         views.ImportazioneReportCSVView.as_view(),
         name="importazione_report",
     ),
+    path(
+        "importazioni-autorizzazioni/",
+        views.ImportazioneAutorizzazioniListaView.as_view(),
+        name="importazione_autorizzazioni_lista",
+    ),
+    path(
+        "importazioni-autorizzazioni/nuova/",
+        views.ImportazioneAutorizzazioniAnteprimaView.as_view(),
+        name="importazione_autorizzazioni_anteprima",
+    ),
+    path(
+        "importazioni-autorizzazioni/conferma/",
+        views.ImportazioneAutorizzazioniConfermaView.as_view(),
+        name="importazione_autorizzazioni_conferma",
+    ),
+    path(
+        "importazioni-autorizzazioni/<int:pk>/",
+        views.ImportazioneAutorizzazioniDettaglioView.as_view(),
+        name="importazione_autorizzazioni_dettaglio",
+    ),
+    path(
+        "importazioni-autorizzazioni/<int:pk>/report/",
+        views.ImportazioneAutorizzazioniReportCSVView.as_view(),
+        name="importazione_autorizzazioni_report",
+    ),
+    path("incarichi/ricerca-capo/", views.RicercaCapoView.as_view(), name="ricerca_capo"),
+    path("incarichi/assegna/", views.AssegnaIncaricoView.as_view(), name="assegna_incarico"),
+    path("incarichi/<int:pk>/cessa/", views.CessaIncaricoView.as_view(), name="cessa_incarico"),
+    path(
+        "capi/<str:codice_socio>/incarichi/",
+        views.CapoIncarichiView.as_view(),
+        name="capo_incarichi",
+    ),
 ]

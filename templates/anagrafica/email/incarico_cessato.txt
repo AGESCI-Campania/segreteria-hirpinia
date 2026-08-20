@@ -1,0 +1,10 @@
+Ciao,
+
+è stato cessato un incarico assegnato manualmente:
+
+Capo: {{ incarico.capo }}
+Gruppo di servizio: {{ incarico.gruppo_servizio }}
+Unità: {{ incarico.codice_unita }} {{ incarico.nome_unita }}
+Funzione: {{ incarico.get_funzione_display }}
+
+— Catello, AGESCI Zona Hirpinia

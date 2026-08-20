@@ -1,6 +1,16 @@
 from django.contrib import admin
 
-from .models import Capo, CensimentoCapo, ImportazioneCSV, TrasferimentoCapo
+from .models import (
+    Capo,
+    CensimentoCapo,
+    FileAutorizzazionePDF,
+    ImportazioneAutorizzazioni,
+    ImportazioneCSV,
+    IncaricoUnita,
+    MembroPattuglia,
+    Pattuglia,
+    TrasferimentoCapo,
+)
 
 
 @admin.register(Capo)
@@ -60,4 +70,88 @@ class ImportazioneCSVAdmin(admin.ModelAdmin):
         return False
 
     def has_change_permission(self, request, obj=None):
+        return False
+
+
+class FileAutorizzazionePDFInline(admin.TabularInline):
+    model = FileAutorizzazionePDF
+    extra = 0
+    readonly_fields = ["file", "nome_file_originale", "gruppo", "data_aggiornamento"]
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(ImportazioneAutorizzazioni)
+class ImportazioneAutorizzazioniAdmin(admin.ModelAdmin):
+    # È un report, non un modulo di editing.
+    list_display = ["eseguita_il", "anno_scout", "utente"]
+    list_filter = ["anno_scout"]
+    readonly_fields = ["anno_scout", "conteggi", "anomalie", "utente", "eseguita_il"]
+    inlines = [FileAutorizzazionePDFInline]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(IncaricoUnita)
+class IncaricoUnitaAdmin(admin.ModelAdmin):
+    # Sola lettura, più stringente di TrasferimentoCapo: una modifica diretta
+    # bypasserebbe il ricalcolo dei derivati e la sincronizzazione del ruolo CG.
+    list_display = [
+        "capo",
+        "anno_scout",
+        "gruppo_servizio",
+        "codice_unita",
+        "funzione",
+        "origine",
+        "cessato_il",
+    ]
+    list_filter = ["anno_scout", "gruppo_servizio", "funzione", "origine"]
+    search_fields = ["capo__codice_socio", "capo__cognome", "capo__nome"]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(Pattuglia)
+class PattugliaAdmin(admin.ModelAdmin):
+    list_display = ["branca", "anno_scout"]
+    list_filter = ["anno_scout", "branca"]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(MembroPattuglia)
+class MembroPattugliaAdmin(admin.ModelAdmin):
+    list_display = ["pattuglia", "capo"]
+    list_filter = ["pattuglia__anno_scout", "pattuglia__branca"]
+    search_fields = ["capo__codice_socio", "capo__cognome", "capo__nome"]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
         return False
