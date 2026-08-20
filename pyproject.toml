@@ -63,10 +63,15 @@ packages = ["apps", "config"]
 [tool.black]
 line-length = 100
 target-version = ["py314"]
+# Parser portato e validato (D-07): nessuna modifica, nemmeno di formattazione.
+# Vedi CLAUDE.md § Parsing PDF.
+extend-exclude = "apps/anagrafica/parser/autorizzazioni.py"
 
 [tool.ruff]
 line-length = 100
 target-version = "py314"
+# Stessa esclusione di black, stesso motivo.
+extend-exclude = ["apps/anagrafica/parser/autorizzazioni.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "DJ", "C4"]
