@@ -18,8 +18,14 @@ from openpyxl import Workbook
 
 from apps.accounts.mixins import RuoloRequiredMixin
 
-from .campagne import RUOLI_GESTIONE_CAMPAGNA, apri_campagna
-from .forms import CampagnaForm, ImportazionePartecipazioniForm, PartecipazioneManualeForm
+from .campagne import RUOLI_GESTIONE_CAMPAGNA, apri_campagna, avvia_valutazione, chiudi_campagna
+from .forms import (
+    AllegatoPartecipazioneForm,
+    CampagnaForm,
+    ImportazionePartecipazioniForm,
+    PartecipazioneManualeForm,
+    RespingiPartecipazioneForm,
+)
 from .importazione_partecipazioni import (
     COLONNE_TRACCIATO,
     applica_piano_partecipazioni,
@@ -28,7 +34,15 @@ from .importazione_partecipazioni import (
     leggi_righe_xlsx,
 )
 from .inserimento import RUOLI_GESTIONE_PARTECIPAZIONI, inserisci_partecipazione_manuale
-from .models import Campagna, ImportazionePartecipazioni
+from .models import Campagna, ImportazionePartecipazioni, Partecipazione
+from .simulazione import simula_calcolo
+from .valutazione import (
+    RUOLI_VALUTAZIONE_PARTECIPAZIONI,
+    approva_partecipazione,
+    carica_allegato,
+    respingi_partecipazione,
+    richiedi_documenti,
+)
 from .visibilita import partecipazioni_visibili
 
 _SESSION_FILE_B64 = "contributi_import_file_b64"
@@ -75,8 +89,10 @@ class CampagnaDettaglioView(RuoloRequiredMixin, View):
 
     def get(self, request, pk):
         campagna = get_object_or_404(Campagna, pk=pk)
-        partecipazioni = partecipazioni_visibili(request.user, campagna).select_related(
-            "capo", "gruppo", "tipologia"
+        partecipazioni = (
+            partecipazioni_visibili(request.user, campagna)
+            .select_related("capo", "gruppo", "tipologia")
+            .prefetch_related("contributi")
         )
         return render(
             request,
@@ -236,6 +252,154 @@ class ModelloXlsxPartecipazioniView(RuoloRequiredMixin, View):
         )
         response["Content-Disposition"] = 'attachment; filename="modello_partecipazioni.xlsx"'
         return response
+
+
+class CampagnaAvviaValutazioneView(RuoloRequiredMixin, View):
+    ruoli_ammessi = RUOLI_GESTIONE_CAMPAGNA
+
+    def post(self, request, pk):
+        campagna = get_object_or_404(Campagna, pk=pk)
+        try:
+            avvia_valutazione(utente=request.user, campagna=campagna)
+        except (PermissionDenied, ValidationError) as exc:
+            messages.error(request, _messaggio(exc))
+        else:
+            messages.success(
+                request,
+                "Valutazione avviata: le tipologie ad approvazione automatica "
+                "sono state approvate.",
+            )
+        return redirect(reverse("contributi:campagna_dettaglio", args=[campagna.pk]))
+
+
+class CampagnaSimulaView(RuoloRequiredMixin, View):
+    ruoli_ammessi = RUOLI_GESTIONE_CAMPAGNA
+
+    def post(self, request, pk):
+        campagna = get_object_or_404(Campagna, pk=pk)
+        try:
+            risultato = simula_calcolo(utente=request.user, campagna=campagna)
+        except (PermissionDenied, ValidationError) as exc:
+            messages.error(request, _messaggio(exc))
+        else:
+            messages.success(
+                request,
+                f"Simulazione eseguita: {risultato.n} partecipazioni approvate, "
+                f"quota proporzionale {risultato.quota_proporzionale:.2f}, "
+                f"residuo {risultato.residuo:.2f}.",
+            )
+        return redirect(reverse("contributi:campagna_dettaglio", args=[campagna.pk]))
+
+
+class CampagnaChiudiView(RuoloRequiredMixin, View):
+    ruoli_ammessi = RUOLI_GESTIONE_CAMPAGNA
+
+    def post(self, request, pk):
+        campagna = get_object_or_404(Campagna, pk=pk)
+        try:
+            chiudi_campagna(request, utente=request.user, campagna=campagna)
+        except (PermissionDenied, ValidationError) as exc:
+            messages.error(request, _messaggio(exc))
+        else:
+            messages.success(request, "Campagna chiusa: importi congelati.")
+        return redirect(reverse("contributi:campagna_dettaglio", args=[campagna.pk]))
+
+
+class PartecipazioneApprovaView(RuoloRequiredMixin, View):
+    ruoli_ammessi = RUOLI_VALUTAZIONE_PARTECIPAZIONI
+
+    def post(self, request, campagna_id, pk):
+        partecipazione = get_object_or_404(Partecipazione, pk=pk, campagna_id=campagna_id)
+        try:
+            approva_partecipazione(utente=request.user, partecipazione=partecipazione)
+        except (PermissionDenied, ValidationError) as exc:
+            messages.error(request, _messaggio(exc))
+        else:
+            messages.success(request, "Partecipazione approvata.")
+        return redirect(reverse("contributi:campagna_dettaglio", args=[campagna_id]))
+
+
+class PartecipazioneRespingiView(RuoloRequiredMixin, View):
+    ruoli_ammessi = RUOLI_VALUTAZIONE_PARTECIPAZIONI
+    template_name = "contributi/partecipazione_respingi.html"
+
+    def get(self, request, campagna_id, pk):
+        partecipazione = get_object_or_404(Partecipazione, pk=pk, campagna_id=campagna_id)
+        return render(
+            request,
+            self.template_name,
+            {"partecipazione": partecipazione, "form": RespingiPartecipazioneForm()},
+        )
+
+    def post(self, request, campagna_id, pk):
+        partecipazione = get_object_or_404(Partecipazione, pk=pk, campagna_id=campagna_id)
+        form = RespingiPartecipazioneForm(request.POST)
+        if not form.is_valid():
+            return render(
+                request, self.template_name, {"partecipazione": partecipazione, "form": form}
+            )
+        try:
+            respingi_partecipazione(
+                utente=request.user,
+                partecipazione=partecipazione,
+                motivazione=form.cleaned_data["motivazione"],
+            )
+        except (PermissionDenied, ValidationError) as exc:
+            form.add_error(None, _messaggio(exc))
+            return render(
+                request, self.template_name, {"partecipazione": partecipazione, "form": form}
+            )
+        messages.success(request, "Partecipazione respinta.")
+        return redirect(reverse("contributi:campagna_dettaglio", args=[campagna_id]))
+
+
+class PartecipazioneRichiediDocumentiView(RuoloRequiredMixin, View):
+    ruoli_ammessi = RUOLI_VALUTAZIONE_PARTECIPAZIONI
+
+    def post(self, request, campagna_id, pk):
+        partecipazione = get_object_or_404(Partecipazione, pk=pk, campagna_id=campagna_id)
+        try:
+            richiedi_documenti(utente=request.user, partecipazione=partecipazione)
+        except (PermissionDenied, ValidationError) as exc:
+            messages.error(request, _messaggio(exc))
+        else:
+            messages.success(request, "Documentazione richiesta al gruppo.")
+        return redirect(reverse("contributi:campagna_dettaglio", args=[campagna_id]))
+
+
+class AllegatoPartecipazioneCaricaView(RuoloRequiredMixin, View):
+    ruoli_ammessi = RUOLI_GESTIONE_PARTECIPAZIONI
+    template_name = "contributi/allegato_carica.html"
+
+    def get(self, request, campagna_id, pk):
+        partecipazione = get_object_or_404(Partecipazione, pk=pk, campagna_id=campagna_id)
+        return render(
+            request,
+            self.template_name,
+            {"partecipazione": partecipazione, "form": AllegatoPartecipazioneForm()},
+        )
+
+    def post(self, request, campagna_id, pk):
+        partecipazione = get_object_or_404(Partecipazione, pk=pk, campagna_id=campagna_id)
+        form = AllegatoPartecipazioneForm(request.POST, request.FILES)
+        if not form.is_valid():
+            return render(
+                request, self.template_name, {"partecipazione": partecipazione, "form": form}
+            )
+        try:
+            carica_allegato(
+                utente=request.user,
+                partecipazione=partecipazione,
+                file=form.cleaned_data["file"],
+                tipo=form.cleaned_data["tipo"],
+            )
+        except (PermissionDenied, ValidationError) as exc:
+            form.add_error(None, _messaggio(exc))
+            return render(
+                request, self.template_name, {"partecipazione": partecipazione, "form": form}
+            )
+        messages.success(request, "Documento caricato.")
+        return redirect(reverse("contributi:campagna_dettaglio", args=[campagna_id]))
 
 
 def _leggi_righe(nome_file: str, contenuto: bytes):

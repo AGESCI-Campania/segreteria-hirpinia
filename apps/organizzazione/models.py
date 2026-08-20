@@ -1,6 +1,8 @@
 from django.core.validators import RegexValidator
 from django.db import models
 
+from .iban import valida_iban
+
 CODICE_ORDINALE_VALIDATOR = RegexValidator(
     regex=r"^E\d{4}$",
     message="Il codice ordinale deve avere la forma 'E' seguita da 4 cifre (es. E0133).",
@@ -50,7 +52,7 @@ class Gruppo(models.Model):
     denominazione_sociale = models.CharField(max_length=200, blank=True)
     parrocchia = models.CharField(max_length=200, blank=True)
     diocesi = models.CharField(max_length=100, blank=True)
-    iban = models.CharField(max_length=34, blank=True)
+    iban = models.CharField(max_length=34, blank=True, validators=[valida_iban])
     intestazione_conto = models.CharField(max_length=200, blank=True)
     data_autorizzazione = models.DateField(
         null=True,

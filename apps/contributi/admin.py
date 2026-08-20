@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from .models import Campagna, ImportazionePartecipazioni, Partecipazione, TipologiaCampo
+from .models import (
+    AllegatoPartecipazione,
+    Campagna,
+    ContributoPartecipazione,
+    ImportazionePartecipazioni,
+    Partecipazione,
+    TipologiaCampo,
+)
 
 
 @admin.register(Campagna)
@@ -46,4 +53,28 @@ class ImportazionePartecipazioniAdmin(admin.ModelAdmin):
         return False
 
     def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(ContributoPartecipazione)
+class ContributoPartecipazioneAdmin(admin.ModelAdmin):
+    # Congelato dal service layer (simulazione o chiusura): sola lettura.
+    list_display = ["partecipazione", "importo", "is_simulazione", "calcolato_il"]
+    list_filter = ["is_simulazione"]
+    readonly_fields = ["partecipazione", "importo", "is_simulazione", "calcolato_il"]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(AllegatoPartecipazione)
+class AllegatoPartecipazioneAdmin(admin.ModelAdmin):
+    # Creato solo da apps.contributi.valutazione::carica_allegato.
+    list_display = ["partecipazione", "tipo", "caricato_da", "caricato_il"]
+    readonly_fields = ["partecipazione", "file", "tipo", "caricato_da", "caricato_il"]
+
+    def has_add_permission(self, request):
         return False

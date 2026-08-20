@@ -12,7 +12,7 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
-from django_fsm import FSMField, FSMModelMixin
+from django_fsm import FSMField, FSMModelMixin, transition
 
 from apps.organizzazione.models import AnnoAssociativo
 
@@ -80,6 +80,17 @@ class Campagna(FSMModelMixin, models.Model):
     def in_finestra_inserimento(self, alla_data: datetime.date | None = None) -> bool:
         alla_data = alla_data or timezone.localdate()
         return self.data_inizio_inserimento <= alla_data <= self.data_fine_inserimento
+
+    @transition(field=stato, source=StatoCampagna.APERTA, target=StatoCampagna.IN_VALUTAZIONE)
+    def avvia_valutazione(self) -> None:
+        """Corpo intenzionalmente vuoto: blocco inserimento e auto-approvazione
+        CFM/CFA/CCG vivono nel service layer
+        (`apps/contributi/campagne.py::avvia_valutazione`), non nel modello."""
+
+    @transition(field=stato, source=StatoCampagna.IN_VALUTAZIONE, target=StatoCampagna.CHIUSA)
+    def chiudi(self) -> None:
+        """Corpo intenzionalmente vuoto: calcolo definitivo e congelamento
+        importi vivono in `apps/contributi/campagne.py::chiudi_campagna`."""
 
 
 class LivelloCampo(models.TextChoices):
@@ -192,6 +203,34 @@ class Partecipazione(FSMModelMixin, models.Model):
         if errors:
             raise ValidationError(errors)
 
+    @transition(
+        field=stato,
+        source=[StatoPartecipazione.INSERITA, StatoPartecipazione.DOCUMENTI_RICHIESTI],
+        target=StatoPartecipazione.APPROVATA,
+    )
+    def approva(self) -> None:
+        """Corpo vuoto: `valutata_da`/`data_valutazione` sono impostati dal
+        service layer (`apps/contributi/valutazione.py` e
+        `apps/contributi/campagne.py::avvia_valutazione` per l'auto-approvazione)
+        prima di `full_clean(exclude=["stato"])` + `save()`."""
+
+    @transition(
+        field=stato,
+        source=[StatoPartecipazione.INSERITA, StatoPartecipazione.DOCUMENTI_RICHIESTI],
+        target=StatoPartecipazione.RESPINTA,
+    )
+    def respingi(self) -> None:
+        """Corpo vuoto: `motivazione_respingimento` è validata da `clean()`
+        sopra e impostata dal service layer, non qui."""
+
+    @transition(
+        field=stato,
+        source=StatoPartecipazione.INSERITA,
+        target=StatoPartecipazione.DOCUMENTI_RICHIESTI,
+    )
+    def richiedi_documenti(self) -> None:
+        """Corpo vuoto: vedi `apps/contributi/valutazione.py`."""
+
 
 class ImportazionePartecipazioni(models.Model):
     """Traccia di ogni esecuzione del caricamento massivo xlsx/CSV (D-21).
@@ -222,6 +261,68 @@ class ImportazionePartecipazioni(models.Model):
         return f"Import partecipazioni {self.campagna_id} del {self.eseguita_il:%d/%m/%Y %H:%M}"
 
 
+class ContributoPartecipazione(models.Model):
+    """Importo calcolato per una partecipazione (D-10). È l'unico aggregato
+    persistito: il totale per gruppo si calcola sommando le partecipazioni
+    secondo l'attribuzione corrente (D-29), mai congelato di per sé. `is_simulazione`
+    (D-16) distingue un calcolo a vuoto (ripetibile, sostituito ad ogni
+    esecuzione da `apps/contributi/simulazione.py`) dal congelamento
+    definitivo scritto una sola volta da
+    `apps/contributi/campagne.py::chiudi_campagna`. Creato solo dal service
+    layer, mai da una view o dall'admin direttamente."""
+
+    partecipazione = models.ForeignKey(
+        Partecipazione, on_delete=models.PROTECT, related_name="contributi"
+    )
+    importo = models.DecimalField(max_digits=10, decimal_places=2)
+    is_simulazione = models.BooleanField()
+    calcolato_il = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Contributo partecipazione"
+        verbose_name_plural = "Contributi partecipazione"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["partecipazione", "is_simulazione"],
+                name="uniq_contributo_partecipazione_simulazione",
+            )
+        ]
+        ordering = ["-calcolato_il"]
+
+    def __str__(self) -> str:
+        etichetta = "simulazione" if self.is_simulazione else "definitivo"
+        return f"{self.partecipazione_id}: {self.importo} ({etichetta})"
+
+
+class AllegatoPartecipazione(models.Model):
+    """Documentazione probatoria caricata dal gruppo su richiesta del
+    Comitato (D-11): non obbligatoria nel flusso ordinario, esiste solo per
+    il ramo `DOCUMENTI_RICHIESTI`. `tipo` è testo libero: il documento di
+    progettazione non definisce un vocabolario controllato."""
+
+    partecipazione = models.ForeignKey(
+        Partecipazione, on_delete=models.PROTECT, related_name="allegati"
+    )
+    file = models.FileField(upload_to="allegati_partecipazioni/%Y/")
+    tipo = models.CharField(max_length=100, blank=True)
+    caricato_da = models.ForeignKey(
+        "accounts.Utente",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="allegati_partecipazioni_caricati",
+    )
+    caricato_il = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Allegato partecipazione"
+        verbose_name_plural = "Allegati partecipazione"
+        ordering = ["-caricato_il"]
+
+    def __str__(self) -> str:
+        return f"Allegato {self.partecipazione_id} ({self.tipo or 'senza tipo'})"
+
+
 __all__ = [
     "StatoCampagna",
     "Campagna",
@@ -230,4 +331,6 @@ __all__ = [
     "StatoPartecipazione",
     "Partecipazione",
     "ImportazionePartecipazioni",
+    "ContributoPartecipazione",
+    "AllegatoPartecipazione",
 ]

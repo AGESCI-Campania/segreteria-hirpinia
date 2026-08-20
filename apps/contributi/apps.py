@@ -12,11 +12,18 @@ class ContributiConfig(AppConfig):
 
         from apps.anagrafica.models import TrasferimentoCapo
 
-        from .models import Campagna, Partecipazione
+        from .models import (
+            AllegatoPartecipazione,
+            Campagna,
+            ContributoPartecipazione,
+            Partecipazione,
+        )
         from .trasferimenti import su_trasferimento_capo
 
         auditlog.register(Campagna)
         auditlog.register(Partecipazione)
+        auditlog.register(ContributoPartecipazione)
+        auditlog.register(AllegatoPartecipazione)
         post_save.connect(
             su_trasferimento_capo,
             sender=TrasferimentoCapo,

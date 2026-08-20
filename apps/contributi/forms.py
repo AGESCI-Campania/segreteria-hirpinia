@@ -45,3 +45,12 @@ class ImportazionePartecipazioniForm(forms.Form):
         if not file.name.lower().endswith((".xlsx", ".csv")):
             raise forms.ValidationError("Estensione non ammessa: carica un file .xlsx o .csv.")
         return file
+
+
+class RespingiPartecipazioneForm(forms.Form):
+    motivazione = forms.CharField(label="Causale", widget=forms.Textarea, max_length=1000)
+
+
+class AllegatoPartecipazioneForm(forms.Form):
+    file = forms.FileField(label="Documento")
+    tipo = forms.CharField(label="Tipo", max_length=100, required=False)

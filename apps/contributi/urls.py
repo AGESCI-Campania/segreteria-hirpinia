@@ -13,9 +13,44 @@ urlpatterns = [
         name="campagna_dettaglio",
     ),
     path(
+        "campagne/<int:pk>/avvia-valutazione/",
+        views.CampagnaAvviaValutazioneView.as_view(),
+        name="campagna_avvia_valutazione",
+    ),
+    path(
+        "campagne/<int:pk>/simula/",
+        views.CampagnaSimulaView.as_view(),
+        name="campagna_simula",
+    ),
+    path(
+        "campagne/<int:pk>/chiudi/",
+        views.CampagnaChiudiView.as_view(),
+        name="campagna_chiudi",
+    ),
+    path(
         "campagne/<int:campagna_id>/partecipazioni/inserisci/",
         views.PartecipazioneInserisciView.as_view(),
         name="partecipazione_inserisci",
+    ),
+    path(
+        "campagne/<int:campagna_id>/partecipazioni/<int:pk>/approva/",
+        views.PartecipazioneApprovaView.as_view(),
+        name="partecipazione_approva",
+    ),
+    path(
+        "campagne/<int:campagna_id>/partecipazioni/<int:pk>/respingi/",
+        views.PartecipazioneRespingiView.as_view(),
+        name="partecipazione_respingi",
+    ),
+    path(
+        "campagne/<int:campagna_id>/partecipazioni/<int:pk>/richiedi-documenti/",
+        views.PartecipazioneRichiediDocumentiView.as_view(),
+        name="partecipazione_richiedi_documenti",
+    ),
+    path(
+        "campagne/<int:campagna_id>/partecipazioni/<int:pk>/allegato/carica/",
+        views.AllegatoPartecipazioneCaricaView.as_view(),
+        name="partecipazione_allegato_carica",
     ),
     path(
         "campagne/<int:campagna_id>/partecipazioni/importa/",

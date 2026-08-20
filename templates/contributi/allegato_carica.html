@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block page_title %}Carica allegato{% endblock %}
+
+{% block content %}
+  <h1>Carica documentazione — {{ partecipazione.capo }}</h1>
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="mb-3">
+        {{ field.label_tag }}
+        {{ field }}
+        {{ field.errors }}
+      </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-primary">Carica</button>
+  </form>
+{% endblock %}

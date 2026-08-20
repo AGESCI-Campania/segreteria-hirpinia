@@ -11,15 +11,30 @@
   </ul>
 
   <div class="mb-3">
-    <a href="{% url 'contributi:partecipazione_inserisci' campagna.pk %}" class="btn btn-primary">
-      Inserisci partecipazione
-    </a>
-    <a href="{% url 'contributi:partecipazioni_import_anteprima' campagna.pk %}" class="btn btn-secondary">
-      Carica da xlsx/CSV
-    </a>
-    <a href="{% url 'contributi:partecipazioni_modello_xlsx' campagna.pk %}" class="btn btn-outline-secondary">
-      Scarica modello
-    </a>
+    {% if campagna.stato == "APERTA" %}
+      <a href="{% url 'contributi:partecipazione_inserisci' campagna.pk %}" class="btn btn-primary">
+        Inserisci partecipazione
+      </a>
+      <a href="{% url 'contributi:partecipazioni_import_anteprima' campagna.pk %}" class="btn btn-secondary">
+        Carica da xlsx/CSV
+      </a>
+      <a href="{% url 'contributi:partecipazioni_modello_xlsx' campagna.pk %}" class="btn btn-outline-secondary">
+        Scarica modello
+      </a>
+      <form method="post" action="{% url 'contributi:campagna_avvia_valutazione' campagna.pk %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-warning">Avvia valutazione</button>
+      </form>
+    {% elif campagna.stato == "IN_VALUTAZIONE" %}
+      <form method="post" action="{% url 'contributi:campagna_simula' campagna.pk %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-secondary">Simula calcolo</button>
+      </form>
+      <form method="post" action="{% url 'contributi:campagna_chiudi' campagna.pk %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Chiudi campagna</button>
+      </form>
+    {% endif %}
   </div>
 
   <h2>Partecipazioni</h2>
@@ -32,6 +47,8 @@
         <th>Data inizio</th>
         <th>Stato</th>
         <th>Quota versata</th>
+        <th>Importo</th>
+        {% if campagna.stato == "IN_VALUTAZIONE" %}<th>Valutazione</th>{% endif %}
       </tr>
     </thead>
     <tbody>
@@ -43,9 +60,33 @@
           <td>{{ p.data_inizio }}</td>
           <td>{{ p.get_stato_display }}</td>
           <td>{{ p.quota_versata }}</td>
+          <td>
+            {% for c in p.contributi.all %}
+              {{ c.importo }}{% if c.is_simulazione %} (simulato){% endif %}<br>
+            {% endfor %}
+          </td>
+          {% if campagna.stato == "IN_VALUTAZIONE" %}
+            <td>
+              {% if p.stato == "INSERITA" or p.stato == "DOCUMENTI_RICHIESTI" %}
+                <form method="post" action="{% url 'contributi:partecipazione_approva' campagna.pk p.pk %}" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-success">Approva</button>
+                </form>
+                <a href="{% url 'contributi:partecipazione_respingi' campagna.pk p.pk %}" class="btn btn-sm btn-danger">Respingi</a>
+                {% if p.stato == "INSERITA" %}
+                  <form method="post" action="{% url 'contributi:partecipazione_richiedi_documenti' campagna.pk p.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">Richiedi documenti</button>
+                  </form>
+                {% else %}
+                  <a href="{% url 'contributi:partecipazione_allegato_carica' campagna.pk p.pk %}" class="btn btn-sm btn-outline-secondary">Carica allegato</a>
+                {% endif %}
+              {% endif %}
+            </td>
+          {% endif %}
         </tr>
       {% empty %}
-        <tr><td colspan="6">Nessuna partecipazione.</td></tr>
+        <tr><td colspan="7">Nessuna partecipazione.</td></tr>
       {% endfor %}
     </tbody>
   </table>
