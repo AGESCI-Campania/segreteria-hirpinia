@@ -163,3 +163,33 @@ def chiudi_campagna(request, *, utente: Utente, campagna: Campagna) -> Campagna:
     campagna.full_clean(exclude=["stato"])
     campagna.save()
     return campagna
+
+
+@vieta_in_impersonificazione("campagna_liquida")
+@transaction.atomic
+def liquida_campagna(
+    request,
+    *,
+    utente: Utente,
+    campagna: Campagna,
+    data_liquidazione: datetime.date,
+    riferimento_bonifico: str,
+) -> Campagna:
+    """CHIUSA → LIQUIDATA (D-12, D-14, §7 passo 7). `data_liquidazione` è la
+    data reale del bonifico eseguito in banca, inserita a mano dalla
+    segreteria: il bonifico è un'operazione manuale fuori da Catello (D-14),
+    non il momento in cui si preme questo bottone."""
+    verifica_ruolo_gestione_campagna(utente)
+    if campagna.stato != StatoCampagna.CHIUSA:
+        raise ValidationError("La campagna non è CHIUSA: impossibile liquidarla (D-12).")
+    if not riferimento_bonifico.strip():
+        raise ValidationError("Il riferimento del bonifico è obbligatorio (D-12).")
+
+    campagna.liquida()
+    campagna.liquidata_il = timezone.make_aware(
+        datetime.datetime.combine(data_liquidazione, datetime.time.min)
+    )
+    campagna.riferimento_bonifico = riferimento_bonifico
+    campagna.full_clean(exclude=["stato"])
+    campagna.save()
+    return campagna

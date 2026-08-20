@@ -4,6 +4,7 @@ massivo a due fasi (D-21) — stesso schema anteprima/conferma già in uso in
 CLAUDE.md)."""
 
 import base64
+import csv
 import io
 
 from django.contrib import messages
@@ -17,12 +18,22 @@ from django.views.generic import ListView
 from openpyxl import Workbook
 
 from apps.accounts.mixins import RuoloRequiredMixin
+from apps.core.models import ImpostazioniPiattaforma
 
-from .campagne import RUOLI_GESTIONE_CAMPAGNA, apri_campagna, avvia_valutazione, chiudi_campagna
+from .bonifici import RigaBonifico, genera_righe_bonifici
+from .campagne import (
+    RUOLI_GESTIONE_CAMPAGNA,
+    apri_campagna,
+    avvia_valutazione,
+    chiudi_campagna,
+    liquida_campagna,
+)
 from .forms import (
     AllegatoPartecipazioneForm,
+    BonificiGeneraForm,
     CampagnaForm,
     ImportazionePartecipazioniForm,
+    LiquidaCampagnaForm,
     PartecipazioneManualeForm,
     RespingiPartecipazioneForm,
 )
@@ -305,6 +316,67 @@ class CampagnaChiudiView(RuoloRequiredMixin, View):
         return redirect(reverse("contributi:campagna_dettaglio", args=[campagna.pk]))
 
 
+class BonificiGeneraView(RuoloRequiredMixin, View):
+    ruoli_ammessi = RUOLI_GESTIONE_CAMPAGNA
+    template_name = "contributi/bonifici_genera.html"
+
+    def get(self, request, pk):
+        campagna = get_object_or_404(Campagna, pk=pk)
+        causale_default = ImpostazioniPiattaforma.corrente().causale_bonifico_default or (
+            f"Contributo FoCa {campagna.anno} - AGESCI Zona Hirpinia"
+        )
+        form = BonificiGeneraForm(initial={"causale": causale_default})
+        return render(request, self.template_name, {"campagna": campagna, "form": form})
+
+    def post(self, request, pk):
+        campagna = get_object_or_404(Campagna, pk=pk)
+        form = BonificiGeneraForm(request.POST)
+        if not form.is_valid():
+            return render(request, self.template_name, {"campagna": campagna, "form": form})
+
+        try:
+            righe = genera_righe_bonifici(campagna, causale=form.cleaned_data["causale"])
+        except ValidationError as exc:
+            form.add_error(None, _messaggio(exc))
+            return render(request, self.template_name, {"campagna": campagna, "form": form})
+
+        if form.cleaned_data["formato"] == "xlsx":
+            return _bonifici_xlsx(righe, campagna)
+        return _bonifici_csv(righe, campagna)
+
+
+class CampagnaLiquidaView(RuoloRequiredMixin, View):
+    ruoli_ammessi = RUOLI_GESTIONE_CAMPAGNA
+    template_name = "contributi/campagna_liquida.html"
+
+    def get(self, request, pk):
+        campagna = get_object_or_404(Campagna, pk=pk)
+        return render(
+            request, self.template_name, {"campagna": campagna, "form": LiquidaCampagnaForm()}
+        )
+
+    def post(self, request, pk):
+        campagna = get_object_or_404(Campagna, pk=pk)
+        form = LiquidaCampagnaForm(request.POST)
+        if not form.is_valid():
+            return render(request, self.template_name, {"campagna": campagna, "form": form})
+
+        try:
+            liquida_campagna(
+                request,
+                utente=request.user,
+                campagna=campagna,
+                data_liquidazione=form.cleaned_data["data_liquidazione"],
+                riferimento_bonifico=form.cleaned_data["riferimento_bonifico"],
+            )
+        except (PermissionDenied, ValidationError) as exc:
+            form.add_error(None, _messaggio(exc))
+            return render(request, self.template_name, {"campagna": campagna, "form": form})
+
+        messages.success(request, "Campagna liquidata.")
+        return redirect(reverse("contributi:campagna_dettaglio", args=[campagna.pk]))
+
+
 class PartecipazioneApprovaView(RuoloRequiredMixin, View):
     ruoli_ammessi = RUOLI_VALUTAZIONE_PARTECIPAZIONI
 
@@ -400,6 +472,40 @@ class AllegatoPartecipazioneCaricaView(RuoloRequiredMixin, View):
             )
         messages.success(request, "Documento caricato.")
         return redirect(reverse("contributi:campagna_dettaglio", args=[campagna_id]))
+
+
+_COLONNE_BONIFICI = ["codice", "denominazione", "intestazione_conto", "iban", "importo", "causale"]
+
+
+def _righe_bonifici_valori(righe: list[RigaBonifico]):
+    for r in righe:
+        yield [r.gruppo_codice, r.denominazione, r.intestazione_conto, r.iban, r.importo, r.causale]
+
+
+def _bonifici_csv(righe: list[RigaBonifico], campagna: Campagna) -> HttpResponse:
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="bonifici_{campagna.anno}.csv"'
+    writer = csv.writer(response, delimiter=";")
+    writer.writerow(_COLONNE_BONIFICI)
+    for valori in _righe_bonifici_valori(righe):
+        writer.writerow(valori)
+    return response
+
+
+def _bonifici_xlsx(righe: list[RigaBonifico], campagna: Campagna) -> HttpResponse:
+    cartella = Workbook()
+    foglio = cartella.active
+    foglio.append(_COLONNE_BONIFICI)
+    for valori in _righe_bonifici_valori(righe):
+        foglio.append(valori)
+    buffer = io.BytesIO()
+    cartella.save(buffer)
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = f'attachment; filename="bonifici_{campagna.anno}.xlsx"'
+    return response
 
 
 def _leggi_righe(nome_file: str, contenuto: bytes):

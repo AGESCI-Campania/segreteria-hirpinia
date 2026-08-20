@@ -28,6 +28,16 @@ urlpatterns = [
         name="campagna_chiudi",
     ),
     path(
+        "campagne/<int:pk>/bonifici/",
+        views.BonificiGeneraView.as_view(),
+        name="campagna_bonifici",
+    ),
+    path(
+        "campagne/<int:pk>/liquida/",
+        views.CampagnaLiquidaView.as_view(),
+        name="campagna_liquida",
+    ),
+    path(
         "campagne/<int:campagna_id>/partecipazioni/inserisci/",
         views.PartecipazioneInserisciView.as_view(),
         name="partecipazione_inserisci",

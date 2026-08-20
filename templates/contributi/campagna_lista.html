@@ -5,7 +5,10 @@
 {% block content %}
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1>Campagne contributo formazione capi</h1>
-    <a href="{% url 'contributi:campagna_crea' %}" class="btn btn-primary">Nuova campagna</a>
+    <div>
+      <a href="{% url 'core:impostazioni' %}" class="btn btn-outline-secondary">Impostazioni</a>
+      <a href="{% url 'contributi:campagna_crea' %}" class="btn btn-primary">Nuova campagna</a>
+    </div>
   </div>
   <table class="table">
     <thead>

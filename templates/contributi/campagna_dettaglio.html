@@ -34,6 +34,20 @@
         {% csrf_token %}
         <button type="submit" class="btn btn-danger">Chiudi campagna</button>
       </form>
+    {% elif campagna.stato == "CHIUSA" %}
+      <a href="{% url 'contributi:campagna_bonifici' campagna.pk %}" class="btn btn-secondary">
+        Genera bonifici
+      </a>
+      <a href="{% url 'contributi:campagna_liquida' campagna.pk %}" class="btn btn-danger">
+        Liquida campagna
+      </a>
+    {% elif campagna.stato == "LIQUIDATA" %}
+      <a href="{% url 'contributi:campagna_bonifici' campagna.pk %}" class="btn btn-secondary">
+        Genera bonifici
+      </a>
+      <p class="mb-0">
+        Liquidata il {{ campagna.liquidata_il|date:"d/m/Y" }} — riferimento: {{ campagna.riferimento_bonifico }}
+      </p>
     {% endif %}
   </div>
 

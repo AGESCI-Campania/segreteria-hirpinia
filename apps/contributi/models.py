@@ -92,6 +92,12 @@ class Campagna(FSMModelMixin, models.Model):
         """Corpo intenzionalmente vuoto: calcolo definitivo e congelamento
         importi vivono in `apps/contributi/campagne.py::chiudi_campagna`."""
 
+    @transition(field=stato, source=StatoCampagna.CHIUSA, target=StatoCampagna.LIQUIDATA)
+    def liquida(self) -> None:
+        """Corpo intenzionalmente vuoto: `liquidata_il`/`riferimento_bonifico`
+        sono impostati dal service layer
+        (`apps/contributi/campagne.py::liquida_campagna`), non qui."""
+
 
 class LivelloCampo(models.TextChoices):
     ZONA = "ZONA", "Zona"

@@ -54,3 +54,17 @@ class RespingiPartecipazioneForm(forms.Form):
 class AllegatoPartecipazioneForm(forms.Form):
     file = forms.FileField(label="Documento")
     tipo = forms.CharField(label="Tipo", max_length=100, required=False)
+
+
+class BonificiGeneraForm(forms.Form):
+    FORMATO_CHOICES = [("csv", "CSV"), ("xlsx", "XLSX")]
+
+    causale = forms.CharField(label="Causale", max_length=200)
+    formato = forms.ChoiceField(label="Formato", choices=FORMATO_CHOICES, initial="csv")
+
+
+class LiquidaCampagnaForm(forms.Form):
+    data_liquidazione = forms.DateField(
+        label="Data del bonifico", widget=forms.DateInput(attrs={"type": "date"})
+    )
+    riferimento_bonifico = forms.CharField(label="Riferimento", max_length=100)

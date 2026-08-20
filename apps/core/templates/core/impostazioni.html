@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block page_title %}Impostazioni{% endblock %}
+
+{% block content %}
+  <h1>Impostazioni di piattaforma</h1>
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="mb-3">
+        {{ field.label_tag }}
+        {{ field }}
+        {{ field.errors }}
+      </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-primary">Salva</button>
+  </form>
+{% endblock %}
