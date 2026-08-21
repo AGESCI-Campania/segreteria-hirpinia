@@ -5,6 +5,7 @@ database prima della conferma esplicita (CLAUDE.md)."""
 import base64
 import csv
 import io
+import re
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -14,12 +15,24 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views import View
 from django.views.generic import ListView
+from openpyxl import Workbook
 
 from apps.accounts.mixins import RuoloRequiredMixin
 from apps.accounts.permessi import gruppi_visibili
 from apps.organizzazione.models import anno_scout_corrente
 
+from .esportazione import (
+    RUOLI_EXPORT_ANAGRAFICA,
+    RUOLI_VISUALIZZAZIONE_ESPORTAZIONI,
+    FiltriEsportazione,
+    RigaEsportazione,
+    colonne_per_profilo,
+    genera_righe_esportazione,
+    ordina_per_raggruppamento,
+    raggruppa_righe,
+)
 from .forms import (
+    EsportazioneAnagraficaForm,
     ImportazioneAutorizzazioniForm,
     ImportazioneCSVForm,
     IncaricoManualeForm,
@@ -43,7 +56,12 @@ from .incarichi import (
     cerca_capo_per_codice_socio,
     cessa_incarico_manuale,
 )
-from .models import ImportazioneAutorizzazioni, ImportazioneCSV, IncaricoUnita
+from .models import (
+    EsportazioneAnagrafica,
+    ImportazioneAutorizzazioni,
+    ImportazioneCSV,
+    IncaricoUnita,
+)
 from .parser.buonacaccia import parse_csv
 
 _SESSION_TESTO = "anagrafica_import_csv_testo"
@@ -412,3 +430,116 @@ class CapoIncarichiView(RuoloRequiredMixin, View):
             self.template_name,
             {"codice_socio": codice_socio, "anno_scout": anno, "incarichi": incarichi},
         )
+
+
+# ── Export anagrafica (M8, D-23) ────────────────────────────────────────────
+
+
+class EsportazioneAnagraficaView(RuoloRequiredMixin, View):
+    """Un'unica fase: la richiesta genera e scarica subito il file (D-23 non
+    prevede anteprima/conferma come gli import, non scrive nulla di
+    sensibile — solo il tracciamento dei metadati)."""
+
+    ruoli_ammessi = RUOLI_EXPORT_ANAGRAFICA
+    template_name = "anagrafica/esportazione_form.html"
+
+    def get(self, request):
+        form = EsportazioneAnagraficaForm(initial={"anno_scout": anno_scout_corrente()})
+        return render(request, self.template_name, {"form": form})
+
+    def post(self, request):
+        form = EsportazioneAnagraficaForm(request.POST)
+        if not form.is_valid():
+            return render(request, self.template_name, {"form": form})
+
+        dati = form.cleaned_data
+        filtri = FiltriEsportazione(
+            anno_scout=dati["anno_scout"],
+            gruppo=dati["gruppo"],
+            unita=dati["unita"],
+            funzione=dati["funzione"],
+            livello_foca=dati["livello_foca"],
+            stato=dati["stato"],
+            raggruppamento=dati["raggruppamento"],
+            profilo_colonne=dati["profilo_colonne"],
+        )
+        try:
+            righe = genera_righe_esportazione(request.user, filtri)
+        except PermissionDenied as exc:
+            form.add_error("gruppo", str(exc))
+            return render(request, self.template_name, {"form": form})
+
+        EsportazioneAnagrafica.objects.create(
+            utente=request.user,
+            anno_scout=filtri.anno_scout,
+            filtri={
+                "gruppo": filtri.gruppo,
+                "unita": filtri.unita,
+                "funzione": filtri.funzione,
+                "livello_foca": filtri.livello_foca,
+                "stato": filtri.stato,
+                "raggruppamento": filtri.raggruppamento,
+                "formato": dati["formato"],
+            },
+            profilo_colonne=filtri.profilo_colonne,
+            numero_righe=len(righe),
+            numero_capi=len({r.codice_socio for r in righe}),
+        )
+
+        colonne = colonne_per_profilo(filtri.profilo_colonne)
+        if dati["formato"] == "xlsx":
+            return _esportazione_xlsx(righe, colonne, filtri.raggruppamento, filtri.anno_scout)
+        return _esportazione_csv(righe, colonne, filtri.raggruppamento, filtri.anno_scout)
+
+
+class EsportazioneAnagraficaListaView(RuoloRequiredMixin, ListView):
+    """Registro delle esportazioni, visibile solo ad ADMIN (D-23)."""
+
+    ruoli_ammessi = RUOLI_VISUALIZZAZIONE_ESPORTAZIONI
+    template_name = "anagrafica/esportazione_lista.html"
+    context_object_name = "esportazioni"
+    paginate_by = 50
+
+    def get_queryset(self):
+        return EsportazioneAnagrafica.objects.select_related("utente")
+
+
+def _righe_colonne(righe: list[RigaEsportazione], colonne) -> list[list]:
+    return [[getter(riga) for _, getter in colonne] for riga in righe]
+
+
+def _esportazione_csv(righe, colonne, raggruppamento: str, anno_scout: int) -> HttpResponse:
+    righe_ordinate = ordina_per_raggruppamento(righe, raggruppamento)
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="anagrafica_{anno_scout}.csv"'
+    response.write("\ufeff")
+    writer = csv.writer(response, delimiter=";")
+    writer.writerow([etichetta for etichetta, _ in colonne])
+    for valori in _righe_colonne(righe_ordinate, colonne):
+        writer.writerow(valori)
+    return response
+
+
+def _nome_foglio(etichetta: str) -> str:
+    # Excel: massimo 31 caratteri, niente : \ / ? * [ ]
+    pulito = re.sub(r"[:\\/?*\[\]]", "", etichetta).strip()
+    return (pulito or "Capi")[:31]
+
+
+def _esportazione_xlsx(righe, colonne, raggruppamento: str, anno_scout: int) -> HttpResponse:
+    gruppi = raggruppa_righe(righe, raggruppamento)
+    cartella = Workbook()
+    cartella.remove(cartella.active)
+    for etichetta, righe_gruppo in gruppi.items():
+        foglio = cartella.create_sheet(_nome_foglio(etichetta))
+        foglio.append([intestazione for intestazione, _ in colonne])
+        for valori in _righe_colonne(righe_gruppo, colonne):
+            foglio.append(valori)
+    buffer = io.BytesIO()
+    cartella.save(buffer)
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = f'attachment; filename="anagrafica_{anno_scout}.xlsx"'
+    return response

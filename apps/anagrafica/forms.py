@@ -1,6 +1,13 @@
 from django import forms
 
-from .models import BrancaUnita, FunzioneIncarico
+from .models import (
+    A_DISPOSIZIONE,
+    BrancaUnita,
+    FunzioneIncarico,
+    ProfiloColonneEsportazione,
+    RaggruppamentoEsportazione,
+    StatoFiltroEsportazione,
+)
 
 
 class ImportazioneCSVForm(forms.Form):
@@ -60,3 +67,48 @@ class IncaricoManualeForm(forms.Form):
             self.fields["gruppo_servizio"] = forms.ModelChoiceField(
                 queryset=gruppi_queryset, to_field_name="codice"
             )
+
+
+class EsportazioneAnagraficaForm(forms.Form):
+    """Filtri di D-23. `gruppo`/`unita` sono codici testuali, non
+    ModelChoiceField: il perimetro (D-23, CG solo il proprio gruppo) è
+    verificato nel service layer (`esportazione.genera_righe_esportazione`),
+    non qui — legare la queryset del campo a un anno scelto in form
+    complicherebbe senza necessità, dato che il controllo di sicurezza vero
+    è comunque lato server."""
+
+    FORMATO_CHOICES = [("csv", "CSV"), ("xlsx", "XLSX")]
+
+    anno_scout = forms.IntegerField(label="Anno scout")
+    gruppo = forms.CharField(label="Gruppo (codice)", max_length=8, required=False)
+    unita = forms.CharField(label="Unità (codice)", max_length=10, required=False)
+    funzione = forms.ChoiceField(
+        label="Funzione",
+        choices=[("", "Tutte")]
+        + list(FunzioneIncarico.choices)
+        + [(A_DISPOSIZIONE, "A disposizione")],
+        required=False,
+    )
+    livello_foca = forms.IntegerField(label="Livello FoCa", required=False)
+    stato = forms.ChoiceField(
+        label="Stato",
+        choices=StatoFiltroEsportazione.choices,
+        initial=StatoFiltroEsportazione.ATTIVI,
+    )
+    raggruppamento = forms.ChoiceField(
+        label="Raggruppamento",
+        choices=RaggruppamentoEsportazione.choices,
+        initial=RaggruppamentoEsportazione.NESSUNO,
+    )
+    profilo_colonne = forms.ChoiceField(
+        label="Profilo colonne",
+        choices=ProfiloColonneEsportazione.choices,
+        initial=ProfiloColonneEsportazione.MINIMO,
+    )
+    formato = forms.ChoiceField(label="Formato", choices=FORMATO_CHOICES, initial="csv")
+
+    def clean_gruppo(self):
+        return self.cleaned_data["gruppo"].strip().upper()
+
+    def clean_unita(self):
+        return self.cleaned_data["unita"].strip().upper()

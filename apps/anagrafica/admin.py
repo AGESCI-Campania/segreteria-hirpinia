@@ -3,6 +3,7 @@ from django.contrib import admin
 from .models import (
     Capo,
     CensimentoCapo,
+    EsportazioneAnagrafica,
     FileAutorizzazionePDF,
     ImportazioneAutorizzazioni,
     ImportazioneCSV,
@@ -130,6 +131,38 @@ class IncaricoUnitaAdmin(admin.ModelAdmin):
 class PattugliaAdmin(admin.ModelAdmin):
     list_display = ["branca", "anno_scout"]
     list_filter = ["anno_scout", "branca"]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(EsportazioneAnagrafica)
+class EsportazioneAnagraficaAdmin(admin.ModelAdmin):
+    # Traccia di sola lettura (D-23): mai un modulo di editing.
+    list_display = [
+        "eseguita_il",
+        "anno_scout",
+        "utente",
+        "profilo_colonne",
+        "numero_capi",
+        "numero_righe",
+    ]
+    list_filter = ["anno_scout", "profilo_colonne"]
+    readonly_fields = [
+        "utente",
+        "anno_scout",
+        "filtri",
+        "profilo_colonne",
+        "numero_righe",
+        "numero_capi",
+        "eseguita_il",
+    ]
 
     def has_add_permission(self, request):
         return False

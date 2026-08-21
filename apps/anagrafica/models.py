@@ -328,6 +328,58 @@ class ImportazioneAutorizzazioni(models.Model):
         return f"Import autorizzazioni {self.anno_scout} del {self.eseguita_il:%d/%m/%Y %H:%M}"
 
 
+class ProfiloColonneEsportazione(models.TextChoices):
+    """D-23: due profili di colonne per l'export anagrafica. `MINIMO` è il
+    default, `ESTESO` (recapiti e dati anagrafici) va selezionato in modo
+    esplicito."""
+
+    MINIMO = "MINIMO", "Minimo"
+    ESTESO = "ESTESO", "Esteso"
+
+
+class RaggruppamentoEsportazione(models.TextChoices):
+    NESSUNO = "NESSUNO", "Nessuno"
+    PER_UNITA = "PER_UNITA", "Per unità di servizio"
+    PER_FUNZIONE = "PER_FUNZIONE", "Per funzione"
+    PER_LIVELLO_FOCA = "PER_LIVELLO_FOCA", "Per livello FoCa"
+
+
+class StatoFiltroEsportazione(models.TextChoices):
+    ATTIVI = "ATTIVI", "Attivi"
+    DISATTIVATI = "DISATTIVATI", "Disattivati"
+    ENTRAMBI = "ENTRAMBI", "Entrambi"
+
+
+class EsportazioneAnagrafica(models.Model):
+    """Traccia di ogni esportazione di dati personali dell'anagrafica (D-23):
+    solo i metadati della richiesta, mai il file generato — non viene
+    conservato sul server dopo il download."""
+
+    utente = models.ForeignKey(
+        "accounts.Utente",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="esportazioni_anagrafica",
+    )
+    anno_scout = models.IntegerField()
+    filtri = models.JSONField(default=dict)
+    profilo_colonne = models.CharField(max_length=10, choices=ProfiloColonneEsportazione.choices)
+    numero_righe = models.IntegerField()
+    numero_capi = models.IntegerField(
+        help_text="Capi distinti, non righe: un capo con più incarichi genera più righe (D-23)."
+    )
+    eseguita_il = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Esportazione anagrafica"
+        verbose_name_plural = "Esportazioni anagrafica"
+        ordering = ["-eseguita_il"]
+
+    def __str__(self) -> str:
+        return f"Export {self.anno_scout} del {self.eseguita_il:%d/%m/%Y %H:%M} ({self.utente})"
+
+
 class FileAutorizzazionePDF(models.Model):
     """Un PDF effettivamente applicato in un batch di import (D-09): un PDF
     scartato per snapshot non aggiornato o gruppo non riconosciuto non genera
@@ -368,4 +420,8 @@ __all__ = [
     "MembroPattuglia",
     "ImportazioneAutorizzazioni",
     "FileAutorizzazionePDF",
+    "ProfiloColonneEsportazione",
+    "RaggruppamentoEsportazione",
+    "StatoFiltroEsportazione",
+    "EsportazioneAnagrafica",
 ]
