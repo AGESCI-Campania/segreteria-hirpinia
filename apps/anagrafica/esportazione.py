@@ -25,6 +25,7 @@ from apps.accounts.permessi import gruppi_visibili
 
 from .models import (
     A_DISPOSIZIONE,
+    BrancaUnita,
     CensimentoCapo,
     FunzioneIncarico,
     IncaricoUnita,
@@ -33,6 +34,11 @@ from .models import (
     StatoFiltroEsportazione,
 )
 from .visibilita import capi_visibili
+
+# Testo convenzionale, non ricavato da un IncaricoUnita reale (D-31: nessun
+# record sintetico): i capi "a disposizione" non hanno un'unità, ma la
+# convenzione AGESCI li considera comunque assegnati alla Comunità Capi.
+_UNITA_A_DISPOSIZIONE = "COMUNITA' CAPI"
 
 # CG incluso (esporta il proprio gruppo, D-23); SEGRETERIA/ADMIN/RDZ tutta la
 # Zona via gruppi_visibili().
@@ -53,6 +59,7 @@ class FiltriEsportazione:
     anno_scout: int
     gruppo: tuple[str, ...] = ()
     unita: tuple[str, ...] = ()
+    branca: tuple[str, ...] = ()
     funzione: tuple[str, ...] = ()
     livello_foca: tuple[int, ...] = ()
     stato: str = StatoFiltroEsportazione.ATTIVI
@@ -71,6 +78,8 @@ class RigaEsportazione:
     gruppo_servizio_nome: str
     codice_unita: str
     nome_unita: str
+    branca: str
+    branca_label: str
     funzione: str
     funzione_label: str
     livello_foca: int | None
@@ -168,7 +177,9 @@ def _righe_capo(
                 gruppo_servizio_codice="",
                 gruppo_servizio_nome="",
                 codice_unita="",
-                nome_unita="",
+                nome_unita=_UNITA_A_DISPOSIZIONE,
+                branca=BrancaUnita.ADULTI,
+                branca_label=BrancaUnita.ADULTI.label,
                 funzione=A_DISPOSIZIONE,
                 funzione_label="A disposizione",
             )
@@ -185,6 +196,8 @@ def _righe_capo(
                 gruppo_servizio_nome=incarico.gruppo_servizio.nome,
                 codice_unita=incarico.codice_unita,
                 nome_unita=incarico.nome_unita,
+                branca=incarico.branca,
+                branca_label=BrancaUnita(incarico.branca).label,
                 funzione=incarico.funzione,
                 funzione_label=FunzioneIncarico(incarico.funzione).label,
             )
@@ -197,6 +210,8 @@ def _passa_filtri_a_disposizione(censimento: CensimentoCapo, filtri: FiltriEspor
         return False
     if filtri.unita:
         return False
+    if filtri.branca and BrancaUnita.ADULTI not in filtri.branca:
+        return False
     if filtri.gruppo and censimento.gruppo_id not in filtri.gruppo:
         return False
     return True
@@ -206,6 +221,8 @@ def _passa_filtri_incarico(incarico: IncaricoUnita, filtri: FiltriEsportazione) 
     if filtri.funzione and incarico.funzione not in filtri.funzione:
         return False
     if filtri.unita and incarico.codice_unita not in filtri.unita:
+        return False
+    if filtri.branca and incarico.branca not in filtri.branca:
         return False
     if filtri.gruppo and incarico.gruppo_servizio_id not in filtri.gruppo:
         return False
@@ -217,9 +234,11 @@ def _passa_filtri_incarico(incarico: IncaricoUnita, filtri: FiltriEsportazione) 
 
 def etichetta_unita(codice_unita: str, nome_unita: str) -> str:
     """`nome (codice)` quando c'è un nome, altrimenti solo il codice — mai il
-    solo codice quando un nome è disponibile (richiesta beta)."""
+    solo codice quando un nome è disponibile (richiesta beta). Senza codice
+    (solo i capi "a disposizione", D-31) resta il solo nome convenzionale
+    "COMUNITA' CAPI"."""
     if not codice_unita:
-        return ""
+        return nome_unita
     return f"{nome_unita} ({codice_unita})" if nome_unita else codice_unita
 
 
@@ -232,6 +251,7 @@ _COLONNE_MINIMO: list[_ColonnaEsportazione] = [
     ("Gruppo censimento", lambda r: r.gruppo_censimento_codice),
     ("Gruppo servizio", lambda r: r.gruppo_servizio_codice),
     ("Unità", lambda r: etichetta_unita(r.codice_unita, r.nome_unita)),
+    ("Branca", lambda r: r.branca_label),
     ("Funzione", lambda r: r.funzione_label),
     ("Livello Fo.Ca.", lambda r: r.livello_foca if r.livello_foca is not None else ""),
 ]
@@ -263,6 +283,8 @@ def colonne_per_profilo(profilo: str) -> list[_ColonnaEsportazione]:
 def _chiave_raggruppamento(riga: RigaEsportazione, raggruppamento: str) -> str:
     if raggruppamento == RaggruppamentoEsportazione.PER_UNITA:
         return etichetta_unita(riga.codice_unita, riga.nome_unita) or "A disposizione"
+    if raggruppamento == RaggruppamentoEsportazione.PER_BRANCA:
+        return riga.branca_label
     if raggruppamento == RaggruppamentoEsportazione.PER_FUNZIONE:
         return riga.funzione_label
     if raggruppamento == RaggruppamentoEsportazione.PER_LIVELLO_FOCA:

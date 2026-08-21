@@ -8,6 +8,7 @@ from apps.accounts.models import Ruolo, TipoUtente, Utente
 from apps.anagrafica.esportazione import (
     FiltriEsportazione,
     colonne_per_profilo,
+    etichetta_unita,
     genera_righe_esportazione,
     ordina_per_raggruppamento,
     raggruppa_righe,
@@ -122,6 +123,15 @@ class TestRighe:
         assert righe[0].funzione == A_DISPOSIZIONE
         assert righe[0].gruppo_servizio_codice == ""
 
+    def test_capo_a_disposizione_ha_unita_e_branca_convenzionali(self, gruppo_a, segreteria):
+        _capo("10001", gruppo_a)
+
+        righe = genera_righe_esportazione(segreteria, FiltriEsportazione(anno_scout=ANNO))
+
+        assert righe[0].nome_unita == "COMUNITA' CAPI"
+        assert righe[0].branca == BrancaUnita.ADULTI
+        assert etichetta_unita(righe[0].codice_unita, righe[0].nome_unita) == "COMUNITA' CAPI"
+
     def test_incarico_cessato_non_genera_riga_ma_conta_come_a_disposizione(
         self, gruppo_a, segreteria
     ):
@@ -210,6 +220,39 @@ class TestFiltri:
 
         assert {r.codice_socio for r in righe} == {"10001", "10003"}
 
+    def test_filtro_branca(self, gruppo_a, segreteria):
+        capo = _capo("10001", gruppo_a)
+        _incarico(capo, gruppo_a, codice_unita="H1")
+        IncaricoUnita.objects.create(
+            capo=capo,
+            anno_scout=ANNO,
+            gruppo_servizio=gruppo_a,
+            codice_unita="R1",
+            nome_unita="REPARTO",
+            branca=BrancaUnita.EG,
+            genere_unita="MISTO",
+            funzione=FunzioneIncarico.AIUTO_CAPO_UNITA,
+            origine=OrigineIncarico.IMPORT,
+        )
+
+        righe = genera_righe_esportazione(
+            segreteria, FiltriEsportazione(anno_scout=ANNO, branca=(BrancaUnita.EG,))
+        )
+
+        assert len(righe) == 1
+        assert righe[0].codice_unita == "R1"
+
+    def test_filtro_branca_include_i_capi_a_disposizione_su_adulti(self, gruppo_a, segreteria):
+        con_incarico = _capo("10001", gruppo_a)
+        _incarico(con_incarico, gruppo_a)
+        a_disposizione = _capo("10002", gruppo_a)
+
+        righe = genera_righe_esportazione(
+            segreteria, FiltriEsportazione(anno_scout=ANNO, branca=(BrancaUnita.ADULTI,))
+        )
+
+        assert {r.codice_socio for r in righe} == {a_disposizione.codice_socio}
+
     def test_filtro_stato_entrambi(self, gruppo_a, segreteria):
         _capo("10001", gruppo_a, attivo=True)
         _capo("10002", gruppo_a, attivo=False)
@@ -261,6 +304,17 @@ class TestRaggruppamento:
         gruppi = raggruppa_righe(righe, RaggruppamentoEsportazione.PER_FUNZIONE)
 
         assert "A disposizione" in gruppi
+
+    def test_per_branca_isola_i_capi_a_disposizione_su_adulti(self, gruppo_a, segreteria):
+        capo = _capo("10001", gruppo_a)
+        _incarico(capo, gruppo_a)
+        _capo("10002", gruppo_a)
+
+        righe = genera_righe_esportazione(segreteria, FiltriEsportazione(anno_scout=ANNO))
+        gruppi = raggruppa_righe(righe, RaggruppamentoEsportazione.PER_BRANCA)
+
+        assert set(gruppi.keys()) == {BrancaUnita.LC.label, BrancaUnita.ADULTI.label}
+        assert {r.codice_socio for r in gruppi[BrancaUnita.ADULTI.label]} == {"10002"}
 
     def test_ordina_per_raggruppamento_ordina_senza_dividere(self, gruppo_a, segreteria):
         capo1 = _capo("10001", gruppo_a, cognome="ZETA")

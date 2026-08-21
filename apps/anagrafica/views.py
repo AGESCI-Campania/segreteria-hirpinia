@@ -442,6 +442,7 @@ def _filtri_da_dati(dati: dict) -> FiltriEsportazione:
         anno_scout=dati["anno_scout"],
         gruppo=dati["gruppo"],
         unita=dati["unita"],
+        branca=dati["branca"],
         funzione=dati["funzione"],
         livello_foca=dati["livello_foca"],
         stato=dati["stato"],
@@ -529,6 +530,7 @@ class EsportazioneAnagraficaView(RuoloRequiredMixin, View):
             filtri={
                 "gruppo": filtri.gruppo,
                 "unita": filtri.unita,
+                "branca": filtri.branca,
                 "funzione": filtri.funzione,
                 "livello_foca": filtri.livello_foca,
                 "stato": filtri.stato,

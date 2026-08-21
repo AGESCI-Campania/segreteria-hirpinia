@@ -129,6 +129,12 @@ class EsportazioneAnagraficaForm(forms.Form):
         required=False,
         widget=SelectMultiploADiscesa(placeholder="Tutte"),
     )
+    branca = ChoiceFieldMultiploOpzionale(
+        label="Branca",
+        choices=BrancaUnita.choices,
+        required=False,
+        widget=SelectMultiploADiscesa(placeholder="Tutte"),
+    )
     funzione = ChoiceFieldMultiploOpzionale(
         label="Funzione",
         choices=list(FunzioneIncarico.choices) + [(A_DISPOSIZIONE, "A disposizione")],

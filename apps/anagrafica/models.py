@@ -367,6 +367,7 @@ class ProfiloColonneEsportazione(models.TextChoices):
 class RaggruppamentoEsportazione(models.TextChoices):
     NESSUNO = "NESSUNO", "Nessuno"
     PER_UNITA = "PER_UNITA", "Per unità di servizio"
+    PER_BRANCA = "PER_BRANCA", "Per branca"
     PER_FUNZIONE = "PER_FUNZIONE", "Per funzione"
     PER_LIVELLO_FOCA = "PER_LIVELLO_FOCA", "Per livello Fo.Ca."
 
