@@ -35,6 +35,7 @@ def _riga(
     gruppo_nome="AVELLINO 1",
     email_gruppo="avellino1@campania.agesci.it",
     status_socio="RINNOVO ADESIONE",
+    cellulare="3331234567",
 ) -> str:
     campi = [
         f'="{anno}"' if anno else "",
@@ -52,7 +53,7 @@ def _riga(
         '="AV"',
         '="83100"',
         '="socio@example.org"',
-        '="3331234567"',
+        f'="{cellulare}"',
         '="IMPIEGATO"',
         '="3"',
         '="2010"',
@@ -253,6 +254,13 @@ class TestAnomalie:
         assert capo.data_nascita is None
         assert importazione.conteggi["avvisi"] >= 1
         assert any(a["campo"] == "DATA NASCITA" for a in importazione.anomalie)
+
+    def test_cellulare_troppo_lungo_e_anomalia_bloccante_non_crea_capo(self):
+        importazione = _importa(_csv_testo(_riga(cellulare="3" * 40)))
+
+        assert Capo.objects.count() == 0
+        assert importazione.conteggi["anomalie_bloccanti"] == 1
+        assert any(a["campo"] == "Capo" for a in importazione.anomalie)
 
     def test_ordinale_ambiguo_non_scrive_censimento(self):
         importazione = _importa(

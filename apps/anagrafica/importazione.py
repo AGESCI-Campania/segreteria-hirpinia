@@ -336,12 +336,17 @@ def _upsert_gruppo(
 ) -> tuple[bool, Gruppo | None]:
     try:
         with transaction.atomic():
-            gruppo, creato = Gruppo.objects.get_or_create(
-                codice=op.ordinale, defaults={**op.defaults, "origine": OrigineGruppo.IMPORT}
-            )
-            if not creato:
+            try:
+                gruppo = Gruppo.objects.get(codice=op.ordinale)
+                creato = False
                 for campo, valore in op.defaults.items():
                     setattr(gruppo, campo, valore)
+            except Gruppo.DoesNotExist:
+                gruppo = Gruppo(codice=op.ordinale, origine=OrigineGruppo.IMPORT, **op.defaults)
+                creato = True
+            # full_clean() prima di save(): un valore troppo lungo o non valido deve
+            # finire nel report anomalie, mai arrivare come DataError dal database
+            # (get_or_create() salterebbe full_clean() sul ramo di creazione).
             _salva_validato(gruppo)
             return creato, gruppo
     except ValidationError as exc:
@@ -352,12 +357,14 @@ def _upsert_gruppo(
 def _upsert_capo(op: OperazioneCapo, anomalie: list[AnomaliaRiga]) -> tuple[bool, Capo | None]:
     try:
         with transaction.atomic():
-            capo, creato = Capo.objects.get_or_create(
-                codice_socio=op.codice_socio, defaults=op.defaults
-            )
-            if not creato:
+            try:
+                capo = Capo.objects.get(codice_socio=op.codice_socio)
+                creato = False
                 for campo, valore in op.defaults.items():
                     setattr(capo, campo, valore)
+            except Capo.DoesNotExist:
+                capo = Capo(codice_socio=op.codice_socio, **op.defaults)
+                creato = True
             _salva_validato(capo)
             return creato, capo
     except ValidationError as exc:
@@ -370,15 +377,22 @@ def _upsert_censimento(
 ) -> tuple[bool, CensimentoCapo | None]:
     try:
         with transaction.atomic():
-            censimento, creato = CensimentoCapo.objects.get_or_create(
-                capo_id=op.codice_socio,
-                anno_scout=op.anno_scout,
-                defaults={**op.defaults, "gruppo": gruppo},
-            )
-            if not creato:
+            try:
+                censimento = CensimentoCapo.objects.get(
+                    capo_id=op.codice_socio, anno_scout=op.anno_scout
+                )
+                creato = False
                 for campo, valore in op.defaults.items():
                     setattr(censimento, campo, valore)
                 censimento.gruppo = gruppo
+            except CensimentoCapo.DoesNotExist:
+                censimento = CensimentoCapo(
+                    capo_id=op.codice_socio,
+                    anno_scout=op.anno_scout,
+                    gruppo=gruppo,
+                    **op.defaults,
+                )
+                creato = True
             _salva_validato(censimento)
             return creato, censimento
     except ValidationError as exc:
