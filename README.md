@@ -48,6 +48,9 @@ mise run dev
 
 Applicazione su `http://127.0.0.1:8000/`.
 
+Guida completa (task disponibili, reset del database, troubleshooting):
+[`docs/docker.md`](docs/docker.md).
+
 ## Task disponibili
 
 | Comando | Descrizione |
@@ -68,22 +71,23 @@ Deploy interamente dockerizzato tranne il reverse proxy, selezionabile con
 Domini: `segreteria.agescihirpinia.it` (primario), `catello.agescihirpinia.it` (alias).
 
 ```bash
+cp .env.example .env         # e personalizza SECRET_KEY, ALLOWED_HOSTS, POSTGRES_*, SITE_URL...
 ./configure-prod.sh
-docker compose -f compose.prod.yaml up -d
+docker compose -f compose.prod.yaml up -d --build
+
+# al primo deploy soltanto, dopo l'avvio:
+docker compose -f compose.prod.yaml exec web python manage.py createcachetable
+docker compose -f compose.prod.yaml exec web python manage.py createsuperuser
 ```
 
 Se `./configure-prod.sh` genera l'opzione `nginx-docker`, avviare invece con:
 
 ```bash
-docker compose -f compose.prod.yaml -f compose.prod.nginx.yaml up -d
+docker compose -f compose.prod.yaml -f compose.prod.nginx.yaml up -d --build
 ```
 
-**Al primo deploy**, oltre all'avvio, va creata una tantum la tabella della cache di
-produzione (comando non idempotente, non incluso in `docker/entrypoint.sh`):
-
-```bash
-docker compose -f compose.prod.yaml exec web python manage.py createcachetable
-```
+Guida completa (variabili d'ambiente, TLS, redeploy, backup, troubleshooting):
+[`docs/docker.md`](docs/docker.md).
 
 ## Accessi
 
@@ -136,6 +140,8 @@ apps/
 - [`docs/Catello_Progettazione.md`](docs/Catello_Progettazione.md) — documento di
   progettazione, fonte di verità per modello dati, regole di dominio e decisioni
   architetturali
+- [`docs/docker.md`](docs/docker.md) — guida completa a installazione, configurazione ed
+  esecuzione con Docker, in sviluppo e in produzione
 - [`docs/email/`](docs/email/README.md) — guide passo-passo per configurare ciascun
   provider di invio email (SMTP, Gmail, Microsoft Graph)
 - [`CLAUDE.md`](CLAUDE.md) — vincoli operativi per lo sviluppo assistito

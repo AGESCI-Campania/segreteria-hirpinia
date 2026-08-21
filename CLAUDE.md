@@ -38,6 +38,9 @@ MIT, copyright Andrea Bruno. Ogni nuovo file sostanziale non deve contraddire
 - `uv` per le dipendenze — **mai** `pip install` diretto.
 - `mise` per i task: `mise run dev`, `mise run test`, `mise run lint`.
 - Python ≥ 3.14, Django ≥ 6.0, PostgreSQL ≥ 17.
+- Docker: in sviluppo solo il database (`compose.yaml`); in produzione tutto tranne il
+  reverse proxy (`compose.prod.yaml`). Guida completa in `docs/docker.md`, vincoli
+  operativi in [Docker e deploy](#docker-e-deploy) più sotto.
 
 ---
 
@@ -197,6 +200,33 @@ validato** (derivato da `autorizzazioni-agesci` v1.0.1, stesso autore, MIT).
   I test si auto-escludono se assenti; non "sistemare" quello skip.
 - L'API da usare nelle view è `parse_pdf(source)`, che accetta un file-like: non
   scrivere il caricato su disco solo per poterlo passare come percorso.
+
+### Docker e deploy
+
+Guida operativa completa: `docs/docker.md`. Qui solo i vincoli che un intervento su
+Docker/deploy non deve violare:
+
+- **`configure-prod.sh` non esegue mai comandi con privilegi elevati** (niente
+  `sudo`/`systemctl`/`apt`/riavvii di servizi): genera solo file di configurazione
+  (`docker/nginx/catello.conf`, `compose.prod.nginx.yaml`, `deploy/*.example`). Se un
+  passo richiede privilegi di sistema, lo script stampa istruzioni per l'operatore, non
+  le esegue.
+- **Lo script è idempotente**: una riesecuzione senza `--force` non rigenera nulla, si
+  limita a segnalare la configurazione già presente in `.deploy-config`.
+- **`manage.py createcachetable` non va mai spostato in `docker/entrypoint.sh`**: non è
+  idempotente (fallisce se la tabella esiste già) e romperebbe ogni riavvio successivo
+  del container. Resta un passo manuale one-shot al primo deploy.
+- **`docker/entrypoint.sh` esegue sempre, in questo ordine, `migrate` →
+  `collectstatic` → `gunicorn`**: tutti idempotenti per costruzione. Non aggiungere
+  passi non idempotenti qui: vanno documentati come manuali in `docs/docker.md`, come
+  già `createcachetable`.
+- **`DJANGO_SECURE_SSL_REDIRECT`/`DJANGO_SESSION_COOKIE_SECURE`/`DJANGO_CSRF_COOKIE_SECURE`
+  restano `False` di default** in `config/settings/prod.py`: attivarli richiede un
+  reverse proxy TLS reale già funzionante, altrimenti si genera un loop di redirect.
+  Non cambiare questi default senza che sia esplicitamente richiesto.
+- Nessuna delle tre opzioni di reverse proxy generate da `configure-prod.sh` configura
+  TLS: è dichiarato esplicitamente nell'output dello script e in `docs/docker.md`, non
+  va presentato come già pronto per un go-live.
 
 ---
 
