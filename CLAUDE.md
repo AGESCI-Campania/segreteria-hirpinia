@@ -123,7 +123,15 @@ nel service layer.
   `AEZ`, `IABZ`, `ISZ`): non dipendono dal gruppo di appartenenza.
 - «A disposizione» (D-31) è un flag **derivato** su `CensimentoCapo`, ricalcolato da zero
   a ogni import, a ogni assegnazione manuale e a ogni trasferimento rilevato. Non creare
-  record sintetici in `IncaricoUnita` con funzione `A_DISPOSIZIONE`.
+  record sintetici in `IncaricoUnita` con funzione `A_DISPOSIZIONE`. Nell'export anagrafica
+  (D-23) i capi «a disposizione» mostrano comunque unità «COMUNITA' CAPI» e branca Co.Ca.
+  (`BrancaUnita.ADULTI`): è un valore convenzionale calcolato in `esportazione.py`, non un
+  `IncaricoUnita` reale.
+- La mappatura unità → branca (`_branca()` in `parser/autorizzazioni.py`, D-08/§5.3) è:
+  BRANCO/CERCHIO → L/C, REPARTO → E/G, CLAN/FUOCO → R/S, COMUNITA (CAPI) → Adulti/Co.Ca.
+  Un capo può avere più incarichi in branche diverse contemporaneamente: Co.Ca. emerge
+  solo quando non c'è **nessun altro** incarico attivo nell'anno (coincide con «a
+  disposizione»), mai come branca assegnata "di default" in presenza di altri incarichi.
 - Gli incarichi non si cancellano: si cessano (`cessato_il`). «Attivo» significa sempre
   `cessato_il__isnull=True` — filtro obbligatorio in ogni query su `IncaricoUnita`.
 - L'autorizzazione importata **sostituisce** gli incarichi manuali di quel gruppo per
