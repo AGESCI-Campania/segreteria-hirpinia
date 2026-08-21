@@ -51,3 +51,6 @@ backups/
 # Fixture con dati personali reali (vedi apps/anagrafica/tests/fixtures/pdf/README.md)
 apps/anagrafica/tests/fixtures/pdf/**/*.pdf
 apps/anagrafica/tests/fixtures/csv/**/*.csv
+
+# Documenti locali (mai condivisi via git, es. piani di test per i beta tester)
+docs/beta/
