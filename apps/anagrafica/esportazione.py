@@ -46,11 +46,15 @@ RUOLI_VISUALIZZAZIONE_ESPORTAZIONI = frozenset({Ruolo.Tipo.ADMIN})
 
 @dataclass(frozen=True)
 class FiltriEsportazione:
+    """`gruppo`/`unita`/`funzione`/`livello_foca` sono tuple: una o più
+    scelte, tupla vuota = nessun filtro su quel campo (D-23, filtri
+    multi-selezione)."""
+
     anno_scout: int
-    gruppo: str = ""
-    unita: str = ""
-    funzione: str = ""
-    livello_foca: int | None = None
+    gruppo: tuple[str, ...] = ()
+    unita: tuple[str, ...] = ()
+    funzione: tuple[str, ...] = ()
+    livello_foca: tuple[int, ...] = ()
     stato: str = StatoFiltroEsportazione.ATTIVI
     raggruppamento: str = RaggruppamentoEsportazione.NESSUNO
     profilo_colonne: str = ProfiloColonneEsportazione.MINIMO
@@ -91,20 +95,23 @@ def genera_righe_esportazione(utente: Utente, filtri: FiltriEsportazione) -> lis
     Zona) applicato sia sulla selezione dei capi (censimento O servizio,
     `capi_visibili`) sia, se `filtri.gruppo` è valorizzato, come controllo
     esplicito: filtrare per un gruppo fuori perimetro non deve restituire un
-    risultato vuoto silenzioso, ma un errore."""
+    risultato vuoto silenzioso, ma un errore — anche con più gruppi
+    selezionati, basta che uno solo sia fuori perimetro."""
     if filtri.gruppo:
         visibili = {g.codice for g in gruppi_visibili(utente, filtri.anno_scout)}
-        if filtri.gruppo not in visibili:
+        fuori_perimetro = set(filtri.gruppo) - visibili
+        if fuori_perimetro:
             raise PermissionDenied(
-                f"{utente}: {filtri.gruppo} non è nel proprio perimetro operativo."
+                f"{utente}: {', '.join(sorted(fuori_perimetro))} non è/sono nel proprio "
+                "perimetro operativo."
             )
 
     censimenti: QuerySet[CensimentoCapo] = capi_visibili(utente, filtri.anno_scout).select_related(
         "capo", "gruppo"
     )
 
-    if filtri.livello_foca is not None:
-        censimenti = censimenti.filter(livello_foca=filtri.livello_foca)
+    if filtri.livello_foca:
+        censimenti = censimenti.filter(livello_foca__in=filtri.livello_foca)
     if filtri.stato == StatoFiltroEsportazione.ATTIVI:
         censimenti = censimenti.filter(capo__attivo=True)
     elif filtri.stato == StatoFiltroEsportazione.DISATTIVATI:
@@ -186,26 +193,35 @@ def _righe_capo(
 
 
 def _passa_filtri_a_disposizione(censimento: CensimentoCapo, filtri: FiltriEsportazione) -> bool:
-    if filtri.funzione and filtri.funzione != A_DISPOSIZIONE:
+    if filtri.funzione and A_DISPOSIZIONE not in filtri.funzione:
         return False
     if filtri.unita:
         return False
-    if filtri.gruppo and censimento.gruppo_id != filtri.gruppo:
+    if filtri.gruppo and censimento.gruppo_id not in filtri.gruppo:
         return False
     return True
 
 
 def _passa_filtri_incarico(incarico: IncaricoUnita, filtri: FiltriEsportazione) -> bool:
-    if filtri.funzione and filtri.funzione != incarico.funzione:
+    if filtri.funzione and incarico.funzione not in filtri.funzione:
         return False
-    if filtri.unita and filtri.unita != incarico.codice_unita:
+    if filtri.unita and incarico.codice_unita not in filtri.unita:
         return False
-    if filtri.gruppo and incarico.gruppo_servizio_id != filtri.gruppo:
+    if filtri.gruppo and incarico.gruppo_servizio_id not in filtri.gruppo:
         return False
     return True
 
 
 # ── Colonne e raggruppamento ────────────────────────────────────────────────
+
+
+def etichetta_unita(codice_unita: str, nome_unita: str) -> str:
+    """`nome (codice)` quando c'è un nome, altrimenti solo il codice — mai il
+    solo codice quando un nome è disponibile (richiesta beta)."""
+    if not codice_unita:
+        return ""
+    return f"{nome_unita} ({codice_unita})" if nome_unita else codice_unita
+
 
 _ColonnaEsportazione = tuple[str, Callable[[RigaEsportazione], object]]
 
@@ -215,7 +231,7 @@ _COLONNE_MINIMO: list[_ColonnaEsportazione] = [
     ("Nome", lambda r: r.nome),
     ("Gruppo censimento", lambda r: r.gruppo_censimento_codice),
     ("Gruppo servizio", lambda r: r.gruppo_servizio_codice),
-    ("Unità", lambda r: r.codice_unita),
+    ("Unità", lambda r: etichetta_unita(r.codice_unita, r.nome_unita)),
     ("Funzione", lambda r: r.funzione_label),
     ("Livello Fo.Ca.", lambda r: r.livello_foca if r.livello_foca is not None else ""),
 ]
@@ -246,7 +262,7 @@ def colonne_per_profilo(profilo: str) -> list[_ColonnaEsportazione]:
 
 def _chiave_raggruppamento(riga: RigaEsportazione, raggruppamento: str) -> str:
     if raggruppamento == RaggruppamentoEsportazione.PER_UNITA:
-        return riga.codice_unita or "A disposizione"
+        return etichetta_unita(riga.codice_unita, riga.nome_unita) or "A disposizione"
     if raggruppamento == RaggruppamentoEsportazione.PER_FUNZIONE:
         return riga.funzione_label
     if raggruppamento == RaggruppamentoEsportazione.PER_LIVELLO_FOCA:

@@ -55,3 +55,6 @@ apps/anagrafica/tests/fixtures/csv/**/*.csv
 
 # Documenti locali (mai condivisi via git, es. piani di test per i beta tester)
 docs/beta/
+
+# Note di lavoro locali, non destinate al repository condiviso
+docs/ignored/

@@ -27,6 +27,7 @@ from .esportazione import (
     FiltriEsportazione,
     RigaEsportazione,
     colonne_per_profilo,
+    etichetta_unita,
     genera_righe_esportazione,
     ordina_per_raggruppamento,
     raggruppa_righe,
@@ -454,12 +455,14 @@ def _scelte_form_esportazione(utente) -> dict:
     Fo.Ca.) per popolare le select di EsportazioneAnagraficaForm, invece di
     lasciarli come campi di testo libero."""
     gruppi = gruppi_visibili(utente, anno_scout_corrente())
-    unita = (
+    nomi_unita: dict[str, str] = {}
+    for codice, nome in (
         IncaricoUnita.objects.exclude(codice_unita="")
-        .values_list("codice_unita", flat=True)
+        .values_list("codice_unita", "nome_unita")
         .distinct()
         .order_by("codice_unita")
-    )
+    ):
+        nomi_unita.setdefault(codice, nome)
     livelli_foca = (
         CensimentoCapo.objects.exclude(livello_foca__isnull=True)
         .values_list("livello_foca", flat=True)
@@ -468,7 +471,9 @@ def _scelte_form_esportazione(utente) -> dict:
     )
     return {
         "gruppi_choices": [(g.codice, f"{g.nome} ({g.codice})") for g in gruppi.order_by("nome")],
-        "unita_choices": [(u, u) for u in unita],
+        "unita_choices": [
+            (codice, etichetta_unita(codice, nome)) for codice, nome in sorted(nomi_unita.items())
+        ],
         "livello_foca_choices": [(str(livello), str(livello)) for livello in livelli_foca],
     }
 

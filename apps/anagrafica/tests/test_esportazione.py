@@ -81,7 +81,7 @@ def _incarico(capo, gruppo_servizio, *, codice_unita="H1", funzione=FunzioneInca
 
 class TestPerimetro:
     def test_cg_non_puo_filtrare_su_gruppo_fuori_perimetro(self, gruppo_a, gruppo_b, cg_gruppo_a):
-        filtri = FiltriEsportazione(anno_scout=ANNO, gruppo=gruppo_b.codice)
+        filtri = FiltriEsportazione(anno_scout=ANNO, gruppo=(gruppo_b.codice,))
         with pytest.raises(PermissionDenied):
             genera_righe_esportazione(cg_gruppo_a, filtri)
 
@@ -152,7 +152,7 @@ class TestFiltri:
         _capo("10002", gruppo_a)
 
         righe = genera_righe_esportazione(
-            segreteria, FiltriEsportazione(anno_scout=ANNO, funzione=A_DISPOSIZIONE)
+            segreteria, FiltriEsportazione(anno_scout=ANNO, funzione=(A_DISPOSIZIONE,))
         )
 
         assert {r.codice_socio for r in righe} == {"10002"}
@@ -163,7 +163,7 @@ class TestFiltri:
         _incarico(capo, gruppo_a, codice_unita="H2")
 
         righe = genera_righe_esportazione(
-            segreteria, FiltriEsportazione(anno_scout=ANNO, unita="H1")
+            segreteria, FiltriEsportazione(anno_scout=ANNO, unita=("H1",))
         )
 
         assert len(righe) == 1
@@ -174,7 +174,7 @@ class TestFiltri:
         _capo("10002", gruppo_a, livello_foca=2)
 
         righe = genera_righe_esportazione(
-            segreteria, FiltriEsportazione(anno_scout=ANNO, livello_foca=1)
+            segreteria, FiltriEsportazione(anno_scout=ANNO, livello_foca=(1,))
         )
 
         assert {r.codice_socio for r in righe} == {"10001"}
@@ -186,6 +186,29 @@ class TestFiltri:
         righe = genera_righe_esportazione(segreteria, FiltriEsportazione(anno_scout=ANNO))
 
         assert {r.codice_socio for r in righe} == {"10001"}
+
+    def test_filtro_gruppo_multiplo(self, gruppo_a, gruppo_b, segreteria):
+        _capo("10001", gruppo_a)
+        _capo("10002", gruppo_b)
+        _capo("10003", Gruppo.objects.create(codice="E0135", nome="AVELLINO 3"))
+
+        righe = genera_righe_esportazione(
+            segreteria,
+            FiltriEsportazione(anno_scout=ANNO, gruppo=(gruppo_a.codice, gruppo_b.codice)),
+        )
+
+        assert {r.codice_socio for r in righe} == {"10001", "10002"}
+
+    def test_filtro_livello_foca_multiplo(self, gruppo_a, segreteria):
+        _capo("10001", gruppo_a, livello_foca=1)
+        _capo("10002", gruppo_a, livello_foca=2)
+        _capo("10003", gruppo_a, livello_foca=3)
+
+        righe = genera_righe_esportazione(
+            segreteria, FiltriEsportazione(anno_scout=ANNO, livello_foca=(1, 3))
+        )
+
+        assert {r.codice_socio for r in righe} == {"10001", "10003"}
 
     def test_filtro_stato_entrambi(self, gruppo_a, segreteria):
         _capo("10001", gruppo_a, attivo=True)

@@ -188,7 +188,7 @@ class TestSelectFiltri:
 
         form = response.context["form"]
         assert (gruppo.codice, f"{gruppo.nome} ({gruppo.codice})") in form.fields["gruppo"].choices
-        assert ("H1", "H1") in form.fields["unita"].choices
+        assert ("H1", "BRANCO (H1)") in form.fields["unita"].choices
 
     def test_valore_gruppo_fuori_scelta_respinto(self, client, segreteria, capo, gruppo):
         client.force_login(segreteria)
@@ -201,6 +201,16 @@ class TestSelectFiltri:
     def test_valore_unita_valido_filtra_correttamente(self, client, segreteria, capo, gruppo):
         client.force_login(segreteria)
         response = client.get("/anagrafica/export/", self._filtri(unita="H1"))
+
+        assert response.status_code == 200
+        assert response.context["numero_capi"] == 1
+
+    def test_selezione_multipla_su_gruppo(self, client, segreteria, capo, gruppo, altro_gruppo):
+        client.force_login(segreteria)
+        response = client.get(
+            "/anagrafica/export/",
+            self._filtri(gruppo=[gruppo.codice, altro_gruppo.codice]),
+        )
 
         assert response.status_code == 200
         assert response.context["numero_capi"] == 1
