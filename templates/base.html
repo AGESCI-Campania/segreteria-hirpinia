@@ -1,23 +1,12 @@
 {% extends "agesci_theme/base.html" %}
 {% load static %}
-{% load agesci_tags %}
-{% load agesci_components %}
 
 {% block title %}{% block page_title %}{{ agesci_theme_nome }}{% endblock %}{% endblock %}
-
-{% block extra_head %}
-  <link href="{% static 'css/catello.css' %}" rel="stylesheet">
-{% endblock %}
 
 {% block header_nav %}
   <li>
     <a href="{% url 'core:home' %}" class="nav-link">Home</a>
   </li>
-  {% if voci_menu_dropdown %}
-    <li>
-      {% ag_dropdown label="Moduli" items=voci_menu_dropdown variant="outline-light" %}
-    </li>
-  {% endif %}
 {% endblock %}
 
 {% block offcanvas_nav %}
@@ -30,8 +19,65 @@
   {% endfor %}
 {% endblock %}
 
-{% block content %}{% endblock %}
+{% block sidebar %}
+<nav class="ag-sidebar ag-sidebar--dark" id="agSidebar" aria-label="Menu laterale">
+  <button class="ag-sidebar__toggle"
+          id="agSidebarToggle"
+          aria-label="Comprimi menu laterale"
+          aria-expanded="true"
+          aria-controls="agSidebar">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M0 3a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm5-1v12h9a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zM4 2H2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h2z"/>
+    </svg>
+    <span class="ag-sidebar__toggle-label ms-2">Menu</span>
+  </button>
 
-{% block extra_js %}
-  <script src="{% static 'js/password-toggle.js' %}"></script>
+  <ul class="ag-sidebar__nav">
+    {% block sidebar_items %}
+      <li>
+        <a href="{% url 'core:home' %}" class="ag-sidebar__nav-link{% if request.path == '/' %} active{% endif %}">
+          <span class="ag-sidebar__label">Home</span>
+        </a>
+      </li>
+      {% for sezione in sezioni_menu %}
+        <li class="ag-sidebar__section-title">{{ sezione.etichetta }}</li>
+        {% for voce in sezione.voci %}
+          <li>
+            <a href="{{ voce.url }}" class="ag-sidebar__nav-link">
+              <span class="ag-sidebar__label">{{ voce.etichetta }}</span>
+            </a>
+          </li>
+        {% endfor %}
+      {% endfor %}
+    {% endblock %}
+  </ul>
+
+  {% block sidebar_user %}
+  {% if request.user.is_authenticated %}
+  <div class="ag-sidebar__user">
+    <div class="dropdown dropup">
+      <a href="#" class="ag-sidebar__user-toggle dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+        <span class="ag-sidebar__user-avatar" aria-hidden="true">{{ request.user.get_full_name|default:request.user.username|first|upper }}</span>
+        <span class="ag-sidebar__label">{{ request.user.get_full_name|default:request.user.username }}</span>
+      </a>
+      <ul class="dropdown-menu dropdown-menu-dark shadow">
+        <li>
+          <span class="dropdown-item-text small">
+            <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+            {% if request.user.email %}<br><span class="text-muted">{{ request.user.email }}</span>{% endif %}
+          </span>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="{% url 'account_change_password' %}">Cambia password</a></li>
+        <li><a class="dropdown-item" href="{% url 'account_logout' %}">Esci</a></li>
+      </ul>
+    </div>
+  </div>
+  {% endif %}
+  {% endblock %}
+</nav>
+
+<script src="{% static 'agesci_theme/js/sidebar.js' %}" defer></script>
 {% endblock %}
+
+{% block content %}{% endblock %}

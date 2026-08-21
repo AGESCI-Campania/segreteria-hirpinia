@@ -1,9 +1,0 @@
-/* I nostri div di errore (django/forms/errors/list/default.html) vengono
-   renderizzati solo quando il campo ha davvero un errore: non serve quindi il
-   meccanismo di Bootstrap che li nasconde finché non sono preceduti da un
-   fratello .is-invalid nello stesso genitore. Questo permette anche di
-   avvolgere un campo (es. il toggle password) senza perdere la visualizzazione
-   dell'errore. */
-.invalid-feedback {
-  display: block;
-}

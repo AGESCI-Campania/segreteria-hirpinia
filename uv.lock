@@ -195,7 +195,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "django", specifier = ">=6.0" },
-    { name = "django-agesci-campania-theme", specifier = ">=1.2.4" },
+    { name = "django-agesci-campania-theme", specifier = ">=2.3.0" },
     { name = "django-allauth", extras = ["mfa"], specifier = ">=65.0" },
     { name = "django-auditlog", specifier = ">=3.0" },
     { name = "django-axes", specifier = ">=8.3" },
@@ -558,14 +558,14 @@ wheels = [
 
 [[package]]
 name = "django-agesci-campania-theme"
-version = "2.2.2"
+version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c2/5e/7c1c62d0d18c6735da1a4bcb9e0dac6058a0ef6c0ad9b6b4574f4817d23b/django_agesci_campania_theme-2.2.2.tar.gz", hash = "sha256:a647c79f9779ba8fb851d1b16695861b214e56b4b42ba973777a96b4bb542f5e", size = 1487362, upload-time = "2026-06-16T09:23:54.825Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ea/73/d8298cc8a8e661591962857ddb1df9cfa68d13cfef4fc9707decf5541163/django_agesci_campania_theme-2.3.0.tar.gz", hash = "sha256:4d5f56f63e637b5dc4d6de257f1f14d49e455212046bb8a295f9dfc0c7bf1ddf", size = 1493341, upload-time = "2026-08-21T08:53:22.166Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a7/85/2e0813187b90646fa8659f2372c9793c8fc0705175a9f7ee67ea5c44ebdd/django_agesci_campania_theme-2.2.2-py3-none-any.whl", hash = "sha256:b3b63fe8e5f96bd0f0581c6ba9d643c5de10c122eca1613c170aa3af0ab421a3", size = 1505075, upload-time = "2026-06-16T09:23:56.222Z" },
+    { url = "https://files.pythonhosted.org/packages/31/73/7f3ca5a738e54ccc14b1598aa8d1666195e334c8e2bc5284cf15e1a3c3f1/django_agesci_campania_theme-2.3.0-py3-none-any.whl", hash = "sha256:763da4c52a1d301c9bf354b9a71e9b32cb571fc18a4c40eab3392f27d56e7e3e", size = 1514214, upload-time = "2026-08-21T08:53:20.742Z" },
 ]
 
 [[package]]

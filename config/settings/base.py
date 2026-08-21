@@ -54,10 +54,14 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # Terze parti
+    # agesci_theme PRIMA di allauth: i suoi override dei template allauth
+    # sono trovati via APP_DIRS in ordine di INSTALLED_APPS, e vincono solo
+    # se il tema è elencato prima delle app allauth (altrimenti i template
+    # di default, non stilizzati, di allauth vengono trovati per primi).
+    "agesci_theme",
     "allauth",
     "allauth.account",
     "allauth.mfa",
-    "agesci_theme",
     "auditlog",
     "hijack",
     "axes",
@@ -111,7 +115,7 @@ TEMPLATES = [
     },
 ]
 
-FORM_RENDERER = "apps.core.form_renderers.TemaFormRenderer"
+FORM_RENDERER = "agesci_theme.forms.AgesciFormRenderer"
 
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
