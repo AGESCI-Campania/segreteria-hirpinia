@@ -109,6 +109,33 @@ class Capo(models.Model):
         return f"{self.cognome} {self.nome} ({self.codice_socio})"
 
 
+class TipoRecapito(models.TextChoices):
+    EMAIL = "EMAIL", "Email"
+    CELLULARE = "CELLULARE", "Cellulare"
+
+
+class RecapitoCapo(models.Model):
+    """Email e cellulari multipli (§6.1): il CSV Buona Caccia può riportare più
+    valori separati da ``;`` nello stesso campo. Il primo valore resta su
+    ``Capo.email``/``Capo.cellulare`` per compatibilità con l'esportazione
+    esistente; qui vive l'elenco completo, un valore per riga."""
+
+    capo = models.ForeignKey(Capo, on_delete=models.CASCADE, related_name="recapiti")
+    tipo = models.CharField(max_length=10, choices=TipoRecapito.choices)
+    valore = models.CharField(max_length=254)
+
+    class Meta:
+        verbose_name = "Recapito capo"
+        verbose_name_plural = "Recapiti capi"
+        constraints = [
+            models.UniqueConstraint(fields=["capo", "tipo", "valore"], name="uniq_recapito_capo")
+        ]
+        ordering = ["capo", "tipo", "valore"]
+
+    def __str__(self) -> str:
+        return f"{self.get_tipo_display()}: {self.valore} ({self.capo_id})"
+
+
 class CensimentoCapo(models.Model):
     """Fotografia annuale della persona (D-22): l'ordinale usato per il
     perimetro di D-21 vive qui, non su Capo."""

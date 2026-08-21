@@ -1306,10 +1306,15 @@ detenere più ruoli e più deleghe (D-28).
 | `codice_socio` | Char **PK** |
 | `nome`, `cognome`, `sesso`, `data_nascita`, `comune_nascita` | Da CSV |
 | `codice_fiscale`, `nazionalita`, indirizzo/residenza | Da CSV |
-| `email`, `cellulare`, `professione` | Da CSV |
+| `email`, `cellulare`, `professione` | Da CSV. Se il CSV riporta più valori separati da `;`, qui resta il primo (vedi `RecapitoCapo`) |
 | `attivo` | `False` se assente dall'ultimo import del proprio gruppo |
 | `data_disattivazione` | Valorizzata alla disattivazione, azzerata alla riattivazione |
 | `utente` | FK opzionale verso l'account personale |
+
+**`RecapitoCapo`** — email e cellulari multipli (il CSV Buona Caccia può riportare più
+valori separati da `;` per la stessa persona): `capo` FK, `tipo` (`EMAIL`/`CELLULARE`),
+`valore`. Un valore per riga, unique su `(capo, tipo, valore)`. Sincronizzato ad ogni
+import: aggiunge i valori nuovi, rimuove quelli non più presenti nel file corrente.
 
 **`CensimentoCapo`** — fotografia annuale della persona.
 

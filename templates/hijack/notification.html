@@ -7,8 +7,10 @@
         Stai operando per conto di <strong>{{ user }}</strong> (impersonificazione).
       {% endblocktrans %}
     </div>
-    {# Nessun pulsante "nascondi": il banner deve restare visibile per tutta la
-       sessione di impersonificazione (D-27). #}
+    {% comment %}
+      Nessun pulsante "nascondi": il banner deve restare visibile per tutta la
+      sessione di impersonificazione (D-27).
+    {% endcomment %}
     <form action="{% url 'hijack:release' %}" method="POST" class="mb-0">
       {% csrf_token %}
       <input type="hidden" name="next" value="{{ request.path }}">

@@ -155,7 +155,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "django" },
-    { name = "django-agesci-campania-theme" },
+    { name = "django-agesci-campania-theme", extra = ["icons"] },
     { name = "django-allauth", extra = ["mfa"] },
     { name = "django-auditlog" },
     { name = "django-axes" },
@@ -195,7 +195,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "django", specifier = ">=6.0" },
-    { name = "django-agesci-campania-theme", specifier = ">=2.3.0" },
+    { name = "django-agesci-campania-theme", extras = ["icons"], specifier = ">=2.3.0" },
     { name = "django-allauth", extras = ["mfa"], specifier = ">=65.0" },
     { name = "django-auditlog", specifier = ">=3.0" },
     { name = "django-axes", specifier = ">=8.3" },
@@ -543,6 +543,15 @@ wheels = [
 ]
 
 [[package]]
+name = "defusedxml"
+version = "0.7.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/0f/d5/c66da9b79e5bdb124974bfe172b4daf3c984ebd9c2a06e2b8a4dc7331c72/defusedxml-0.7.1.tar.gz", hash = "sha256:1bb3032db185915b62d7c6209c5a8792be6a32ab2fedacc84e01b52c51aa3e69", size = 75520, upload-time = "2021-03-08T10:59:26.269Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/07/6c/aa3f2f849e01cb6a001cd8554a88d4c77c5c1a31c95bdf1cf9301e6d9ef4/defusedxml-0.7.1-py2.py3-none-any.whl", hash = "sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61", size = 25604, upload-time = "2021-03-08T10:59:24.45Z" },
+]
+
+[[package]]
 name = "django"
 version = "6.1"
 source = { registry = "https://pypi.org/simple" }
@@ -566,6 +575,11 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ea/73/d8298cc8a8e661591962857ddb1df9cfa68d13cfef4fc9707decf5541163/django_agesci_campania_theme-2.3.0.tar.gz", hash = "sha256:4d5f56f63e637b5dc4d6de257f1f14d49e455212046bb8a295f9dfc0c7bf1ddf", size = 1493341, upload-time = "2026-08-21T08:53:22.166Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/31/73/7f3ca5a738e54ccc14b1598aa8d1666195e334c8e2bc5284cf15e1a3c3f1/django_agesci_campania_theme-2.3.0-py3-none-any.whl", hash = "sha256:763da4c52a1d301c9bf354b9a71e9b32cb571fc18a4c40eab3392f27d56e7e3e", size = 1514214, upload-time = "2026-08-21T08:53:20.742Z" },
+]
+
+[package.optional-dependencies]
+icons = [
+    { name = "django-bootstrap-icons" },
 ]
 
 [[package]]
@@ -611,6 +625,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f0/b4/00c701a22d46288e3eb1340a1c141f5b4002572ce836a3e8d069f1e1de8a/django_axes-8.3.1.tar.gz", hash = "sha256:d57e923c0ba33cf45275253dd1313c3a3ff04bec686b38d677beb2b3d43c7bcd", size = 254715, upload-time = "2026-02-11T20:19:52.172Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/46/f6/777a5df7d5698eeb23c7c496cc268c0181f0489dbc5b5f2b235b30e5d8dd/django_axes-8.3.1-py3-none-any.whl", hash = "sha256:f7887582fd12713064f1602091ff6152752becae5e891a15bf802746cab0f51a", size = 74213, upload-time = "2026-02-11T20:19:48.646Z" },
+]
+
+[[package]]
+name = "django-bootstrap-icons"
+version = "0.9.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "defusedxml" },
+    { name = "django" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/58/a3/0c94479fc8b6ef7eaf2c3e8d479e038d99d06c2884c6c21efec5c1d3e22e/django_bootstrap_icons-0.9.0.tar.gz", hash = "sha256:6856d3733a4049f5bd046301148dd15e4d291a5d1060a2f9533ef237f96a6bea", size = 11369, upload-time = "2024-07-16T18:22:39.999Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e2/bc/7a755e8c6152e38e6e7afb3d707cf2ad521e873b9c860b3feb8dc927e560/django_bootstrap_icons-0.9.0-py3-none-any.whl", hash = "sha256:79aa88db04bc46ecc4420514dfaa026481d8e2f94fe963a543a4f26b1f16161a", size = 8256, upload-time = "2024-07-16T18:22:38.744Z" },
 ]
 
 [[package]]

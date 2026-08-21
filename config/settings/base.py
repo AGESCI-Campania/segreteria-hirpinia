@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     # se il tema è elencato prima delle app allauth (altrimenti i template
     # di default, non stilizzati, di allauth vengono trovati per primi).
     "agesci_theme",
+    "django_bootstrap_icons",
     "allauth",
     "allauth.account",
     "allauth.mfa",
@@ -128,6 +129,10 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = Path(os.environ.get("STATIC_ROOT", BASE_DIR / "staticfiles"))
 STATICFILES_DIRS = [BASE_DIR / "static"]
+
+# django-bootstrap-icons (extra [icons] del tema): cache locale delle icone
+# SVG scaricate, per non richiederle ad ogni render.
+BS_ICONS_CACHE = BASE_DIR / ".bs-icons-cache"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))

@@ -10,6 +10,7 @@ from .models import (
     IncaricoUnita,
     MembroPattuglia,
     Pattuglia,
+    RecapitoCapo,
     TrasferimentoCapo,
 )
 
@@ -33,6 +34,13 @@ class CensimentoCapoAdmin(admin.ModelAdmin):
     ]
     list_filter = ["anno_scout", "gruppo"]
     search_fields = ["capo__codice_socio", "capo__cognome", "capo__nome"]
+
+
+@admin.register(RecapitoCapo)
+class RecapitoCapoAdmin(admin.ModelAdmin):
+    list_display = ["capo", "tipo", "valore"]
+    list_filter = ["tipo"]
+    search_fields = ["capo__codice_socio", "capo__cognome", "capo__nome", "valore"]
 
 
 @admin.register(TrasferimentoCapo)

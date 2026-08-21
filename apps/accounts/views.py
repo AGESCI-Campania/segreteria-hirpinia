@@ -1,6 +1,7 @@
 from axes.decorators import axes_dispatch
 from django.contrib import messages
 from django.contrib.auth import login
+from django.db.models import Q
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
@@ -13,8 +14,8 @@ from . import deleghe as deleghe_service
 from . import inviti as inviti_service
 from .forms import AttivazioneForm, DelegaForm, InvitoSingoloForm, RecuperoOtpForm
 from .mixins import RuoloRequiredMixin
-from .models import Delega, InvitoAttivazione, Ruolo
-from .permessi import ruoli_effettivi
+from .models import Delega, InvitoAttivazione, Ruolo, Utente
+from .permessi import puo_impersonare_qualcuno, ruoli_effettivi
 
 RUOLI_CHE_INVITANO = frozenset({Ruolo.Tipo.ADMIN, Ruolo.Tipo.SEGRETERIA, Ruolo.Tipo.RDZ})
 
@@ -212,3 +213,40 @@ class VistaDiProvaView(RuoloRequiredMixin, View):
         else:
             request.session.pop("ruolo_di_prova", None)
         return redirect(request.META.get("HTTP_REFERER") or reverse_lazy("core:home"))
+
+
+class ImpersonaListaView(RuoloRequiredMixin, ListView):
+    """Ricerca dell'utente da impersonare (D-27). Il perimetro non è
+    `ruoli_ammessi` ma `puo_impersonare_qualcuno()`, la stessa funzione usata
+    per l'HIJACK_PERMISSION_CHECK: un ADMIN per delega o senza ruolo diretto
+    non deve vedere né questa pagina né il bottone di hijack.
+    Niente elenco sfogliabile: senza una query non si mostra nessun
+    risultato, stesso principio della ricerca capo di D-34."""
+
+    template_name = "accounts/impersona_lista.html"
+    context_object_name = "risultati"
+    paginate_by = 20
+
+    def test_func(self) -> bool:
+        # LoginRequiredMixin garantisce l'autenticazione prima di test_func().
+        assert isinstance(self.request.user, Utente)
+        return puo_impersonare_qualcuno(self.request.user)
+
+    def get_queryset(self):
+        query = self.request.GET.get("q", "").strip()
+        if not query:
+            return Utente.objects.none()
+        return (
+            Utente.objects.filter(
+                Q(email__icontains=query)
+                | Q(username__icontains=query)
+                | Q(codice_socio__icontains=query)
+            )
+            .exclude(pk=self.request.user.pk)
+            .order_by("email")
+        )
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["query"] = self.request.GET.get("q", "").strip()
+        return ctx

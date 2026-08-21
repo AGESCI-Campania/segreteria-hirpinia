@@ -8,7 +8,7 @@ from hijack.signals import hijack_ended, hijack_started
 from apps.accounts.audit import vieta_in_impersonificazione
 from apps.accounts.deleghe import crea_delega
 from apps.accounts.models import Ruolo, SessioneImpersonificazione, TipoUtente, Utente
-from apps.accounts.permessi import puo_impersonare
+from apps.accounts.permessi import puo_impersonare, puo_impersonare_qualcuno
 
 pytestmark = pytest.mark.django_db
 
@@ -62,6 +62,73 @@ class TestPuoImpersonare:
         admin = _persona("admin@campania.agesci.it")
         Ruolo.objects.create(utente=admin, tipo=Ruolo.Tipo.ADMIN)
         assert puo_impersonare(hijacker=admin, hijacked=admin) is False
+
+
+class TestPuoImpersonareQualcuno:
+    def test_admin_reale_puo_impersonare_qualcuno(self):
+        admin = _persona("admin@campania.agesci.it")
+        Ruolo.objects.create(utente=admin, tipo=Ruolo.Tipo.ADMIN)
+        assert puo_impersonare_qualcuno(admin) is True
+
+    def test_superuser_puo_impersonare_qualcuno(self):
+        superuser = _persona("root@campania.agesci.it", is_superuser=True)
+        assert puo_impersonare_qualcuno(superuser) is True
+
+    def test_admin_per_delega_non_puo_impersonare_qualcuno(self):
+        titolare = _persona("titolare2@campania.agesci.it")
+        ruolo_admin = Ruolo.objects.create(utente=titolare, tipo=Ruolo.Tipo.ADMIN)
+        delegato = _persona("delegato2@campania.agesci.it")
+        crea_delega(
+            delegante=titolare,
+            ruolo=ruolo_admin,
+            email_delegato=delegato.email,
+            data_fine=DOMANI,
+        )
+        assert puo_impersonare_qualcuno(delegato) is False
+
+    def test_non_admin_non_puo_impersonare_qualcuno(self):
+        segreteria = _persona("seg2@campania.agesci.it")
+        Ruolo.objects.create(utente=segreteria, tipo=Ruolo.Tipo.SEGRETERIA)
+        assert puo_impersonare_qualcuno(segreteria) is False
+
+
+@pytest.mark.django_db
+class TestImpersonaListaView:
+    def test_accesso_negato_senza_ruolo_admin(self, client):
+        segreteria = _persona("seg3@campania.agesci.it")
+        Ruolo.objects.create(utente=segreteria, tipo=Ruolo.Tipo.SEGRETERIA)
+        client.force_login(segreteria)
+        response = client.get("/accounts/impersona/")
+        assert response.status_code == 403
+
+    def test_accesso_negato_anonimo(self, client):
+        response = client.get("/accounts/impersona/")
+        assert response.status_code == 302
+
+    def test_senza_query_non_mostra_risultati(self, client):
+        admin = _persona("admin3@campania.agesci.it")
+        Ruolo.objects.create(utente=admin, tipo=Ruolo.Tipo.ADMIN)
+        client.force_login(admin)
+        response = client.get("/accounts/impersona/")
+        assert response.status_code == 200
+        assert list(response.context["risultati"]) == []
+
+    def test_ricerca_per_email_trova_lutente(self, client):
+        admin = _persona("admin4@campania.agesci.it")
+        Ruolo.objects.create(utente=admin, tipo=Ruolo.Tipo.ADMIN)
+        bersaglio = _persona("cercami@campania.agesci.it")
+        client.force_login(admin)
+        response = client.get("/accounts/impersona/", {"q": "cercami"})
+        assert response.status_code == 200
+        assert list(response.context["risultati"]) == [bersaglio]
+
+    def test_ricerca_esclude_se_stesso(self, client):
+        admin = _persona("admin5@campania.agesci.it")
+        Ruolo.objects.create(utente=admin, tipo=Ruolo.Tipo.ADMIN)
+        client.force_login(admin)
+        response = client.get("/accounts/impersona/", {"q": "admin5"})
+        assert response.status_code == 200
+        assert list(response.context["risultati"]) == []
 
 
 class TestAzioniPrecluse:

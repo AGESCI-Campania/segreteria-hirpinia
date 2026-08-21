@@ -7,7 +7,14 @@ import pytest
 from django.core.files.base import ContentFile
 
 from apps.anagrafica.importazione import applica_piano, costruisci_piano
-from apps.anagrafica.models import Capo, CensimentoCapo, ImportazioneCSV, TrasferimentoCapo
+from apps.anagrafica.models import (
+    Capo,
+    CensimentoCapo,
+    ImportazioneCSV,
+    RecapitoCapo,
+    TipoRecapito,
+    TrasferimentoCapo,
+)
 from apps.anagrafica.parser.buonacaccia import parse_csv
 from apps.organizzazione.models import AllowlistGruppo, Gruppo, Origine
 
@@ -36,6 +43,7 @@ def _riga(
     email_gruppo="avellino1@campania.agesci.it",
     status_socio="RINNOVO ADESIONE",
     cellulare="3331234567",
+    email="socio@example.org",
 ) -> str:
     campi = [
         f'="{anno}"' if anno else "",
@@ -52,7 +60,7 @@ def _riga(
         '="AVELLINO"',
         '="AV"',
         '="83100"',
-        '="socio@example.org"',
+        f'="{email}"',
         f'="{cellulare}"',
         '="IMPIEGATO"',
         '="3"',
@@ -272,3 +280,52 @@ class TestAnomalie:
 
         assert not CensimentoCapo.objects.filter(capo_id="40004").exists()
         assert importazione.conteggi["anomalie_bloccanti"] == 2
+
+
+class TestRecapitiMultipli:
+    def test_email_e_cellulare_multipli_creano_un_recapito_per_valore(self):
+        _importa(
+            _csv_testo(
+                _riga(
+                    email="mario@example.org;mario.rossi@lavoro.it",
+                    cellulare="3331234567;3339876543",
+                )
+            )
+        )
+
+        capo = Capo.objects.get(codice_socio="10001")
+        # Il primo valore resta il "principale", per compatibilità con l'export.
+        assert capo.email == "mario@example.org"
+        assert capo.cellulare == "3331234567"
+
+        email = set(
+            RecapitoCapo.objects.filter(capo=capo, tipo=TipoRecapito.EMAIL).values_list(
+                "valore", flat=True
+            )
+        )
+        cellulari = set(
+            RecapitoCapo.objects.filter(capo=capo, tipo=TipoRecapito.CELLULARE).values_list(
+                "valore", flat=True
+            )
+        )
+        assert email == {"mario@example.org", "mario.rossi@lavoro.it"}
+        assert cellulari == {"3331234567", "3339876543"}
+
+    def test_reimport_rimuove_recapiti_non_piu_presenti_nel_csv(self):
+        _importa(_csv_testo(_riga(email="a@example.org;b@example.org")))
+        _importa(_csv_testo(_riga(email="a@example.org")))
+
+        capo = Capo.objects.get(codice_socio="10001")
+        email = list(
+            RecapitoCapo.objects.filter(capo=capo, tipo=TipoRecapito.EMAIL).values_list(
+                "valore", flat=True
+            )
+        )
+        assert email == ["a@example.org"]
+
+    def test_reimport_identico_non_duplica_i_recapiti(self):
+        _importa(_csv_testo(_riga(email="a@example.org;b@example.org")))
+        _importa(_csv_testo(_riga(email="a@example.org;b@example.org")))
+
+        capo = Capo.objects.get(codice_socio="10001")
+        assert RecapitoCapo.objects.filter(capo=capo, tipo=TipoRecapito.EMAIL).count() == 2

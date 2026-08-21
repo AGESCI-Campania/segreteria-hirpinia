@@ -82,6 +82,19 @@ def gruppi_visibili(utente: Utente, anno: int) -> QuerySet[Gruppo]:
     return Gruppo.objects.attivi(anno).filter(codice__in=codici_cg)
 
 
+def _e_admin_diretto(utente: Utente) -> bool:
+    """ADMIN diretto (o superuser), mai per delega — condizione comune a
+    `puo_impersonare()` e `puo_impersonare_qualcuno()` (D-27)."""
+    if utente.is_superuser:
+        return True
+    oggi = timezone.localdate()
+    return (
+        Ruolo.objects.filter(utente=utente, tipo=Ruolo.Tipo.ADMIN, attivo=True)
+        .filter(_non_scaduto("data_fine", oggi))
+        .exists()
+    )
+
+
 def puo_impersonare(*, hijacker: Utente, hijacked: Utente) -> bool:
     """Callback per HIJACK_PERMISSION_CHECK (D-27): solo ADMIN, mai per delega.
     Interroga `Ruolo` direttamente e non `ruoli_effettivi()`, che includerebbe
@@ -89,11 +102,12 @@ def puo_impersonare(*, hijacker: Utente, hijacked: Utente) -> bool:
     esclude esplicitamente quel caso."""
     if not hijacked or hijacker.pk == hijacked.pk:
         return False
-    if hijacker.is_superuser:
-        return True
-    oggi = timezone.localdate()
-    return (
-        Ruolo.objects.filter(utente=hijacker, tipo=Ruolo.Tipo.ADMIN, attivo=True)
-        .filter(_non_scaduto("data_fine", oggi))
-        .exists()
-    )
+    return _e_admin_diretto(hijacker)
+
+
+def puo_impersonare_qualcuno(utente: Utente) -> bool:
+    """Vero se l'utente potrebbe impersonarne almeno un altro (D-27): usato per
+    decidere se mostrare la voce nel menu. L'autorizzazione sul singolo
+    bersaglio resta `puo_impersonare()`, invocata da HIJACK_PERMISSION_CHECK
+    ad ogni richiesta di hijack — questa funzione non la sostituisce."""
+    return _e_admin_diretto(utente)

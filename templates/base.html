@@ -1,5 +1,6 @@
 {% extends "agesci_theme/base.html" %}
 {% load static %}
+{% load bootstrap_icons %}
 
 {% block title %}{% block page_title %}{{ agesci_theme_nome }}{% endblock %}{% endblock %}
 
@@ -10,11 +11,11 @@
 {% endblock %}
 
 {% block offcanvas_nav %}
-  <li><a href="{% url 'core:home' %}" class="nav-link">Home</a></li>
+  <li><a href="{% url 'core:home' %}" class="nav-link">{% bs_icon "house-fill" %} Home</a></li>
   {% for sezione in sezioni_menu %}
-    <li><h6 class="dropdown-header">{{ sezione.etichetta }}</h6></li>
+    <li><h6 class="dropdown-header">{% bs_icon sezione.icona %} {{ sezione.etichetta }}</h6></li>
     {% for voce in sezione.voci %}
-      <li><a href="{{ voce.url }}" class="nav-link">{{ voce.etichetta }}</a></li>
+      <li><a href="{{ voce.url }}" class="nav-link">{% bs_icon voce.icona %} {{ voce.etichetta }}</a></li>
     {% endfor %}
   {% endfor %}
 {% endblock %}
@@ -36,18 +37,33 @@
     {% block sidebar_items %}
       <li>
         <a href="{% url 'core:home' %}" class="ag-sidebar__nav-link{% if request.path == '/' %} active{% endif %}">
+          {% bs_icon "house-fill" %}
           <span class="ag-sidebar__label">Home</span>
         </a>
       </li>
       {% for sezione in sezioni_menu %}
-        <li class="ag-sidebar__section-title">{{ sezione.etichetta }}</li>
-        {% for voce in sezione.voci %}
-          <li>
-            <a href="{{ voce.url }}" class="ag-sidebar__nav-link">
-              <span class="ag-sidebar__label">{{ voce.etichetta }}</span>
-            </a>
-          </li>
-        {% endfor %}
+        <li>
+          <a href="#ag-sidebar-sezione-{{ forloop.counter }}"
+             class="ag-sidebar__nav-link"
+             data-bs-toggle="collapse"
+             role="button"
+             aria-expanded="false"
+             aria-controls="ag-sidebar-sezione-{{ forloop.counter }}">
+            {% bs_icon sezione.icona %}
+            <span class="ag-sidebar__label">{{ sezione.etichetta }}</span>
+            <span class="ms-auto">{% bs_icon "chevron-down" size="12" %}</span>
+          </a>
+          <ul class="collapse list-unstyled" id="ag-sidebar-sezione-{{ forloop.counter }}">
+            {% for voce in sezione.voci %}
+              <li>
+                <a href="{{ voce.url }}" class="ag-sidebar__nav-link ps-4">
+                  {% bs_icon voce.icona %}
+                  <span class="ag-sidebar__label">{{ voce.etichetta }}</span>
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        </li>
       {% endfor %}
     {% endblock %}
   </ul>
@@ -69,6 +85,9 @@
         </li>
         <li><hr class="dropdown-divider"></li>
         <li><a class="dropdown-item" href="{% url 'account_change_password' %}">Cambia password</a></li>
+        {% if puo_impersonare %}
+          <li><a class="dropdown-item" href="{% url 'accounts:impersona_lista' %}">Impersona un utente</a></li>
+        {% endif %}
         <li><a class="dropdown-item" href="{% url 'account_logout' %}">Esci</a></li>
       </ul>
     </div>

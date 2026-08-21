@@ -15,7 +15,14 @@ from apps.accounts.models import Ruolo, Utente
 from apps.organizzazione.models import AllowlistGruppo, Gruppo
 from apps.organizzazione.models import Origine as OrigineGruppo
 
-from .models import Capo, CensimentoCapo, ImportazioneCSV, TrasferimentoCapo
+from .models import (
+    Capo,
+    CensimentoCapo,
+    ImportazioneCSV,
+    RecapitoCapo,
+    TipoRecapito,
+    TrasferimentoCapo,
+)
 from .parser.buonacaccia import AVVISO, ERRORE, AnomaliaRiga, RisultatoParsing
 
 RUOLI_IMPORT_ANAGRAFICA = frozenset({Ruolo.Tipo.ADMIN, Ruolo.Tipo.SEGRETERIA, Ruolo.Tipo.RDZ})
@@ -31,6 +38,10 @@ class OperazioneGruppo:
 class OperazioneCapo:
     codice_socio: str
     defaults: dict
+    # Valori multipli separati da ";" nel CSV (§6.1): il primo è già in
+    # defaults["email"]/["cellulare"], qui l'elenco completo per RecapitoCapo.
+    email_valori: list[str] = field(default_factory=list)
+    cellulare_valori: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -62,6 +73,12 @@ class PianoImportazione:
     @property
     def valido(self) -> bool:
         return self.anno_scout > 0
+
+
+def _valori_multipli(grezzo: str) -> list[str]:
+    """Email/cellulare nel CSV Buona Caccia possono contenere più valori
+    separati da ";" per la stessa persona (§6.1)."""
+    return [v.strip() for v in grezzo.split(";") if v.strip()]
 
 
 def ultima_importazione_completata(anno_scout: int) -> ImportazioneCSV | None:
@@ -115,8 +132,12 @@ def costruisci_piano(risultato: RisultatoParsing) -> PianoImportazione:
                 "denominazione_sociale": r.denominazione_sociale_gruppo,
             },
         )
+        email_valori = _valori_multipli(r.email)
+        cellulare_valori = _valori_multipli(r.cellulare)
         capi[r.codice_socio] = OperazioneCapo(
             codice_socio=r.codice_socio,
+            email_valori=email_valori,
+            cellulare_valori=cellulare_valori,
             defaults={
                 "nome": r.nome,
                 "cognome": r.cognome,
@@ -130,8 +151,8 @@ def costruisci_piano(risultato: RisultatoParsing) -> PianoImportazione:
                 "comune_residenza": r.comune_residenza,
                 "provincia_residenza": r.provincia_residenza,
                 "cap": r.cap,
-                "email": r.email,
-                "cellulare": r.cellulare,
+                "email": email_valori[0] if email_valori else "",
+                "cellulare": cellulare_valori[0] if cellulare_valori else "",
                 "professione": r.professione,
                 "attivo": True,
                 "data_disattivazione": None,
@@ -259,6 +280,7 @@ def applica_piano(
             if capo is None:
                 capi_falliti.add(op_capo.codice_socio)
                 continue
+            _sincronizza_recapiti(capo, op_capo, anomalie)
             if capo_prima_attivo is None:
                 conteggi["capi_creati"] += 1
             else:
@@ -370,6 +392,27 @@ def _upsert_capo(op: OperazioneCapo, anomalie: list[AnomaliaRiga]) -> tuple[bool
     except ValidationError as exc:
         _anomalia(anomalie, "Capo", str(exc), op.codice_socio)
         return False, None
+
+
+def _sincronizza_recapiti(capo: Capo, op: OperazioneCapo, anomalie: list[AnomaliaRiga]) -> None:
+    """Allinea RecapitoCapo ai valori del CSV corrente (§6.1): aggiunge i
+    valori nuovi, rimuove quelli non più presenti. Un valore che non supera
+    full_clean() finisce nel report anomalie, non nella tabella."""
+    for tipo, valori in (
+        (TipoRecapito.EMAIL, op.email_valori),
+        (TipoRecapito.CELLULARE, op.cellulare_valori),
+    ):
+        capo.recapiti.filter(tipo=tipo).exclude(valore__in=valori).delete()
+        esistenti = set(capo.recapiti.filter(tipo=tipo).values_list("valore", flat=True))
+        for valore in valori:
+            if valore in esistenti:
+                continue
+            recapito = RecapitoCapo(capo=capo, tipo=tipo, valore=valore)
+            try:
+                recapito.full_clean()
+                recapito.save()
+            except ValidationError as exc:
+                _anomalia(anomalie, "RecapitoCapo", str(exc), capo.codice_socio)
 
 
 def _upsert_censimento(
