@@ -1,7 +1,20 @@
+from django.core.exceptions import ImproperlyConfigured
+
 from .base import *  # noqa: F403
-from .base import BASE_DIR, _env_bool
+from .base import BASE_DIR, EMAIL_PROVIDER, _env_bool
 
 DEBUG = False
+
+# D-17/§8 (docs/email/README.md): console e locmem sono provider di sviluppo/test,
+# mai di produzione. Bloccarlo qui evita che un .env dimenticato faccia
+# silenziosamente cadere le email di produzione nel file log/email-console.log
+# invece di essere consegnate davvero (vedi docs/docker.md § Log).
+if EMAIL_PROVIDER in {"console", "locmem"}:
+    raise ImproperlyConfigured(
+        f"EMAIL_PROVIDER={EMAIL_PROVIDER!r} non è ammesso in produzione "
+        "(config.settings.prod): usa smtp, gmail_service_account, gmail_oauth "
+        "o microsoft_graph."
+    )
 
 # Tabella creata una tantum con `manage.py createcachetable` (comando NON
 # idempotente: non va in docker/entrypoint.sh, va eseguito manualmente al primo

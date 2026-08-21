@@ -180,6 +180,11 @@ nelle fixture di test.
 - Le dipendenze dei provider sono extra opzionali (`--extra gmail`, `--extra microsoft`):
   non spostarle fra le dipendenze obbligatorie.
 - I test usano il provider `locmem`. Nessun test deve inviare email reali.
+- **`config/settings/prod.py` blocca l'avvio se `EMAIL_PROVIDER` è `console` o
+  `locmem`** (`ImproperlyConfigured`, subito dopo `DEBUG = False`): non è codice morto
+  né una ridondanza col controllo di `base.py` su `EMAIL_USE_TLS`/`EMAIL_USE_SSL` — è
+  un vincolo distinto, non rimuoverlo né spostarlo in `base.py` (dev/test lo usano
+  legittimamente). Test in `apps/core/tests/test_settings_prod.py`.
 
 ### Tema
 
@@ -227,6 +232,12 @@ Docker/deploy non deve violare:
 - Nessuna delle tre opzioni di reverse proxy generate da `configure-prod.sh` configura
   TLS: è dichiarato esplicitamente nell'output dello script e in `docs/docker.md`, non
   va presentato come già pronto per un go-live.
+- **Tutti i log di produzione vivono in `LOG_DIR` (`BASE_DIR/log`, montato su
+  `/srv/catello/log`)**: `catello.log` (applicativo) ed `email-console.log` (se mai
+  raggiungibile) condividono la stessa directory per costruzione, non per coincidenza —
+  non spostare uno dei due altrove senza spostare anche il volume in
+  `compose.prod.yaml`. `email-console.log` in produzione non dovrebbe mai comparire:
+  vedi il vincolo su `EMAIL_PROVIDER` in [Email](#email).
 
 ---
 

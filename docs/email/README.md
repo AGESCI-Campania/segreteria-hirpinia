@@ -65,6 +65,11 @@ Microsoft 365, ecc.) la fonte di verità resta **§ 8 di
   Un deploy che usa solo `smtp` non deve installare né l'uno né l'altro.
 - Le email della piattaforma sono transazionali, volumi bassi: nessuna di queste
   configurazioni deve prevedere invio massivo o marketing.
+- `console` e `locmem` sono provider di solo sviluppo/test e in produzione non sono solo
+  sconsigliati: `config/settings/prod.py` solleva `ImproperlyConfigured` all'avvio se
+  `EMAIL_PROVIDER` è impostato su uno dei due, quindi un `.env` di produzione dimenticato
+  su questi valori fa fallire l'avvio del container invece di inviare email finte in
+  silenzio. Dettagli in [`docs/docker.md`](../docker.md#log).
 - Prima di aprire le registrazioni in produzione, verificare l'invio reale (quando
   esisterà il comando `manage.py test_email <destinatario>` previsto per M1) o, nel
   frattempo, con un invio manuale da shell Django (`python manage.py shell`):

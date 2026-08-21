@@ -197,7 +197,7 @@ container:
 | `POSTGRES_PASSWORD` | Password reale, non `cambiami` |
 | `POSTGRES_HOST` | **Non serve impostarlo**: `compose.prod.yaml` lo forza a `db` (il nome del servizio PostgreSQL nella rete Docker interna), sovrascrivendo qualunque valore in `.env` |
 | `DJANGO_SETTINGS_MODULE` | **Non serve impostarlo**: `compose.prod.yaml` lo forza a `config.settings.prod` allo stesso modo |
-| `EMAIL_PROVIDER` e le variabili del provider scelto | Vedi [`docs/email/README.md`](email/README.md) — `console`/`locmem` non vanno mai usati in produzione |
+| `EMAIL_PROVIDER` e le variabili del provider scelto | Vedi [`docs/email/README.md`](email/README.md) — `console`/`locmem` **non si avviano proprio**: `config/settings/prod.py` solleva `ImproperlyConfigured` all'avvio del container se sono impostati (non solo raccomandato, imposto) |
 | `SITE_URL` | `https://segreteria.agescihirpinia.it` — **non presente in `.env.example`**, va aggiunta a mano: usata per costruire i link assoluti nelle email (attivazione, recupero OTP). Se assente, `config/settings/base.py` la fa cadere su `http://localhost:8000`, che produce link rotti nelle email reali. |
 
 Variabili opzionali, lette solo da `config/settings/prod.py` o dall'entrypoint, anch'esse
@@ -337,6 +337,16 @@ docker compose -f compose.prod.yaml logs -f web      # stdout/stderr del contain
 tail -f /srv/catello/log/catello.log                  # log applicativo su file (rotazione automatica, 5×10MB)
 ```
 
+Tutti i log dell'applicazione finiscono nella stessa directory `log/` (`BASE_DIR/log`
+nel container, montata su `/srv/catello/log` sull'host): oltre a `catello.log`, anche
+`email-console.log` — il file scritto dal backend email `console` — condivide questo
+percorso. In produzione non lo si vedrà mai comparire: `config/settings/prod.py`
+impedisce l'avvio del container se `EMAIL_PROVIDER` è `console` o `locmem` (vedi la
+tabella delle variabili sopra), quindi quel backend non gira mai in un container di
+produzione. `email-console.log` compare solo in sviluppo, dove l'app gira sull'host e
+scrive in `log/` alla radice del repository — già escluso da `.gitignore` (`*.log` e
+`/log/`), non va mai versionato.
+
 ### Riavvio / arresto
 
 ```bash
@@ -357,7 +367,8 @@ sufficiente, Compose rilegge `.env` ad ogni comando.
 | `docker compose` non trovato / `docker-compose: command not found` | Serve il plugin Compose v2 (`docker compose`), non il binario standalone `docker-compose` v1 |
 | `mise run db-up` fallisce con la porta 5432 occupata | Un altro PostgreSQL (locale o un'altra istanza Docker) sta già ascoltando su 5432; fermalo o cambia la porta esposta in `compose.yaml` |
 | L'app in produzione risponde ma reindirizza in loop su HTTPS | `DJANGO_SECURE_SSL_REDIRECT=True` senza un reverse proxy TLS reale davanti: disattivarlo finché TLS non è configurato |
-| Le email non partono in produzione | `EMAIL_PROVIDER` ancora su `console`/`locmem` (validi solo per sviluppo/test), oppure le librerie `gmail`/`microsoft` mancanti nell'immagine — vedi [`docs/email/README.md`](email/README.md) |
+| Il container `web` non parte, log con `ImproperlyConfigured: EMAIL_PROVIDER=...` | `EMAIL_PROVIDER` è ancora su `console`/`locmem` in `.env`: bloccato di proposito da `config/settings/prod.py`, impostare un provider reale — vedi [`docs/email/README.md`](email/README.md) |
+| Le email non partono in produzione (container avviato) | Librerie `gmail`/`microsoft` mancanti nell'immagine, o credenziali del provider errate — vedi [`docs/email/README.md`](email/README.md) |
 | `createcachetable` fallisce con "la tabella esiste già" | È già stato eseguito: comando non idempotente per natura, va lanciato una sola volta per installazione, non ad ogni deploy |
 | I file statici non si vedono (404 su `/static/...`) dietro `nginx-docker` | `docker/nginx/catello.conf` punta a `/srv/catello/static/`: verificare che la directory sul host esista e coincida con il volume montato in `compose.prod.yaml` |
 | I test locali su macOS falliscono sul rendering PDF | Librerie WeasyPrint (Pango/Cairo) non nel percorso di link dinamico di Homebrew: eseguire con `DYLD_LIBRARY_PATH=/opt/homebrew/lib`, non serve in Docker/CI |
