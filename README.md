@@ -8,7 +8,7 @@
 [![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3.svg?logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
 [![uv](https://img.shields.io/badge/packaged%20with-uv-DE5FE9.svg?logo=uv&logoColor=white)](https://github.com/astral-sh/uv)
 [![Code style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Version](https://img.shields.io/badge/version-1.0.0-informational.svg)](pyproject.toml)
+[![Version](https://img.shields.io/badge/version-1.0.1-informational.svg)](pyproject.toml)
 
 Piattaforma di segreteria della **AGESCI Zona Hirpinia** (Regione Campania).
 

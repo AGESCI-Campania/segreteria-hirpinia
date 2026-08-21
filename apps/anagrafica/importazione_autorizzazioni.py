@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.accounts.models import Utente
@@ -164,8 +165,10 @@ class PianoAutorizzazioni:
 def costruisci_piano_autorizzazioni(pdf_caricati: list[PdfCaricato]) -> PianoAutorizzazioni:
     """Sola lettura: nessuna scrittura sul database. Applica l'algoritmo D-09:
     ordina per data_aggiornamento crescente, tiene solo il più recente per
-    gruppo nel batch, scarta chi non è più recente di Gruppo.data_autorizzazione
-    già registrata."""
+    gruppo nel batch, scarta chi ha data_aggiornamento strettamente precedente
+    a Gruppo.data_autorizzazione già registrata (stessa data = reimport dello
+    stesso snapshot, va sovrascritto). Segnala anche in avviso (non blocca)
+    gli incarichi manuali che l'applicazione del piano sostituirebbe (D-32)."""
     anomalie: list[AnomaliaRiga] = [
         AnomaliaRiga(
             0,
@@ -203,14 +206,14 @@ def costruisci_piano_autorizzazioni(pdf_caricati: list[PdfCaricato]) -> PianoAut
 
         nuova = pdf.risultato.data_aggiornamento.date()
         registrata = gruppo.data_autorizzazione
-        if registrata is not None and nuova <= registrata:
+        if registrata is not None and nuova < registrata:
             anomalie.append(
                 AnomaliaRiga(
                     0,
                     ERRORE,
                     "Autorizzazione",
-                    f"{pdf.nome_file}: data aggiornamento {nuova:%d/%m/%Y} non più recente "
-                    f"dell'ultima registrata per {codice} ({registrata:%d/%m/%Y}). Scartato (D-09).",
+                    f"{pdf.nome_file}: data aggiornamento {nuova:%d/%m/%Y} precedente "
+                    f"all'ultima registrata per {codice} ({registrata:%d/%m/%Y}). Scartato (D-09).",
                     "",
                 )
             )
@@ -283,12 +286,51 @@ def costruisci_piano_autorizzazioni(pdf_caricati: list[PdfCaricato]) -> PianoAut
                 )
             )
 
+    anomalie.extend(_anomalie_incarichi_manuali_sovrascritti(incarichi))
+
     return PianoAutorizzazioni(
         incarichi=incarichi,
         pdf_vincitori=pdf_vincitori,
         anomalie=anomalie,
         pdf_processati=len(validi),
     )
+
+
+def _anomalie_incarichi_manuali_sovrascritti(
+    incarichi: list[OperazioneIncarico],
+) -> list[AnomaliaRiga]:
+    """D-32: l'import sostituisce sempre gli incarichi manuali del gruppo/anno
+    toccati (non si scrive logica che li preservi), ma la sostituzione va resa
+    visibile in anteprima con un avviso, non applicata in silenzio: la
+    conferma esplicita del flusso a due fasi è la conferma di sovrascrittura."""
+    anno_per_gruppo: dict[str, set[int]] = {}
+    for op in incarichi:
+        anno_per_gruppo.setdefault(op.gruppo_codice, set()).add(op.anno_scout)
+
+    if not anno_per_gruppo:
+        return []
+
+    coppie = Q()
+    for gruppo_codice, anni in anno_per_gruppo.items():
+        coppie |= Q(gruppo_servizio_id=gruppo_codice, anno_scout__in=anni)
+
+    manuali_sovrascritti = IncaricoUnita.objects.filter(
+        coppie, origine=OrigineIncarico.MANUALE, cessato_il__isnull=True
+    )
+
+    return [
+        AnomaliaRiga(
+            0,
+            AVVISO,
+            "Incarico manuale",
+            f"{incarico.capo_id} — {incarico.get_funzione_display()} in "
+            f"{incarico.codice_unita} {incarico.nome_unita} ({incarico.gruppo_servizio_id}, "
+            f"{incarico.anno_scout}): incarico assegnato manualmente, verrà sostituito "
+            "dall'autorizzazione importata (D-32). Conferma per procedere.",
+            incarico.capo_id,
+        )
+        for incarico in manuali_sovrascritti.order_by("capo_id")
+    ]
 
 
 def applica_piano_autorizzazioni(

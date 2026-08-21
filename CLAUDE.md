@@ -136,7 +136,13 @@ nel service layer.
   `cessato_il__isnull=True` — filtro obbligatorio in ogni query su `IncaricoUnita`.
 - L'autorizzazione importata **sostituisce** gli incarichi manuali di quel gruppo per
   quell'anno (D-32). Il manuale è un ponte, non una fonte concorrente: non scrivere
-  logica che lo preservi.
+  logica che lo preservi. La sostituzione resta automatica, ma non silenziosa: l'anteprima
+  segnala con un avviso (non bloccante) ogni incarico manuale che verrà sostituito, prima
+  della conferma esplicita già prevista dal flusso a due fasi.
+- **D-09, snapshot delle autorizzazioni**: un PDF con `data_aggiornamento` **strettamente
+  precedente** a `Gruppo.data_autorizzazione` viene scartato; **uguale** viene applicato
+  (reimport dello stesso snapshot, deve sovrascrivere senza errore). Solo l'anteriorità
+  stretta è un errore bloccante.
 - **Non assumere un solo account per gruppo**: il limite è `Gruppo.account_consentiti`,
   e la Comitato di Zona ne ha due (D-33).
 

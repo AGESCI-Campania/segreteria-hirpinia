@@ -126,15 +126,15 @@ class TestCostruisciPiano:
         assert len(piano.incarichi) == 1
         assert piano.incarichi[0].funzione == FunzioneIncarico.AIUTO_CAPO_UNITA
 
-    def test_pdf_con_data_uguale_a_registrata_e_rifiutato(self, capo, gruppo):
+    def test_pdf_con_data_uguale_a_registrata_e_accettato(self, capo, gruppo):
         gruppo.data_autorizzazione = datetime.date(2026, 1, 15)
         gruppo.save()
         pdf = _pdf(data_aggiornamento=DATA_15_GEN, records=[_record()])
 
         piano = costruisci_piano_autorizzazioni([pdf])
 
-        assert piano.pdf_vincitori == {}
-        assert any(a.campo == "Autorizzazione" for a in piano.anomalie)
+        assert "E0133" in piano.pdf_vincitori
+        assert not any(a.campo == "Autorizzazione" for a in piano.anomalie)
 
     def test_pdf_con_data_precedente_a_registrata_e_rifiutato(self, capo, gruppo):
         gruppo.data_autorizzazione = datetime.date(2026, 5, 8)
@@ -144,6 +144,7 @@ class TestCostruisciPiano:
         piano = costruisci_piano_autorizzazioni([pdf])
 
         assert piano.pdf_vincitori == {}
+        assert any(a.campo == "Autorizzazione" for a in piano.anomalie)
 
     def test_pdf_con_data_successiva_e_accettato(self, capo, gruppo):
         gruppo.data_autorizzazione = datetime.date(2025, 1, 1)
@@ -209,6 +210,47 @@ class TestCostruisciPiano:
 
         assert len(piano.incarichi) == 2
         assert {op.gruppo_codice for op in piano.incarichi} == {"E0133", "E0134"}
+
+    def test_incarico_manuale_sovrascritto_segnalato_come_avviso(self, capo, gruppo):
+        IncaricoUnita.objects.create(
+            capo=capo,
+            anno_scout=ANNO,
+            gruppo_servizio=gruppo,
+            codice_unita="H1",
+            nome_unita="BRANCO",
+            branca="LC",
+            genere_unita="MISTO",
+            funzione=FunzioneIncarico.AIUTO_CAPO_UNITA,
+            origine=OrigineIncarico.MANUALE,
+        )
+        pdf = _pdf(records=[_record(funzione="CAPO UNITÀ")])
+
+        piano = costruisci_piano_autorizzazioni([pdf])
+
+        assert any(
+            a.livello == AVVISO and a.campo == "Incarico manuale" and a.codice_socio == "10001"
+            for a in piano.anomalie
+        )
+        # È solo un avviso: non impedisce l'applicazione del piano (D-32).
+        assert piano.pdf_vincitori != {}
+
+    def test_incarico_manuale_di_altro_gruppo_non_segnalato(self, capo, gruppo, altro_gruppo):
+        IncaricoUnita.objects.create(
+            capo=capo,
+            anno_scout=ANNO,
+            gruppo_servizio=altro_gruppo,
+            codice_unita="M1",
+            nome_unita="REPARTO",
+            branca="EG",
+            genere_unita="MISTO",
+            funzione=FunzioneIncarico.AIUTO_CAPO_UNITA,
+            origine=OrigineIncarico.MANUALE,
+        )
+        pdf = _pdf(records=[_record(funzione="CAPO UNITÀ")])
+
+        piano = costruisci_piano_autorizzazioni([pdf])
+
+        assert not any(a.campo == "Incarico manuale" for a in piano.anomalie)
 
 
 class TestApplicaPiano:
@@ -317,14 +359,16 @@ class TestApplicaPiano:
         assert delega.attiva is False
         assert len(mail.outbox) >= 1
 
-    def test_idempotente_stesso_pdf_due_volte(self, capo, gruppo):
+    def test_reimport_stesso_pdf_stessa_data_e_idempotente(self, capo, gruppo):
+        """Stessa data_aggiornamento: il reimport è accettato (non scartato da
+        D-09) e riapplicato senza errori, senza duplicare gli incarichi."""
         pdf1 = _pdf(records=[_record(funzione="CAPO UNITÀ")])
         piano1 = costruisci_piano_autorizzazioni([pdf1])
         applica_piano_autorizzazioni(piano1, utente=None)
 
         pdf2 = _pdf(records=[_record(funzione="CAPO UNITÀ")])
         piano2 = costruisci_piano_autorizzazioni([pdf2])
-        assert piano2.pdf_vincitori == {}
+        assert "E0133" in piano2.pdf_vincitori
 
         applica_piano_autorizzazioni(piano2, utente=None)
         assert IncaricoUnita.objects.filter(cessato_il__isnull=True).count() == 1

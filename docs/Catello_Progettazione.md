@@ -240,16 +240,21 @@ record), con stesse unità, due uscite e un ingresso.
 Regole di importazione:
 
 1. Ogni gruppo ha in database `data_autorizzazione` (l'ultima importata).
-2. Un PDF con `data_aggiornamento` **anteriore o uguale** a quella già registrata viene
-   **rifiutato** e segnalato, mai applicato. Senza questo controllo, ricaricare un file
-   vecchio resuscita capi già usciti.
+2. Un PDF con `data_aggiornamento` **strettamente anteriore** a quella già registrata
+   viene **rifiutato** e segnalato, mai applicato. Senza questo controllo, ricaricare un
+   file vecchio resuscita capi già usciti. Un PDF con `data_aggiornamento` **uguale**
+   a quella registrata viene invece **applicato**: è il reimport dello stesso snapshot
+   (stesso file ricaricato, o un secondo caricamento della stessa esportazione), e deve
+   poter sovrascrivere senza errore — vedi il punto 5.
 3. Se un caricamento contiene più PDF, si processano in ordine di `data_aggiornamento`
    **crescente**, e per ogni codice gruppo si applica solo il più recente.
 4. Un socio può comparire in gruppi diversi nello stesso anno: verificato, il socio
    1690974 risulta in E3471 (15/01/2026) e in E1681 (08/05/2026). Con
    `unique_together (codice_socio, anno_scout)` vince l'ultima scrittura, quindi
    **l'ordine deterministico del punto 3 è ciò che rende corretto il risultato**.
-5. L'importazione è idempotente: rieseguire lo stesso file non cambia lo stato.
+5. L'importazione è idempotente: rieseguire lo stesso file (stessa `data_aggiornamento`,
+   stesso contenuto) non cambia lo stato risultante, anche se tecnicamente cessa e
+   ricrea gli `IncaricoUnita` coinvolti.
 
 ### D-10 — Regole di calcolo del contributo
 
@@ -994,8 +999,16 @@ auditlog. Vale lo stesso vocabolario chiuso di D-08: nessuna funzione libera.
 **L'autorizzazione importata prevale sempre.** Quando arriva il PDF di un gruppo, esso
 **sostituisce integralmente** gli incarichi di quel gruppo per quell'anno, manuali
 compresi. L'assegnazione manuale è un ponte fino all'arrivo del documento ufficiale, non
-una fonte concorrente. Gli incarichi manuali sostituiti vengono cessati, non cancellati,
-così resta traccia di chi aveva assegnato cosa e per quanto tempo.
+una fonte concorrente: non si scrive logica che la preservi. Gli incarichi manuali
+sostituiti vengono cessati, non cancellati, così resta traccia di chi aveva assegnato
+cosa e per quanto tempo.
+
+**Visibilità in anteprima.** La sostituzione resta automatica e non condizionata, ma non
+silenziosa: in fase di anteprima (§6.2), prima della conferma esplicita già prevista dal
+flusso a due fasi, ogni incarico manuale attivo che il piano andrebbe a sostituire è
+segnalato come avviso (non bloccante) nel report anomalie. Chi importa vede quindi cosa
+verrà sovrascritto prima di confermare, senza che sia necessario un secondo gate di
+conferma dedicato.
 
 **Ruolo `CG` manuale.** Se l'incarico assegnato a mano è `CAPO_GRUPPO`, la
 sincronizzazione di D-30 si applica identica: il ruolo di piattaforma segue l'incarico,
