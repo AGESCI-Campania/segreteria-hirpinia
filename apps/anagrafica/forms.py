@@ -1,3 +1,4 @@
+from agesci_theme.forms import SelectMultiploADiscesa
 from django import forms
 
 from .models import (
@@ -77,30 +78,6 @@ class ChoiceFieldMultiploOpzionale(forms.MultipleChoiceField):
 
     def valid_value(self, value):
         return value == "" or super().valid_value(value)
-
-
-class SelectMultiploADiscesa(forms.CheckboxSelectMultiple):
-    """Checkbox multiple rese come tendina Bootstrap (bottone con etichetta
-    riassuntiva + menu a comparsa con scroll), non la `<select multiple>`
-    nativa (che mostra un elenco fisso sempre aperto): usa il dropdown di
-    Bootstrap 5 già caricato dal tema (`data-bs-auto-close="outside"` per non
-    richiuderlo a ogni checkbox), nessuna libreria JS aggiuntiva. I template
-    stanno in apps/anagrafica/templates/widgets/ (non nel `templates/`
-    di progetto: il renderer di default dei widget Django — `FORM_RENDERER`
-    — cerca solo nelle `templates/` delle app via APP_DIRS, non nei `DIRS`
-    di `TEMPLATES`). Vedi anche static/{css,js}/multiselect-dropdown.*."""
-
-    template_name = "widgets/select_multiplo_a_discesa.html"
-    option_template_name = "widgets/select_multiplo_a_discesa_opzione.html"
-
-    def __init__(self, attrs=None, placeholder=""):
-        super().__init__(attrs=attrs)
-        self.placeholder = placeholder
-
-    def get_context(self, name, value, attrs):
-        context = super().get_context(name, value, attrs)
-        context["widget"]["placeholder"] = self.placeholder
-        return context
 
 
 class EsportazioneAnagraficaForm(forms.Form):

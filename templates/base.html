@@ -4,11 +4,6 @@
 
 {% block title %}{% block page_title %}{{ agesci_theme_nome }}{% endblock %}{% endblock %}
 
-{% block extra_head %}
-  {{ block.super }}
-  <link rel="stylesheet" href="{% static 'css/multiselect-dropdown.css' %}">
-{% endblock %}
-
 {% block offcanvas_nav %}
   <li><a href="{% url 'core:home' %}" class="nav-link">{% bs_icon "house-fill" %} Home</a></li>
   {% for sezione in sezioni_menu %}
@@ -104,5 +99,4 @@
   {{ block.super }}
   <script src="{% static 'js/table-filter.js' %}" defer></script>
   <script src="{% static 'js/table-sort.js' %}" defer></script>
-  <script src="{% static 'js/multiselect-dropdown.js' %}" defer></script>
 {% endblock %}
