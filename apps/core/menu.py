@@ -90,6 +90,9 @@ def sezioni_menu(utente: Utente | AnonymousUser) -> list[SezioneMenu]:
         )
     if consentito(RUOLI_GESTIONE_GRUPPI):
         voci_anagrafica.append(_voce("Gruppi", "organizzazione:gruppo_lista", "diagram-3"))
+        voci_anagrafica.append(
+            _voce("Allowlist gruppi", "organizzazione:allowlist_lista", "shield-check")
+        )
     if voci_anagrafica:
         sezioni.append(SezioneMenu("Anagrafica", "people-fill", voci_anagrafica))
 

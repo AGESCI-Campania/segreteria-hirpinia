@@ -70,12 +70,14 @@ class IncaricoManualeForm(forms.Form):
 
 
 class EsportazioneAnagraficaForm(forms.Form):
-    """Filtri di D-23. `gruppo`/`unita` sono codici testuali, non
-    ModelChoiceField: il perimetro (D-23, CG solo il proprio gruppo) è
-    verificato nel service layer (`esportazione.genera_righe_esportazione`),
-    non qui — legare la queryset del campo a un anno scelto in form
-    complicherebbe senza necessità, dato che il controllo di sicurezza vero
-    è comunque lato server."""
+    """Filtri di D-23. `gruppo`/`unita`/`livello_foca` diventano `ChoiceField`
+    (non `ModelChoiceField`) quando la view passa le scelte disponibili
+    (`gruppi_choices`/`unita_choices`/`livello_foca_choices`): restano
+    stringhe in `cleaned_data`, compatibili senza altre modifiche con
+    `_filtri_da_dati()` in views.py. Il perimetro (D-23, CG solo il proprio
+    gruppo) resta comunque verificato nel service layer
+    (`esportazione.genera_righe_esportazione`), non qui — la select è solo
+    un aiuto alla compilazione, non il controllo di sicurezza."""
 
     FORMATO_CHOICES = [("csv", "CSV"), ("xlsx", "XLSX")]
 
@@ -89,7 +91,7 @@ class EsportazioneAnagraficaForm(forms.Form):
         + [(A_DISPOSIZIONE, "A disposizione")],
         required=False,
     )
-    livello_foca = forms.IntegerField(label="Livello FoCa", required=False)
+    livello_foca = forms.IntegerField(label="Livello Fo.Ca.", required=False)
     stato = forms.ChoiceField(
         label="Stato",
         choices=StatoFiltroEsportazione.choices,
@@ -113,8 +115,38 @@ class EsportazioneAnagraficaForm(forms.Form):
         label="Formato", choices=FORMATO_CHOICES, initial="csv", required=False
     )
 
+    def __init__(
+        self,
+        *args,
+        gruppi_choices=None,
+        unita_choices=None,
+        livello_foca_choices=None,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        if gruppi_choices is not None:
+            self.fields["gruppo"] = forms.ChoiceField(
+                label="Gruppo", choices=[("", "Tutti")] + gruppi_choices, required=False
+            )
+        if unita_choices is not None:
+            self.fields["unita"] = forms.ChoiceField(
+                label="Unità", choices=[("", "Tutte")] + unita_choices, required=False
+            )
+        if livello_foca_choices is not None:
+            self.fields["livello_foca"] = forms.ChoiceField(
+                label="Livello Fo.Ca.",
+                choices=[("", "Tutti")] + livello_foca_choices,
+                required=False,
+            )
+
     def clean_gruppo(self):
         return self.cleaned_data["gruppo"].strip().upper()
 
     def clean_unita(self):
         return self.cleaned_data["unita"].strip().upper()
+
+    def clean_livello_foca(self):
+        valore = self.cleaned_data["livello_foca"]
+        if valore in (None, ""):
+            return None
+        return int(valore)

@@ -368,7 +368,7 @@ class RaggruppamentoEsportazione(models.TextChoices):
     NESSUNO = "NESSUNO", "Nessuno"
     PER_UNITA = "PER_UNITA", "Per unità di servizio"
     PER_FUNZIONE = "PER_FUNZIONE", "Per funzione"
-    PER_LIVELLO_FOCA = "PER_LIVELLO_FOCA", "Per livello FoCa"
+    PER_LIVELLO_FOCA = "PER_LIVELLO_FOCA", "Per livello Fo.Ca."
 
 
 class StatoFiltroEsportazione(models.TextChoices):

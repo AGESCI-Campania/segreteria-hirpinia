@@ -57,6 +57,7 @@ from .incarichi import (
     cessa_incarico_manuale,
 )
 from .models import (
+    CensimentoCapo,
     EsportazioneAnagrafica,
     ImportazioneAutorizzazioni,
     ImportazioneCSV,
@@ -448,6 +449,30 @@ def _filtri_da_dati(dati: dict) -> FiltriEsportazione:
     )
 
 
+def _scelte_form_esportazione(utente) -> dict:
+    """Valori attivi (gruppo) o presenti nelle anagrafiche (unità, livello
+    Fo.Ca.) per popolare le select di EsportazioneAnagraficaForm, invece di
+    lasciarli come campi di testo libero."""
+    gruppi = gruppi_visibili(utente, anno_scout_corrente())
+    unita = (
+        IncaricoUnita.objects.exclude(codice_unita="")
+        .values_list("codice_unita", flat=True)
+        .distinct()
+        .order_by("codice_unita")
+    )
+    livelli_foca = (
+        CensimentoCapo.objects.exclude(livello_foca__isnull=True)
+        .values_list("livello_foca", flat=True)
+        .distinct()
+        .order_by("livello_foca")
+    )
+    return {
+        "gruppi_choices": [(g.codice, f"{g.nome} ({g.codice})") for g in gruppi.order_by("nome")],
+        "unita_choices": [(u, u) for u in unita],
+        "livello_foca_choices": [(str(livello), str(livello)) for livello in livelli_foca],
+    }
+
+
 class EsportazioneAnagraficaView(RuoloRequiredMixin, View):
     """D-23: la ricerca (GET, senza effetti collaterali, bookmarkabile) mostra
     l'elenco dei capi che rispettano i filtri come tabella; l'esportazione
@@ -462,6 +487,7 @@ class EsportazioneAnagraficaView(RuoloRequiredMixin, View):
         form = EsportazioneAnagraficaForm(
             request.GET or None,
             initial={"anno_scout": anno_scout_corrente()},
+            **_scelte_form_esportazione(request.user),
         )
         contesto = {"form": form}
         if request.GET and form.is_valid():
@@ -479,7 +505,7 @@ class EsportazioneAnagraficaView(RuoloRequiredMixin, View):
         return render(request, self.template_name, contesto)
 
     def post(self, request):
-        form = EsportazioneAnagraficaForm(request.POST)
+        form = EsportazioneAnagraficaForm(request.POST, **_scelte_form_esportazione(request.user))
         if not form.is_valid():
             return render(request, self.template_name, {"form": form})
 

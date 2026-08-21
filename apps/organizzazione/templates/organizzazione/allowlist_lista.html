@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block page_title %}Allowlist gruppi{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Allowlist gruppi</h1>
+    <a href="{% url 'organizzazione:allowlist_crea' %}" class="btn btn-primary">Nuova voce</a>
+  </div>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Email</th>
+        <th>Gruppo</th>
+        <th>Origine</th>
+        <th>Creata il</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for voce in voci %}
+        <tr>
+          <td>{{ voce.email }}</td>
+          <td>{{ voce.codice_gruppo }}</td>
+          <td>{{ voce.get_origine_display }}</td>
+          <td>{{ voce.creata_il }}</td>
+          <td>
+            <a href="{% url 'organizzazione:allowlist_elimina' voce.pk %}" class="btn btn-sm btn-danger">
+              Elimina
+            </a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">Nessuna voce in allowlist.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

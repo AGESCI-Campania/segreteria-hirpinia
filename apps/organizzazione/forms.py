@@ -18,3 +18,10 @@ class GruppoDisattivaForm(forms.Form):
 class GruppoRiattivaForm(forms.Form):
     anno_scout = forms.IntegerField(label="Anno associativo (anno di chiusura)")
     motivo = forms.CharField(label="Motivazione", widget=forms.Textarea)
+
+
+class AllowlistCreaForm(forms.Form):
+    codice_gruppo = forms.CharField(
+        label="Codice gruppo", max_length=8, validators=[CODICE_ORDINALE_VALIDATOR]
+    )
+    email = forms.EmailField(label="Email")

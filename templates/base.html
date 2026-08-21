@@ -4,12 +4,6 @@
 
 {% block title %}{% block page_title %}{{ agesci_theme_nome }}{% endblock %}{% endblock %}
 
-{% block header_nav %}
-  <li>
-    <a href="{% url 'core:home' %}" class="nav-link">Home</a>
-  </li>
-{% endblock %}
-
 {% block offcanvas_nav %}
   <li><a href="{% url 'core:home' %}" class="nav-link">{% bs_icon "house-fill" %} Home</a></li>
   {% for sezione in sezioni_menu %}
@@ -103,5 +97,6 @@
 
 {% block extra_js %}
   {{ block.super }}
+  <script src="{% static 'js/table-filter.js' %}" defer></script>
   <script src="{% static 'js/table-sort.js' %}" defer></script>
 {% endblock %}

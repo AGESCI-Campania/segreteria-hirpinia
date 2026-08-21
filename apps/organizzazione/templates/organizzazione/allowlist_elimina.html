@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block page_title %}Elimina voce allowlist{% endblock %}
+
+{% block content %}
+  <h1>Elimina voce allowlist</h1>
+
+  <p>Confermi l'eliminazione della voce <strong>{{ voce.email }}</strong> → {{ voce.codice_gruppo }}?</p>
+
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Elimina</button>
+    <a href="{% url 'organizzazione:allowlist_lista' %}" class="btn btn-secondary">Annulla</a>
+  </form>
+{% endblock %}

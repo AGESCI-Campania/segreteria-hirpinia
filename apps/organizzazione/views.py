@@ -13,9 +13,10 @@ from django.views.generic import ListView
 from apps.accounts.mixins import RuoloRequiredMixin
 from apps.contributi.disattivazione_gruppo import conta_effetti_disattivazione
 
-from .forms import GruppoCreaForm, GruppoDisattivaForm, GruppoRiattivaForm
+from .allowlist import crea_voce_allowlist, elimina_voce_allowlist
+from .forms import AllowlistCreaForm, GruppoCreaForm, GruppoDisattivaForm, GruppoRiattivaForm
 from .gruppi import RUOLI_GESTIONE_GRUPPI, crea_gruppo, disattiva_gruppo, riattiva_gruppo
-from .models import Gruppo, anno_scout_corrente
+from .models import AllowlistGruppo, Gruppo, anno_scout_corrente
 
 
 class GruppoListaView(RuoloRequiredMixin, ListView):
@@ -122,6 +123,54 @@ class GruppoRiattivaView(RuoloRequiredMixin, View):
             return render(request, self.template_name, {"gruppo": gruppo, "form": form})
         messages.success(request, "Gruppo riattivato.")
         return redirect(reverse("organizzazione:gruppo_lista"))
+
+
+class AllowlistListaView(RuoloRequiredMixin, ListView):
+    ruoli_ammessi = RUOLI_GESTIONE_GRUPPI
+    template_name = "organizzazione/allowlist_lista.html"
+    context_object_name = "voci"
+
+    def get_queryset(self):
+        return AllowlistGruppo.objects.all()
+
+
+class AllowlistCreaView(RuoloRequiredMixin, View):
+    ruoli_ammessi = RUOLI_GESTIONE_GRUPPI
+    template_name = "organizzazione/allowlist_crea.html"
+
+    def get(self, request):
+        return render(request, self.template_name, {"form": AllowlistCreaForm()})
+
+    def post(self, request):
+        form = AllowlistCreaForm(request.POST)
+        if not form.is_valid():
+            return render(request, self.template_name, {"form": form})
+        try:
+            crea_voce_allowlist(utente=request.user, **form.cleaned_data)
+        except (PermissionDenied, ValidationError) as exc:
+            form.add_error(None, _messaggio(exc))
+            return render(request, self.template_name, {"form": form})
+        messages.success(request, "Voce allowlist creata.")
+        return redirect(reverse("organizzazione:allowlist_lista"))
+
+
+class AllowlistEliminaView(RuoloRequiredMixin, View):
+    ruoli_ammessi = RUOLI_GESTIONE_GRUPPI
+    template_name = "organizzazione/allowlist_elimina.html"
+
+    def get(self, request, pk):
+        voce = get_object_or_404(AllowlistGruppo, pk=pk)
+        return render(request, self.template_name, {"voce": voce})
+
+    def post(self, request, pk):
+        voce = get_object_or_404(AllowlistGruppo, pk=pk)
+        try:
+            elimina_voce_allowlist(utente=request.user, voce=voce)
+        except PermissionDenied as exc:
+            messages.error(request, _messaggio(exc))
+            return render(request, self.template_name, {"voce": voce})
+        messages.success(request, "Voce allowlist eliminata.")
+        return redirect(reverse("organizzazione:allowlist_lista"))
 
 
 def _messaggio(exc: Exception) -> str:

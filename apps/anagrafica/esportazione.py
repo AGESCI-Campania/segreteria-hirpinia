@@ -4,12 +4,12 @@ righe esportabili. View e comandi di gestione devono chiamare
 dentro (CLAUDE.md).
 
 **Inferenza dichiarata** (non specificata letteralmente in D-23): il
-"livello FoCa" di riga/filtro/raggruppamento è `CensimentoCapo.livello_foca`
+"livello Fo.Ca." di riga/filtro/raggruppamento è `CensimentoCapo.livello_foca`
 (il livello di formazione della persona, dal CSV anagrafico), non
 `IncaricoUnita.livello_foca` (per singolo incarico, dal PDF). La scelta
 rende il valore stabile per persona, indipendente da quanti incarichi ha, e
 risolve senza ambiguità il caso dei capi "a disposizione" (che non hanno
-alcun IncaricoUnita ma un livello FoCa lo hanno comunque)."""
+alcun IncaricoUnita ma un livello Fo.Ca. lo hanno comunque)."""
 
 from __future__ import annotations
 
@@ -217,7 +217,7 @@ _COLONNE_MINIMO: list[_ColonnaEsportazione] = [
     ("Gruppo servizio", lambda r: r.gruppo_servizio_codice),
     ("Unità", lambda r: r.codice_unita),
     ("Funzione", lambda r: r.funzione_label),
-    ("Livello FoCa", lambda r: r.livello_foca if r.livello_foca is not None else ""),
+    ("Livello Fo.Ca.", lambda r: r.livello_foca if r.livello_foca is not None else ""),
 ]
 
 _COLONNE_ESTESE_AGGIUNTIVE: list[_ColonnaEsportazione] = [

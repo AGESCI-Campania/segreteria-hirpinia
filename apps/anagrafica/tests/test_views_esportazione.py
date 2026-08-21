@@ -165,6 +165,47 @@ class TestRicercaTabella:
         assert response.context["form"].errors
 
 
+class TestSelectFiltri:
+    """Gruppo/Unità/Livello Fo.Ca. sono select coi valori realmente
+    disponibili, non più campi di testo libero (voce beta del TODO)."""
+
+    def _filtri(self, **override):
+        filtri = {
+            "anno_scout": ANNO,
+            "gruppo": "",
+            "unita": "",
+            "funzione": "",
+            "stato": "ATTIVI",
+            "raggruppamento": "NESSUNO",
+            "profilo_colonne": "MINIMO",
+        }
+        filtri.update(override)
+        return filtri
+
+    def test_choices_popolate_coi_valori_reali(self, client, segreteria, capo, gruppo):
+        client.force_login(segreteria)
+        response = client.get("/anagrafica/export/")
+
+        form = response.context["form"]
+        assert (gruppo.codice, f"{gruppo.nome} ({gruppo.codice})") in form.fields["gruppo"].choices
+        assert ("H1", "H1") in form.fields["unita"].choices
+
+    def test_valore_gruppo_fuori_scelta_respinto(self, client, segreteria, capo, gruppo):
+        client.force_login(segreteria)
+        response = client.get("/anagrafica/export/", self._filtri(gruppo="E9999"))
+
+        assert response.status_code == 200
+        assert "righe_tabella" not in response.context
+        assert response.context["form"].errors["gruppo"]
+
+    def test_valore_unita_valido_filtra_correttamente(self, client, segreteria, capo, gruppo):
+        client.force_login(segreteria)
+        response = client.get("/anagrafica/export/", self._filtri(unita="H1"))
+
+        assert response.status_code == 200
+        assert response.context["numero_capi"] == 1
+
+
 class TestGenerazioneFile:
     def _dati(self, **override):
         dati = {
