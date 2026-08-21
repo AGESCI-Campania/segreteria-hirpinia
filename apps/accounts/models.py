@@ -1,10 +1,11 @@
 import datetime
 import secrets
 import string
+from typing import ClassVar
 
 from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
@@ -20,6 +21,15 @@ class StatoUtente(models.TextChoices):
     ATTIVO = "ATTIVO", "Attivo"
     IN_ATTESA = "IN_ATTESA", "In attesa"
     SOSPESO = "SOSPESO", "Sospeso"
+
+
+class UtenteManager(UserManager["Utente"]):
+    """Un superuser creato con `createsuperuser` (A-2) non passa dall'invito
+    OTP: non ha nessuno che lo attivi, quindi nasce già `ATTIVO`."""
+
+    def create_superuser(self, username, email=None, password=None, **extra_fields):
+        extra_fields.setdefault("stato", StatoUtente.ATTIVO)
+        return super().create_superuser(username, email, password, **extra_fields)
 
 
 class Utente(AbstractUser):
@@ -40,6 +50,8 @@ class Utente(AbstractUser):
     stato = models.CharField(
         max_length=10, choices=StatoUtente.choices, default=StatoUtente.IN_ATTESA
     )
+
+    objects: ClassVar[UtenteManager] = UtenteManager()
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]

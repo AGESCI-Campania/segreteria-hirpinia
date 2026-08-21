@@ -1209,7 +1209,7 @@ ricerche manuali.
 | Gestione ambiente | `uv` + `pyproject.toml` (hatchling), `mise` per i task |
 | Autenticazione | `django-allauth` (email + MFA), `django-axes` |
 | Audit | `django-auditlog` |
-| Permessi oggetto | `django-guardian` |
+| Permessi oggetto | nessuna dipendenza dedicata: visibilità e perimetro sono nel service layer (`gruppi_visibili()`, `partecipazioni_visibili()`, D-13) |
 | Impersonificazione | `django-hijack` (D-27) |
 | Macchine a stati | `django-fsm-2` |
 | Parsing autorizzazioni | `pdfplumber` (parser interno, D-07) |

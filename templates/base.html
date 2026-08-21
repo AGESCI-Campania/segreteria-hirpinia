@@ -1,17 +1,37 @@
 {% extends "agesci_theme/base.html" %}
+{% load static %}
 {% load agesci_tags %}
 {% load agesci_components %}
 
 {% block title %}{% block page_title %}{{ agesci_theme_nome }}{% endblock %}{% endblock %}
 
+{% block extra_head %}
+  <link href="{% static 'css/catello.css' %}" rel="stylesheet">
+{% endblock %}
+
 {% block header_nav %}
   <li>
     <a href="{% url 'core:home' %}" class="nav-link">Home</a>
   </li>
+  {% if voci_menu_dropdown %}
+    <li>
+      {% ag_dropdown label="Moduli" items=voci_menu_dropdown variant="outline-light" %}
+    </li>
+  {% endif %}
 {% endblock %}
 
 {% block offcanvas_nav %}
   <li><a href="{% url 'core:home' %}" class="nav-link">Home</a></li>
+  {% for sezione in sezioni_menu %}
+    <li><h6 class="dropdown-header">{{ sezione.etichetta }}</h6></li>
+    {% for voce in sezione.voci %}
+      <li><a href="{{ voce.url }}" class="nav-link">{{ voce.etichetta }}</a></li>
+    {% endfor %}
+  {% endfor %}
 {% endblock %}
 
 {% block content %}{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'js/password-toggle.js' %}"></script>
+{% endblock %}

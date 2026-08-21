@@ -59,7 +59,6 @@ INSTALLED_APPS = [
     "allauth.mfa",
     "agesci_theme",
     "auditlog",
-    "guardian",
     "hijack",
     "axes",
     # App locali
@@ -106,10 +105,13 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "agesci_theme.context_processors.agesci_theme",
+                "apps.core.context_processors.menu_principale",
             ],
         },
     },
 ]
+
+FORM_RENDERER = "apps.core.form_renderers.TemaFormRenderer"
 
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
