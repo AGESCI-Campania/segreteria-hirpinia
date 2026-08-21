@@ -123,6 +123,48 @@ class TestPerimetro:
         assert EsportazioneAnagrafica.objects.count() == 0
 
 
+class TestRicercaTabella:
+    def _filtri(self, **override):
+        filtri = {
+            "anno_scout": ANNO,
+            "gruppo": "",
+            "unita": "",
+            "funzione": "",
+            "stato": "ATTIVI",
+            "raggruppamento": "NESSUNO",
+            "profilo_colonne": "MINIMO",
+        }
+        filtri.update(override)
+        return filtri
+
+    def test_senza_filtri_non_mostra_tabella(self, client, segreteria):
+        client.force_login(segreteria)
+        response = client.get("/anagrafica/export/")
+
+        assert response.status_code == 200
+        assert "righe_tabella" not in response.context
+
+    def test_con_filtri_mostra_tabella_senza_scaricare_nulla(
+        self, client, segreteria, capo, gruppo
+    ):
+        client.force_login(segreteria)
+        response = client.get("/anagrafica/export/", self._filtri())
+
+        assert response.status_code == 200
+        assert not response.get("Content-Disposition")
+        assert response.context["numero_capi"] == 1
+        assert len(response.context["righe_tabella"]) == 1
+        assert EsportazioneAnagrafica.objects.count() == 0
+
+    def test_cg_non_puo_cercare_gruppo_fuori_perimetro(self, client, cg_gruppo, altro_gruppo, capo):
+        client.force_login(cg_gruppo)
+        response = client.get("/anagrafica/export/", self._filtri(gruppo=altro_gruppo.codice))
+
+        assert response.status_code == 200
+        assert "righe_tabella" not in response.context
+        assert response.context["form"].errors
+
+
 class TestGenerazioneFile:
     def _dati(self, **override):
         dati = {

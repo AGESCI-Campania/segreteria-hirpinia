@@ -435,17 +435,48 @@ class CapoIncarichiView(RuoloRequiredMixin, View):
 # ── Export anagrafica (M8, D-23) ────────────────────────────────────────────
 
 
+def _filtri_da_dati(dati: dict) -> FiltriEsportazione:
+    return FiltriEsportazione(
+        anno_scout=dati["anno_scout"],
+        gruppo=dati["gruppo"],
+        unita=dati["unita"],
+        funzione=dati["funzione"],
+        livello_foca=dati["livello_foca"],
+        stato=dati["stato"],
+        raggruppamento=dati["raggruppamento"],
+        profilo_colonne=dati["profilo_colonne"],
+    )
+
+
 class EsportazioneAnagraficaView(RuoloRequiredMixin, View):
-    """Un'unica fase: la richiesta genera e scarica subito il file (D-23 non
-    prevede anteprima/conferma come gli import, non scrive nulla di
-    sensibile — solo il tracciamento dei metadati)."""
+    """D-23: la ricerca (GET, senza effetti collaterali, bookmarkabile) mostra
+    l'elenco dei capi che rispettano i filtri come tabella; l'esportazione
+    vera e propria (POST, tracciata in EsportazioneAnagrafica) genera e
+    scarica subito il file con **gli stessi filtri** già mostrati in
+    tabella — mai una ricerca separata da quella che poi si esporta."""
 
     ruoli_ammessi = RUOLI_EXPORT_ANAGRAFICA
     template_name = "anagrafica/esportazione_form.html"
 
     def get(self, request):
-        form = EsportazioneAnagraficaForm(initial={"anno_scout": anno_scout_corrente()})
-        return render(request, self.template_name, {"form": form})
+        form = EsportazioneAnagraficaForm(
+            request.GET or None,
+            initial={"anno_scout": anno_scout_corrente()},
+        )
+        contesto = {"form": form}
+        if request.GET and form.is_valid():
+            filtri = _filtri_da_dati(form.cleaned_data)
+            try:
+                righe = genera_righe_esportazione(request.user, filtri)
+            except PermissionDenied as exc:
+                form.add_error("gruppo", str(exc))
+            else:
+                colonne = colonne_per_profilo(filtri.profilo_colonne)
+                righe_ordinate = ordina_per_raggruppamento(righe, filtri.raggruppamento)
+                contesto["intestazioni"] = [etichetta for etichetta, _ in colonne]
+                contesto["righe_tabella"] = _righe_colonne(righe_ordinate, colonne)
+                contesto["numero_capi"] = len({r.codice_socio for r in righe})
+        return render(request, self.template_name, contesto)
 
     def post(self, request):
         form = EsportazioneAnagraficaForm(request.POST)
@@ -453,16 +484,8 @@ class EsportazioneAnagraficaView(RuoloRequiredMixin, View):
             return render(request, self.template_name, {"form": form})
 
         dati = form.cleaned_data
-        filtri = FiltriEsportazione(
-            anno_scout=dati["anno_scout"],
-            gruppo=dati["gruppo"],
-            unita=dati["unita"],
-            funzione=dati["funzione"],
-            livello_foca=dati["livello_foca"],
-            stato=dati["stato"],
-            raggruppamento=dati["raggruppamento"],
-            profilo_colonne=dati["profilo_colonne"],
-        )
+        formato = dati.get("formato") or "csv"
+        filtri = _filtri_da_dati(dati)
         try:
             righe = genera_righe_esportazione(request.user, filtri)
         except PermissionDenied as exc:
@@ -479,7 +502,7 @@ class EsportazioneAnagraficaView(RuoloRequiredMixin, View):
                 "livello_foca": filtri.livello_foca,
                 "stato": filtri.stato,
                 "raggruppamento": filtri.raggruppamento,
-                "formato": dati["formato"],
+                "formato": formato,
             },
             profilo_colonne=filtri.profilo_colonne,
             numero_righe=len(righe),
@@ -487,7 +510,7 @@ class EsportazioneAnagraficaView(RuoloRequiredMixin, View):
         )
 
         colonne = colonne_per_profilo(filtri.profilo_colonne)
-        if dati["formato"] == "xlsx":
+        if formato == "xlsx":
             return _esportazione_xlsx(righe, colonne, filtri.raggruppamento, filtri.anno_scout)
         return _esportazione_csv(righe, colonne, filtri.raggruppamento, filtri.anno_scout)
 

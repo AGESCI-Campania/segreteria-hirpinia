@@ -100,3 +100,8 @@
 {% endblock %}
 
 {% block content %}{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script src="{% static 'js/table-sort.js' %}" defer></script>
+{% endblock %}

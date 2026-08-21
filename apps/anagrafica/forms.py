@@ -105,7 +105,13 @@ class EsportazioneAnagraficaForm(forms.Form):
         choices=ProfiloColonneEsportazione.choices,
         initial=ProfiloColonneEsportazione.MINIMO,
     )
-    formato = forms.ChoiceField(label="Formato", choices=FORMATO_CHOICES, initial="csv")
+    # required=False: nella ricerca (GET, anteprima in tabella) non c'è alcun
+    # bottone di esportazione premuto. Il valore arriva sempre dal bottone
+    # "Esporta CSV"/"Esporta XLSX" (formmethod="post") nel template, mai da
+    # un campo select — vedi EsportazioneAnagraficaView.post().
+    formato = forms.ChoiceField(
+        label="Formato", choices=FORMATO_CHOICES, initial="csv", required=False
+    )
 
     def clean_gruppo(self):
         return self.cleaned_data["gruppo"].strip().upper()
