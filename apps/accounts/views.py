@@ -8,7 +8,7 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.generic import FormView, ListView, TemplateView
 
-from apps.organizzazione.models import Gruppo
+from apps.core.mixins import BreadcrumbExtraMixin
 
 from . import deleghe as deleghe_service
 from . import inviti as inviti_service
@@ -18,7 +18,10 @@ from .mixins import RuoloRequiredMixin
 from .models import Delega, InvitoAttivazione, Ruolo, Utente
 from .permessi import puo_impersonare_qualcuno, ruoli_effettivi
 
+# Visualizzazione dello storico inviti (M10): RDZ la mantiene pur avendo
+# perso la creazione (RUOLI_INVITO_DIRETTO) — "può solo delegare".
 RUOLI_CHE_INVITANO = frozenset({Ruolo.Tipo.ADMIN, Ruolo.Tipo.SEGRETERIA, Ruolo.Tipo.RDZ})
+RUOLI_INVITO_DIRETTO = frozenset({Ruolo.Tipo.ADMIN, Ruolo.Tipo.SEGRETERIA})
 
 
 class AttesaView(TemplateView):
@@ -81,39 +84,50 @@ class RecuperoOtpView(FormView):
         return super().form_valid(form)
 
 
-class InvitoCreaView(RuoloRequiredMixin, FormView):
-    """Invio di un singolo invito OTP (D-20). Perimetro: ADMIN, SEGRETERIA, RDZ."""
+class InvitoCreaView(BreadcrumbExtraMixin, RuoloRequiredMixin, FormView):
+    """Invio di un singolo invito OTP per un ruolo amministrativo (D-20, M10).
+    Perimetro ristretto ad ADMIN/SEGRETERIA: RDZ può solo delegare, non
+    invitare direttamente. L'invito con `gruppo` (account funzionale/CG)
+    resta nel solo flusso massivo da allowlist, non più qui."""
 
-    ruoli_ammessi = RUOLI_CHE_INVITANO
+    ruoli_ammessi = RUOLI_INVITO_DIRETTO
     ruoli_ammessi_solo_diretti = True
     template_name = "accounts/invito_crea.html"
     form_class = InvitoSingoloForm
     success_url = reverse_lazy("accounts:invito_lista")
 
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return [
+            {"label": "Amministrazione"},
+            {"label": "Ruoli", "url": reverse_lazy("accounts:ruolo_lista")},
+            {"label": "Nuovo invito"},
+        ]
+
     def form_valid(self, form):
-        gruppo = None
-        codice = form.cleaned_data.get("gruppo")
-        if codice:
-            gruppo = Gruppo.objects.filter(codice=codice).first()
-            if gruppo is None:
-                form.add_error("gruppo", "Nessun gruppo con questo codice.")
-                return self.form_invalid(form)
         inviti_service.crea_invito(
             email=form.cleaned_data["email"],
             creato_da=self.request.user,
-            gruppo=gruppo,
-            ruolo_proposto=form.cleaned_data.get("ruolo_proposto") or None,
+            ruolo_proposto=form.cleaned_data["ruolo_proposto"],
         )
         messages.success(self.request, f"Invito inviato a {form.cleaned_data['email']}.")
         return super().form_valid(form)
 
 
-class InvitoListaView(RuoloRequiredMixin, ListView):
+class InvitoListaView(BreadcrumbExtraMixin, RuoloRequiredMixin, ListView):
     ruoli_ammessi = RUOLI_CHE_INVITANO
     ruoli_ammessi_solo_diretti = True
     template_name = "accounts/invito_lista.html"
     context_object_name = "inviti"
     paginate_by = 50
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return [
+            {"label": "Amministrazione"},
+            {"label": "Ruoli", "url": reverse_lazy("accounts:ruolo_lista")},
+            {"label": "Storico inviti"},
+        ]
 
     def get_queryset(self):
         return InvitoAttivazione.objects.select_related("gruppo", "creato_da").all()
@@ -215,6 +229,15 @@ class RuoloListaView(RuoloRequiredMixin, ListView):
             .select_related("utente", "gruppo")
             .order_by("tipo", "utente__email")
         )
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        # M10: "Nuovo invito"/"Storico inviti" hanno un perimetro più fine di
+        # quello (RUOLI_GESTIONE_RUOLI) che dà accesso a questa pagina.
+        tipi_diretti = {r.tipo for r in ruoli_effettivi(self.request.user) if not r.is_delega}
+        ctx["puo_invitare"] = bool(tipi_diretti & RUOLI_INVITO_DIRETTO)
+        ctx["puo_vedere_inviti"] = bool(tipi_diretti & RUOLI_CHE_INVITANO)
+        return ctx
 
 
 class RuoloRevocaView(RuoloRequiredMixin, View):

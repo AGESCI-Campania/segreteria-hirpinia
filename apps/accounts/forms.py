@@ -41,8 +41,13 @@ class DelegaForm(forms.Form):
 
 
 class InvitoSingoloForm(forms.Form):
+    """M10: serve esclusivamente a invitare per un ruolo amministrativo
+    (ADMIN/SEGRETERIA) — l'invito con `gruppo` (account funzionale/CG) resta
+    solo nel flusso massivo da allowlist (`AllowlistInvitoMassivoView`), non
+    più raggiungibile da qui."""
+
     email = forms.EmailField(label="Email del destinatario")
-    gruppo = forms.CharField(required=False, help_text="Codice ordinale, per un account di gruppo")
     ruolo_proposto = forms.ChoiceField(
-        choices=[("", "—")] + list(Ruolo.Tipo.choices), required=False
+        label="Ruolo",
+        choices=[(Ruolo.Tipo.ADMIN, "Amministratore"), (Ruolo.Tipo.SEGRETERIA, "Segreteria")],
     )

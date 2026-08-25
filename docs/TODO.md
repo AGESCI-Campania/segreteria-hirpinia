@@ -37,7 +37,7 @@ Questo è un elenco di modifiche da fare aggiornato man mano che vanno avanti i 
   - [x] Segreteria, RdZ e superadmin possono fare lo stesso, ma per tutti i gruppi. Accedono cliccando sul nome di un gruppo nell'anagrafica "Gruppi", tramite la voce "Gestione Gruppo" vedono il gruppo COM ZONA HIRPINIA
   - [x] Deve avere una subview per vedere tutti gli incarichi di quel gruppo
 - [x] In "impostazioni" deve essere possibile impostare il template delle mail inviate dalla piattaforma nelle varie funzioni. I template devono essere impostabili con tag per inserimento di variabili e con html (rich text editor)
-- [ ] in inviti nuovo (http://127.0.0.1:8000/accounts/inviti/nuovo/) va corretto il breadcrumb e deve servire solo ad invitare un utente per i ruoli di amministratore e segreteria (RdZ può solo delegare)
-- [ ] Inviti va spostato come pulsante in ruoli (definisce un nuovo ruolo tramite invito)
+- [x] in inviti nuovo (http://127.0.0.1:8000/accounts/inviti/nuovo/) va corretto il breadcrumb e deve servire solo ad invitare un utente per i ruoli di amministratore e segreteria (RdZ può solo delegare)
+- [x] Inviti va spostato come pulsante in ruoli (definisce un nuovo ruolo tramite invito)
 - [ ] In "Ruoli" va aggiunta una funzionalità per aggiungere ruoli direttamente (senza invito) ad utenti già attivi sulla piattaforma
 - [ ] Per gli utenti che ne hanno il permesso deve essere visibile un elenco degli altri utenti che posso inpersonificare con un pulsante per impersonare quell'utente di fianco al nome

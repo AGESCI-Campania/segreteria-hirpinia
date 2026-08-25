@@ -59,7 +59,7 @@ M6  ✅ Assegna incarico: spostamento dentro Gestione gruppo + default gruppo   
 M7  ✅ Assegna incarico: ricerca con autocompletamento + branca condizionale     — dipende da M6 (stessa view)
 M8  ✅ Template email configurabili con rich text                                — indipendente, va per ultima
 M9  ✅ Icone nei tab della home                                                  — indipendente
-M10 ⬜ Invito diretto ristretto ad ADMIN/SEGRETERIA, fuso dentro "Ruoli"          — indipendente
+M10 ✅ Invito diretto ristretto ad ADMIN/SEGRETERIA, fuso dentro "Ruoli"          — indipendente
 M11 ⬜ Assegna ruolo direttamente (senza invito) a un utente già attivo          — dipende da M10 (stesso template ruolo_lista.html)
 M12 ⬜ Elenco degli utenti impersonabili + voce di menu                          — indipendente
 M13 ⬜ Rifiniture breadcrumb: icona Home + Template email completo               — indipendente
@@ -545,14 +545,22 @@ nel markup per una sezione nota.
   `[{"label": "Amministrazione"}, {"label": "Ruoli", "url": reverse("accounts:ruolo_lista")}, {"label": "Nuovo invito"}]`
   (e analogo per lo storico).
 
-**Difficoltà: bassa-media.** Nessuna logica di dominio nuova, ma tre superfici da
-tenere coerenti (permesso, menu, breadcrumb) e un form da restringere senza rompere
-`invia_inviti_multipli`/il flusso massivo esistente (verificare che non passi
-`ruolo_proposto` con valori fuori dal nuovo insieme).
+- **Fatto, non previsto esplicitamente nel testo originale della milestone**: il campo
+  `gruppo` di `InvitoSingoloForm` (invito con account funzionale/CG) è stato
+  **rimosso**, non solo reso secondario — reso `ruolo_proposto` obbligatorio lo
+  rendeva incompatibile col ramo "solo gruppo, nessun ruolo" di
+  `inviti.py::verifica_e_completa`. Verificato che il flusso massivo da allowlist
+  (`AllowlistInvitoMassivoView`/`candidati_invito_massivo`) non passa mai da
+  `InvitoSingoloForm`: nessuna regressione, l'invito con gruppo resta disponibile solo
+  lì.
+
+**Difficoltà: bassa-media.** Nessuna logica di dominio nuova, tre superfici da tenere
+coerenti (permesso, menu, breadcrumb).
 
 **Test**: RDZ riceve 403 su `invito_crea` ma 200 su `invito_lista`; il form rifiuta un
-`ruolo_proposto` diverso da ADMIN/SEGRETERIA o vuoto; la voce "Inviti" non compare più
-in menu; i due pulsanti in `ruolo_lista.html` compaiono/spariscono secondo permesso;
+invio senza `ruolo_proposto`; le scelte del campo sono solo ADMIN/SEGRETERIA; la voce
+"Inviti" non compare più in menu; i due pulsanti in `ruolo_lista.html` compaiono/
+spariscono secondo permesso (ADMIN vede entrambi, RDZ solo "Storico inviti");
 breadcrumb corretto su entrambe le pagine.
 
 ---
@@ -698,7 +706,7 @@ primo livello e una pagina figlia via `BreadcrumbExtraMixin`, es. `gruppo_gestio
 | M7 | Autocomplete + branca condizionale | Alta | ✅ completata | Modello IncaricoUnita.branca senza blank=True: fallback BrancaUnita.SCONOSCIUTA nel service layer, non nel form |
 | M8 | Template email + rich text | Alta | ✅ completata | TinyMCE vendorizzato (no CDN/API key); motore ridotto legge anche il fallback grezzo (mai autoescape Django); auditlog già registrato in core |
 | M9 | Icone nei tab della home | Bassa | ✅ completata | Dato già presente in `menu.py`, solo da renderizzare; scoperto un ramo morto preesistente in home.html (sezioni_menu non è mai vuota) |
-| M10 | Invito diretto ristretto + fuso in Ruoli | Bassa-media | ⬜ da fare | RDZ mantiene solo la visualizzazione storico; nuova costante distinta da RUOLI_CHE_INVITANO |
+| M10 | Invito diretto ristretto + fuso in Ruoli | Bassa-media | ✅ completata | Campo `gruppo` rimosso da InvitoSingoloForm (CG resta solo nel flusso massivo allowlist); RDZ mantiene solo la visualizzazione storico |
 | M11 | Assegna ruolo diretto (senza invito) | Alta | ⬜ da fare | CG escluso (D-35); nessun servizio di creazione ruolo esiste oggi; blocco duplicati da scrivere ex novo |
 | M12 | Elenco utenti impersonabili | Media | ⬜ da fare | Deviazione dichiarata dal principio "niente elenco sfogliabile"; il vero problema era l'assenza di voce menu |
 | M13 | Rifiniture breadcrumb (Home + Template email) | Bassa | ⬜ da fare | Gap lasciato da M8 (BreadcrumbExtraMixin mancante); icona Home via override locale di un partial del tema |
