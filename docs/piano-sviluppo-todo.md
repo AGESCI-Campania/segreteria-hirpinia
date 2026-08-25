@@ -120,6 +120,13 @@ i ruoli ammessi, incluso il caso limite sopra (permesso via delega, se applicabi
   `importazione_autorizzazioni_lista`) restano raggiungibili solo come link interni dal
   cruscotto, senza redirect — non ci sono bookmark/link esterni noti da preservare in
   un progetto interno alla Zona.
+- **Badge di stato (decisione presa, proposta usabilità #1)**: né `ImportazioneCSV` né
+  `ImportazioneAutorizzazioni` hanno un campo di stato — il record si crea solo a
+  conferma avvenuta, dentro la stessa transazione (vedi i due `Meta`/docstring dei
+  modelli). Uno stato "in corso" **non esiste nei dati** e non va inventato in UI: il
+  badge nella tabella del cruscotto ha quindi solo due valori, calcolati da
+  `bool(anomalie)` — "Con anomalie" (`anomalie` non vuoto) / "Senza anomalie" (`anomalie`
+  vuoto) — niente terzo stato.
 
 **Difficoltà: media** — non tocca la logica di dominio, ma richiede una view di
 aggregazione UI su due modelli distinti.
@@ -151,6 +158,12 @@ template `esportazione_form.html`.
   mostrando solo i pulsanti/la tabella per cui l'utente è effettivamente autorizzato
   (nascondere la tabella di export se manca `RUOLI_EXPORT_ANAGRAFICA` ma mostrare
   comunque il pulsante di ricerca capo se ha solo quel permesso).
+- **Layout (decisione presa, proposta usabilità #2)**: tab Bootstrap (`nav-tabs` del
+  tema), una scheda per funzione — Esporta / Cerca capo / Registro esportazioni — non
+  pulsanti in fondo pagina. Ogni scheda resta condizionata al permesso corrispondente
+  come sopra: se l'utente ha una sola scheda visibile, si può renderla l'unica scheda
+  attiva senza mostrare la barra di navigazione (un solo tab non ha senso da
+  selezionare).
 
 **Difficoltà: bassa-media**, per via del punto critico sui permessi disallineati.
 
@@ -199,9 +212,26 @@ Milestone più corposa. Sotto-step:
   visibile all'utente, incluso E9001 (verificare che compaia già nella queryset passata
   da `GruppoListaView`, dato che oggi la riga di E9001 nasconde i pulsanti
   Disattiva/Riattiva ma potrebbe essere comunque presente in tabella).
-- Un CG che non ha `RUOLI_GESTIONE_GRUPPI` non vede necessariamente la lista `Gruppi`
-  intera: valutare se serve un punto di accesso diretto (vedi proposta usabilità in
-  fondo) invece di richiedere che passi dalla lista completa.
+- **Voce menu diretta per CG (decisione presa, proposta usabilità #4)**: sì. Un CG
+  senza `RUOLI_GESTIONE_GRUPPI` non vede la lista `Gruppi` (voce condizionata da quel
+  permesso in `apps/core/menu.py`), quindi non avrebbe altrimenti un punto di accesso a
+  `gruppo_gestione` per il proprio gruppo. Aggiungere in `voci_anagrafica` una voce "Il
+  mio gruppo" visibile quando l'utente ha `Ruolo.Tipo.CG` (diretto o per delega) e
+  **non** ha `RUOLI_GESTIONE_GRUPPI` (altrimenti duplicherebbe "Gruppi"), che punta
+  direttamente a `gruppo_gestione` con il codice del gruppo del ruolo CG. Se l'utente ha
+  più ruoli CG su gruppi diversi (caso raro ma non escluso da CLAUDE.md: "un capo può
+  avere incarichi attivi in più gruppi"), la voce elenca i gruppi invece di puntare
+  diretta a uno solo — da verificare in fase di implementazione se il caso si presenta
+  davvero per un ruolo (non incarico) CG.
+- **Breadcrumb (decisione presa, proposta usabilità #4)**: `breadcrumb()` in
+  `apps/core/context_processors.py` oggi genera solo Home + Sezione + Voce quando
+  `request.path` combacia esattamente con una voce di menu — le pagine figlie (come
+  `gruppo_gestione/<codice>/`) mostrano solo Home, perché non sono nel menu. Estendere
+  il context processor con un meccanismo esplicito per le pagine figlie (es. la view
+  imposta `self.extra_context["breadcrumb_extra"] = [...]` o un attributo di classe
+  risolto dal context processor) per ottenere `Anagrafica › Gruppi › <Nome gruppo> ›
+  Gestione`, senza duplicare la logica di traduzione permesso→voce già presente lì.
+  Questo è un'estensione del meccanismo esistente, non una riscrittura.
 
 ### M5.4 — Subview incarichi del gruppo
 
@@ -216,6 +246,10 @@ Milestone più corposa. Sotto-step:
   pattern (import di un modello di un'altra app) sia già in uso altrove in
   `organizzazione` prima di darlo per scontato, altrimenti la subview va spostata come
   vista in `apps/anagrafica` che riceve il gruppo come parametro.
+- **Filtro/ricerca rapida (decisione presa, proposta usabilità #5)**: riusare
+  `static/js/table-filter.js` e `static/js/table-sort.js`, già presenti nel repo e usati
+  per altre tabelle del tema — nessun JS nuovo da scrivere, solo applicare gli stessi
+  attributi/hook della tabella alla lista incarichi.
 
 **Difficoltà: alta** — perimetro CG-vs-Zona su una risorsa nuova (incluse le deleghe),
 caso speciale E9001, verifica della direzione delle dipendenze fra app.
@@ -243,6 +277,15 @@ template `assegna_incarico.html`, subview di M5.4.
   mai readonly.
 - Verificare che `_verifica_perimetro` in `apps/anagrafica/incarichi.py` accetti
   comunque il default proposto (dovrebbe, essendo il perimetro dell'utente già a monte).
+- **Incarico duplicato (decisione presa, proposta usabilità #3)**: blocco, non doppia
+  conferma. `assegna_incarico_manuale` verifica, prima di creare l'`IncaricoUnita`, se
+  esiste già un incarico **attivo** (`cessato_il__isnull=True`) per la stessa
+  combinazione capo + `gruppo_servizio` + `codice_unita` + `funzione` + `anno_scout`; se
+  sì, solleva `ValidationError` (stesso pattern degli errori di perimetro già gestiti
+  dalla view, nessun nuovo ramo in `AssegnaIncaricoView`). Niente flag di conferma nel
+  form: un doppio click o un reinvio ripropone lo stesso errore invece di creare un
+  duplicato, coerente con "gli incarichi non si cancellano, si cessano" — non c'è un
+  caso legittimo di due incarichi identici attivi contemporaneamente.
 
 **Difficoltà: media.** `assegna_incarico_manuale` non cambia; cambiano punto di
 ingresso e valore iniziale. Attenzione ai test esistenti su `AssegnaIncaricoView` che
@@ -265,10 +308,16 @@ da Gestione gruppo con parametri corretti.
   libreria nuova): endpoint AJAX che restituisce un elenco limitato (max 10-20
   risultati) di soci per nome/cognome/gruppo/codice socio. Per decisione dell'utente,
   la ricerca **copre tutti i gruppi**, non solo quelli visibili all'utente, ma
-  restituisce **solo nome e cognome** (mai altri dati). Questo endpoint è
-  **esplicitamente diverso** da `cerca_capo_per_codice_socio` (D-34): va commentato nel
-  codice per marcare la distinzione (ricerca per nome cross-gruppo ammessa solo qui,
-  con output minimale, mai riusata per il flusso di ricerca capo censito altrove).
+  restituisce **solo nome, cognome e gruppo di censimento** (mai altri dati). Questo
+  endpoint è **esplicitamente diverso** da `cerca_capo_per_codice_socio` (D-34): va
+  commentato nel codice per marcare la distinzione (ricerca per nome cross-gruppo
+  ammessa solo qui, con output minimale, mai riusata per il flusso di ricerca capo
+  censito altrove).
+  - **Gruppo nel risultato (decisione presa, proposta usabilità #6)**: il nome breve del
+    gruppo di censimento compare accanto a ciascun risultato per distinguere omonimi.
+    Non è un dato riservato (il nome del gruppo, a differenza di recapiti/indirizzo, non
+    rientra nella restrizione D-34 sui "mai recapiti") — resta comunque **solo** il
+    gruppo, mai altri campi anagrafici.
 - Sostituisce l'attuale `codice_socio` come `HiddenInput` popolato solo via querystring
   in `AssegnaIncaricoView`: la nuova UI permette di digitare e scegliere dal dropdown,
   che poi valorizza il campo nascosto con il `codice_socio` scelto.
@@ -277,6 +326,9 @@ da Gestione gruppo con parametri corretti.
   "Aiuto capo unità" (valori di `FunzioneIncarico`); la validazione reale resta nel
   service layer (`assegna_incarico_manuale` o `IncaricoManualeForm.clean()`) — mai
   fidarsi solo del client.
+  - **Asterisco dinamico (decisione presa, proposta usabilità #7)**: lo stesso script
+    che rende `branca` obbligatorio aggiunge/rimuove un asterisco accanto alla label del
+    campo quando `funzione` cambia — puramente visivo, nessun nuovo stato server-side.
 
 **Difficoltà: alta** — nessuna infrastruttura di autocomplete esistente nel progetto
 (va scritta da zero: endpoint, limite risultati, JS); rischio concreto di confondere le
@@ -348,7 +400,14 @@ Milestone più impegnativa architetturalmente. Sotto-step:
   eccezione minima al vincolo "niente CSS custom" (limitata all'editor, non al resto
   del tema).
 - Pulsante "Anteprima" che renderizza il template con un contesto di esempio prima del
-  salvataggio (vedi anche proposta usabilità).
+  salvataggio.
+- **Pulsante "Invia email di test a me stesso" (decisione presa, proposta usabilità
+  #8)**: sì, accanto ad "Anteprima". Invia il template renderizzato (contesto di
+  esempio) all'indirizzo email dell'utente loggato, usando la stessa
+  `invia_email_template` di M8.3 — nessun percorso di invio parallelo. **Vincolo da
+  CLAUDE.md**: in ambiente di test/dev il provider è `locmem`/`console`, quindi
+  quest'invio non deve mai raggiungere un destinatario reale nei test automatici, solo
+  in un ambiente configurato con un provider reale.
 
 **Difficoltà: alta** — nessuna infrastruttura preesistente (modello, sanitizzazione,
 editor rich text, motore tag); superficie di sicurezza nuova (HTML modificabile da UI);
@@ -378,29 +437,39 @@ regressione sui 6 flussi di invio esistenti con i template di default precompila
 
 ---
 
-## Proposte di usabilità aggiuntive (da discutere, non nel TODO)
+## Proposte di usabilità aggiuntive
 
-1. **M3**: badge di stato (in corso / con anomalie / senza anomalie) nella lista
-   unificata degli import, per non dover aprire ogni dettaglio.
-2. **M4**: dato che "Visualizza anagrafica" diventa punto di ingresso a tre funzioni,
-   valutare schede (tab Bootstrap) invece di semplici pulsanti in fondo pagina.
-3. **M6/M7**: conferma esplicita quando si sta per creare un incarico che duplica un
-   incarico attivo già esistente per lo stesso capo/unità/funzione (doppio click,
-   pagina non aggiornata).
-4. **M5**: breadcrumb `Anagrafica > Gruppi > <Nome gruppo> > Gestione`; per i CG,
-   valutare una voce menu diretta "Il mio gruppo" invece di passare sempre dalla lista
-   completa.
-5. **M5.4**: filtro/ricerca rapida nella lista incarichi del gruppo, riusando il
-   pattern JS già presente (`table-filter.js`/`table-sort.js`).
-6. **M7**: mostrare il gruppo di censimento accanto a ciascun risultato
-   dell'autocomplete, per distinguere omonimi fra gruppi diversi.
-7. **M7**: evidenziare visivamente (asterisco dinamico) quando il campo branca diventa
-   obbligatorio in base alla funzione scelta.
-8. **M8**: pulsante "Invia email di test a me stesso" nella UI di modifica template,
-   per verificare la resa reale in un client di posta prima di renderlo attivo.
-9. **Generale**: verificare in ciascuna milestone, come criterio di accettazione, che
-   il breadcrumb resti presente su ogni nuova pagina (già completato nel primo beta
-   test) — non solo come nota finale.
+Discusse con l'utente il 2026-08-25: tutte accolte come decisioni di design, incorporate
+nel testo della milestone corrispondente (nessuna implementazione ancora, dato che
+M3-M8 sono ⬜). Nessuna era implementabile isolatamente: dipendono tutte da una
+milestone non ancora costruita, salvo la #9 che è un criterio trasversale già in atto.
+
+1. ✅ **M3** — badge di stato nella lista unificata degli import. **Decisione**: solo due
+   valori, "Con anomalie"/"Senza anomalie" da `bool(anomalie)` — uno stato "in corso" non
+   esiste nei dati (il record si crea solo a conferma avvenuta), non va aggiunto in UI.
+   Dettaglio nella sezione M3.
+2. ✅ **M4** — tab Bootstrap invece di pulsanti in fondo pagina, una scheda per funzione.
+   Dettaglio nella sezione M4.
+3. ✅ **M6/M7** — niente doppia conferma: blocco (`ValidationError`) in
+   `assegna_incarico_manuale` se esiste già un incarico attivo identico
+   (capo+gruppo+unità+funzione+anno). Dettaglio nella sezione M6.
+4. ✅ **M5** — voce menu diretta "Il mio gruppo" per CG senza `RUOLI_GESTIONE_GRUPPI`;
+   breadcrumb esteso con un meccanismo esplicito per le pagine figlie non presenti nel
+   menu. Dettaglio nella sezione M5.3.
+5. ✅ **M5.4** — filtro/ricerca rapida: riuso diretto di `table-filter.js`/`table-sort.js`
+   (già caricati globalmente in `templates/base.html`), nessun JS nuovo. Dettaglio nella
+   sezione M5.4.
+6. ✅ **M7** — gruppo di censimento accanto a ciascun risultato dell'autocomplete: non è
+   dato riservato (a differenza dei recapiti, resta comunque escluso). Dettaglio nella
+   sezione M7.
+7. ✅ **M7** — asterisco dinamico sulla label di `branca`, stesso script della
+   obbligatorietà condizionale. Dettaglio nella sezione M7.
+8. ✅ **M8** — pulsante "Invia email di test a me stesso" accanto ad "Anteprima", stesso
+   `invia_email_template` di M8.3. Dettaglio nella sezione M8.4.
+9. **Generale** — verificare ad ogni milestone, come criterio di accettazione, che il
+   breadcrumb resti presente su ogni nuova pagina. Nessuna decisione da prendere: è già
+   un criterio applicato (completato nel primo beta test), da mantenere anche per le
+   pagine nuove di M3-M8.
 
 ---
 
