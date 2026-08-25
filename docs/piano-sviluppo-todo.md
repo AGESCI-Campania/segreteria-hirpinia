@@ -58,7 +58,7 @@ M5  ✅ Gestione gruppo — modello, permessi, view base, subview incarichi     
 M6  ✅ Assegna incarico: spostamento dentro Gestione gruppo + default gruppo     — dipende da M5
 M7  ✅ Assegna incarico: ricerca con autocompletamento + branca condizionale     — dipende da M6 (stessa view)
 M8  ✅ Template email configurabili con rich text                                — indipendente, va per ultima
-M9  ⬜ Icone nei tab della home                                                  — indipendente
+M9  ✅ Icone nei tab della home                                                  — indipendente
 M10 ⬜ Invito diretto ristretto ad ADMIN/SEGRETERIA, fuso dentro "Ruoli"          — indipendente
 M11 ⬜ Assegna ruolo direttamente (senza invito) a un utente già attivo          — dipende da M10 (stesso template ruolo_lista.html)
 M12 ⬜ Elenco degli utenti impersonabili + voce di menu                          — indipendente
@@ -697,7 +697,7 @@ primo livello e una pagina figlia via `BreadcrumbExtraMixin`, es. `gruppo_gestio
 | M6 | Assegna incarico → dentro Gestione gruppo | Media | ✅ completata | assegna_incarico_manuale invariato; blocco duplicati già coperto dal UniqueConstraint di IncaricoUnita, non da scrivere |
 | M7 | Autocomplete + branca condizionale | Alta | ✅ completata | Modello IncaricoUnita.branca senza blank=True: fallback BrancaUnita.SCONOSCIUTA nel service layer, non nel form |
 | M8 | Template email + rich text | Alta | ✅ completata | TinyMCE vendorizzato (no CDN/API key); motore ridotto legge anche il fallback grezzo (mai autoescape Django); auditlog già registrato in core |
-| M9 | Icone nei tab della home | Bassa | ⬜ da fare | Dato già presente in `menu.py`, solo da renderizzare |
+| M9 | Icone nei tab della home | Bassa | ✅ completata | Dato già presente in `menu.py`, solo da renderizzare; scoperto un ramo morto preesistente in home.html (sezioni_menu non è mai vuota) |
 | M10 | Invito diretto ristretto + fuso in Ruoli | Bassa-media | ⬜ da fare | RDZ mantiene solo la visualizzazione storico; nuova costante distinta da RUOLI_CHE_INVITANO |
 | M11 | Assegna ruolo diretto (senza invito) | Alta | ⬜ da fare | CG escluso (D-35); nessun servizio di creazione ruolo esiste oggi; blocco duplicati da scrivere ex novo |
 | M12 | Elenco utenti impersonabili | Media | ⬜ da fare | Deviazione dichiarata dal principio "niente elenco sfogliabile"; il vero problema era l'assenza di voce menu |

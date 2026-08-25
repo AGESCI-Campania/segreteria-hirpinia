@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load agesci_tags %}
+{% load bootstrap_icons %}
 
 {% block page_title %}Catello — {{ agesci_theme_nome }}{% endblock %}
 
@@ -15,11 +16,11 @@
       {% for sezione in sezioni_menu %}
         <div class="col">
           <div class="card h-100">
-            <div class="card-header">{{ sezione.etichetta }}</div>
+            <div class="card-header">{% bs_icon sezione.icona %} {{ sezione.etichetta }}</div>
             <div class="list-group list-group-flush">
               {% for voce in sezione.voci %}
                 <a href="{{ voce.url }}" class="list-group-item list-group-item-action">
-                  {{ voce.etichetta }}
+                  {% bs_icon voce.icona %} {{ voce.etichetta }}
                 </a>
               {% endfor %}
             </div>

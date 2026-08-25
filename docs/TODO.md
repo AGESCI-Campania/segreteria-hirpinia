@@ -21,7 +21,7 @@ Questo è un elenco di modifiche da fare aggiornato man mano che vanno avanti i 
   - [x] "Allowlist gruppi" va spostato nel tab "Amministrazione"
 - [x] Tab "Contributi" diventa "Moduli"
   - [x] "Campagne Fo.Ca." Diventa "Contributo Fo.Ca."
-- [ ] In home, dopo login, nei tab vanno inseriti gli stessi bsicon e/o md icon che sono nel menu della sidebar
+- [x] In home, dopo login, nei tab vanno inseriti gli stessi bsicon e/o md icon che sono nel menu della sidebar
 - [ ] In http://127.0.0.1:8000/impostazioni/template-email/ deve essere presente un pulsante per tornare a impostazioni (http://127.0.0.1:8000/impostazioni/). Inoltre manca il breadcrumb
 - [ ] Nel breadcrumb "Home" deve essere sempre rappresentato con l'icona della home prima del testo Home
 
