@@ -1,0 +1,23 @@
+{% comment %}
+Override locale di django-agesci-campania-theme 2.4.1
+(agesci_theme/templates/agesci_theme/partials/breadcrumb.html), scelto da
+Django al posto della versione del pacchetto perché TEMPLATES[0]["DIRS"]
+ha priorità su APP_DIRS (config/settings/base.py). Unica differenza:
+l'icona Home (M13) prima del testo del primo elemento, che per
+costruzione di apps/core/context_processors.py::breadcrumb() è sempre
+"Home". Se il tema aggiorna questo partial, sincronizzare a mano.
+{% endcomment %}
+{% load bootstrap_icons %}
+{% if breadcrumb_items %}
+<nav aria-label="percorso" class="breadcrumb-agesci">
+  <ol class="breadcrumb mb-0 py-2 px-3">
+    {% for item in breadcrumb_items %}
+      {% if forloop.last %}
+        <li class="breadcrumb-item active" aria-current="page">{% if forloop.first %}{% bs_icon "house-fill" %} {% endif %}{{ item.label }}</li>
+      {% else %}
+        <li class="breadcrumb-item"><a href="{{ item.url }}">{% if forloop.first %}{% bs_icon "house-fill" %} {% endif %}{{ item.label }}</a></li>
+      {% endif %}
+    {% endfor %}
+  </ol>
+</nav>
+{% endif %}

@@ -10,6 +10,7 @@ from apps.accounts.models import Ruolo
 
 from .forms import ImpostazioniPiattaformaForm, TemplateEmailForm
 from .invio_email import invia_email_template, sanifica_html
+from .mixins import BreadcrumbExtraMixin
 from .models import ImpostazioniPiattaforma, TemplateEmail
 from .template_email import CONTESTO_ESEMPIO, VARIABILI_PER_CODICE, sostituisci_placeholder
 
@@ -41,17 +42,25 @@ class ImpostazioniPiattaformaView(RuoloRequiredMixin, View):
         return redirect(reverse("core:impostazioni"))
 
 
-class TemplateEmailListaView(RuoloRequiredMixin, ListView):
+class TemplateEmailListaView(BreadcrumbExtraMixin, RuoloRequiredMixin, ListView):
     ruoli_ammessi = RUOLI_GESTIONE_IMPOSTAZIONI
     ruoli_ammessi_solo_diretti = True
     template_name = "core/template_email_lista.html"
     context_object_name = "template_email"
 
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return [
+            {"label": "Amministrazione"},
+            {"label": "Impostazioni", "url": reverse("core:impostazioni")},
+            {"label": "Template email"},
+        ]
+
     def get_queryset(self):
         return TemplateEmail.objects.all()
 
 
-class TemplateEmailModificaView(RuoloRequiredMixin, View):
+class TemplateEmailModificaView(BreadcrumbExtraMixin, RuoloRequiredMixin, View):
     """Anteprima e invio di test (M8.4) riusano lo stesso motore di
     sostituzione/sanitizzazione di `invia_email_template` — nessun percorso
     di invio parallelo. `codice` non è mai modificabile da qui (M8.1)."""
@@ -59,6 +68,15 @@ class TemplateEmailModificaView(RuoloRequiredMixin, View):
     ruoli_ammessi = RUOLI_GESTIONE_IMPOSTAZIONI
     ruoli_ammessi_solo_diretti = True
     template_name = "core/template_email_modifica.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return [
+            {"label": "Amministrazione"},
+            {"label": "Impostazioni", "url": reverse("core:impostazioni")},
+            {"label": "Template email", "url": reverse("core:template_email_lista")},
+            {"label": "Modifica template"},
+        ]
 
     def _contesto_pagina(self, template: TemplateEmail, form: TemplateEmailForm, **extra) -> dict:
         contesto = {

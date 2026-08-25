@@ -201,3 +201,31 @@ class TestLista:
         response = client.get("/impostazioni/template-email/")
         assert response.status_code == 200
         assert len(response.context["template_email"]) == 6
+
+    def test_lista_ha_link_di_ritorno_a_impostazioni(self, client, segreteria):
+        client.force_login(segreteria)
+        response = client.get("/impostazioni/template-email/")
+        assert 'href="/impostazioni/"' in response.content.decode()
+
+
+class TestBreadcrumb:
+    def test_lista_breadcrumb(self, client, segreteria):
+        client.force_login(segreteria)
+        response = client.get("/impostazioni/template-email/")
+        assert response.context["breadcrumb_items"] == [
+            {"label": "Home", "url": "/"},
+            {"label": "Amministrazione"},
+            {"label": "Impostazioni", "url": "/impostazioni/"},
+            {"label": "Template email"},
+        ]
+
+    def test_modifica_breadcrumb(self, client, segreteria, template_delega_creata):
+        client.force_login(segreteria)
+        response = client.get(f"/impostazioni/template-email/{template_delega_creata.pk}/")
+        assert response.context["breadcrumb_items"] == [
+            {"label": "Home", "url": "/"},
+            {"label": "Amministrazione"},
+            {"label": "Impostazioni", "url": "/impostazioni/"},
+            {"label": "Template email", "url": "/impostazioni/template-email/"},
+            {"label": "Modifica template"},
+        ]

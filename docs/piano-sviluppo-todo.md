@@ -62,7 +62,7 @@ M9  ✅ Icone nei tab della home                                                
 M10 ✅ Invito diretto ristretto ad ADMIN/SEGRETERIA, fuso dentro "Ruoli"          — indipendente
 M11 ✅ Assegna ruolo direttamente (senza invito) a un utente già attivo          — dipende da M10 (stesso template ruolo_lista.html)
 M12 ✅ Elenco degli utenti impersonabili + voce di menu                          — indipendente
-M13 ⬜ Rifiniture breadcrumb: icona Home + Template email completo               — indipendente
+M13 ✅ Rifiniture breadcrumb: icona Home + Template email completo               — indipendente
 ```
 
 Le voci A5 e C del TODO toccano la stessa view (`AssegnaIncaricoView`): farle in
@@ -712,7 +712,7 @@ primo livello e una pagina figlia via `BreadcrumbExtraMixin`, es. `gruppo_gestio
 | M10 | Invito diretto ristretto + fuso in Ruoli | Bassa-media | ✅ completata | Campo `gruppo` rimosso da InvitoSingoloForm (CG resta solo nel flusso massivo allowlist); RDZ mantiene solo la visualizzazione storico |
 | M11 | Assegna ruolo diretto (senza invito) | Alta | ✅ completata | CG escluso (D-35); nuova crea_ruolo_esplicito() sul modello di revoca_ruolo_esplicito; blocco duplicati e RDZ→CG(E9001) coperti |
 | M12 | Elenco utenti impersonabili | Media | ✅ completata | Deviazione dichiarata dal principio "niente elenco sfogliabile"; la voce di menu esisteva già nel dropdown utente, nessuna voce nuova da aggiungere |
-| M13 | Rifiniture breadcrumb (Home + Template email) | Bassa | ⬜ da fare | Gap lasciato da M8 (BreadcrumbExtraMixin mancante); icona Home via override locale di un partial del tema |
+| M13 | Rifiniture breadcrumb (Home + Template email) | Bassa | ✅ completata | Gap lasciato da M8 (BreadcrumbExtraMixin mancante); icona Home via override locale di un partial del tema (versione 2.4.1 annotata nel commento) |
 
 ---
 

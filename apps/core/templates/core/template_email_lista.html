@@ -1,8 +1,13 @@
 {% extends "base.html" %}
+{% load bootstrap_icons %}
 
 {% block page_title %}Template email{% endblock %}
 
 {% block content %}
+  <a href="{% url 'core:impostazioni' %}" class="btn btn-outline-secondary btn-sm mb-3">
+    {% bs_icon "arrow-left" %} Impostazioni
+  </a>
+
   <h1>Template email</h1>
   <p class="text-muted">
     I template derivati dall'incarico (M8) non compaiono qui separatamente:

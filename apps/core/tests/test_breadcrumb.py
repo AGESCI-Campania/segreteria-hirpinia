@@ -54,3 +54,24 @@ def test_pagina_non_di_menu_ha_solo_home(client, segreteria):
     client.force_login(segreteria)
     response = client.get("/gruppi/nuovo/")
     assert response.context["breadcrumb_items"] == [{"label": "Home", "url": "/"}]
+
+
+class TestIconaHome:
+    """M13: override locale di agesci_theme/partials/breadcrumb.html.
+    bs_icon renderizza un <svg> (django_bootstrap_icons): verifichiamo che
+    compaia dentro il breadcrumb, non il markup esatto (fuori controllo)."""
+
+    def _svg_nel_breadcrumb(self, content: str) -> bool:
+        inizio = content.index('class="breadcrumb-agesci"')
+        fine = content.index("</nav>", inizio)
+        return "<svg" in content[inizio:fine]
+
+    def test_home_ha_icona(self, client, segreteria):
+        client.force_login(segreteria)
+        response = client.get("/")
+        assert self._svg_nel_breadcrumb(response.content.decode())
+
+    def test_pagina_figlia_ha_comunque_icona_home(self, client, segreteria):
+        client.force_login(segreteria)
+        response = client.get("/gruppi/nuovo/")
+        assert self._svg_nel_breadcrumb(response.content.decode())
