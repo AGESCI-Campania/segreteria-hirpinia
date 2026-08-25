@@ -1,0 +1,36 @@
+# Todolist delle cose da implementare/correggere durante il beta testing
+
+Questo è un elenco di modifiche da fare aggiornato man mano che vanno avanti i test, Quelli marcati con [x] sono comletati
+
+## Primo beta test
+
+- [x] Implementare interfaccia AllowlistGruppo accessibile da segreteria e RdZ e SuperAdmin
+- [x] Aggiungere filtro ricerca e ordinamento colonne premendo sulle stesse, per ogni tabella del sito
+- [x] Implementare breadcrumb per tutte le pagine dopo login (deve contenere almeno home)
+- [x] Eliminare Home in alto a destra nelle pagine, non più necessario
+- [x] In http://127.0.0.1:8000/anagrafica/export/ Gruppo e Unità e Livello FoCa (da scrivere Livello Fo.Ca., Fo.Ca. va scritto sempre così) deve essere un menu a tendina con i valori attivi (gruppo) o presenti nelle anagrafiche (Unità, Livello Fo.Ca.)
+
+## Interfaccia
+
+- [ ] Tab anagrafica:
+  - [ ] "Importa anagrafica soci" e "Importa autorizzazioni" devono essere raggruppate in un unica voce "Importa" che rimanda ad una view che permette di eseguire entrambe i flussi e mostra un riepilogo degli import (quello che ora viene visualizzatop dalle due view separatamente)
+  - [ ] "Cerca capo censito altrove" diventa "Cerca capo in servizio esterno al gruppo" e va spostato come pulsante in "Esporta anagrafica"
+  - [ ] "Registro esportazioni" va spostato come pulsante in "Esporta anagrafica"
+  - [ ] "Esporta anagrafica" diventa "Visualizza anagrafica"
+  - [ ] "Assegna incarico" va spostato nella nuova funzione "Gestione gruppo" (vedi dettagli successivamente)
+  - [ ] "Allowlist gruppi" va spostato nel tab "Amministrazione"
+- [ ] Tab "Contributi" diventa "Moduli"
+  - [ ] "Campagne Fo.Ca." Diventa "Contributo Fo.Ca."
+
+## Altre modifiche
+- [ ] Assegna incarico manuale deve funzionare per mettendo di selezionare un socio con ricerca con autocompletion per nome, cognome, gruppo, o codice socio. A questo vien poi assegnato una funzione (e se è capo unità o aiuto capo unità anche una branca, che altriumenti non è obbligatoria). Come gruppo in cui si presta servizio di default viene selzionato quello di appartenza del capo, ma si può selezionare eventualmente un altro se incarico esterno in altro gruppo.
+
+## Nuove funzionalità
+- [ ] "Gestione gruppo"
+  - [ ] Contiene i dati del gruppo e permette di modificarli, Email di default (quella da import su dominio campania.agesci.it) non può essere modificata, ma si può inserire una email alternativa. Il capogruppo o un suo delegato può inserire e\o modificare:
+    - la mail alternativa
+    - indirizzo della sede del gruppo
+    - Codice fiscale del gruppo
+  - [ ] Segreteria, RdZ e superadmin possono fare lo stesso, ma per tutti i gruppi. Accedono cliccando sul nome di un gruppo nell'anagrafica "Gruppi", tramite la voce "Gestione Gruppo" vedono il gruppo COM ZONA HIRPINIA
+  - [ ] Deve avere una subview per vedere tutti gli incarichi di quel gruppo
+- [ ] In "impostazioni" deve essere possibile impostare il template delle mail inviate dalla piattaforma nelle varie funzioni. I template devono essere impostabili con tag per inserimento di variabili e con html (rich text editor)
