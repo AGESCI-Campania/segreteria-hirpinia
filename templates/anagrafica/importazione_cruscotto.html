@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block page_title %}Importa{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Importa</h1>
+    <div>
+      <a href="{% url 'anagrafica:importazione_anteprima' %}" class="btn btn-primary me-2">
+        Importa anagrafica soci
+      </a>
+      <a href="{% url 'anagrafica:importazione_autorizzazioni_anteprima' %}" class="btn btn-primary">
+        Importa autorizzazioni
+      </a>
+    </div>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Tipo</th>
+        <th>Anno scout</th>
+        <th>Eseguita il</th>
+        <th>Utente</th>
+        <th>Stato</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for riga in righe %}
+        <tr>
+          <td>{{ riga.tipo }}</td>
+          <td><a href="{{ riga.url_dettaglio }}">{{ riga.importazione.anno_scout }}</a></td>
+          <td>{{ riga.importazione.eseguita_il }}</td>
+          <td>{{ riga.importazione.utente|default:"—" }}</td>
+          <td>
+            {% if riga.con_anomalie %}
+              <span class="badge text-bg-warning">Con anomalie</span>
+            {% else %}
+              <span class="badge text-bg-success">Senza anomalie</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">Nessuna importazione.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p class="mt-3">
+    <a href="{% url 'anagrafica:importazione_lista' %}">Elenco completo import CSV</a>
+    ·
+    <a href="{% url 'anagrafica:importazione_autorizzazioni_lista' %}">Elenco completo import autorizzazioni</a>
+  </p>
+{% endblock %}

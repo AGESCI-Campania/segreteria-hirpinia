@@ -143,6 +143,42 @@ class ImportazioneConfermaView(RuoloRequiredMixin, View):
         return redirect(reverse("anagrafica:importazione_dettaglio", args=[importazione.pk]))
 
 
+class ImportazioneCruscottoView(RuoloRequiredMixin, View):
+    """Punto di ingresso unico ai due flussi di import (CSV Buona Caccia e PDF
+    di autorizzazione, M3 del piano di sviluppo): stesso perimetro
+    `RUOLI_IMPORT_ANAGRAFICA` per entrambi. I flussi restano backend separati
+    (modelli e parser distinti, CLAUDE.md): qui si aggregano solo in Python i
+    due elenchi per un riepilogo unico, non un `UNION` SQL."""
+
+    ruoli_ammessi = RUOLI_IMPORT_ANAGRAFICA
+    template_name = "anagrafica/importazione_cruscotto.html"
+
+    def get(self, request):
+        righe = [
+            {
+                "tipo": "CSV anagrafica",
+                "importazione": importazione,
+                "con_anomalie": bool(importazione.anomalie),
+                "url_dettaglio": reverse(
+                    "anagrafica:importazione_dettaglio", args=[importazione.pk]
+                ),
+            }
+            for importazione in ImportazioneCSV.objects.select_related("utente")
+        ] + [
+            {
+                "tipo": "Autorizzazioni PDF",
+                "importazione": importazione,
+                "con_anomalie": bool(importazione.anomalie),
+                "url_dettaglio": reverse(
+                    "anagrafica:importazione_autorizzazioni_dettaglio", args=[importazione.pk]
+                ),
+            }
+            for importazione in ImportazioneAutorizzazioni.objects.select_related("utente")
+        ]
+        righe.sort(key=lambda riga: riga["importazione"].eseguita_il, reverse=True)
+        return render(request, self.template_name, {"righe": righe})
+
+
 class ImportazioneListaView(RuoloRequiredMixin, ListView):
     ruoli_ammessi = RUOLI_IMPORT_ANAGRAFICA
     template_name = "anagrafica/importazione_lista.html"

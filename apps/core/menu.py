@@ -63,14 +63,7 @@ def sezioni_menu(utente: Utente | AnonymousUser) -> list[SezioneMenu]:
     voci_anagrafica = []
     if consentito(RUOLI_IMPORT_ANAGRAFICA):
         voci_anagrafica.append(
-            _voce("Importa anagrafica soci", "anagrafica:importazione_lista", "cloud-upload")
-        )
-        voci_anagrafica.append(
-            _voce(
-                "Importa autorizzazioni",
-                "anagrafica:importazione_autorizzazioni_lista",
-                "file-earmark-arrow-up",
-            )
+            _voce("Importa", "anagrafica:importazione_cruscotto", "cloud-upload")
         )
     if consentito(RUOLI_RICERCA_CAPO):
         voci_anagrafica.append(

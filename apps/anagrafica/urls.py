@@ -6,6 +6,11 @@ app_name = "anagrafica"
 
 urlpatterns = [
     path(
+        "importazioni/cruscotto/",
+        views.ImportazioneCruscottoView.as_view(),
+        name="importazione_cruscotto",
+    ),
+    path(
         "importazioni/",
         views.ImportazioneListaView.as_view(),
         name="importazione_lista",
