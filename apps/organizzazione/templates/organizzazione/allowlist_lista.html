@@ -7,32 +7,57 @@
     <h1>Allowlist gruppi</h1>
     <a href="{% url 'organizzazione:allowlist_crea' %}" class="btn btn-primary">Nuova voce</a>
   </div>
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Email</th>
-        <th>Gruppo</th>
-        <th>Origine</th>
-        <th>Creata il</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for voce in voci %}
+  <form method="post" action="{% url 'organizzazione:allowlist_invita_massivo' %}">
+    {% csrf_token %}
+    <table class="table">
+      <thead>
         <tr>
-          <td>{{ voce.email }}</td>
-          <td>{{ voce.codice_gruppo }}</td>
-          <td>{{ voce.get_origine_display }}</td>
-          <td>{{ voce.creata_il }}</td>
-          <td>
-            <a href="{% url 'organizzazione:allowlist_elimina' voce.pk %}" class="btn btn-sm btn-danger">
-              Elimina
-            </a>
-          </td>
+          <th>
+            {% if numero_candidati %}
+              <input type="checkbox" id="seleziona-tutti" checked
+                     onclick="document.querySelectorAll('.voce-candidata').forEach(function(c) { c.checked = this.checked; }, this)">
+            {% endif %}
+          </th>
+          <th>Email</th>
+          <th>Gruppo</th>
+          <th>Origine</th>
+          <th>Creata il</th>
+          <th>Stato accesso</th>
+          <th></th>
         </tr>
-      {% empty %}
-        <tr><td colspan="5">Nessuna voce in allowlist.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for voce in voci %}
+          <tr>
+            <td>
+              {% if voce.mai_effettuato_accesso %}
+                <input type="checkbox" class="voce-candidata" name="voce_id" value="{{ voce.pk }}" checked>
+              {% endif %}
+            </td>
+            <td>{{ voce.email }}</td>
+            <td>{{ voce.codice_gruppo }}</td>
+            <td>{{ voce.get_origine_display }}</td>
+            <td>{{ voce.creata_il }}</td>
+            <td>
+              {% if voce.mai_effettuato_accesso %}
+                Mai effettuato l'accesso
+              {% else %}
+                Account già attivo o gruppo non attivo
+              {% endif %}
+            </td>
+            <td>
+              <a href="{% url 'organizzazione:allowlist_elimina' voce.pk %}" class="btn btn-sm btn-danger">
+                Elimina
+              </a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7">Nessuna voce in allowlist.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if numero_candidati %}
+      <button type="submit" class="btn btn-primary">Invia inviti selezionati</button>
+    {% endif %}
+  </form>
 {% endblock %}

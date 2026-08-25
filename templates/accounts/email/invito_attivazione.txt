@@ -10,7 +10,11 @@ Per attivare l'account, vai su:
 Il codice scade il {{ invito.scadenza|date:"d/m/Y H:i" }}. Se nel frattempo
 scade, potrai richiederne uno nuovo dalla pagina di recupero:
 {{ site_url }}{% url 'accounts:recupero' %}
-
+{% if invito.gruppo %}
+Una volta attivato l'account, potrai caricare le partecipazioni per il
+contributo del tuo gruppo da qui:
+{{ site_url }}{% url 'contributi:campagna_lista' %}
+{% endif %}
 Se non hai richiesto tu questo invito, ignora questa email.
 
 — Catello, AGESCI Zona Hirpinia

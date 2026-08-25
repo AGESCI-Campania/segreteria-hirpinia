@@ -10,6 +10,7 @@ from django.urls import reverse
 from django.views import View
 from django.views.generic import ListView
 
+from apps.accounts.inviti import candidati_invito_massivo, invia_inviti_multipli
 from apps.accounts.mixins import RuoloRequiredMixin
 from apps.contributi.disattivazione_gruppo import conta_effetti_disattivazione
 
@@ -132,6 +133,47 @@ class AllowlistListaView(RuoloRequiredMixin, ListView):
 
     def get_queryset(self):
         return AllowlistGruppo.objects.all()
+
+    def get_context_data(self, **kwargs):
+        contesto = super().get_context_data(**kwargs)
+        pk_candidati = {c.voce.pk for c in candidati_invito_massivo()}
+        # Precalcolato qui: il template non può richiamare pk in un set con
+        # una lookup diretta su un oggetto, serve un attributo per riga.
+        for voce in contesto["voci"]:
+            voce.mai_effettuato_accesso = voce.pk in pk_candidati
+        contesto["numero_candidati"] = len(pk_candidati)
+        return contesto
+
+
+class AllowlistInvitoMassivoView(RuoloRequiredMixin, View):
+    """Invio massivo dell'invito OTP (D-20) alle voci allowlist mai accedute
+    (D-24: solo se il gruppo è ancora attivo). Nessuna vista GET separata:
+    la selezione avviene direttamente in `AllowlistListaView`, il POST è già
+    la conferma esplicita."""
+
+    ruoli_ammessi = RUOLI_GESTIONE_GRUPPI
+
+    def post(self, request):
+        pk_selezionati = {int(pk) for pk in request.POST.getlist("voce_id") if pk.isdigit()}
+        # Ri-derivato qui, non fidandosi delle sole checkbox: un indirizzo
+        # potrebbe aver effettuato l'accesso fra il caricamento della pagina
+        # e l'invio del form.
+        da_invitare = [c for c in candidati_invito_massivo() if c.voce.pk in pk_selezionati]
+        if not da_invitare:
+            messages.warning(request, "Nessun destinatario selezionato o ancora invitabile.")
+            return redirect(reverse("organizzazione:allowlist_lista"))
+
+        risultati = invia_inviti_multipli(
+            [{"email": c.voce.email, "gruppo": c.gruppo} for c in da_invitare],
+            creato_da=request.user,
+        )
+        successi = sum(1 for _, esito, _ in risultati if esito)
+        falliti = [email for email, esito, _ in risultati if not esito]
+        if successi:
+            messages.success(request, f"Invito inviato a {successi} indirizzo/i.")
+        if falliti:
+            messages.error(request, f"Invio fallito per: {', '.join(falliti)}.")
+        return redirect(reverse("organizzazione:allowlist_lista"))
 
 
 class AllowlistCreaView(RuoloRequiredMixin, View):

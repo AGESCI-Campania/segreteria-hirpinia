@@ -3,8 +3,10 @@ test_views_gruppi.py (perimetro ruoli + percorso positivo)."""
 
 import pytest
 from allauth.mfa.models import Authenticator
+from django.core import mail
+from django.utils import timezone
 
-from apps.accounts.models import Ruolo, StatoUtente, TipoUtente, Utente
+from apps.accounts.models import InvitoAttivazione, Ruolo, StatoUtente, TipoUtente, Utente
 from apps.organizzazione.models import AllowlistGruppo, Gruppo
 
 pytestmark = pytest.mark.django_db
@@ -70,6 +72,46 @@ class TestAllowlistCreaView:
         )
         assert response.status_code == 200
         assert not AllowlistGruppo.objects.filter(email="nuovo@campania.agesci.it").exists()
+
+
+class TestAllowlistInvitoMassivoView:
+    def test_cg_non_puo_inviare(self, client, cg_gruppo, gruppo):
+        voce = AllowlistGruppo.objects.create(codice_gruppo=gruppo.codice, email="a@x.it")
+        client.force_login(cg_gruppo)
+        response = client.post("/gruppi/allowlist/invita/", {"voce_id": [voce.pk]})
+        assert response.status_code == 403
+
+    def test_invia_solo_ai_selezionati(self, client, segreteria, gruppo):
+        voce_selezionata = AllowlistGruppo.objects.create(
+            codice_gruppo=gruppo.codice, email="a@x.it"
+        )
+        AllowlistGruppo.objects.create(codice_gruppo=gruppo.codice, email="b@x.it")
+        client.force_login(segreteria)
+
+        response = client.post("/gruppi/allowlist/invita/", {"voce_id": [voce_selezionata.pk]})
+
+        assert response.status_code == 302
+        assert InvitoAttivazione.objects.filter(email="a@x.it").exists()
+        assert not InvitoAttivazione.objects.filter(email="b@x.it").exists()
+        assert len(mail.outbox) == 1
+
+    def test_utente_gia_acceduto_non_riceve_invito_anche_se_selezionato(
+        self, client, segreteria, gruppo
+    ):
+        voce = AllowlistGruppo.objects.create(codice_gruppo=gruppo.codice, email="a@x.it")
+        Utente.objects.create(
+            username="a@x.it",
+            email="a@x.it",
+            tipo=TipoUtente.GRUPPO,
+            gruppo=gruppo,
+            last_login=timezone.now(),
+        )
+        client.force_login(segreteria)
+
+        response = client.post("/gruppi/allowlist/invita/", {"voce_id": [voce.pk]})
+
+        assert response.status_code == 302
+        assert not InvitoAttivazione.objects.filter(email="a@x.it").exists()
 
 
 class TestAllowlistEliminaView:

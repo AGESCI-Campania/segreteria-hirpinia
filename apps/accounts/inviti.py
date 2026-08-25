@@ -1,12 +1,14 @@
 """Attivazione tramite OTP (D-20), recupero autonomo (D-25). Unico punto
 autorizzato a creare, verificare e far scadere un InvitoAttivazione."""
 
+from dataclasses import dataclass
+
 from django.core.mail import send_mail
 from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from apps.organizzazione.models import Gruppo
+from apps.organizzazione.models import AllowlistGruppo, Gruppo, anno_scout_corrente
 
 from .models import (
     Delega,
@@ -95,6 +97,33 @@ def invia_inviti_multipli(
         except Exception as exc:  # noqa: BLE001 — un fallimento non ferma il lotto
             risultati.append((voce["email"], False, str(exc)))
     return risultati
+
+
+@dataclass(frozen=True)
+class CandidatoInvito:
+    """Voce allowlist invitabile in massa: gruppo attivo, email mai acceduta."""
+
+    voce: AllowlistGruppo
+    gruppo: Gruppo
+
+
+def candidati_invito_massivo(anno: int | None = None) -> list[CandidatoInvito]:
+    """Voci allowlist il cui gruppo è attivo per `anno` (default anno corrente,
+    D-24: un gruppo disattivato non compare fra i destinatari) e la cui email
+    non appartiene a nessun Utente che abbia già effettuato l'accesso."""
+    anno = anno if anno is not None else anno_scout_corrente()
+    gruppi_attivi = {g.codice: g for g in Gruppo.objects.attivi(anno)}
+    email_con_accesso = {
+        email.lower()
+        for email in Utente.objects.filter(last_login__isnull=False).values_list("email", flat=True)
+    }
+    candidati = []
+    for voce in AllowlistGruppo.objects.order_by("codice_gruppo", "email"):
+        gruppo = gruppi_attivi.get(voce.codice_gruppo)
+        if gruppo is None or voce.email.lower() in email_con_accesso:
+            continue
+        candidati.append(CandidatoInvito(voce=voce, gruppo=gruppo))
+    return candidati
 
 
 def _ultimo_invito(email: str, stati: list[str]) -> InvitoAttivazione | None:
@@ -189,8 +218,6 @@ def richiedi_recupero(email: str) -> None:
         return
 
     if invito.gruppo_id is not None:
-        from apps.organizzazione.models import anno_scout_corrente
-
         assert invito.gruppo is not None
         if not invito.gruppo.e_attivo(anno_scout_corrente()):
             return

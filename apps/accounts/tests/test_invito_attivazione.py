@@ -7,12 +7,13 @@ from django.utils import timezone
 
 from apps.accounts.inviti import (
     InvitoNonValidoError,
+    candidati_invito_massivo,
     crea_invito,
     invia_inviti_multipli,
     verifica_e_completa,
 )
-from apps.accounts.models import InvitoAttivazione, StatoInvito, StatoUtente
-from apps.organizzazione.models import Gruppo
+from apps.accounts.models import InvitoAttivazione, StatoInvito, StatoUtente, TipoUtente, Utente
+from apps.organizzazione.models import AllowlistGruppo, Gruppo, StatoGruppoAnno, anno_scout_corrente
 
 pytestmark = pytest.mark.django_db
 
@@ -103,3 +104,46 @@ class TestVerificaECompleta:
                 codice="ABCDEFGH",
                 password="Segretissima!123",
             )
+
+
+def _candidato_per(candidati, email):
+    return next((c for c in candidati if c.voce.email == email), None)
+
+
+class TestCandidatiInvitoMassivo:
+    def test_voce_senza_utente_e_candidata(self, gruppo):
+        voce = AllowlistGruppo.objects.create(codice_gruppo=gruppo.codice, email="a@x.it")
+
+        candidato = _candidato_per(candidati_invito_massivo(), "a@x.it")
+
+        assert candidato is not None
+        assert candidato.voce == voce
+        assert candidato.gruppo == gruppo
+
+    def test_utente_con_accesso_e_escluso(self, gruppo):
+        AllowlistGruppo.objects.create(codice_gruppo=gruppo.codice, email="a@x.it")
+        Utente.objects.create(
+            username="a@x.it",
+            email="a@x.it",
+            tipo=TipoUtente.GRUPPO,
+            gruppo=gruppo,
+            last_login=timezone.now(),
+        )
+
+        assert _candidato_per(candidati_invito_massivo(), "a@x.it") is None
+
+    def test_utente_mai_acceduto_resta_candidato(self, gruppo):
+        AllowlistGruppo.objects.create(codice_gruppo=gruppo.codice, email="a@x.it")
+        Utente.objects.create(
+            username="a@x.it", email="a@x.it", tipo=TipoUtente.GRUPPO, gruppo=gruppo
+        )
+
+        assert _candidato_per(candidati_invito_massivo(), "a@x.it") is not None
+
+    def test_gruppo_disattivato_e_escluso(self, gruppo):
+        AllowlistGruppo.objects.create(codice_gruppo=gruppo.codice, email="a@x.it")
+        StatoGruppoAnno.objects.create(
+            gruppo=gruppo, anno_scout=anno_scout_corrente(), attivo=False, motivo="test"
+        )
+
+        assert _candidato_per(candidati_invito_massivo(), "a@x.it") is None

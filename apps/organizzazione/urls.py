@@ -12,6 +12,11 @@ urlpatterns = [
     path("allowlist/", views.AllowlistListaView.as_view(), name="allowlist_lista"),
     path("allowlist/nuova/", views.AllowlistCreaView.as_view(), name="allowlist_crea"),
     path(
+        "allowlist/invita/",
+        views.AllowlistInvitoMassivoView.as_view(),
+        name="allowlist_invita_massivo",
+    ),
+    path(
         "allowlist/<int:pk>/elimina/",
         views.AllowlistEliminaView.as_view(),
         name="allowlist_elimina",
