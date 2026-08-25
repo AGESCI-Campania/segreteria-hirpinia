@@ -41,3 +41,7 @@ Questo è un elenco di modifiche da fare aggiornato man mano che vanno avanti i 
 - [x] Inviti va spostato come pulsante in ruoli (definisce un nuovo ruolo tramite invito)
 - [ ] In "Ruoli" va aggiunta una funzionalità per aggiungere ruoli direttamente (senza invito) ad utenti già attivi sulla piattaforma
 - [ ] Per gli utenti che ne hanno il permesso deve essere visibile un elenco degli altri utenti che posso inpersonificare con un pulsante per impersonare quell'utente di fianco al nome
+
+## Modulo contributo Fo.Ca.
+- [ ] in inserisci partecipazione:
+  - [ ] "Codice socio" deve essere un campo di ricerca con autocompletamento tra i soci del gruppo (se CG) o di tutta la zona se il ruolo 

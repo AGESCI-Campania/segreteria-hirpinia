@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block page_title %}Assegna ruolo{% endblock %}
+
+{% block content %}
+  <h1>Assegna ruolo a {{ utente_destinatario }}</h1>
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="utente_id" value="{{ utente_destinatario.pk }}">
+
+    <div class="mb-3">
+      {{ form.tipo.label_tag }}
+      {{ form.tipo }}
+      {{ form.tipo.errors }}
+    </div>
+    <div class="mb-3">
+      <label for="id_branca" class="form-label">
+        Branca<span class="text-danger d-none" id="asterisco-branca"> *</span>
+      </label>
+      {{ form.branca }}
+      {{ form.branca.errors }}
+    </div>
+    <div class="mb-3">
+      <label for="id_settore" class="form-label">
+        Settore<span class="text-danger d-none" id="asterisco-settore"> *</span>
+      </label>
+      {{ form.settore }}
+      {{ form.settore.errors }}
+    </div>
+    <div class="mb-3">
+      {{ form.data_fine.label_tag }}
+      {{ form.data_fine }}
+      {{ form.data_fine.errors }}
+    </div>
+
+    <button type="submit" class="btn btn-primary">Assegna</button>
+  </form>
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script src="{% static 'js/ruolo-tipo-condizionale.js' %}" defer></script>
+{% endblock %}

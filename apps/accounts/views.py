@@ -1,8 +1,9 @@
 from axes.decorators import axes_dispatch
 from django.contrib import messages
 from django.contrib.auth import login
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import Q
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views import View
@@ -13,7 +14,7 @@ from apps.core.mixins import BreadcrumbExtraMixin
 from . import deleghe as deleghe_service
 from . import inviti as inviti_service
 from . import ruoli as ruoli_service
-from .forms import AttivazioneForm, DelegaForm, InvitoSingoloForm, RecuperoOtpForm
+from .forms import AttivazioneForm, DelegaForm, InvitoSingoloForm, RecuperoOtpForm, RuoloAssegnaForm
 from .mixins import RuoloRequiredMixin
 from .models import Delega, InvitoAttivazione, Ruolo, Utente
 from .permessi import puo_impersonare_qualcuno, ruoli_effettivi
@@ -249,6 +250,95 @@ class RuoloRevocaView(RuoloRequiredMixin, View):
         ruoli_service.revoca_ruolo_esplicito(utente=request.user, ruolo=ruolo)
         messages.success(request, f"Ruolo revocato: {ruolo}.")
         return redirect(request.META.get("HTTP_REFERER") or reverse_lazy("accounts:ruolo_lista"))
+
+
+class RuoloAssegnaCercaView(BreadcrumbExtraMixin, RuoloRequiredMixin, ListView):
+    """Ricerca dell'utente a cui assegnare un ruolo diretto, senza invito
+    (M11). Stesso pattern di ricerca di `ImpersonaListaView` (decisione
+    presa): niente elenco sfogliabile senza query."""
+
+    ruoli_ammessi = ruoli_service.RUOLI_GESTIONE_RUOLI
+    ruoli_ammessi_solo_diretti = True
+    template_name = "accounts/ruolo_assegna_cerca.html"
+    context_object_name = "risultati"
+    paginate_by = 20
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return [
+            {"label": "Amministrazione"},
+            {"label": "Ruoli", "url": reverse_lazy("accounts:ruolo_lista")},
+            {"label": "Assegna ruolo"},
+        ]
+
+    def get_queryset(self):
+        query = self.request.GET.get("q", "").strip()
+        if not query:
+            return Utente.objects.none()
+        return Utente.objects.filter(
+            Q(email__icontains=query)
+            | Q(username__icontains=query)
+            | Q(codice_socio__icontains=query)
+        ).order_by("email")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["query"] = self.request.GET.get("q", "").strip()
+        return ctx
+
+
+class RuoloAssegnaView(BreadcrumbExtraMixin, RuoloRequiredMixin, View):
+    """Secondo passo di M11: assegna un ruolo (mai CG) all'utente scelto
+    nella ricerca, sul modello di RicercaCapoView → AssegnaIncaricoView
+    (`?utente_id=`, come `?codice_socio=`)."""
+
+    ruoli_ammessi = ruoli_service.RUOLI_GESTIONE_RUOLI
+    ruoli_ammessi_solo_diretti = True
+    template_name = "accounts/ruolo_assegna.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return [
+            {"label": "Amministrazione"},
+            {"label": "Ruoli", "url": reverse_lazy("accounts:ruolo_lista")},
+            {"label": "Assegna ruolo"},
+        ]
+
+    def get(self, request):
+        utente_destinatario = get_object_or_404(Utente, pk=request.GET.get("utente_id"))
+        form = RuoloAssegnaForm()
+        return render(
+            request,
+            self.template_name,
+            {"form": form, "utente_destinatario": utente_destinatario},
+        )
+
+    def post(self, request):
+        utente_destinatario = get_object_or_404(Utente, pk=request.POST.get("utente_id"))
+        form = RuoloAssegnaForm(request.POST)
+        contesto = {"form": form, "utente_destinatario": utente_destinatario}
+        if not form.is_valid():
+            return render(request, self.template_name, contesto)
+        try:
+            ruoli_service.crea_ruolo_esplicito(
+                utente_assegnante=request.user,
+                utente_destinatario=utente_destinatario,
+                tipo=form.cleaned_data["tipo"],
+                branca=form.cleaned_data["branca"],
+                settore=form.cleaned_data["settore"],
+                data_fine=form.cleaned_data["data_fine"],
+            )
+        except (PermissionDenied, ValidationError, ValueError) as exc:
+            form.add_error(None, _messaggio(exc))
+            return render(request, self.template_name, contesto)
+        messages.success(request, f"Ruolo assegnato a {utente_destinatario}.")
+        return redirect(reverse_lazy("accounts:ruolo_lista"))
+
+
+def _messaggio(exc: Exception) -> str:
+    if hasattr(exc, "messages"):
+        return "; ".join(exc.messages)
+    return str(exc)
 
 
 class VistaDiProvaView(RuoloRequiredMixin, View):

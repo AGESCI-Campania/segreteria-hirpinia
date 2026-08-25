@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block page_title %}Assegna ruolo{% endblock %}
+
+{% block content %}
+  <h1>Assegna ruolo — cerca utente</h1>
+  <p class="text-muted">
+    Solo per utenti già attivi sulla piattaforma. Per un nuovo utente usa
+    "Nuovo invito" invece.
+  </p>
+
+  <form method="get" class="mb-4 d-flex gap-2">
+    <input type="search" name="q" value="{{ query }}" class="form-control"
+           placeholder="Email, username o codice socio" aria-label="Cerca utente">
+    <button type="submit" class="btn btn-primary">Cerca</button>
+  </form>
+
+  {% if query %}
+    <table class="table table-sm">
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>Nome</th>
+          <th>Tipo</th>
+          <th>Stato</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for utente in risultati %}
+          <tr>
+            <td>{{ utente.email }}</td>
+            <td>{{ utente.get_full_name|default:"—" }}</td>
+            <td>{{ utente.get_tipo_display }}</td>
+            <td>{{ utente.get_stato_display }}</td>
+            <td>
+              <a href="{% url 'accounts:ruolo_assegna' %}?utente_id={{ utente.pk }}"
+                 class="btn btn-sm btn-outline-primary">
+                Assegna ruolo
+              </a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5">Nessun utente trovato.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endblock %}

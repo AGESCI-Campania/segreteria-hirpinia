@@ -1,13 +1,13 @@
-"""Revoca di un ruolo esplicito (D-35)."""
+"""Creazione e revoca di un ruolo esplicito (D-35, M11)."""
 
 import datetime
 
 import pytest
 from django.core import mail
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 
 from apps.accounts.models import Delega, Ruolo, TipoUtente, Utente
-from apps.accounts.ruoli import revoca_ruolo_esplicito
+from apps.accounts.ruoli import crea_ruolo_esplicito, revoca_ruolo_esplicito
 from apps.organizzazione.models import Gruppo
 
 pytestmark = pytest.mark.django_db
@@ -120,3 +120,97 @@ class TestRevocaRuoloEsplicito:
 
         ruolo.refresh_from_db()
         assert ruolo.data_fine == data_fine_prima
+
+
+class TestCreaRuoloEsplicito:
+    def test_crea_ruolo_semplice(self, admin):
+        destinatario = _persona("dest@campania.agesci.it")
+
+        ruolo = crea_ruolo_esplicito(
+            utente_assegnante=admin, utente_destinatario=destinatario, tipo=Ruolo.Tipo.SEGRETERIA
+        )
+
+        assert ruolo.pk is not None
+        assert ruolo.origine == Ruolo.Origine.AMMINISTRATIVO
+        assert ruolo.assegnato_da == admin
+
+    def test_cg_sempre_rifiutato(self, admin):
+        destinatario = _persona("dest@campania.agesci.it")
+
+        with pytest.raises(ValueError):
+            crea_ruolo_esplicito(
+                utente_assegnante=admin,
+                utente_destinatario=destinatario,
+                tipo=Ruolo.Tipo.CG,
+            )
+        assert not Ruolo.objects.filter(utente=destinatario, tipo=Ruolo.Tipo.CG).exists()
+
+    def test_iabz_senza_branca_rifiutato(self, admin):
+        destinatario = _persona("dest@campania.agesci.it")
+        with pytest.raises(ValidationError):
+            crea_ruolo_esplicito(
+                utente_assegnante=admin, utente_destinatario=destinatario, tipo=Ruolo.Tipo.IABZ
+            )
+
+    def test_iabz_con_branca_ok(self, admin):
+        destinatario = _persona("dest@campania.agesci.it")
+        ruolo = crea_ruolo_esplicito(
+            utente_assegnante=admin,
+            utente_destinatario=destinatario,
+            tipo=Ruolo.Tipo.IABZ,
+            branca=Ruolo.Branca.LC,
+        )
+        assert ruolo.branca == Ruolo.Branca.LC
+
+    def test_isz_senza_settore_rifiutato(self, admin):
+        destinatario = _persona("dest@campania.agesci.it")
+        with pytest.raises(ValidationError):
+            crea_ruolo_esplicito(
+                utente_assegnante=admin, utente_destinatario=destinatario, tipo=Ruolo.Tipo.ISZ
+            )
+
+    def test_isz_con_settore_ok(self, admin):
+        destinatario = _persona("dest@campania.agesci.it")
+        ruolo = crea_ruolo_esplicito(
+            utente_assegnante=admin,
+            utente_destinatario=destinatario,
+            tipo=Ruolo.Tipo.ISZ,
+            settore="Formazione",
+        )
+        assert ruolo.settore == "Formazione"
+
+    def test_duplicato_rifiutato(self, admin):
+        destinatario = _persona("dest@campania.agesci.it")
+        crea_ruolo_esplicito(
+            utente_assegnante=admin, utente_destinatario=destinatario, tipo=Ruolo.Tipo.SEGRETERIA
+        )
+
+        with pytest.raises(ValidationError):
+            crea_ruolo_esplicito(
+                utente_assegnante=admin,
+                utente_destinatario=destinatario,
+                tipo=Ruolo.Tipo.SEGRETERIA,
+            )
+
+    def test_rdz_sincronizza_cg_su_e9001(self, admin, e9001):
+        destinatario = _persona("dest@campania.agesci.it")
+
+        crea_ruolo_esplicito(
+            utente_assegnante=admin, utente_destinatario=destinatario, tipo=Ruolo.Tipo.RDZ
+        )
+
+        cg_e9001 = Ruolo.objects.get(
+            utente=destinatario, tipo=Ruolo.Tipo.CG, gruppo=e9001, origine=Ruolo.Origine.DERIVATO
+        )
+        assert cg_e9001.attivo is True
+
+    def test_permesso_negato(self):
+        estraneo = _persona("estraneo@campania.agesci.it")
+        destinatario = _persona("dest@campania.agesci.it")
+
+        with pytest.raises(PermissionDenied):
+            crea_ruolo_esplicito(
+                utente_assegnante=estraneo,
+                utente_destinatario=destinatario,
+                tipo=Ruolo.Tipo.SEGRETERIA,
+            )

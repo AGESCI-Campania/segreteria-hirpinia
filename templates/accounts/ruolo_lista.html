@@ -6,6 +6,7 @@
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1>Ruoli amministrativi</h1>
     <div>
+      <a href="{% url 'accounts:ruolo_assegna_cerca' %}" class="btn btn-primary">Aggiungi ruolo</a>
       {% if puo_invitare %}
         <a href="{% url 'accounts:invito_crea' %}" class="btn btn-primary">Nuovo invito</a>
       {% endif %}

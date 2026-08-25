@@ -51,3 +51,20 @@ class InvitoSingoloForm(forms.Form):
         label="Ruolo",
         choices=[(Ruolo.Tipo.ADMIN, "Amministratore"), (Ruolo.Tipo.SEGRETERIA, "Segreteria")],
     )
+
+
+class RuoloAssegnaForm(forms.Form):
+    """M11: `tipo` esclude sempre CG (vedi `TIPI_RUOLO_ASSEGNABILI_DIRETTAMENTE`
+    in `apps/accounts/ruoli.py`). `branca`/`settore` obbligatori solo per
+    IABZ/ISZ rispettivamente — validato di nuovo in `Ruolo.clean()`, mai solo
+    lato client."""
+
+    tipo = forms.ChoiceField(
+        label="Ruolo",
+        choices=[c for c in Ruolo.Tipo.choices if c[0] != Ruolo.Tipo.CG],
+    )
+    branca = forms.ChoiceField(choices=Ruolo.Branca.choices, required=False)
+    settore = forms.CharField(required=False)
+    data_fine = forms.DateField(
+        label="Scadenza (opzionale)", required=False, widget=forms.DateInput(attrs={"type": "date"})
+    )

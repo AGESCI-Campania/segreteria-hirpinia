@@ -17,6 +17,12 @@ urlpatterns = [
     path("deleghe/zona/", views.DelegheZonaListaView.as_view(), name="deleghe_zona"),
     path("ruoli/", views.RuoloListaView.as_view(), name="ruolo_lista"),
     path("ruoli/<int:pk>/revoca/", views.RuoloRevocaView.as_view(), name="ruolo_revoca"),
+    path(
+        "ruoli/assegna/",
+        views.RuoloAssegnaCercaView.as_view(),
+        name="ruolo_assegna_cerca",
+    ),
+    path("ruoli/assegna/nuovo/", views.RuoloAssegnaView.as_view(), name="ruolo_assegna"),
     path("vista-di-prova/", views.VistaDiProvaView.as_view(), name="vista_di_prova"),
     path("impersona/", views.ImpersonaListaView.as_view(), name="impersona_lista"),
 ]
