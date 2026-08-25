@@ -49,7 +49,7 @@ from .importazione_partecipazioni import (
     leggi_righe_xlsx,
 )
 from .inserimento import RUOLI_GESTIONE_PARTECIPAZIONI, inserisci_partecipazione_manuale
-from .models import Campagna, ImportazionePartecipazioni, Partecipazione
+from .models import Campagna, ImportazionePartecipazioni, Partecipazione, TipologiaCampo
 from .riepilogo import calcola_riepilogo
 from .simulazione import simula_calcolo
 from .valutazione import (
@@ -125,17 +125,26 @@ class PartecipazioneInserisciView(RuoloRequiredMixin, View):
     ruoli_ammessi = RUOLI_GESTIONE_PARTECIPAZIONI
     template_name = "contributi/partecipazione_inserisci.html"
 
+    def _contesto(self, campagna, form):
+        # ID della tipologia "Altro" (M15): serve al JS per mostrare il
+        # campo descrizione_altro solo quando quella tipologia è
+        # selezionata; la validazione reale resta in Partecipazione.clean().
+        tipologia_altro_pk = (
+            TipologiaCampo.objects.filter(codice="ALTRO").values_list("pk", flat=True).first()
+        )
+        return {"campagna": campagna, "form": form, "tipologia_altro_pk": tipologia_altro_pk}
+
     def get(self, request, campagna_id):
         campagna = get_object_or_404(Campagna, pk=campagna_id)
         return render(
-            request, self.template_name, {"campagna": campagna, "form": PartecipazioneManualeForm()}
+            request, self.template_name, self._contesto(campagna, PartecipazioneManualeForm())
         )
 
     def post(self, request, campagna_id):
         campagna = get_object_or_404(Campagna, pk=campagna_id)
         form = PartecipazioneManualeForm(request.POST)
         if not form.is_valid():
-            return render(request, self.template_name, {"campagna": campagna, "form": form})
+            return render(request, self.template_name, self._contesto(campagna, form))
 
         dati = form.cleaned_data
         try:
@@ -144,6 +153,7 @@ class PartecipazioneInserisciView(RuoloRequiredMixin, View):
                 campagna=campagna,
                 codice_socio=dati["codice_socio"],
                 tipologia=dati["tipologia"],
+                descrizione_altro=dati["descrizione_altro"],
                 data_inizio=dati["data_inizio"],
                 data_fine=dati["data_fine"],
                 luogo=dati["luogo"],
@@ -151,7 +161,7 @@ class PartecipazioneInserisciView(RuoloRequiredMixin, View):
             )
         except (PermissionDenied, ValidationError) as exc:
             form.add_error(None, _messaggio(exc))
-            return render(request, self.template_name, {"campagna": campagna, "form": form})
+            return render(request, self.template_name, self._contesto(campagna, form))
 
         messages.success(request, "Partecipazione inserita.")
         return redirect(reverse("contributi:campagna_dettaglio", args=[campagna.pk]))

@@ -164,3 +164,24 @@ class TestInserimentoManuale:
             _inserisci(
                 utente=segreteria, campagna=campagna, codice_socio="30003", tipologia=tipologia
             )
+
+    def test_tipologia_altro_senza_descrizione_rifiutata(self, capo, campagna, segreteria):
+        tipologia_altro = TipologiaCampo.objects.get(codice="ALTRO")
+        with pytest.raises(ValidationError):
+            _inserisci(
+                utente=segreteria,
+                campagna=campagna,
+                tipologia=tipologia_altro,
+                quota_versata=Decimal("30.00"),
+            )
+
+    def test_tipologia_altro_con_descrizione_salvata(self, capo, campagna, segreteria):
+        tipologia_altro = TipologiaCampo.objects.get(codice="ALTRO")
+        partecipazione = _inserisci(
+            utente=segreteria,
+            campagna=campagna,
+            tipologia=tipologia_altro,
+            quota_versata=Decimal("30.00"),
+            descrizione_altro="Campo di specialità",
+        )
+        assert partecipazione.descrizione_altro == "Campo di specialità"

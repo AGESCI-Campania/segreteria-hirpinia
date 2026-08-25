@@ -101,10 +101,34 @@
     });
   }
 
+  function attivaDescrizioneAltroCondizionale(script) {
+    // M15: il campo "Specificare Altro" compare, e diventa obbligatorio
+    // solo lato UI, quando la tipologia selezionata è "Altro" — la
+    // validazione reale resta in Partecipazione.clean() (mai fidarsi solo
+    // del client, stesso principio di attivaBrancaCondizionale in M7).
+    var tipologiaAltroPk = script.dataset.tipologiaAltroPk;
+    var selectTipologia = document.getElementById("id_tipologia");
+    var campo = document.getElementById("campo-descrizione-altro");
+    var input = document.getElementById("id_descrizione_altro");
+    if (!tipologiaAltroPk || !selectTipologia || !campo || !input) {
+      return;
+    }
+
+    function aggiorna() {
+      var mostra = selectTipologia.value === tipologiaAltroPk;
+      campo.classList.toggle("d-none", !mostra);
+      input.required = mostra;
+    }
+
+    selectTipologia.addEventListener("change", aggiorna);
+    aggiorna();
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     var script = document.querySelector("script[data-url-autocomplete]");
     if (script) {
       attivaAutocomplete(script);
+      attivaDescrizioneAltroCondizionale(script);
     }
   });
 })();

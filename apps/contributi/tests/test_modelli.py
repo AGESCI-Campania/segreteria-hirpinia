@@ -124,6 +124,30 @@ class TestPartecipazione:
         with pytest.raises(AttributeError):
             partecipazione.stato = StatoPartecipazione.APPROVATA
 
+    def test_tipologia_altro_senza_descrizione_rifiutata(self, campagna, capo, gruppo):
+        tipologia_altro = TipologiaCampo.objects.get(codice="ALTRO")
+        partecipazione = _partecipazione(campagna, capo, gruppo, tipologia_altro)
+        with pytest.raises(ValidationError):
+            partecipazione.full_clean(exclude=["stato"])
+
+    def test_tipologia_altro_con_descrizione_valida(self, campagna, capo, gruppo):
+        tipologia_altro = TipologiaCampo.objects.get(codice="ALTRO")
+        partecipazione = _partecipazione(
+            campagna,
+            capo,
+            gruppo,
+            tipologia_altro,
+            descrizione_altro="Campo di specialità",
+            quota_versata=Decimal("30.00"),
+        )
+        partecipazione.full_clean(exclude=["stato"])  # non deve sollevare
+
+    def test_tipologia_diversa_da_altro_non_richiede_descrizione(
+        self, campagna, capo, gruppo, tipologia
+    ):
+        partecipazione = _partecipazione(campagna, capo, gruppo, tipologia)
+        partecipazione.full_clean(exclude=["stato"])  # non deve sollevare
+
 
 class TestTipologiaCampoSeed:
     def test_cfm_cfa_ccg_seminate(self):
@@ -132,3 +156,8 @@ class TestTipologiaCampoSeed:
         cfm = TipologiaCampo.objects.get(codice="CFM")
         assert cfm.approvazione_automatica is True
         assert cfm.quota_default == Decimal("51.50")
+
+    def test_altro_seminata(self):
+        altro = TipologiaCampo.objects.get(codice="ALTRO")
+        assert altro.approvazione_automatica is False
+        assert altro.quota_default is None

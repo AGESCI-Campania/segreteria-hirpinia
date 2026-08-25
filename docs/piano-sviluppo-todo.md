@@ -64,7 +64,7 @@ M11 ✅ Assegna ruolo direttamente (senza invito) a un utente già attivo       
 M12 ✅ Elenco degli utenti impersonabili + voce di menu                          — indipendente
 M13 ✅ Rifiniture breadcrumb: icona Home + Template email completo               — indipendente
 M14 ✅ Autocomplete codice socio in "Inserisci partecipazione" (perimetro per ruolo) — indipendente
-M15 ⬜ Tipologia partecipazione "Altro (specificare)"                            — indipendente
+M15 ✅ Tipologia partecipazione "Altro (specificare)"                            — indipendente
 M16 ⬜ Validazioni e campi minori (data_fine ≥ data_inizio, luogo opzionale, note) — indipendente
 M17 ⬜ Quota versata obbligatoria con default 51,50€ per CCG/CFM/CFA              — dipende da M15 (stesso form)
 ```
@@ -764,15 +764,35 @@ vuota.
 
 ---
 
-## M15 — Tipologia partecipazione "Altro (specificare)"
+## M15 — Tipologia partecipazione "Altro (specificare)" ✅
 
-**File coinvolti**: nuova migrazione `apps/contributi/migrations/
-0004_seed_tipologia_altro.py` (stesso pattern di `0002_seed_tipologie.py`, `RunPython`
-reversibile), `apps/contributi/forms.py::PartecipazioneManualeForm`,
+**File coinvolti**: `apps/contributi/migrations/0004_seed_tipologia_altro.py` (stesso
+pattern di `0002_seed_tipologie.py`, `RunPython` reversibile),
+`apps/contributi/forms.py::PartecipazioneManualeForm`,
 `apps/contributi/inserimento.py::inserisci_partecipazione_manuale`,
-`apps/contributi/models.py::Partecipazione.clean()`, `templates/contributi/
-partecipazione_inserisci.html`, JS condiviso con M17.
+`apps/contributi/views.py::PartecipazioneInserisciView` (nuovo `_contesto()` che passa
+`tipologia_altro_pk` al template), `apps/contributi/models.py::Partecipazione.clean()`,
+`templates/contributi/partecipazione_inserisci.html`,
+`static/js/ricerca-socio-contributo-autocomplete.js` (stesso file di M14: nuova
+funzione `attivaDescrizioneAltroCondizionale()`, non un file separato).
 
+**Deviazioni rispetto al testo pianificato, scoperte in implementazione**:
+- Il meccanismo scelto per il toggle JS non confronta il `codice` della tipologia
+  (non disponibile lato client senza rendering custom del `<select>`), ma il **pk**
+  della riga "ALTRO": la view lo risolve una volta con una query
+  (`TipologiaCampo.objects.filter(codice="ALTRO").values_list("pk", flat=True).first()`)
+  e lo espone come `data-tipologia-altro-pk` sul tag `<script>`, letto dal JS e
+  confrontato con `select.value`. Evita di introdurre un widget `Select` custom solo
+  per questo.
+- **Un test preesistente riusava il codice `"ALTRO"`** per una tipologia fittizia
+  (`apps/contributi/tests/test_transizioni_campagna.py`, fixture `altro`, usata da
+  `test_auto_approva_cfm_lascia_altro_inserita`), non collegata alla feature "Altro
+  (specificare)": creava una riga con quel codice per testare che
+  `avvia_valutazione` lasci INSERITA una tipologia non ad approvazione automatica.
+  In conflitto con il vincolo di unicità di `TipologiaCampo.codice` dopo la migrazione
+  0004. Rinominata la fixture in `non_auto` con codice `"ZONALE1"` e il test in
+  `test_auto_approva_cfm_lascia_non_auto_inserita`: stesso comportamento testato,
+  nessuna sovrapposizione semantica con la tipologia "Altro" reale.
 - **Verificato**: `Partecipazione.descrizione_altro` esiste già sul modello
   (`models.py:154`, `CharField(max_length=200, blank=True)`) ma non è nel form né in
   `inserimento.py` né validato in `clean()` — costruito in anticipo, mai collegato.
@@ -918,7 +938,7 @@ Nessuna di queste è implementabile isolatamente: dipendono tutte da M14-M17.
 | M12 | Elenco utenti impersonabili | Media | ✅ completata | Deviazione dichiarata dal principio "niente elenco sfogliabile"; la voce di menu esisteva già nel dropdown utente, nessuna voce nuova da aggiungere |
 | M13 | Rifiniture breadcrumb (Home + Template email) | Bassa | ✅ completata | Gap lasciato da M8 (BreadcrumbExtraMixin mancante); icona Home via override locale di un partial del tema (versione 2.4.1 annotata nel commento) |
 | M14 | Autocomplete codice socio (perimetro per ruolo) | Media | ✅ completata | Terzo endpoint di ricerca soci, distinto da D-34 (match esatto) e da M7 (cross-gruppo): filtra per `gruppi_visibili()` come `risolvi_gruppo_competente`; E9001 escluso esplicitamente (A-8), come in `risolvi_gruppo_competente`, perché `gruppi_visibili()` da sola non lo fa |
-| M15 | Tipologia "Altro (specificare)" | Media | ⬜ da fare | `descrizione_altro` esiste già sul modello (mai collegato); nuova riga `TipologiaCampo` da seedare via migrazione |
+| M15 | Tipologia "Altro (specificare)" | Media | ✅ completata | `descrizione_altro` esisteva già sul modello (mai collegato); nuova riga `TipologiaCampo` seedata via migrazione 0004; un test preesistente riusava il codice "ALTRO" per un'altra tipologia fittizia ed è stato rinominato |
 | M16 | Validazioni e campi minori (data_fine, luogo, note) | Bassa | ⬜ da fare | Migrazione additiva unica per `note` + `luogo blank=True`; validazione `data_fine < data_inizio` nel `clean()` |
 | M17 | Quota versata obbligatoria + default 51,50€ CCG/CFM/CFA | Bassa-media | ⬜ da fare | Il default 51,50€ è già seedato e il fallback server-side già esiste; non toccare il fallback usato dall'import massivo |
 

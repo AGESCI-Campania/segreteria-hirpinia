@@ -206,6 +206,12 @@ class Partecipazione(FSMModelMixin, models.Model):
                 errors["data_inizio"] = (
                     f"Fuori dalla finestra dell'anno associativo {self.campagna.anno} (D-10)."
                 )
+        if (
+            self.tipologia_id
+            and self.tipologia.codice == "ALTRO"
+            and not self.descrizione_altro.strip()
+        ):
+            errors["descrizione_altro"] = 'Obbligatorio quando la tipologia è "Altro" (M15).'
         if errors:
             raise ValidationError(errors)
 

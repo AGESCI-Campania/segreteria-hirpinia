@@ -26,6 +26,12 @@ class CampagnaForm(forms.ModelForm):
 class PartecipazioneManualeForm(forms.Form):
     codice_socio = forms.CharField(max_length=20, widget=forms.HiddenInput)
     tipologia = forms.ModelChoiceField(queryset=TipologiaCampo.objects.filter(attiva=True))
+    descrizione_altro = forms.CharField(
+        label='Specificare "Altro"',
+        max_length=200,
+        required=False,
+        help_text='Obbligatorio solo se la tipologia scelta è "Altro".',
+    )
     data_inizio = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}))
     data_fine = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}))
     luogo = forms.CharField(max_length=200)

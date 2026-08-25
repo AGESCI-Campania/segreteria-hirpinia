@@ -62,9 +62,17 @@ def cfm() -> TipologiaCampo:
 
 
 @pytest.fixture
-def altro() -> TipologiaCampo:
+def non_auto() -> TipologiaCampo:
+    # Tipologia generica non ad approvazione automatica, per verificare che
+    # avvia_valutazione lasci INSERITA una partecipazione diversa da
+    # CFM/CFA/CCG (codice diverso da "ALTRO": quel codice è ora riservato
+    # alla tipologia "Altro" seminata da M15, con la sua semantica propria
+    # di descrizione_altro obbligatoria — non pertinente a questo test).
     return TipologiaCampo.objects.create(
-        codice="ALTRO", nome="Altro", approvazione_automatica=False, livello=LivelloCampo.ZONA
+        codice="ZONALE1",
+        nome="Campo zonale",
+        approvazione_automatica=False,
+        livello=LivelloCampo.ZONA,
     )
 
 
@@ -113,9 +121,11 @@ class TestAvviaValutazione:
         with pytest.raises(ValidationError):
             avvia_valutazione(utente=segreteria, campagna=campagna)
 
-    def test_auto_approva_cfm_lascia_altro_inserita(self, segreteria, campagna, gruppo, cfm, altro):
+    def test_auto_approva_cfm_lascia_non_auto_inserita(
+        self, segreteria, campagna, gruppo, cfm, non_auto
+    ):
         p_cfm = _partecipazione(campagna, gruppo, cfm, _capo(0))
-        p_altro = _partecipazione(campagna, gruppo, altro, _capo(1))
+        p_altro = _partecipazione(campagna, gruppo, non_auto, _capo(1))
 
         avvia_valutazione(utente=segreteria, campagna=campagna)
 

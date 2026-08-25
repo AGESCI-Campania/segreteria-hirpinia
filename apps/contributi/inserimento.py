@@ -62,6 +62,7 @@ def inserisci_partecipazione_manuale(
     data_fine: datetime.date,
     luogo: str,
     quota_versata: Decimal | None,
+    descrizione_altro: str = "",
 ) -> Partecipazione:
     if campagna.stato != StatoCampagna.APERTA or not campagna.in_finestra_inserimento():
         raise ValidationError("La campagna non è aperta all'inserimento o è fuori finestra (D-21).")
@@ -79,6 +80,7 @@ def inserisci_partecipazione_manuale(
         capo_id=codice_socio,
         gruppo=gruppo,
         tipologia=tipologia,
+        descrizione_altro=descrizione_altro,
         data_inizio=data_inizio,
         data_fine=data_fine,
         luogo=luogo,
