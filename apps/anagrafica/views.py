@@ -11,7 +11,8 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.files.base import ContentFile
-from django.http import HttpResponse
+from django.db.models import Q
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views import View
@@ -387,6 +388,55 @@ class RicercaCapoView(RuoloRequiredMixin, View):
         contesto = {"form": form, "trovato": trovato, "cercato": cercato}
         contesto.update(permessi_visualizza_anagrafica(request.user))
         return render(request, self.template_name, contesto)
+
+
+LIMITE_RISULTATI_AUTOCOMPLETE = 15
+MINIMO_CARATTERI_AUTOCOMPLETE = 2
+
+
+class RicercaSociAutocompleteView(RuoloRequiredMixin, View):
+    """Autocompletamento per l'assegnazione incarico (M7): endpoint
+    **esplicitamente diverso** da `RicercaCapoView`/`cerca_capo_per_codice_socio`
+    (D-34, riservato a ricerca per codice socio esatto, nessun elenco
+    sfogliabile, nessuna ricerca per cognome). Qui, per decisione dell'utente,
+    la ricerca per nome/cognome/gruppo/codice socio **copre tutti i gruppi**
+    (non solo `gruppi_visibili`), ma la risposta contiene solo nome, cognome e
+    gruppo di censimento — mai altri dati. Non riusare questo endpoint per il
+    flusso di ricerca capo censito altrove: sono due regole di perimetro
+    diverse e vanno tenute isolate."""
+
+    ruoli_ammessi = RUOLI_ASSEGNAZIONE_INCARICHI
+
+    def get(self, request):
+        query = request.GET.get("q", "").strip()
+        if len(query) < MINIMO_CARATTERI_AUTOCOMPLETE:
+            return JsonResponse({"risultati": []})
+
+        censimenti = (
+            CensimentoCapo.objects.filter(anno_scout=anno_scout_corrente())
+            .filter(
+                Q(capo__nome__icontains=query)
+                | Q(capo__cognome__icontains=query)
+                | Q(capo__codice_socio__icontains=query)
+                | Q(gruppo__nome__icontains=query)
+            )
+            .select_related("capo", "gruppo")
+            .order_by("capo__cognome", "capo__nome")[:LIMITE_RISULTATI_AUTOCOMPLETE]
+        )
+        risultati = [
+            {
+                "codice_socio": c.capo.codice_socio,
+                "nome": c.capo.nome,
+                "cognome": c.capo.cognome,
+                "gruppo": c.gruppo.nome,
+                # Non un dato riservato al pari del nome (D-34 vieta solo
+                # recapiti/dati anagrafici): serve al client per precompilare
+                # gruppo_servizio col gruppo di censimento del capo scelto.
+                "gruppo_codice": c.gruppo_id,
+            }
+            for c in censimenti
+        ]
+        return JsonResponse({"risultati": risultati})
 
 
 class AssegnaIncaricoView(RuoloRequiredMixin, View):

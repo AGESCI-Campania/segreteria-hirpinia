@@ -172,3 +172,52 @@ class TestAssegnaIncaricoViewDefaultGruppo:
         response = client.get("/anagrafica/incarichi/assegna/")
 
         assert "gruppo_servizio" not in response.context["form"].initial
+
+    def test_post_capo_unita_senza_branca_e_un_errore(self, client, segreteria, gruppo):
+        capo = Capo.objects.create(codice_socio="10001", nome="MARIO", cognome="ROSSI")
+        from apps.anagrafica.models import CensimentoCapo
+
+        CensimentoCapo.objects.create(capo=capo, anno_scout=ANNO, gruppo=gruppo)
+        client.force_login(segreteria)
+
+        response = client.post(
+            "/anagrafica/incarichi/assegna/",
+            {
+                "codice_socio": "10001",
+                "anno_scout": ANNO,
+                "gruppo_servizio": gruppo.codice,
+                "codice_unita": "H1",
+                "nome_unita": "BRANCO",
+                "branca": "",
+                "genere_unita": "MISTO",
+                "funzione": FunzioneIncarico.CAPO_UNITA,
+            },
+        )
+
+        assert response.status_code == 200
+        assert not IncaricoUnita.objects.filter(capo=capo).exists()
+
+    def test_post_funzione_senza_branca_obbligatoria_ok(self, client, segreteria, gruppo):
+        capo = Capo.objects.create(codice_socio="10001", nome="MARIO", cognome="ROSSI")
+        from apps.anagrafica.models import CensimentoCapo
+
+        CensimentoCapo.objects.create(capo=capo, anno_scout=ANNO, gruppo=gruppo)
+        client.force_login(segreteria)
+
+        response = client.post(
+            "/anagrafica/incarichi/assegna/",
+            {
+                "codice_socio": "10001",
+                "anno_scout": ANNO,
+                "gruppo_servizio": gruppo.codice,
+                "codice_unita": "G1",
+                "nome_unita": "COMUNITA CAPI",
+                "branca": "",
+                "genere_unita": "MISTO",
+                "funzione": FunzioneIncarico.SUPPORTO_GRUPPO,
+            },
+        )
+
+        assert response.status_code == 302
+        incarico = IncaricoUnita.objects.get(capo=capo)
+        assert incarico.branca == BrancaUnita.SCONOSCIUTA

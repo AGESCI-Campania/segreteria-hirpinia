@@ -179,6 +179,74 @@ class TestAssegnaIncaricoManuale:
         assert segreteria.email in destinatari
 
 
+class TestBrancaCondizionale:
+    """M7: branca obbligatoria solo per Capo unità/Aiuto capo unità."""
+
+    def _dati(self, gruppo, **override):
+        dati = {
+            "codice_socio": "10001",
+            "anno_scout": ANNO,
+            "gruppo_servizio": gruppo,
+            "codice_unita": "H1",
+            "nome_unita": "BRANCO MISTO",
+            "branca": "",
+            "genere_unita": "MISTO",
+            "funzione": FunzioneIncarico.AIUTO_CAPO_UNITA,
+            "livello_foca": None,
+        }
+        dati.update(override)
+        return dati
+
+    def test_capo_unita_senza_branca_rifiutato(self, capo, gruppo, segreteria):
+        with pytest.raises(ValidationError):
+            assegna_incarico_manuale(
+                utente=segreteria,
+                **self._dati(gruppo, funzione=FunzioneIncarico.CAPO_UNITA, branca=""),
+            )
+
+    def test_aiuto_capo_unita_senza_branca_rifiutato(self, capo, gruppo, segreteria):
+        with pytest.raises(ValidationError):
+            assegna_incarico_manuale(
+                utente=segreteria,
+                **self._dati(gruppo, funzione=FunzioneIncarico.AIUTO_CAPO_UNITA, branca=""),
+            )
+
+    def test_capo_unita_con_branca_ok(self, capo, gruppo, segreteria):
+        incarico = assegna_incarico_manuale(
+            utente=segreteria,
+            **self._dati(gruppo, funzione=FunzioneIncarico.CAPO_UNITA, branca=BrancaUnita.LC),
+        )
+        assert incarico.branca == BrancaUnita.LC
+
+    def test_funzione_senza_branca_obbligatoria_usa_sconosciuta(self, capo, gruppo, segreteria):
+        incarico = assegna_incarico_manuale(
+            utente=segreteria,
+            **self._dati(
+                gruppo,
+                funzione=FunzioneIncarico.SUPPORTO_GRUPPO,
+                branca="",
+                codice_unita="G1",
+                nome_unita="COMUNITA CAPI",
+            ),
+        )
+        assert incarico.branca == BrancaUnita.SCONOSCIUTA
+
+    def test_funzione_senza_branca_obbligatoria_rispetta_branca_esplicita(
+        self, capo, gruppo, segreteria
+    ):
+        incarico = assegna_incarico_manuale(
+            utente=segreteria,
+            **self._dati(
+                gruppo,
+                funzione=FunzioneIncarico.CAPO_GRUPPO,
+                branca=BrancaUnita.ADULTI,
+                codice_unita="G1",
+                nome_unita="COMUNITA CAPI",
+            ),
+        )
+        assert incarico.branca == BrancaUnita.ADULTI
+
+
 class TestCessaIncaricoManuale:
     def test_cessa_incarico_manuale(self, capo, gruppo, segreteria):
         incarico = assegna_incarico_manuale(

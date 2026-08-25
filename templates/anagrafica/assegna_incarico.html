@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block page_title %}Assegna incarico{% endblock %}
 
@@ -9,15 +10,78 @@
     <div class="alert alert-danger">{{ form.non_field_errors }}</div>
   {% endif %}
 
-  <form method="post">
+  <form method="post" id="form-assegna-incarico">
     {% csrf_token %}
-    {% for field in form %}
-      <div class="mb-3">
-        {{ field.label_tag }}
-        {{ field }}
-        {{ field.errors }}
-      </div>
-    {% endfor %}
+
+    <div class="mb-3 position-relative">
+      <label for="ricerca-socio" class="form-label">
+        Cerca socio (nome, cognome, gruppo o codice socio)
+      </label>
+      <input
+        type="text"
+        id="ricerca-socio"
+        class="form-control"
+        autocomplete="off"
+        placeholder="Digita almeno 2 caratteri…"
+      >
+      <ul
+        class="list-group position-absolute w-100"
+        id="ricerca-socio-risultati"
+        style="z-index: 1000; display: none;"
+      ></ul>
+      <div class="form-text" id="ricerca-socio-selezionato"></div>
+      {{ form.codice_socio.errors }}
+    </div>
+    {{ form.codice_socio }}
+    {{ form.anno_scout }}
+
+    <div class="mb-3">
+      {{ form.gruppo_servizio.label_tag }}
+      {{ form.gruppo_servizio }}
+      {{ form.gruppo_servizio.errors }}
+    </div>
+    <div class="mb-3">
+      {{ form.codice_unita.label_tag }}
+      {{ form.codice_unita }}
+      {{ form.codice_unita.errors }}
+    </div>
+    <div class="mb-3">
+      {{ form.nome_unita.label_tag }}
+      {{ form.nome_unita }}
+      {{ form.nome_unita.errors }}
+    </div>
+    <div class="mb-3">
+      {{ form.funzione.label_tag }}
+      {{ form.funzione }}
+      {{ form.funzione.errors }}
+    </div>
+    <div class="mb-3">
+      <label for="id_branca" class="form-label">
+        Branca<span class="text-danger d-none" id="asterisco-branca"> *</span>
+      </label>
+      {{ form.branca }}
+      {{ form.branca.errors }}
+    </div>
+    <div class="mb-3">
+      {{ form.genere_unita.label_tag }}
+      {{ form.genere_unita }}
+      {{ form.genere_unita.errors }}
+    </div>
+    <div class="mb-3">
+      {{ form.livello_foca.label_tag }}
+      {{ form.livello_foca }}
+      {{ form.livello_foca.errors }}
+    </div>
+
     <button type="submit" class="btn btn-primary">Assegna</button>
   </form>
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script
+    src="{% static 'js/ricerca-socio-autocomplete.js' %}"
+    defer
+    data-url-autocomplete="{% url 'anagrafica:ricerca_soci_autocomplete' %}"
+  ></script>
 {% endblock %}

@@ -12,7 +12,7 @@ Questo è un elenco di modifiche da fare aggiornato man mano che vanno avanti i 
 
 ## Interfaccia
 
-- [ ] Tab anagrafica:
+- [x] Tab anagrafica:
   - [x] "Importa anagrafica soci" e "Importa autorizzazioni" devono essere raggruppate in un unica voce "Importa" che rimanda ad una view che permette di eseguire entrambe i flussi e mostra un riepilogo degli import (quello che ora viene visualizzatop dalle due view separatamente)
   - [x] "Cerca capo censito altrove" diventa "Cerca capo in servizio esterno al gruppo" e va spostato come pulsante in "Esporta anagrafica"
   - [x] "Registro esportazioni" va spostato come pulsante in "Esporta anagrafica"
@@ -23,10 +23,10 @@ Questo è un elenco di modifiche da fare aggiornato man mano che vanno avanti i 
   - [x] "Campagne Fo.Ca." Diventa "Contributo Fo.Ca."
 
 ## Altre modifiche
-- [ ] Assegna incarico manuale deve funzionare per mettendo di selezionare un socio con ricerca con autocompletion per nome, cognome, gruppo, o codice socio. A questo vien poi assegnato una funzione (e se è capo unità o aiuto capo unità anche una branca, che altriumenti non è obbligatoria). Come gruppo in cui si presta servizio di default viene selzionato quello di appartenza del capo, ma si può selezionare eventualmente un altro se incarico esterno in altro gruppo.
+- [x] Assegna incarico manuale deve funzionare per mettendo di selezionare un socio con ricerca con autocompletion per nome, cognome, gruppo, o codice socio. A questo vien poi assegnato una funzione (e se è capo unità o aiuto capo unità anche una branca, che altriumenti non è obbligatoria). Come gruppo in cui si presta servizio di default viene selzionato quello di appartenza del capo, ma si può selezionare eventualmente un altro se incarico esterno in altro gruppo.
 
 ## Nuove funzionalità
-- [ ] "Gestione gruppo" (resta da fare l'autocompletamento ricerca socio per l'assegnazione, riga 26 — M7)
+- [x] "Gestione gruppo"
   - [x] Contiene i dati del gruppo e permette di modificarli, Email di default (quella da import su dominio campania.agesci.it) non può essere modificata, ma si può inserire una email alternativa. Il capogruppo o un suo delegato può inserire e\o modificare:
     - la mail alternativa
     - indirizzo della sede del gruppo

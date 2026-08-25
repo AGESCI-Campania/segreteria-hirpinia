@@ -61,6 +61,11 @@ urlpatterns = [
         name="importazione_autorizzazioni_report",
     ),
     path("incarichi/ricerca-capo/", views.RicercaCapoView.as_view(), name="ricerca_capo"),
+    path(
+        "incarichi/ricerca-soci-autocomplete/",
+        views.RicercaSociAutocompleteView.as_view(),
+        name="ricerca_soci_autocomplete",
+    ),
     path("incarichi/assegna/", views.AssegnaIncaricoView.as_view(), name="assegna_incarico"),
     path("incarichi/<int:pk>/cessa/", views.CessaIncaricoView.as_view(), name="cessa_incarico"),
     path(

@@ -57,7 +57,12 @@ class IncaricoManualeForm(forms.Form):
     gruppo_servizio = forms.CharField(max_length=8)
     codice_unita = forms.CharField(max_length=10)
     nome_unita = forms.CharField(max_length=100, required=False)
-    branca = forms.ChoiceField(choices=BrancaUnita.choices)
+    branca = forms.ChoiceField(
+        choices=BrancaUnita.choices,
+        required=False,
+        help_text="Obbligatoria per Capo unità/Aiuto capo unità (validato anche "
+        "server-side in assegna_incarico_manuale, mai solo lato client).",
+    )
     genere_unita = forms.CharField(max_length=10, required=False)
     funzione = forms.ChoiceField(choices=FunzioneIncarico.choices)
     livello_foca = forms.IntegerField(required=False)

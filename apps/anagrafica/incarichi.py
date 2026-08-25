@@ -19,7 +19,23 @@ from apps.accounts.ruoli_derivati import sincronizza_ruoli_cg
 from apps.organizzazione.models import Gruppo
 
 from .derivazioni import ricalcola_derivati_capo, ricalcola_pattuglia
-from .models import Capo, CensimentoCapo, FunzioneIncarico, IncaricoUnita, OrigineIncarico
+from .models import (
+    BrancaUnita,
+    Capo,
+    CensimentoCapo,
+    FunzioneIncarico,
+    IncaricoUnita,
+    OrigineIncarico,
+)
+
+# D-08/M7: la branca è obbligatoria in UI solo per queste due funzioni (capo
+# unità/aiuto capo unità hanno sempre un'unità e quindi una branca reale);
+# per le altre non ha lo stesso significato (es. CAPO_GRUPPO opera a livello
+# di Comunità Capi) e resta facoltativa — mai fidarsi solo del client,
+# controllato di nuovo qui.
+FUNZIONI_CON_BRANCA_OBBLIGATORIA = frozenset(
+    {FunzioneIncarico.CAPO_UNITA, FunzioneIncarico.AIUTO_CAPO_UNITA}
+)
 
 # Più ampio di RUOLI_IMPORT_ANAGRAFICA (apps.anagrafica.importazione): include
 # CG, che non importa PDF ma assegna incarichi sul proprio perimetro (A-7).
@@ -137,6 +153,10 @@ def assegna_incarico_manuale(
         gruppo_servizio=gruppo_servizio,
         gruppo_censimento=censimento.gruppo,
     )
+
+    if funzione in FUNZIONI_CON_BRANCA_OBBLIGATORIA and not branca:
+        raise ValidationError({"branca": "Obbligatoria per Capo unità/Aiuto capo unità."})
+    branca = branca or BrancaUnita.SCONOSCIUTA
 
     incarico = IncaricoUnita(
         capo_id=codice_socio,
