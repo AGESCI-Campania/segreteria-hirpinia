@@ -8,14 +8,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.core.mail import send_mail
 from django.db import transaction
-from django.template.loader import render_to_string
 from django.utils import timezone
 
 from apps.accounts.models import Ruolo, Utente
 from apps.accounts.permessi import gruppi_visibili
 from apps.accounts.ruoli_derivati import sincronizza_ruoli_cg
+from apps.core.invio_email import invia_email_template
+from apps.core.models import CodiceTemplateEmail
 from apps.organizzazione.models import Gruppo
 
 from .derivazioni import ricalcola_derivati_capo, ricalcola_pattuglia
@@ -100,18 +100,8 @@ def _verifica_perimetro(
         )
 
 
-def _notifica(destinatario_email: str, oggetto: str, template: str, contesto: dict) -> None:
-    send_mail(
-        subject=oggetto,
-        message=render_to_string(template, contesto),
-        from_email=None,
-        recipient_list=[destinatario_email],
-        fail_silently=True,
-    )
-
-
 def _notifica_incarico(
-    incarico: IncaricoUnita, censimento: CensimentoCapo, *, template: str, oggetto: str
+    incarico: IncaricoUnita, censimento: CensimentoCapo, *, codice_template: str
 ) -> None:
     destinatari = set()
     if censimento.gruppo.email_istituzionale:
@@ -121,8 +111,20 @@ def _notifica_incarico(
         .values_list("email", flat=True)
         .distinct()
     )
+    contesto = {
+        "capo": str(incarico.capo),
+        "gruppo_servizio": str(incarico.gruppo_servizio),
+        "unita": f"{incarico.codice_unita} {incarico.nome_unita}".strip(),
+        "funzione": incarico.get_funzione_display(),
+        "assegnato_da": str(incarico.assegnato_da) if incarico.assegnato_da_id else "",
+    }
+    # Un invio per destinatario (non un unico messaggio con più `to`):
+    # comportamento invariato rispetto a prima di M8, i destinatari non si
+    # vedono a vicenda.
     for email in destinatari:
-        _notifica(email, oggetto, template, {"incarico": incarico, "censimento": censimento})
+        invia_email_template(
+            codice_template=codice_template, destinatari=[email], contesto=contesto
+        )
 
 
 @transaction.atomic
@@ -192,12 +194,7 @@ def assegna_incarico_manuale(
             utente=censimento.capo.utente, gruppi_capogruppo=gruppi_capogruppo, assegnato_da=utente
         )
 
-    _notifica_incarico(
-        incarico,
-        censimento,
-        template="anagrafica/email/incarico_assegnato.txt",
-        oggetto="Catello — nuovo incarico assegnato",
-    )
+    _notifica_incarico(incarico, censimento, codice_template=CodiceTemplateEmail.INCARICO_ASSEGNATO)
 
     return incarico
 
@@ -249,8 +246,5 @@ def cessa_incarico_manuale(*, utente: Utente, incarico: IncaricoUnita) -> None:
 
     if censimento is not None:
         _notifica_incarico(
-            incarico,
-            censimento,
-            template="anagrafica/email/incarico_cessato.txt",
-            oggetto="Catello — incarico cessato",
+            incarico, censimento, codice_template=CodiceTemplateEmail.INCARICO_CESSATO
         )

@@ -44,7 +44,7 @@ M4.5 ✅ Vincolo CG unico per gruppo reale + derivazione CG(E9001) da RDZ (D-35)
 M5  ✅ Gestione gruppo — modello, permessi, view base, subview incarichi         — dipende da M4.5
 M6  ✅ Assegna incarico: spostamento dentro Gestione gruppo + default gruppo     — dipende da M5
 M7  ✅ Assegna incarico: ricerca con autocompletamento + branca condizionale     — dipende da M6 (stessa view)
-M8  ⬜ Template email configurabili con rich text                                — indipendente, va per ultima
+M8  ✅ Template email configurabili con rich text                                — indipendente, va per ultima
 ```
 
 Le voci A5 e C del TODO toccano la stessa view (`AssegnaIncaricoView`): farle in
@@ -487,7 +487,7 @@ regressione sui 6 flussi di invio esistenti con i template di default precompila
 | M5 | Gestione gruppo (base) | Alta | ✅ completata | Subview incarichi spostata in apps.anagrafica (dipendenze verificate); breadcrumb via BreadcrumbExtraMixin |
 | M6 | Assegna incarico → dentro Gestione gruppo | Media | ✅ completata | assegna_incarico_manuale invariato; blocco duplicati già coperto dal UniqueConstraint di IncaricoUnita, non da scrivere |
 | M7 | Autocomplete + branca condizionale | Alta | ✅ completata | Modello IncaricoUnita.branca senza blank=True: fallback BrancaUnita.SCONOSCIUTA nel service layer, non nel form |
-| M8 | Template email + rich text | Alta | ⬜ da fare | Nessuna infrastruttura; superficie sicurezza nuova; refactor trasversale |
+| M8 | Template email + rich text | Alta | ✅ completata | TinyMCE vendorizzato (no CDN/API key); motore ridotto legge anche il fallback grezzo (mai autoescape Django); auditlog già registrato in core |
 
 ---
 

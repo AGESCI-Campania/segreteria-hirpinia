@@ -1,6 +1,6 @@
 Ciao,
 
-hai concesso una delega per il ruolo {{ delega.ruolo }} a {{ delega.delegato }},
-con scadenza {{ delega.data_fine|date:"d/m/Y" }}.
+hai concesso una delega per il ruolo {{ ruolo }} a {{ delegato }},
+con scadenza {{ scadenza }}.
 
 — Catello, AGESCI Zona Hirpinia

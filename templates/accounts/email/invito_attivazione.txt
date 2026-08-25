@@ -5,16 +5,12 @@ la segreteria della Zona Hirpinia ti invita ad attivare il tuo account su Catell
 Codice di attivazione: {{ codice }}
 
 Per attivare l'account, vai su:
-{{ site_url }}{% url 'accounts:attiva' %}?email={{ invito.email|urlencode }}&codice={{ codice }}
+{{ link_attivazione }}
 
-Il codice scade il {{ invito.scadenza|date:"d/m/Y H:i" }}. Se nel frattempo
+Il codice scade il {{ scadenza }}. Se nel frattempo
 scade, potrai richiederne uno nuovo dalla pagina di recupero:
-{{ site_url }}{% url 'accounts:recupero' %}
-{% if invito.gruppo %}
-Una volta attivato l'account, potrai caricare le partecipazioni per il
-contributo del tuo gruppo da qui:
-{{ site_url }}{% url 'contributi:campagna_lista' %}
-{% endif %}
+{{ link_recupero }}
+{{ paragrafo_gruppo }}
 Se non hai richiesto tu questo invito, ignora questa email.
 
 — Catello, AGESCI Zona Hirpinia

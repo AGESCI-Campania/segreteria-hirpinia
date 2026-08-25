@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block page_title %}Template email — {{ template }}{% endblock %}
+
+{% block content %}
+  <h1>Template email — {{ template }}</h1>
+
+  <p class="text-muted">
+    Variabili disponibili per questo template:
+    {% for variabile in variabili %}
+      <code>{% templatetag openvariable %} {{ variabile }} {% templatetag closevariable %}</code>{% if not forloop.last %}, {% endif %}
+    {% empty %}
+      nessuna
+    {% endfor %}
+  </p>
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+      {{ form.oggetto.label_tag }}
+      {{ form.oggetto }}
+      {{ form.oggetto.errors }}
+    </div>
+    <div class="mb-3">
+      {{ form.corpo_html.label_tag }}
+      {{ form.corpo_html }}
+      {{ form.corpo_html.errors }}
+    </div>
+    <div class="mb-3">
+      {{ form.corpo_testo.label_tag }}
+      <div class="form-text">Fallback testuale, sempre inviato insieme all'HTML.</div>
+      {{ form.corpo_testo }}
+      {{ form.corpo_testo.errors }}
+    </div>
+
+    <button type="submit" name="azione" value="salva" class="btn btn-primary">Salva</button>
+    <button type="submit" name="azione" value="anteprima" class="btn btn-outline-secondary">
+      Anteprima
+    </button>
+    <button type="submit" name="azione" value="test" class="btn btn-outline-secondary">
+      Invia email di test a me stesso
+    </button>
+  </form>
+
+  {% if anteprima %}
+    <hr>
+    <h2>Anteprima</h2>
+    <p><strong>Oggetto:</strong> {{ anteprima.oggetto }}</p>
+    <div class="card mb-3">
+      <div class="card-header">HTML</div>
+      <div class="card-body">{{ anteprima.corpo_html|safe }}</div>
+    </div>
+    <div class="card">
+      <div class="card-header">Testo</div>
+      <div class="card-body"><pre>{{ anteprima.corpo_testo }}</pre></div>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script src="{% static 'vendor/tinymce/tinymce.min.js' %}"></script>
+  <script>
+    if (window.tinymce) {
+      tinymce.init({
+        selector: "#id_corpo_html",
+        license_key: "gpl",
+        base_url: "{% static 'vendor/tinymce' %}",
+        suffix: ".min",
+        plugins: "lists link autolink table",
+        toolbar: "undo redo | bold italic underline | bullist numlist | link table",
+        menubar: false,
+        branding: false,
+        height: 400,
+      });
+    }
+  </script>
+{% endblock %}

@@ -9,6 +9,7 @@ class CoreConfig(AppConfig):
     def ready(self):
         from auditlog.registry import auditlog
 
-        from .models import ImpostazioniPiattaforma
+        from .models import ImpostazioniPiattaforma, TemplateEmail
 
         auditlog.register(ImpostazioniPiattaforma)
+        auditlog.register(TemplateEmail)

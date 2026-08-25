@@ -31,6 +31,31 @@ def _codice_inviato() -> str:
 
 
 class TestCreaInvito:
+    def test_email_multipart_con_alternativa_html(self, gruppo):
+        # M8: il template configurato ha sempre un corpo_html, l'email deve
+        # sempre essere multipart testo+HTML.
+        crea_invito(email="a@campania.agesci.it", creato_da=None, gruppo=gruppo)
+        messaggio = mail.outbox[-1]
+        assert messaggio.alternatives
+        assert messaggio.alternatives[0][1] == "text/html"
+
+    def test_paragrafo_gruppo_presente_solo_se_invito_ha_gruppo(self, gruppo):
+        crea_invito(email="con-gruppo@campania.agesci.it", creato_da=None, gruppo=gruppo)
+        corpo_con_gruppo = mail.outbox[-1].body
+
+        crea_invito(email="senza-gruppo@campania.agesci.it", creato_da=None, gruppo=None)
+        corpo_senza_gruppo = mail.outbox[-1].body
+
+        assert "contributo del tuo gruppo" in corpo_con_gruppo
+        assert "contributo del tuo gruppo" not in corpo_senza_gruppo
+
+    def test_link_attivazione_contiene_email_e_codice(self, gruppo):
+        crea_invito(email="a@campania.agesci.it", creato_da=None, gruppo=gruppo)
+        codice = _codice_inviato()
+        corpo = mail.outbox[-1].body
+        assert f"codice={codice}" in corpo
+        assert "email=a%40campania.agesci.it" in corpo or "email=a@campania.agesci.it" in corpo
+
     def test_codice_mai_leggibile_in_chiaro_dal_modello(self, gruppo):
         invito = crea_invito(email="a@campania.agesci.it", creato_da=None, gruppo=gruppo)
         codice = _codice_inviato()
@@ -50,7 +75,10 @@ class TestCreaInvito:
             {"email": "a@campania.agesci.it", "gruppo": gruppo},
             {"email": "b@campania.agesci.it", "gruppo": gruppo},
         ]
-        with patch("apps.accounts.inviti.send_mail", side_effect=[Exception("boom"), None]):
+        with patch(
+            "django.core.mail.message.EmailMessage.send",
+            side_effect=[Exception("boom"), None],
+        ):
             risultati = invia_inviti_multipli(voci, creato_da=None)
 
         assert risultati[0][1] is False

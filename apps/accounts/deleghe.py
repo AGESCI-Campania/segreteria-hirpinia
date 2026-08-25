@@ -2,20 +2,35 @@
 autorizzato a creare e revocare deleghe: nessuna view deve manipolare `Delega`
 direttamente."""
 
-from django.core.mail import send_mail
 from django.db import transaction
-from django.template.loader import render_to_string
+
+from apps.core.invio_email import invia_email_template
+from apps.core.models import CodiceTemplateEmail
 
 from .models import Delega, Ruolo, StatoUtente, TipoUtente, Utente
 
 
-def _notifica(destinatario_email: str, oggetto: str, template: str, contesto: dict) -> None:
-    send_mail(
-        subject=oggetto,
-        message=render_to_string(template, contesto),
-        from_email=None,
-        recipient_list=[destinatario_email],
-        fail_silently=True,
+def _notifica_delega_creata(delega: Delega) -> None:
+    invia_email_template(
+        codice_template=CodiceTemplateEmail.DELEGA_CREATA,
+        destinatari=[delega.delegante.email],
+        contesto={
+            "ruolo": str(delega.ruolo),
+            "delegato": str(delega.delegato),
+            "scadenza": delega.data_fine.strftime("%d/%m/%Y"),
+        },
+    )
+
+
+def _notifica_delega_revocata(delega: Delega, revocata_da: Utente | None) -> None:
+    invia_email_template(
+        codice_template=CodiceTemplateEmail.DELEGA_REVOCATA,
+        destinatari=[delega.delegante.email],
+        contesto={
+            "ruolo": str(delega.ruolo),
+            "delegato": str(delega.delegato),
+            "revocata_da_frase": f" da {revocata_da}" if revocata_da else "",
+        },
     )
 
 
@@ -58,12 +73,7 @@ def crea_delega(
 
         crea_invito(email=email_delegato, creato_da=delegante, delega_pendente=delega)
     else:
-        _notifica(
-            delegante.email,
-            "Catello — hai concesso una delega",
-            "accounts/email/delega_creata.txt",
-            {"delega": delega},
-        )
+        _notifica_delega_creata(delega)
     return delega
 
 
@@ -71,12 +81,7 @@ def crea_delega(
 def revoca_delega(delega: Delega, revocata_da: Utente) -> None:
     delega.attiva = False
     delega.save(update_fields=["attiva"])
-    _notifica(
-        delega.delegante.email,
-        "Catello — una tua delega è stata revocata",
-        "accounts/email/delega_revocata.txt",
-        {"delega": delega, "revocata_da": revocata_da},
-    )
+    _notifica_delega_revocata(delega, revocata_da)
 
 
 @transaction.atomic
@@ -88,10 +93,5 @@ def revoca_deleghe_di_ruolo(ruolo: Ruolo) -> int:
     deleghe = list(Delega.objects.filter(ruolo=ruolo, attiva=True))
     Delega.objects.filter(ruolo=ruolo, attiva=True).update(attiva=False)
     for delega in deleghe:
-        _notifica(
-            delega.delegante.email,
-            "Catello — una tua delega è stata revocata",
-            "accounts/email/delega_revocata.txt",
-            {"delega": delega, "revocata_da": None},
-        )
+        _notifica_delega_revocata(delega, None)
     return len(deleghe)

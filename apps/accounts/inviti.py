@@ -3,11 +3,13 @@ autorizzato a creare, verificare e far scadere un InvitoAttivazione."""
 
 from dataclasses import dataclass
 
-from django.core.mail import send_mail
 from django.db import transaction
-from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import urlencode
 
+from apps.core.invio_email import invia_email_template
+from apps.core.models import CodiceTemplateEmail
 from apps.organizzazione.models import AllowlistGruppo, Gruppo, anno_scout_corrente
 
 from .models import (
@@ -63,15 +65,28 @@ def crea_invito(
 def _invia_email_invito(invito: InvitoAttivazione, codice: str) -> None:
     from django.conf import settings
 
-    corpo = render_to_string(
-        "accounts/email/invito_attivazione.txt",
-        {"invito": invito, "codice": codice, "site_url": settings.SITE_URL},
-    )
-    send_mail(
-        subject="Catello — attiva il tuo account",
-        message=corpo,
-        from_email=None,
-        recipient_list=[invito.email],
+    querystring = urlencode({"email": invito.email, "codice": codice})
+    link_attivazione = f"{settings.SITE_URL}{reverse('accounts:attiva')}?{querystring}"
+    paragrafo_gruppo = ""
+    if invito.gruppo_id:
+        link_contributi = f"{settings.SITE_URL}{reverse('contributi:campagna_lista')}"
+        paragrafo_gruppo = (
+            "\nUna volta attivato l'account, potrai caricare le partecipazioni per il\n"
+            "contributo del tuo gruppo da qui:\n"
+            f"{link_contributi}\n"
+        )
+    contesto = {
+        "codice": codice,
+        "email": invito.email,
+        "scadenza": invito.scadenza.strftime("%d/%m/%Y %H:%M"),
+        "link_attivazione": link_attivazione,
+        "link_recupero": f"{settings.SITE_URL}{reverse('accounts:recupero')}",
+        "paragrafo_gruppo": paragrafo_gruppo,
+    }
+    invia_email_template(
+        codice_template=CodiceTemplateEmail.INVITO_ATTIVAZIONE,
+        destinatari=[invito.email],
+        contesto=contesto,
         fail_silently=False,
     )
     invito.inviato_il = timezone.now()

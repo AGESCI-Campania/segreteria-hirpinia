@@ -205,6 +205,17 @@ nelle fixture di test.
 - Le dipendenze dei provider sono extra opzionali (`--extra gmail`, `--extra microsoft`):
   non spostarle fra le dipendenze obbligatorie.
 - I test usano il provider `locmem`. Nessun test deve inviare email reali.
+- **Il contenuto delle 6 email applicative passa da `TemplateEmail` (M8), mai più
+  `render_to_string` + `send_mail` diretti.** Unico punto di invio:
+  `apps/core/invio_email.py::invia_email_template()`. Il corpo (`corpo_html`/
+  `corpo_testo`) è renderizzato con il motore ridotto di `apps/core/template_email.py`
+  (solo placeholder `{{ variabile }}`, **mai** tag Django `{% %}`, perché il contenuto
+  arriva da un form via interfaccia): non usare mai il motore template completo di
+  Django su `corpo_html`/`corpo_testo`. Il fallback quando il record manca/è vuoto legge
+  la sorgente grezza dei file `.txt` esistenti (mai renderizzata con l'autoescape di
+  Django, che romperebbe gli URL con `&` nella querystring) con lo stesso motore ridotto.
+  `corpo_html` va sempre sanitizzato con `apps/core/invio_email.py::sanifica_html()`
+  (bleach) prima dell'invio.
 - **`config/settings/prod.py` blocca l'avvio se `EMAIL_PROVIDER` è `console` o
   `locmem`** (`ImproperlyConfigured`, subito dopo `DEBUG = False`): non è codice morto
   né una ridondanza col controllo di `base.py` su `EMAIL_USE_TLS`/`EMAIL_USE_SSL` — è
@@ -216,6 +227,12 @@ nelle fixture di test.
 Usa `django-agesci-campania-theme`. **Non scrivere CSS custom** per i colori: usa le
 utility del tema (`bg-ag-viola`, `text-ag-*`, `{% branca_bg %}`) e i blocchi di
 `agesci_theme/base.html`. Se serve davvero una regola CSS nuova, chiedi prima.
+
+**Eccezione dichiarata**: TinyMCE (editor rich text di `TemplateEmail.corpo_html`, M8)
+porta il proprio CSS/JS di toolbar, vendorizzato in `static/vendor/tinymce/` (nessuna
+API key, nessun CDN esterno — build self-hosted, licenza GPL in
+`static/vendor/tinymce/LICENSE-tinymce.md`). Limitata alla sola pagina di modifica
+template email: non toccare né estendere per altre parti del tema.
 
 ### Parsing PDF
 

@@ -3,7 +3,12 @@
 {% block page_title %}Impostazioni{% endblock %}
 
 {% block content %}
-  <h1>Impostazioni di piattaforma</h1>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Impostazioni di piattaforma</h1>
+    <a href="{% url 'core:template_email_lista' %}" class="btn btn-outline-secondary">
+      Template email
+    </a>
+  </div>
 
   {% if form.non_field_errors %}
     <div class="alert alert-danger">{{ form.non_field_errors }}</div>

@@ -1,6 +1,6 @@
 Ciao,
 
-ti informiamo che il {{ quando|date:"d/m/Y H:i" }} {{ amministratore }} ha
+ti informiamo che il {{ quando }} {{ amministratore }} ha
 concluso una sessione di assistenza sul tuo account Catello (impersonificazione).
 
 Se non eri a conoscenza di questa richiesta di assistenza, contatta la

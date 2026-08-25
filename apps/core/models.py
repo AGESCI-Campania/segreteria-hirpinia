@@ -11,6 +11,45 @@ from __future__ import annotations
 from django.db import models
 
 
+class CodiceTemplateEmail(models.TextChoices):
+    """Chiave stabile per ciascuno dei 6 flussi di invio esistenti (M8):
+    corrisponde 1:1 ai punti di invio in `apps/accounts/inviti.py`,
+    `apps/accounts/deleghe.py`, `apps/accounts/signals.py`,
+    `apps/anagrafica/incarichi.py`. Vocabolario chiuso: nessun sesto/settimo
+    valore va aggiunto senza collegarlo a un vero punto di invio."""
+
+    INVITO_ATTIVAZIONE = "invito_attivazione", "Invito di attivazione"
+    FINE_IMPERSONIFICAZIONE = "fine_impersonificazione", "Fine impersonificazione"
+    DELEGA_CREATA = "delega_creata", "Delega creata"
+    DELEGA_REVOCATA = "delega_revocata", "Delega revocata"
+    INCARICO_ASSEGNATO = "incarico_assegnato", "Incarico assegnato"
+    INCARICO_CESSATO = "incarico_cessato", "Incarico cessato"
+
+
+class TemplateEmail(models.Model):
+    """Template email configurabile da interfaccia (M8): sostituisce il
+    contenuto hardcoded degli invii esistenti. `corpo_html` è renderizzato
+    con un motore di sostituzione ridotto (`apps/core/template_email.py`,
+    solo placeholder `{{ variabile }}`, mai tag Django) e sanitizzato con
+    bleach prima dell'invio — mai il motore template completo di Django, per
+    non ampliare la superficie di attacco di un contenuto che ora arriva da
+    un form invece che da un file sotto controllo di versione. `corpo_testo`
+    è il fallback plain-text, sempre presente in ogni invio multipart."""
+
+    codice = models.CharField(max_length=30, choices=CodiceTemplateEmail.choices, unique=True)
+    oggetto = models.CharField(max_length=200)
+    corpo_html = models.TextField(blank=True)
+    corpo_testo = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "Template email"
+        verbose_name_plural = "Template email"
+        ordering = ["codice"]
+
+    def __str__(self) -> str:
+        return self.get_codice_display()
+
+
 class ImpostazioniPiattaforma(models.Model):
     id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
     causale_bonifico_default = models.CharField(max_length=200, blank=True)
@@ -31,4 +70,4 @@ class ImpostazioniPiattaforma(models.Model):
         return cls.objects.get_or_create(pk=1)[0]
 
 
-__all__ = ["ImpostazioniPiattaforma"]
+__all__ = ["CodiceTemplateEmail", "ImpostazioniPiattaforma", "TemplateEmail"]

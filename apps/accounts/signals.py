@@ -1,8 +1,9 @@
-from django.core.mail import send_mail
 from django.dispatch import receiver
-from django.template.loader import render_to_string
 from django.utils import timezone
 from hijack.signals import hijack_ended, hijack_started
+
+from apps.core.invio_email import invia_email_template
+from apps.core.models import CodiceTemplateEmail
 
 
 def _ip_client(request) -> str | None:
@@ -38,13 +39,11 @@ def registra_fine_impersonificazione(sender, *, request, hijacker, hijacked, **k
     # Trasparenza verso l'utente impersonato (D-27), non un requisito tecnico:
     # fail_silently=True perché un fallimento nell'invio non deve interrompere
     # il rilascio della sessione.
-    send_mail(
-        subject="Catello — è terminata una sessione di assistenza sul tuo account",
-        message=render_to_string(
-            "accounts/email/fine_impersonificazione.txt",
-            {"amministratore": hijacker, "quando": timezone.localtime()},
-        ),
-        from_email=None,
-        recipient_list=[hijacked.email],
-        fail_silently=True,
+    invia_email_template(
+        codice_template=CodiceTemplateEmail.FINE_IMPERSONIFICAZIONE,
+        destinatari=[hijacked.email],
+        contesto={
+            "amministratore": str(hijacker),
+            "quando": timezone.localtime().strftime("%d/%m/%Y %H:%M"),
+        },
     )

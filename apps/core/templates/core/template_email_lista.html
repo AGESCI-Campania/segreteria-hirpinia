@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block page_title %}Template email{% endblock %}
+
+{% block content %}
+  <h1>Template email</h1>
+  <p class="text-muted">
+    I template derivati dall'incarico (M8) non compaiono qui separatamente:
+    ogni codice corrisponde a un flusso di invio reale della piattaforma.
+  </p>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Flusso</th>
+        <th>Oggetto</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for template in template_email %}
+        <tr>
+          <td>{{ template }}</td>
+          <td>{{ template.oggetto }}</td>
+          <td>
+            <a href="{% url 'core:template_email_modifica' template.pk %}" class="btn btn-sm btn-primary">
+              Modifica
+            </a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="3">Nessun template configurato.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

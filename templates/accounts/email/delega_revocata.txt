@@ -1,6 +1,6 @@
 Ciao,
 
-la delega che avevi concesso per il ruolo {{ delega.ruolo }} a
-{{ delega.delegato }} è stata revocata{% if revocata_da %} da {{ revocata_da }}{% endif %}.
+la delega che avevi concesso per il ruolo {{ ruolo }} a
+{{ delegato }} è stata revocata{{ revocata_da_frase }}.
 
 — Catello, AGESCI Zona Hirpinia
