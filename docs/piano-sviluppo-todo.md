@@ -42,7 +42,7 @@ M3  ✅ Import unificato (voce Importa)                                         
 M4  ✅ Visualizza anagrafica: pulsanti Ricerca capo + Registro esportazioni      — dipende da M1 (label)
 M4.5 ✅ Vincolo CG unico per gruppo reale + derivazione CG(E9001) da RDZ (D-35)  — nessuna dipendenza da M1-M4, prerequisito di M5
 M5  ✅ Gestione gruppo — modello, permessi, view base, subview incarichi         — dipende da M4.5
-M6  ⬜ Assegna incarico: spostamento dentro Gestione gruppo + default gruppo     — dipende da M5
+M6  ✅ Assegna incarico: spostamento dentro Gestione gruppo + default gruppo     — dipende da M5
 M7  ⬜ Assegna incarico: ricerca con autocompletamento + branca condizionale     — dipende da M6 (stessa view)
 M8  ⬜ Template email configurabili con rich text                                — indipendente, va per ultima
 ```
@@ -321,29 +321,28 @@ gruppo/attivo-storico e perimetro di visibilità coerente.
 **File**: `apps/core/menu.py`, `apps/anagrafica/forms.py::IncaricoManualeForm`,
 template `assegna_incarico.html`, subview di M5.4.
 
-- Rimuovere la voce menu indipendente "Assegna incarico".
-- Pulsante "Assegna incarico" nella subview incarichi (M5.4) → `AssegnaIncaricoView`
-  con `gruppo_servizio` precompilato al gruppo corrente.
-- `IncaricoManualeForm.gruppo_servizio` (già `ModelChoiceField` limitato a
-  `gruppi_visibili`): impostare `initial` al gruppo di censimento (`CensimentoCapo.gruppo`
-  dell'anno corrente) quando si arriva dalla ricerca socio (M7), o al gruppo corrente
-  quando si arriva da Gestione gruppo — resta sempre modificabile (incarico esterno),
-  mai readonly.
-- Verificare che `_verifica_perimetro` in `apps/anagrafica/incarichi.py` accetti
-  comunque il default proposto (dovrebbe, essendo il perimetro dell'utente già a monte).
-- **Incarico duplicato (decisione presa, proposta usabilità #3)**: blocco, non doppia
-  conferma. `assegna_incarico_manuale` verifica, prima di creare l'`IncaricoUnita`, se
-  esiste già un incarico **attivo** (`cessato_il__isnull=True`) per la stessa
-  combinazione capo + `gruppo_servizio` + `codice_unita` + `funzione` + `anno_scout`; se
-  sì, solleva `ValidationError` (stesso pattern degli errori di perimetro già gestiti
-  dalla view, nessun nuovo ramo in `AssegnaIncaricoView`). Niente flag di conferma nel
-  form: un doppio click o un reinvio ripropone lo stesso errore invece di creare un
-  duplicato, coerente con "gli incarichi non si cancellano, si cessano" — non c'è un
-  caso legittimo di due incarichi identici attivi contemporaneamente.
+- **Fatto**: rimossa la voce menu indipendente "Assegna incarico" (`apps/core/menu.py`,
+  anche l'import `RUOLI_ASSEGNAZIONE_INCARICHI` ora inutile lì).
+- **Fatto**: pulsante "Assegna incarico" nella subview incarichi (M5.4,
+  `templates/anagrafica/gruppo_incarichi.html`) → `AssegnaIncaricoView` con
+  `?gruppo=<codice>`, letto in `AssegnaIncaricoView.get()` e passato come `initial`
+  di `IncaricoManualeForm.gruppo_servizio` (già `ModelChoiceField` limitato a
+  `gruppi_visibili`) — resta sempre modificabile (incarico esterno), mai readonly. Il
+  default "gruppo di censimento quando si arriva dalla ricerca socio" resta di M7 (la
+  ricerca socio con autocomplete non esiste ancora).
+- **Verificato**: `_verifica_perimetro` in `apps/anagrafica/incarichi.py` non ha
+  bisogno di modifiche, il perimetro dell'utente è già a monte.
+- **Incarico duplicato (decisione presa, proposta usabilità #3) — verificato già
+  presente, non implementato qui**: `IncaricoUnita.Meta.constraints` ha già un
+  `UniqueConstraint` su `(capo, anno_scout, gruppo_servizio, codice_unita, funzione)`
+  condizionato a `cessato_il__isnull=True`; `assegna_incarico_manuale` chiama
+  `incarico.full_clean()` prima di salvare, quindi la violazione solleva già
+  `ValidationError`, già gestita da `AssegnaIncaricoView` come ogni altro errore di
+  validazione. Test `test_incarico_duplicato_rifiutato` in
+  `apps/anagrafica/tests/test_incarichi_manuali.py` era già verde prima di M6.
 
-**Difficoltà: media.** `assegna_incarico_manuale` non cambia; cambiano punto di
-ingresso e valore iniziale. Attenzione ai test esistenti su `AssegnaIncaricoView` che
-oggi presuppongono l'arrivo da `ricerca_capo` con `?codice_socio=...`.
+**Difficoltà: media.** `assegna_incarico_manuale` non è cambiato; sono cambiati solo
+punto di ingresso e valore iniziale del form.
 
 **Test**: default `gruppo_servizio` = gruppo di censimento quando disponibile; resta
 possibile scegliere un gruppo diverso; voce menu non più di primo livello; navigazione
@@ -486,7 +485,7 @@ regressione sui 6 flussi di invio esistenti con i template di default precompila
 | M4 | Visualizza anagrafica | Bassa-media | ✅ completata | Accesso view = unione dei 3 permessi, ogni scheda condizionata al proprio; nessun ruolo reale oggi ha RICERCA_CAPO/REGISTRO senza EXPORT |
 | M4.5 | Vincolo CG unico per gruppo (D-35) | Alta | ✅ completata | Sesso preso dal PDF (record["genere"]), non da Capo.sesso; nuovo apps/accounts/ruoli.py per la revoca esplicita |
 | M5 | Gestione gruppo (base) | Alta | ✅ completata | Subview incarichi spostata in apps.anagrafica (dipendenze verificate); breadcrumb via BreadcrumbExtraMixin |
-| M6 | Assegna incarico → dentro Gestione gruppo | Media | ⬜ da fare | Punto di ingresso e default, logica invariata |
+| M6 | Assegna incarico → dentro Gestione gruppo | Media | ✅ completata | assegna_incarico_manuale invariato; blocco duplicati già coperto dal UniqueConstraint di IncaricoUnita, non da scrivere |
 | M7 | Autocomplete + branca condizionale | Alta | ⬜ da fare | Nessuna infrastruttura esistente; isolare da D-34 |
 | M8 | Template email + rich text | Alta | ⬜ da fare | Nessuna infrastruttura; superficie sicurezza nuova; refactor trasversale |
 

@@ -40,5 +40,7 @@
     </tbody>
   </table>
 
-  <a href="{% url 'anagrafica:assegna_incarico' %}" class="btn btn-primary">Assegna incarico</a>
+  <a href="{% url 'anagrafica:assegna_incarico' %}?gruppo={{ gruppo.codice }}" class="btn btn-primary">
+    Assegna incarico
+  </a>
 {% endblock %}

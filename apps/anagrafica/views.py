@@ -390,6 +390,12 @@ class RicercaCapoView(RuoloRequiredMixin, View):
 
 
 class AssegnaIncaricoView(RuoloRequiredMixin, View):
+    """Punto di ingresso unico dopo M6: non più una voce di menu di primo
+    livello, ma raggiungibile dalla subview incarichi di "Gestione gruppo"
+    (`?gruppo=<codice>`, precompila `gruppo_servizio`) o dalla ricerca capo
+    (`?codice_socio=<codice>`, D-34). `assegna_incarico_manuale` non cambia:
+    qui cambiano solo punto di ingresso e valore iniziale."""
+
     ruoli_ammessi = RUOLI_ASSEGNAZIONE_INCARICHI
     template_name = "anagrafica/assegna_incarico.html"
 
@@ -397,9 +403,11 @@ class AssegnaIncaricoView(RuoloRequiredMixin, View):
         anno = anno_scout_corrente()
         codice_socio = request.GET.get("codice_socio", "")
         gruppi = gruppi_visibili(request.user, anno)
-        form = IncaricoManualeForm(
-            initial={"codice_socio": codice_socio, "anno_scout": anno}, gruppi_queryset=gruppi
-        )
+        initial = {"codice_socio": codice_socio, "anno_scout": anno}
+        gruppo_servizio = request.GET.get("gruppo", "")
+        if gruppo_servizio:
+            initial["gruppo_servizio"] = gruppo_servizio
+        form = IncaricoManualeForm(initial=initial, gruppi_queryset=gruppi)
         return render(request, self.template_name, {"form": form})
 
     def post(self, request):

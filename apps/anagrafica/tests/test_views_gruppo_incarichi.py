@@ -120,3 +120,55 @@ class TestGruppoIncarichiView:
         assert items[-3] == {"label": "Gruppi"}
         assert items[-2] == {"label": gruppo.nome}
         assert items[-1] == {"label": "Incarichi"}
+
+    def test_pulsante_assegna_incarico_porta_il_gruppo_in_query(self, client, segreteria, gruppo):
+        client.force_login(segreteria)
+
+        response = client.get(f"/anagrafica/gruppi/{gruppo.codice}/incarichi/")
+
+        assert f"/anagrafica/incarichi/assegna/?gruppo={gruppo.codice}" in response.content.decode()
+
+
+class TestAssegnaIncaricoViewDefaultGruppo:
+    """M6: 'Assegna incarico' non è più una voce di menu di primo livello, si
+    raggiunge da qui con il gruppo precompilato."""
+
+    def test_gruppo_in_query_precompila_il_form(self, client, segreteria, gruppo):
+        client.force_login(segreteria)
+
+        response = client.get(f"/anagrafica/incarichi/assegna/?gruppo={gruppo.codice}")
+
+        assert response.status_code == 200
+        assert response.context["form"].initial["gruppo_servizio"] == gruppo.codice
+
+    def test_resta_possibile_scegliere_un_gruppo_diverso(self, client, segreteria, gruppo):
+        altro = Gruppo.objects.create(codice="E0134", nome="AVELLINO 2")
+        capo = Capo.objects.create(codice_socio="10001", nome="MARIO", cognome="ROSSI")
+        from apps.anagrafica.models import CensimentoCapo
+
+        CensimentoCapo.objects.create(capo=capo, anno_scout=ANNO, gruppo=gruppo)
+        client.force_login(segreteria)
+
+        response = client.post(
+            "/anagrafica/incarichi/assegna/",
+            {
+                "codice_socio": "10001",
+                "anno_scout": ANNO,
+                "gruppo_servizio": altro.codice,
+                "codice_unita": "H1",
+                "nome_unita": "BRANCO",
+                "branca": BrancaUnita.LC,
+                "genere_unita": "MISTO",
+                "funzione": FunzioneIncarico.AIUTO_CAPO_UNITA,
+            },
+        )
+
+        assert response.status_code == 302
+        assert IncaricoUnita.objects.filter(gruppo_servizio=altro, capo=capo).exists()
+
+    def test_senza_gruppo_in_query_nessun_default(self, client, segreteria):
+        client.force_login(segreteria)
+
+        response = client.get("/anagrafica/incarichi/assegna/")
+
+        assert "gruppo_servizio" not in response.context["form"].initial

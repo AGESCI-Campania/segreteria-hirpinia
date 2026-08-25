@@ -17,7 +17,7 @@ from apps.accounts.ruoli import RUOLI_GESTIONE_RUOLI
 from apps.accounts.views import RUOLI_CHE_INVITANO
 from apps.anagrafica.esportazione import RUOLI_EXPORT_ANAGRAFICA, RUOLI_VISUALIZZAZIONE_ESPORTAZIONI
 from apps.anagrafica.importazione import RUOLI_IMPORT_ANAGRAFICA
-from apps.anagrafica.incarichi import RUOLI_ASSEGNAZIONE_INCARICHI, RUOLI_RICERCA_CAPO
+from apps.anagrafica.incarichi import RUOLI_RICERCA_CAPO
 from apps.contributi.inserimento import RUOLI_GESTIONE_PARTECIPAZIONI
 from apps.core.views import RUOLI_GESTIONE_IMPOSTAZIONI
 from apps.organizzazione.gruppi import RUOLI_GESTIONE_GRUPPI
@@ -65,10 +65,6 @@ def sezioni_menu(utente: Utente | AnonymousUser) -> list[SezioneMenu]:
     if consentito(RUOLI_IMPORT_ANAGRAFICA):
         voci_anagrafica.append(
             _voce("Importa", "anagrafica:importazione_cruscotto", "cloud-upload")
-        )
-    if consentito(RUOLI_ASSEGNAZIONE_INCARICHI):
-        voci_anagrafica.append(
-            _voce("Assegna incarico", "anagrafica:assegna_incarico", "person-badge")
         )
     if (
         consentito(RUOLI_EXPORT_ANAGRAFICA)

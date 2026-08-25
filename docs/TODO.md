@@ -17,7 +17,7 @@ Questo è un elenco di modifiche da fare aggiornato man mano che vanno avanti i 
   - [x] "Cerca capo censito altrove" diventa "Cerca capo in servizio esterno al gruppo" e va spostato come pulsante in "Esporta anagrafica"
   - [x] "Registro esportazioni" va spostato come pulsante in "Esporta anagrafica"
   - [x] "Esporta anagrafica" diventa "Visualizza anagrafica"
-  - [ ] "Assegna incarico" va spostato nella nuova funzione "Gestione gruppo" (vedi dettagli successivamente)
+  - [x] "Assegna incarico" va spostato nella nuova funzione "Gestione gruppo" (vedi dettagli successivamente)
   - [x] "Allowlist gruppi" va spostato nel tab "Amministrazione"
 - [x] Tab "Contributi" diventa "Moduli"
   - [x] "Campagne Fo.Ca." Diventa "Contributo Fo.Ca."
@@ -26,7 +26,7 @@ Questo è un elenco di modifiche da fare aggiornato man mano che vanno avanti i 
 - [ ] Assegna incarico manuale deve funzionare per mettendo di selezionare un socio con ricerca con autocompletion per nome, cognome, gruppo, o codice socio. A questo vien poi assegnato una funzione (e se è capo unità o aiuto capo unità anche una branca, che altriumenti non è obbligatoria). Come gruppo in cui si presta servizio di default viene selzionato quello di appartenza del capo, ma si può selezionare eventualmente un altro se incarico esterno in altro gruppo.
 
 ## Nuove funzionalità
-- [ ] "Gestione gruppo" (resta da fare la voce riga 20, Assegna incarico dentro Gestione gruppo — M6)
+- [ ] "Gestione gruppo" (resta da fare l'autocompletamento ricerca socio per l'assegnazione, riga 26 — M7)
   - [x] Contiene i dati del gruppo e permette di modificarli, Email di default (quella da import su dominio campania.agesci.it) non può essere modificata, ma si può inserire una email alternativa. Il capogruppo o un suo delegato può inserire e\o modificare:
     - la mail alternativa
     - indirizzo della sede del gruppo

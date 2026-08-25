@@ -1,5 +1,7 @@
 """Sidebar (apps/core/menu.py): la voce "Allowlist gruppi" vive sotto
-"Amministrazione", non più sotto "Anagrafica" (piano-sviluppo-todo.md M2)."""
+"Amministrazione", non più sotto "Anagrafica" (piano-sviluppo-todo.md M2).
+"Assegna incarico" non è più una voce di primo livello: si raggiunge dalla
+subview incarichi di "Gestione gruppo" (piano-sviluppo-todo.md M6)."""
 
 import datetime
 
@@ -115,3 +117,24 @@ class TestIlMioGruppo:
         etichette = _etichette(sezioni, "Anagrafica")
         assert "Il mio gruppo — AVELLINO 1" in etichette
         assert "Il mio gruppo — AVELLINO 2" in etichette
+
+
+class TestAssegnaIncaricoNonPiuInMenu:
+    def test_cg_non_vede_piu_assegna_incarico(self):
+        from apps.organizzazione.models import Gruppo
+
+        utente = _persona("cg@campania.agesci.it")
+        gruppo = Gruppo.objects.create(codice="E0133", nome="AVELLINO 1")
+        Ruolo.objects.create(utente=utente, tipo=Ruolo.Tipo.CG, gruppo=gruppo)
+
+        sezioni = sezioni_menu(utente)
+
+        assert "Assegna incarico" not in _etichette(sezioni, "Anagrafica")
+
+    def test_segreteria_non_vede_piu_assegna_incarico(self):
+        utente = _persona("segreteria@campania.agesci.it")
+        Ruolo.objects.create(utente=utente, tipo=Ruolo.Tipo.SEGRETERIA)
+
+        sezioni = sezioni_menu(utente)
+
+        assert "Assegna incarico" not in _etichette(sezioni, "Anagrafica")
