@@ -144,6 +144,8 @@ apps/
   esecuzione con Docker, in sviluppo e in produzione
 - [`docs/email/`](docs/email/README.md) — guide passo-passo per configurare ciascun
   provider di invio email (SMTP, Gmail, Microsoft Graph)
+- [`docs/TODO.md`](docs/TODO.md) — elenco delle modifiche da fare emerse durante il beta
+  testing
 - [`CLAUDE.md`](CLAUDE.md) — vincoli operativi per lo sviluppo assistito
 - [`SETUP_PYCHARM.md`](SETUP_PYCHARM.md) — configurazione dell'IDE
 
