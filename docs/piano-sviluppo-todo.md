@@ -28,17 +28,22 @@ Ogni milestone è mergeable e verificabile da sola.
   distinta* eccezione al perimetro standard, con limite di risultati e senza dati
   sensibili, per non essere confuso con D-34 né usato per aggirarla altrove.
 
+## Stato di avanzamento
+
+Legenda: ✅ completata — 🔄 in corso — ⬜ da fare. Dettaglio per milestone nella
+tabella "Riepilogo difficoltà" in fondo al documento.
+
 ## Mappa di dipendenza fra le milestone
 
 ```
-M1 Rinomine testuali (Contributi→Moduli, Campagne Fo.Ca.→Contributo Fo.Ca.)  — nessuna dipendenza
-M2 Allowlist gruppi → tab Amministrazione                                    — nessuna dipendenza
-M3 Import unificato (voce Importa)                                           — indipendente
-M4 Visualizza anagrafica: pulsanti Ricerca capo + Registro esportazioni      — dipende da M1 (label)
-M5 Gestione gruppo — modello, permessi, view base, subview incarichi         — nessuna dipendenza da M1-M4
-M6 Assegna incarico: spostamento dentro Gestione gruppo + default gruppo     — dipende da M5
-M7 Assegna incarico: ricerca con autocompletamento + branca condizionale     — dipende da M6 (stessa view)
-M8 Template email configurabili con rich text                                — indipendente, va per ultima
+M1 ✅ Rinomine testuali (Contributi→Moduli, Campagne Fo.Ca.→Contributo Fo.Ca.)  — nessuna dipendenza
+M2 ⬜ Allowlist gruppi → tab Amministrazione                                    — nessuna dipendenza
+M3 ⬜ Import unificato (voce Importa)                                           — indipendente
+M4 ⬜ Visualizza anagrafica: pulsanti Ricerca capo + Registro esportazioni      — dipende da M1 (label)
+M5 ⬜ Gestione gruppo — modello, permessi, view base, subview incarichi         — nessuna dipendenza da M1-M4
+M6 ⬜ Assegna incarico: spostamento dentro Gestione gruppo + default gruppo     — dipende da M5
+M7 ⬜ Assegna incarico: ricerca con autocompletamento + branca condizionale     — dipende da M6 (stessa view)
+M8 ⬜ Template email configurabili con rich text                                — indipendente, va per ultima
 ```
 
 Le voci A5 e C del TODO toccano la stessa view (`AssegnaIncaricoView`): farle in
@@ -360,16 +365,16 @@ regressione sui 6 flussi di invio esistenti con i template di default precompila
 
 ## Riepilogo difficoltà
 
-| Milestone | Voce TODO | Difficoltà | Nota principale |
-|---|---|---|---|
-| M1 | Contributi→Moduli | Bassa | Solo stringhe |
-| M2 | Allowlist→Amministrazione | Bassa | Verificare unione permessi e deleghe |
-| M3 | Importa unificato | Media | Aggregazione UI di due modelli, parsing invariato |
-| M4 | Visualizza anagrafica | Bassa-media | Permessi disallineati fra le tre funzioni aggregate |
-| M5 | Gestione gruppo (base) | Alta | Perimetro CG-vs-Zona, caso E9001, dipendenze fra app |
-| M6 | Assegna incarico → dentro Gestione gruppo | Media | Punto di ingresso e default, logica invariata |
-| M7 | Autocomplete + branca condizionale | Alta | Nessuna infrastruttura esistente; isolare da D-34 |
-| M8 | Template email + rich text | Alta | Nessuna infrastruttura; superficie sicurezza nuova; refactor trasversale |
+| Milestone | Voce TODO | Difficoltà | Stato | Nota principale |
+| --- | --- | --- | --- | --- |
+| M1 | Contributi→Moduli | Bassa | ✅ completata | Solo stringhe |
+| M2 | Allowlist→Amministrazione | Bassa | ⬜ da fare | Verificare unione permessi e deleghe |
+| M3 | Importa unificato | Media | ⬜ da fare | Aggregazione UI di due modelli, parsing invariato |
+| M4 | Visualizza anagrafica | Bassa-media | ⬜ da fare | Permessi disallineati fra le tre funzioni aggregate |
+| M5 | Gestione gruppo (base) | Alta | ⬜ da fare | Perimetro CG-vs-Zona, caso E9001, dipendenze fra app |
+| M6 | Assegna incarico → dentro Gestione gruppo | Media | ⬜ da fare | Punto di ingresso e default, logica invariata |
+| M7 | Autocomplete + branca condizionale | Alta | ⬜ da fare | Nessuna infrastruttura esistente; isolare da D-34 |
+| M8 | Template email + rich text | Alta | ⬜ da fare | Nessuna infrastruttura; superficie sicurezza nuova; refactor trasversale |
 
 ---
 

@@ -19,8 +19,8 @@ Questo è un elenco di modifiche da fare aggiornato man mano che vanno avanti i 
   - [ ] "Esporta anagrafica" diventa "Visualizza anagrafica"
   - [ ] "Assegna incarico" va spostato nella nuova funzione "Gestione gruppo" (vedi dettagli successivamente)
   - [ ] "Allowlist gruppi" va spostato nel tab "Amministrazione"
-- [ ] Tab "Contributi" diventa "Moduli"
-  - [ ] "Campagne Fo.Ca." Diventa "Contributo Fo.Ca."
+- [x] Tab "Contributi" diventa "Moduli"
+  - [x] "Campagne Fo.Ca." Diventa "Contributo Fo.Ca."
 
 ## Altre modifiche
 - [ ] Assegna incarico manuale deve funzionare per mettendo di selezionare un socio con ricerca con autocompletion per nome, cognome, gruppo, o codice socio. A questo vien poi assegnato una funzione (e se è capo unità o aiuto capo unità anche una branca, che altriumenti non è obbligatoria). Come gruppo in cui si presta servizio di default viene selzionato quello di appartenza del capo, ma si può selezionare eventualmente un altro se incarico esterno in altro gruppo.

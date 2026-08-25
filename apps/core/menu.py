@@ -99,10 +99,10 @@ def sezioni_menu(utente: Utente | AnonymousUser) -> list[SezioneMenu]:
     voci_contributi = []
     if consentito(RUOLI_GESTIONE_PARTECIPAZIONI):
         voci_contributi.append(
-            _voce("Campagne Fo.Ca.", "contributi:campagna_lista", "calendar2-check")
+            _voce("Contributo Fo.Ca.", "contributi:campagna_lista", "calendar2-check")
         )
     if voci_contributi:
-        sezioni.append(SezioneMenu("Contributi", "cash-coin", voci_contributi))
+        sezioni.append(SezioneMenu("Moduli", "cash-coin", voci_contributi))
 
     voci_account = [_voce("Le mie deleghe", "accounts:deleghe_lista", "person-lines-fill")]
     if consentito(RUOLI_CHE_INVITANO, solo_diretti=True):
