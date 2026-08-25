@@ -1,0 +1,20 @@
+<ul class="nav nav-tabs mb-3">
+  {% if puo_esportare %}
+    <li class="nav-item">
+      <a class="nav-link{% if tab_attiva == "esporta" %} active{% endif %}"
+         href="{% url 'anagrafica:esportazione' %}">Esporta</a>
+    </li>
+  {% endif %}
+  {% if puo_cercare_capo %}
+    <li class="nav-item">
+      <a class="nav-link{% if tab_attiva == "cerca_capo" %} active{% endif %}"
+         href="{% url 'anagrafica:ricerca_capo' %}">Cerca capo in servizio esterno al gruppo</a>
+    </li>
+  {% endif %}
+  {% if puo_vedere_registro %}
+    <li class="nav-item">
+      <a class="nav-link{% if tab_attiva == "registro" %} active{% endif %}"
+         href="{% url 'anagrafica:esportazione_lista' %}">Registro esportazioni</a>
+    </li>
+  {% endif %}
+</ul>

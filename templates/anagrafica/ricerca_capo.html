@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 
-{% block page_title %}Ricerca capo{% endblock %}
+{% block page_title %}Cerca capo in servizio esterno al gruppo{% endblock %}
 
 {% block content %}
-  <h1>Ricerca capo per codice socio</h1>
+  <h1>Cerca capo in servizio esterno al gruppo</h1>
+
+  {% include "anagrafica/_tab_visualizza_anagrafica.html" with tab_attiva="cerca_capo" %}
   <p class="text-muted">
     Solo per codice socio esatto (D-34): restituisce nome, cognome e gruppo di
     censimento, mai recapiti.

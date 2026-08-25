@@ -14,9 +14,9 @@ Questo è un elenco di modifiche da fare aggiornato man mano che vanno avanti i 
 
 - [ ] Tab anagrafica:
   - [x] "Importa anagrafica soci" e "Importa autorizzazioni" devono essere raggruppate in un unica voce "Importa" che rimanda ad una view che permette di eseguire entrambe i flussi e mostra un riepilogo degli import (quello che ora viene visualizzatop dalle due view separatamente)
-  - [ ] "Cerca capo censito altrove" diventa "Cerca capo in servizio esterno al gruppo" e va spostato come pulsante in "Esporta anagrafica"
-  - [ ] "Registro esportazioni" va spostato come pulsante in "Esporta anagrafica"
-  - [ ] "Esporta anagrafica" diventa "Visualizza anagrafica"
+  - [x] "Cerca capo censito altrove" diventa "Cerca capo in servizio esterno al gruppo" e va spostato come pulsante in "Esporta anagrafica"
+  - [x] "Registro esportazioni" va spostato come pulsante in "Esporta anagrafica"
+  - [x] "Esporta anagrafica" diventa "Visualizza anagrafica"
   - [ ] "Assegna incarico" va spostato nella nuova funzione "Gestione gruppo" (vedi dettagli successivamente)
   - [x] "Allowlist gruppi" va spostato nel tab "Amministrazione"
 - [x] Tab "Contributi" diventa "Moduli"

@@ -65,21 +65,17 @@ def sezioni_menu(utente: Utente | AnonymousUser) -> list[SezioneMenu]:
         voci_anagrafica.append(
             _voce("Importa", "anagrafica:importazione_cruscotto", "cloud-upload")
         )
-    if consentito(RUOLI_RICERCA_CAPO):
-        voci_anagrafica.append(
-            _voce("Cerca capo censito altrove", "anagrafica:ricerca_capo", "search")
-        )
     if consentito(RUOLI_ASSEGNAZIONE_INCARICHI):
         voci_anagrafica.append(
             _voce("Assegna incarico", "anagrafica:assegna_incarico", "person-badge")
         )
-    if consentito(RUOLI_EXPORT_ANAGRAFICA):
+    if (
+        consentito(RUOLI_EXPORT_ANAGRAFICA)
+        or consentito(RUOLI_RICERCA_CAPO)
+        or consentito(RUOLI_VISUALIZZAZIONE_ESPORTAZIONI)
+    ):
         voci_anagrafica.append(
-            _voce("Esporta anagrafica", "anagrafica:esportazione", "cloud-download")
-        )
-    if consentito(RUOLI_VISUALIZZAZIONE_ESPORTAZIONI):
-        voci_anagrafica.append(
-            _voce("Registro esportazioni", "anagrafica:esportazione_lista", "clock-history")
+            _voce("Visualizza anagrafica", "anagrafica:esportazione", "cloud-download")
         )
     if consentito(RUOLI_GESTIONE_GRUPPI):
         voci_anagrafica.append(_voce("Gruppi", "organizzazione:gruppo_lista", "diagram-3"))

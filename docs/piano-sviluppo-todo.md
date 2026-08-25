@@ -39,7 +39,7 @@ tabella "Riepilogo difficoltà" in fondo al documento.
 M1 ✅ Rinomine testuali (Contributi→Moduli, Campagne Fo.Ca.→Contributo Fo.Ca.)  — nessuna dipendenza
 M2 ✅ Allowlist gruppi → tab Amministrazione                                    — nessuna dipendenza
 M3 ✅ Import unificato (voce Importa)                                           — indipendente
-M4 ⬜ Visualizza anagrafica: pulsanti Ricerca capo + Registro esportazioni      — dipende da M1 (label)
+M4 ✅ Visualizza anagrafica: pulsanti Ricerca capo + Registro esportazioni      — dipende da M1 (label)
 M5 ⬜ Gestione gruppo — modello, permessi, view base, subview incarichi         — nessuna dipendenza da M1-M4
 M6 ⬜ Assegna incarico: spostamento dentro Gestione gruppo + default gruppo     — dipende da M5
 M7 ⬜ Assegna incarico: ricerca con autocompletamento + branca condizionale     — dipende da M6 (stessa view)
@@ -429,7 +429,7 @@ regressione sui 6 flussi di invio esistenti con i template di default precompila
 | M1 | Contributi→Moduli | Bassa | ✅ completata | Solo stringhe |
 | M2 | Allowlist→Amministrazione | Bassa | ✅ completata | Permessi non divergenti: Allowlist mantiene le deleghe, Impostazioni resta solo diretti |
 | M3 | Importa unificato | Media | ✅ completata | Cruscotto aggrega in Python, badge da `bool(anomalie)`, liste esistenti raggiungibili come link |
-| M4 | Visualizza anagrafica | Bassa-media | ⬜ da fare | Permessi disallineati fra le tre funzioni aggregate |
+| M4 | Visualizza anagrafica | Bassa-media | ✅ completata | Accesso view = unione dei 3 permessi, ogni scheda condizionata al proprio; nessun ruolo reale oggi ha RICERCA_CAPO/REGISTRO senza EXPORT |
 | M5 | Gestione gruppo (base) | Alta | ⬜ da fare | Perimetro CG-vs-Zona, caso E9001, dipendenze fra app |
 | M6 | Assegna incarico → dentro Gestione gruppo | Media | ⬜ da fare | Punto di ingresso e default, logica invariata |
 | M7 | Autocomplete + branca condizionale | Alta | ⬜ da fare | Nessuna infrastruttura esistente; isolare da D-34 |

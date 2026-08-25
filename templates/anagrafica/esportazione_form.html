@@ -1,64 +1,68 @@
 {% extends "base.html" %}
 
-{% block page_title %}Esporta anagrafica{% endblock %}
+{% block page_title %}Visualizza anagrafica{% endblock %}
 
 {% block content %}
-  <h1>Esporta anagrafica</h1>
+  <h1>Visualizza anagrafica</h1>
 
-  {% if form.non_field_errors %}
-    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-  {% endif %}
+  {% include "anagrafica/_tab_visualizza_anagrafica.html" with tab_attiva="esporta" %}
 
-  <form method="get" class="mb-4">
-    {% csrf_token %}
-    <div class="row">
-      {% for field in form %}
-        {% if field.name != "formato" %}
-          <div class="col-md-3 mb-3">
-            {{ field.label_tag }}
-            {{ field }}
-            {{ field.errors }}
-          </div>
-        {% endif %}
-      {% endfor %}
-    </div>
-    <button type="submit" class="btn btn-primary">Cerca</button>
-    {% if righe_tabella %}
-      <button type="submit" formmethod="post" name="formato" value="csv" class="btn btn-outline-primary">
-        Esporta CSV
-      </button>
-      <button type="submit" formmethod="post" name="formato" value="xlsx" class="btn btn-outline-primary">
-        Esporta XLSX
-      </button>
+  {% if puo_esportare %}
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
     {% endif %}
-  </form>
 
-  {% if righe_tabella is not None %}
-    <p class="text-muted">
-      {{ numero_capi }} cap{{ numero_capi|pluralize:"o,i" }} trovat{{ numero_capi|pluralize:"o,i" }}
-      ({{ righe_tabella|length }} rig{{ righe_tabella|length|pluralize:"a,he" }}, in base al raggruppamento scelto).
-    </p>
-    <div class="table-responsive">
-      <table class="table table-sm table-striped">
-        <thead>
-          <tr>
-            {% for etichetta in intestazioni %}
-              <th>{{ etichetta }}</th>
-            {% endfor %}
-          </tr>
-        </thead>
-        <tbody>
-          {% for riga in righe_tabella %}
+    <form method="get" class="mb-4">
+      {% csrf_token %}
+      <div class="row">
+        {% for field in form %}
+          {% if field.name != "formato" %}
+            <div class="col-md-3 mb-3">
+              {{ field.label_tag }}
+              {{ field }}
+              {{ field.errors }}
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+      <button type="submit" class="btn btn-primary">Cerca</button>
+      {% if righe_tabella %}
+        <button type="submit" formmethod="post" name="formato" value="csv" class="btn btn-outline-primary">
+          Esporta CSV
+        </button>
+        <button type="submit" formmethod="post" name="formato" value="xlsx" class="btn btn-outline-primary">
+          Esporta XLSX
+        </button>
+      {% endif %}
+    </form>
+
+    {% if righe_tabella is not None %}
+      <p class="text-muted">
+        {{ numero_capi }} cap{{ numero_capi|pluralize:"o,i" }} trovat{{ numero_capi|pluralize:"o,i" }}
+        ({{ righe_tabella|length }} rig{{ righe_tabella|length|pluralize:"a,he" }}, in base al raggruppamento scelto).
+      </p>
+      <div class="table-responsive">
+        <table class="table table-sm table-striped">
+          <thead>
             <tr>
-              {% for valore in riga %}
-                <td>{{ valore }}</td>
+              {% for etichetta in intestazioni %}
+                <th>{{ etichetta }}</th>
               {% endfor %}
             </tr>
-          {% empty %}
-            <tr><td colspan="{{ intestazioni|length }}">Nessun capo trovato con questi filtri.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {% for riga in righe_tabella %}
+              <tr>
+                {% for valore in riga %}
+                  <td>{{ valore }}</td>
+                {% endfor %}
+              </tr>
+            {% empty %}
+              <tr><td colspan="{{ intestazioni|length }}">Nessun capo trovato con questi filtri.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
   {% endif %}
 {% endblock %}

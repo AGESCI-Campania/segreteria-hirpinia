@@ -11,6 +11,7 @@ from apps.anagrafica.esportazione import (
     etichetta_unita,
     genera_righe_esportazione,
     ordina_per_raggruppamento,
+    permessi_visualizza_anagrafica,
     raggruppa_righe,
 )
 from apps.anagrafica.models import (
@@ -326,3 +327,35 @@ class TestRaggruppamento:
         ordinate = ordina_per_raggruppamento(righe, RaggruppamentoEsportazione.PER_UNITA)
 
         assert [r.codice_unita for r in ordinate] == ["A1", "Z1"]
+
+
+class TestPermessiVisualizzaAnagrafica:
+    """M4 del piano di sviluppo: le tre schede di "Visualizza anagrafica"
+    hanno perimetri storicamente distinti (RUOLI_EXPORT_ANAGRAFICA include
+    CG, RUOLI_RICERCA_CAPO e RUOLI_VISUALIZZAZIONE_ESPORTAZIONI no)."""
+
+    def test_cg_vede_solo_la_scheda_esporta(self, cg_gruppo_a):
+        permessi = permessi_visualizza_anagrafica(cg_gruppo_a)
+        assert permessi == {
+            "puo_esportare": True,
+            "puo_cercare_capo": False,
+            "puo_vedere_registro": False,
+        }
+
+    def test_segreteria_vede_esporta_e_cerca_capo_non_registro(self, segreteria):
+        permessi = permessi_visualizza_anagrafica(segreteria)
+        assert permessi == {
+            "puo_esportare": True,
+            "puo_cercare_capo": True,
+            "puo_vedere_registro": False,
+        }
+
+    def test_admin_vede_tutte_e_tre(self):
+        admin = _persona("admin@campania.agesci.it")
+        Ruolo.objects.create(utente=admin, tipo=Ruolo.Tipo.ADMIN)
+        permessi = permessi_visualizza_anagrafica(admin)
+        assert permessi == {
+            "puo_esportare": True,
+            "puo_cercare_capo": True,
+            "puo_vedere_registro": True,
+        }

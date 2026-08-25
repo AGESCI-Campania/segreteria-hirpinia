@@ -21,8 +21,9 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import QuerySet
 
 from apps.accounts.models import Ruolo, Utente
-from apps.accounts.permessi import gruppi_visibili
+from apps.accounts.permessi import gruppi_visibili, ruoli_effettivi
 
+from .incarichi import RUOLI_RICERCA_CAPO
 from .models import (
     A_DISPOSIZIONE,
     BrancaUnita,
@@ -48,6 +49,27 @@ RUOLI_EXPORT_ANAGRAFICA = frozenset(
 
 # Il registro delle esportazioni è visibile solo ad ADMIN (D-23).
 RUOLI_VISUALIZZAZIONE_ESPORTAZIONI = frozenset({Ruolo.Tipo.ADMIN})
+
+# "Visualizza anagrafica" (M4 del piano di sviluppo) è il punto di ingresso unico
+# a tre funzioni con perimetri storicamente distinti: l'unione garantisce che chi ha
+# uno solo dei tre permessi non perda l'accesso alla pagina una volta che le voci di
+# menu indipendenti spariscono. Ogni scheda resta condizionata al proprio permesso
+# (vedi `permessi_visualizza_anagrafica`), questa costante serve solo per l'accesso
+# alla view.
+RUOLI_VISUALIZZA_ANAGRAFICA = (
+    RUOLI_EXPORT_ANAGRAFICA | RUOLI_RICERCA_CAPO | RUOLI_VISUALIZZAZIONE_ESPORTAZIONI
+)
+
+
+def permessi_visualizza_anagrafica(utente: Utente) -> dict[str, bool]:
+    """Le tre schede di "Visualizza anagrafica", una funzione condivisa dalle
+    tre view coinvolte (M4) per non duplicare la stessa regola tre volte."""
+    tipi_ruolo = {r.tipo for r in ruoli_effettivi(utente)}
+    return {
+        "puo_esportare": bool(tipi_ruolo & RUOLI_EXPORT_ANAGRAFICA),
+        "puo_cercare_capo": bool(tipi_ruolo & RUOLI_RICERCA_CAPO),
+        "puo_vedere_registro": bool(tipi_ruolo & RUOLI_VISUALIZZAZIONE_ESPORTAZIONI),
+    }
 
 
 @dataclass(frozen=True)

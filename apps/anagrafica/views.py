@@ -22,7 +22,7 @@ from apps.accounts.permessi import gruppi_visibili
 from apps.organizzazione.models import anno_scout_corrente
 
 from .esportazione import (
-    RUOLI_EXPORT_ANAGRAFICA,
+    RUOLI_VISUALIZZA_ANAGRAFICA,
     RUOLI_VISUALIZZAZIONE_ESPORTAZIONI,
     FiltriEsportazione,
     RigaEsportazione,
@@ -30,6 +30,7 @@ from .esportazione import (
     etichetta_unita,
     genera_righe_esportazione,
     ordina_per_raggruppamento,
+    permessi_visualizza_anagrafica,
     raggruppa_righe,
 )
 from .forms import (
@@ -380,9 +381,9 @@ class RicercaCapoView(RuoloRequiredMixin, View):
             trovato = cerca_capo_per_codice_socio(
                 form.cleaned_data["codice_socio"], anno_scout=anno_scout_corrente()
             )
-        return render(
-            request, self.template_name, {"form": form, "trovato": trovato, "cercato": cercato}
-        )
+        contesto = {"form": form, "trovato": trovato, "cercato": cercato}
+        contesto.update(permessi_visualizza_anagrafica(request.user))
+        return render(request, self.template_name, contesto)
 
 
 class AssegnaIncaricoView(RuoloRequiredMixin, View):
@@ -520,18 +521,27 @@ class EsportazioneAnagraficaView(RuoloRequiredMixin, View):
     l'elenco dei capi che rispettano i filtri come tabella; l'esportazione
     vera e propria (POST, tracciata in EsportazioneAnagrafica) genera e
     scarica subito il file con **gli stessi filtri** già mostrati in
-    tabella — mai una ricerca separata da quella che poi si esporta."""
+    tabella — mai una ricerca separata da quella che poi si esporta.
 
-    ruoli_ammessi = RUOLI_EXPORT_ANAGRAFICA
+    Perimetro d'accesso alla view (M4, "Visualizza anagrafica") allargato
+    all'unione delle tre schede (`RUOLI_VISUALIZZA_ANAGRAFICA`): il perimetro
+    specifico della scheda di ricerca/export (`RUOLI_EXPORT_ANAGRAFICA`)
+    resta verificato esplicitamente in `get`/`post`, non solo nel template."""
+
+    ruoli_ammessi = RUOLI_VISUALIZZA_ANAGRAFICA
     template_name = "anagrafica/esportazione_form.html"
 
     def get(self, request):
+        contesto = permessi_visualizza_anagrafica(request.user)
+        if not contesto["puo_esportare"]:
+            return render(request, self.template_name, contesto)
+
         form = EsportazioneAnagraficaForm(
             request.GET or None,
             initial={"anno_scout": anno_scout_corrente()},
             **_scelte_form_esportazione(request.user),
         )
-        contesto = {"form": form}
+        contesto["form"] = form
         if request.GET and form.is_valid():
             filtri = _filtri_da_dati(form.cleaned_data)
             try:
@@ -547,9 +557,14 @@ class EsportazioneAnagraficaView(RuoloRequiredMixin, View):
         return render(request, self.template_name, contesto)
 
     def post(self, request):
+        permessi = permessi_visualizza_anagrafica(request.user)
+        if not permessi["puo_esportare"]:
+            raise PermissionDenied("Non hai il permesso di esportare l'anagrafica.")
+
         form = EsportazioneAnagraficaForm(request.POST, **_scelte_form_esportazione(request.user))
         if not form.is_valid():
-            return render(request, self.template_name, {"form": form})
+            contesto = {**permessi, "form": form}
+            return render(request, self.template_name, contesto)
 
         dati = form.cleaned_data
         formato = dati.get("formato") or "csv"
@@ -558,7 +573,7 @@ class EsportazioneAnagraficaView(RuoloRequiredMixin, View):
             righe = genera_righe_esportazione(request.user, filtri)
         except PermissionDenied as exc:
             form.add_error("gruppo", str(exc))
-            return render(request, self.template_name, {"form": form})
+            return render(request, self.template_name, {**permessi, "form": form})
 
         EsportazioneAnagrafica.objects.create(
             utente=request.user,
@@ -594,6 +609,11 @@ class EsportazioneAnagraficaListaView(RuoloRequiredMixin, ListView):
 
     def get_queryset(self):
         return EsportazioneAnagrafica.objects.select_related("utente")
+
+    def get_context_data(self, **kwargs):
+        contesto = super().get_context_data(**kwargs)
+        contesto.update(permessi_visualizza_anagrafica(self.request.user))
+        return contesto
 
 
 def _righe_colonne(righe: list[RigaEsportazione], colonne) -> list[list]:
