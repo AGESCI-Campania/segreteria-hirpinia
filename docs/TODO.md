@@ -18,7 +18,7 @@ Questo è un elenco di modifiche da fare aggiornato man mano che vanno avanti i 
   - [ ] "Registro esportazioni" va spostato come pulsante in "Esporta anagrafica"
   - [ ] "Esporta anagrafica" diventa "Visualizza anagrafica"
   - [ ] "Assegna incarico" va spostato nella nuova funzione "Gestione gruppo" (vedi dettagli successivamente)
-  - [ ] "Allowlist gruppi" va spostato nel tab "Amministrazione"
+  - [x] "Allowlist gruppi" va spostato nel tab "Amministrazione"
 - [x] Tab "Contributi" diventa "Moduli"
   - [x] "Campagne Fo.Ca." Diventa "Contributo Fo.Ca."
 

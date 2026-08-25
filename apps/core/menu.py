@@ -90,9 +90,6 @@ def sezioni_menu(utente: Utente | AnonymousUser) -> list[SezioneMenu]:
         )
     if consentito(RUOLI_GESTIONE_GRUPPI):
         voci_anagrafica.append(_voce("Gruppi", "organizzazione:gruppo_lista", "diagram-3"))
-        voci_anagrafica.append(
-            _voce("Allowlist gruppi", "organizzazione:allowlist_lista", "shield-check")
-        )
     if voci_anagrafica:
         sezioni.append(SezioneMenu("Anagrafica", "people-fill", voci_anagrafica))
 
@@ -111,13 +108,14 @@ def sezioni_menu(utente: Utente | AnonymousUser) -> list[SezioneMenu]:
         voci_account.append(_voce("Deleghe di Zona", "accounts:deleghe_zona", "people"))
     sezioni.append(SezioneMenu("Account", "person-circle", voci_account))
 
-    if consentito(RUOLI_GESTIONE_IMPOSTAZIONI, solo_diretti=True):
-        sezioni.append(
-            SezioneMenu(
-                "Amministrazione",
-                "gear-fill",
-                [_voce("Impostazioni", "core:impostazioni", "sliders")],
-            )
+    voci_amministrazione = []
+    if consentito(RUOLI_GESTIONE_GRUPPI):
+        voci_amministrazione.append(
+            _voce("Allowlist gruppi", "organizzazione:allowlist_lista", "shield-check")
         )
+    if consentito(RUOLI_GESTIONE_IMPOSTAZIONI, solo_diretti=True):
+        voci_amministrazione.append(_voce("Impostazioni", "core:impostazioni", "sliders"))
+    if voci_amministrazione:
+        sezioni.append(SezioneMenu("Amministrazione", "gear-fill", voci_amministrazione))
 
     return sezioni
