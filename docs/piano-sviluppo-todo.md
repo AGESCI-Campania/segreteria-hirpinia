@@ -62,6 +62,7 @@ M9  ⬜ Icone nei tab della home                                                
 M10 ⬜ Invito diretto ristretto ad ADMIN/SEGRETERIA, fuso dentro "Ruoli"          — indipendente
 M11 ⬜ Assegna ruolo direttamente (senza invito) a un utente già attivo          — dipende da M10 (stesso template ruolo_lista.html)
 M12 ⬜ Elenco degli utenti impersonabili + voce di menu                          — indipendente
+M13 ⬜ Rifiniture breadcrumb: icona Home + Template email completo               — indipendente
 ```
 
 Le voci A5 e C del TODO toccano la stessa view (`AssegnaIncaricoView`): farle in
@@ -637,6 +638,52 @@ impersonificazione esistente (D-27, doppia identità registrata).
 
 ---
 
+## M13 — Rifiniture breadcrumb: icona Home sempre visibile + Template email completo
+
+Due segnalazioni comparse dopo M8/M9-M12, entrambe sul breadcrumb: non rientrano in
+nessuna milestone esistente (M9 riguarda le icone nelle card della home page, non il
+breadcrumb) — nuova milestone dedicata, indipendente dalle altre.
+
+**File coinvolti**: `apps/core/views.py` (`TemplateEmailListaView`,
+`TemplateEmailModificaView`), `apps/core/templates/core/template_email_lista.html`,
+`apps/core/templates/core/template_email_modifica.html`, nuovo
+`templates/agesci_theme/partials/breadcrumb.html`.
+
+- **Template email senza pulsante "torna a Impostazioni" e senza breadcrumb**:
+  gap reale lasciato da M8 — `TemplateEmailListaView`/`TemplateEmailModificaView`
+  (`apps/core/views.py:44-99`, verificato) non ereditano `BreadcrumbExtraMixin`
+  (`apps/core/mixins.py`, stesso pattern già usato da `GruppoGestioneView`/
+  `InvitoCreaView` una volta fatto M10). Aggiungere `breadcrumb_extra` a entrambe
+  (`[{"label": "Amministrazione"}, {"label": "Impostazioni", "url": reverse("core:impostazioni")}, {"label": "Template email"}]`,
+  con un terzo elemento in più per la view di modifica) e un link "← Impostazioni" in
+  cima a `template_email_lista.html` (la view di modifica ha già il link alla lista
+  come punto di ritorno naturale, ma non ha comunque il breadcrumb).
+- **Icona Home sempre presente nel breadcrumb, prima del testo**: il partial renderizzato
+  è `agesci_theme/partials/breadcrumb.html` — **template di terze parti** (pacchetto
+  `django-agesci-campania-theme`, verificato: `{% include %}` in
+  `agesci_theme/base.html:56`), da non modificare direttamente nel `.venv`. Il progetto
+  non ha oggi alcun override locale di template del tema (verificato,
+  `templates/agesci_theme/` non esiste). Soluzione: creare
+  `templates/agesci_theme/partials/breadcrumb.html` — Django lo sceglie automaticamente
+  al posto della versione del pacchetto perché `TEMPLATES[0]["DIRS"]`
+  (`BASE_DIR / "templates"`) ha priorità su `APP_DIRS` (`config/settings/base.py:104`) —
+  copia del partial originale con `{% bs_icon "house-fill" %}` aggiunto solo per il
+  primo elemento (`forloop.first`, sempre "Home" per costruzione di
+  `apps/core/context_processors.py::breadcrumb()`), stesso tag già in uso ovunque nel
+  progetto, nessun CSS custom.
+
+**Difficoltà: bassa.** Nessuna logica nuova, solo template e un mixin già collaudato;
+l'unico punto delicato è l'override di un template di terze parti, da tenere
+sincronizzato manualmente se il pacchetto del tema aggiorna quel partial in futuro
+(annotare la versione del tema nel commento del file copiato).
+
+**Test**: `template-email/` e `template-email/<pk>/` mostrano un breadcrumb corretto e
+un link di ritorno a Impostazioni; il breadcrumb su qualunque altra pagina esistente
+mostra sempre "Home" con l'icona (regressione da verificare su almeno una pagina di
+primo livello e una pagina figlia via `BreadcrumbExtraMixin`, es. `gruppo_gestione`).
+
+---
+
 ## Riepilogo difficoltà
 
 | Milestone | Voce TODO | Difficoltà | Stato | Nota principale |
@@ -654,6 +701,7 @@ impersonificazione esistente (D-27, doppia identità registrata).
 | M10 | Invito diretto ristretto + fuso in Ruoli | Bassa-media | ⬜ da fare | RDZ mantiene solo la visualizzazione storico; nuova costante distinta da RUOLI_CHE_INVITANO |
 | M11 | Assegna ruolo diretto (senza invito) | Alta | ⬜ da fare | CG escluso (D-35); nessun servizio di creazione ruolo esiste oggi; blocco duplicati da scrivere ex novo |
 | M12 | Elenco utenti impersonabili | Media | ⬜ da fare | Deviazione dichiarata dal principio "niente elenco sfogliabile"; il vero problema era l'assenza di voce menu |
+| M13 | Rifiniture breadcrumb (Home + Template email) | Bassa | ⬜ da fare | Gap lasciato da M8 (BreadcrumbExtraMixin mancante); icona Home via override locale di un partial del tema |
 
 ---
 
