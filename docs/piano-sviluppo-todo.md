@@ -27,6 +27,19 @@ Ogni milestone è mergeable e verificabile da sola.
   nessun elenco sfogliabile) — va documentato esplicitamente nel codice come *nuova e
   distinta* eccezione al perimetro standard, con limite di risultati e senza dati
   sensibili, per non essere confuso con D-34 né usato per aggirarla altrove.
+- **M11**: la nuova funzione "assegna ruolo direttamente" **esclude `Ruolo.Tipo.CG`**
+  (resta derivato da incarico o dal percorso invito-con-gruppo, per non aprire un
+  terzo punto di scrittura da allineare a D-35) e riusa il pattern di ricerca utente
+  di `ImpersonaListaView` (icontains su email/username/codice socio), non la ricerca
+  per email esatta stile D-34.
+- **M12**: `ImpersonaListaView` senza query mostra l'elenco completo (paginato)
+  invece di `Utente.objects.none()`. **Deviazione dichiarata** dal principio "niente
+  elenco sfogliabile" (modellato su D-34) scritto nel docstring originale: qui il
+  bersaglio è un elenco di account piattaforma, non l'anagrafica soci, e la pagina
+  resta riservata a chi supera `puo_impersonare_qualcuno()` (oggi solo ADMIN diretto).
+- **M10**: RDZ perde la **creazione** di inviti (`InvitoCreaView`) ma mantiene la
+  **visualizzazione** dello storico (`InvitoListaView`) — nuova costante
+  `RUOLI_INVITO_DIRETTO` distinta da `RUOLI_CHE_INVITANO`.
 
 ## Stato di avanzamento
 
@@ -45,10 +58,15 @@ M5  ✅ Gestione gruppo — modello, permessi, view base, subview incarichi     
 M6  ✅ Assegna incarico: spostamento dentro Gestione gruppo + default gruppo     — dipende da M5
 M7  ✅ Assegna incarico: ricerca con autocompletamento + branca condizionale     — dipende da M6 (stessa view)
 M8  ✅ Template email configurabili con rich text                                — indipendente, va per ultima
+M9  ⬜ Icone nei tab della home                                                  — indipendente
+M10 ⬜ Invito diretto ristretto ad ADMIN/SEGRETERIA, fuso dentro "Ruoli"          — indipendente
+M11 ⬜ Assegna ruolo direttamente (senza invito) a un utente già attivo          — dipende da M10 (stesso template ruolo_lista.html)
+M12 ⬜ Elenco degli utenti impersonabili + voce di menu                          — indipendente
 ```
 
 Le voci A5 e C del TODO toccano la stessa view (`AssegnaIncaricoView`): farle in
-sequenza (M6 poi M7) evita di riscrivere due volte template/test.
+sequenza (M6 poi M7) evita di riscrivere due volte template/test. Lo stesso vale per
+M10/M11, che toccano entrambe `templates/accounts/ruolo_lista.html`.
 
 ---
 
@@ -475,6 +493,150 @@ regressione sui 6 flussi di invio esistenti con i template di default precompila
 
 ---
 
+## M9 — Icone nei tab della home
+
+**File**: `apps/core/templates/core/home.html`.
+
+- Aggiungere `{% load bootstrap_icons %}` (non ereditato dai blocchi del template
+  genitore in Django, va caricato esplicitamente anche se `agesci_theme/base.html` lo
+  fa già per sé) e usare lo stesso tag `{% bs_icon sezione.icona %}` / `{% bs_icon
+  voce.icona %}` già in uso nella sidebar (`templates/base.html:34,46,48,54`), prima
+  dell'etichetta nel `card-header` (riga 18 di `home.html`) e in ogni link della card
+  (righe 21-23).
+- Nessun dato nuovo: `sezione.icona`/`voce.icona` esistono già nel dataclass
+  (`apps/core/menu.py:29-32,40-43`), già filtrati per ruolo da `sezioni_menu()`, e
+  `home.html` riusa già lo stesso context processor della sidebar — stesso dato,
+  stesso permesso, nessuna struttura nuova.
+
+**Difficoltà: bassa.** Solo template, nessuna logica, nessun permesso da toccare.
+
+**Test**: verifica visiva; eventualmente un test che verifica la presenza dell'icona
+nel markup per una sezione nota.
+
+---
+
+## M10 — Invito diretto ristretto ad ADMIN/SEGRETERIA, fuso dentro "Ruoli"
+
+**File coinvolti**: `apps/accounts/views.py` (`InvitoCreaView`, `InvitoListaView`),
+`apps/accounts/forms.py::InvitoSingoloForm`, `apps/core/menu.py`,
+`templates/accounts/ruolo_lista.html`, `templates/accounts/invito_crea.html`.
+
+- Nuova costante `RUOLI_INVITO_DIRETTO = frozenset({ADMIN, SEGRETERIA})` in
+  `apps/accounts/views.py`, distinta da `RUOLI_CHE_INVITANO` (resta ADMIN/SEGRETERIA/
+  RDZ, `apps/accounts/views.py:21`, ora usata solo da `InvitoListaView` per la sola
+  visualizzazione).
+- `InvitoCreaView.ruoli_ammessi = RUOLI_INVITO_DIRETTO`: RDZ perde l'accesso alla
+  creazione, mantiene l'accesso allo storico via `InvitoListaView` (invariata).
+- `InvitoSingoloForm.ruolo_proposto` (`apps/accounts/forms.py:46-47`): scelte
+  ristrette a `{ADMIN, SEGRETERIA}` (oggi espone tutto `Ruolo.Tipo.choices` più
+  un'opzione vuota) e reso **obbligatorio** (oggi `required=False`): lo scopo della
+  view diventa esplicitamente "invita per un ruolo amministrativo".
+- **Menu**: rimuovere la voce indipendente "Inviti" (`apps/core/menu.py:116-117`).
+  Aggiungere in `ruolo_lista.html` due link/pulsanti: "Nuovo invito" (visibile solo
+  con `RUOLI_INVITO_DIRETTO`, verso `invito_crea`) e "Storico inviti" (visibile con
+  `RUOLI_CHE_INVITANO`, quindi anche RDZ, verso `invito_lista`) — la pagina "Ruoli" è
+  già raggiungibile da RDZ (`RUOLI_GESTIONE_RUOLI` lo include), quindi non serve una
+  voce di menu diretta per lo storico.
+- **Breadcrumb**: `InvitoCreaView` e `InvitoListaView` non combaciano più con nessuna
+  voce di menu una volta rimossa "Inviti" — estendere entrambe con
+  `BreadcrumbExtraMixin` (`apps/core/mixins.py`, stesso pattern già usato da
+  `GruppoGestioneView`/`GruppoIncarichiView`), restituendo
+  `[{"label": "Amministrazione"}, {"label": "Ruoli", "url": reverse("accounts:ruolo_lista")}, {"label": "Nuovo invito"}]`
+  (e analogo per lo storico).
+
+**Difficoltà: bassa-media.** Nessuna logica di dominio nuova, ma tre superfici da
+tenere coerenti (permesso, menu, breadcrumb) e un form da restringere senza rompere
+`invia_inviti_multipli`/il flusso massivo esistente (verificare che non passi
+`ruolo_proposto` con valori fuori dal nuovo insieme).
+
+**Test**: RDZ riceve 403 su `invito_crea` ma 200 su `invito_lista`; il form rifiuta un
+`ruolo_proposto` diverso da ADMIN/SEGRETERIA o vuoto; la voce "Inviti" non compare più
+in menu; i due pulsanti in `ruolo_lista.html` compaiono/spariscono secondo permesso;
+breadcrumb corretto su entrambe le pagine.
+
+---
+
+## M11 — Assegnare un ruolo direttamente (senza invito) a un utente già attivo
+
+**File coinvolti**: nuovo in `apps/accounts/ruoli.py` (funzione), `apps/accounts/
+views.py` (nuova view), `apps/accounts/forms.py` (nuovo form), `apps/accounts/urls.py`,
+`templates/accounts/ruolo_lista.html`, nuovo template per la ricerca/creazione.
+
+- **Nuova `crea_ruolo_esplicito(*, utente_assegnante, utente_destinatario, tipo,
+  gruppo=None, branca="", settore="", data_fine=None)`** in `apps/accounts/ruoli.py`,
+  accanto a `revoca_ruolo_esplicito`: stesso perimetro (`_verifica_ruolo_gestione_ruoli`,
+  `RUOLI_GESTIONE_RUOLI`), `tipo` **esclude `Ruolo.Tipo.CG`** (decisione presa) —
+  sollevare `ValueError`/`ValidationError` esplicito se richiesto, non ignorarlo in
+  silenzio. Chiama `full_clean()` prima di `save()` per rispettare i vincoli già
+  presenti in `Ruolo.clean()` (branca obbligatoria per IABZ; settore obbligatorio per
+  ISZ; dominio email ammesso). Se `tipo == RDZ`, richiama `sincronizza_cg_comitato_zona`
+  (stesso pattern già usato in `revoca_ruolo_esplicito` e in
+  `inviti.py::verifica_e_completa`).
+- **Blocco duplicato (proposta di usabilità, sul modello di M6/D-32)**: prima di
+  creare, verificare se esiste già un `Ruolo` attivo identico per
+  `utente_destinatario` + `tipo` (+ `branca`/`settore` quando applicabili) e sollevare
+  `ValidationError` invece di creare un doppione — oggi `Ruolo` non ha alcun vincolo
+  di unicità (`Meta` senza `constraints`), quindi senza questo controllo esplicito
+  nulla impedirebbe due ruoli ADMIN attivi identici per lo stesso utente.
+- **Vista a due passi**, sul modello di `RicercaCapoView` → `AssegnaIncaricoView`
+  (D-32/D-34): `RuoloAssegnaCercaView` (ricerca utente, pattern di
+  `ImpersonaListaView.get_queryset` — decisione presa) → `RuoloAssegnaView` (form
+  tipo/branca/settore/data_fine condizionali, con `utente_destinatario` precompilato
+  dalla query string, sul modello di `?codice_socio=`/`?gruppo=` già in uso in
+  `AssegnaIncaricoView`).
+- **Menu/template**: pulsante "Aggiungi ruolo" in `ruolo_lista.html`, visibile con
+  `RUOLI_GESTIONE_RUOLI`.
+- **Branca/settore condizionali in UI**: stesso principio di M7 (`static/js/
+  ricerca-socio-autocomplete.js` ha già la logica di obbligatorietà/asterisco
+  dinamico per `funzione`→`branca`); qui serve lo stesso meccanismo per
+  `tipo`→`branca`/`settore` — la validazione reale resta comunque in
+  `crea_ruolo_esplicito`/`Ruolo.clean()`, mai solo lato client.
+
+**Difficoltà: alta.** Nessun servizio di creazione ruolo esiste oggi (solo la revoca);
+tre campi mutuamente condizionati da validare due volte (UI + service layer); rischio
+di un CG creato per errore da qui se l'esclusione non è applicata con lo stesso
+rigore del form (`tipo` non deve mai includere CG fra le scelte, non solo essere
+bloccato lato service).
+
+**Test**: CG rifiutato esplicitamente (form non lo propone neppure, il service lo
+blocca comunque se forzato); IABZ senza branca rifiutato; ISZ senza settore rifiutato;
+ruolo duplicato rifiutato; RDZ creato da qui sincronizza il CG derivato su E9001 (D-35,
+stesso comportamento di `inviti.py`); solo `RUOLI_GESTIONE_RUOLI` accede; ricerca
+utente con lo stesso comportamento di `ImpersonaListaView`.
+
+---
+
+## M12 — Elenco degli utenti impersonabili + voce di menu
+
+**File coinvolti**: `apps/accounts/views.py::ImpersonaListaView`, `apps/core/menu.py`.
+
+- **Voce di menu "Impersona"** (nuova, sezione "Account" accanto a "Le mie deleghe"),
+  visibile quando `puo_impersonare_qualcuno(utente)` è vero — oggi la pagina esiste
+  (`/accounts/impersona/`) ma non è raggiungibile da nessun punto di navigazione: è
+  il problema reale, non l'assenza del pulsante per riga (che già esiste).
+- **Deviazione dichiarata da "niente elenco sfogliabile"** (decisione presa): senza
+  query, `ImpersonaListaView.get_queryset()` torna l'elenco completo (paginato,
+  `paginate_by = 20` già presente) invece di `Utente.objects.none()`. Motivazione da
+  scrivere esplicitamente nel codice (docstring aggiornato): bersaglio sono account
+  piattaforma non anagrafica soci, pagina già riservata al livello di privilegio più
+  alto (`puo_impersonare_qualcuno`, oggi solo ADMIN diretto). La query resta comunque
+  disponibile per filtrare un elenco lungo.
+- Il pulsante "Impersona" per riga (`templates/accounts/impersona_lista.html:38-45`)
+  **non cambia**: già gated correttamente da `can_hijack`/`puo_impersonare()`.
+
+**Difficoltà: media.** Il cambiamento tecnico è piccolo (una riga di query in meno +
+una voce di menu), ma è una deviazione di postura di sicurezza rispetto a una scelta
+già scritta nel codice — va documentata con la stessa cura di ogni altra deviazione
+dichiarata del progetto (CLAUDE.md).
+
+**Test**: senza query, la lista mostra utenti (non più vuota) per chi ha
+`puo_impersonare_qualcuno`; la query continua a filtrare; il pulsante impersona
+compare solo per gli utenti effettivamente impersonabili (`can_hijack`, invariato); la
+voce di menu compare/sparisce secondo permesso; nessuna regressione sul flusso di
+impersonificazione esistente (D-27, doppia identità registrata).
+
+---
+
 ## Riepilogo difficoltà
 
 | Milestone | Voce TODO | Difficoltà | Stato | Nota principale |
@@ -488,6 +650,10 @@ regressione sui 6 flussi di invio esistenti con i template di default precompila
 | M6 | Assegna incarico → dentro Gestione gruppo | Media | ✅ completata | assegna_incarico_manuale invariato; blocco duplicati già coperto dal UniqueConstraint di IncaricoUnita, non da scrivere |
 | M7 | Autocomplete + branca condizionale | Alta | ✅ completata | Modello IncaricoUnita.branca senza blank=True: fallback BrancaUnita.SCONOSCIUTA nel service layer, non nel form |
 | M8 | Template email + rich text | Alta | ✅ completata | TinyMCE vendorizzato (no CDN/API key); motore ridotto legge anche il fallback grezzo (mai autoescape Django); auditlog già registrato in core |
+| M9 | Icone nei tab della home | Bassa | ⬜ da fare | Dato già presente in `menu.py`, solo da renderizzare |
+| M10 | Invito diretto ristretto + fuso in Ruoli | Bassa-media | ⬜ da fare | RDZ mantiene solo la visualizzazione storico; nuova costante distinta da RUOLI_CHE_INVITANO |
+| M11 | Assegna ruolo diretto (senza invito) | Alta | ⬜ da fare | CG escluso (D-35); nessun servizio di creazione ruolo esiste oggi; blocco duplicati da scrivere ex novo |
+| M12 | Elenco utenti impersonabili | Media | ⬜ da fare | Deviazione dichiarata dal principio "niente elenco sfogliabile"; il vero problema era l'assenza di voce menu |
 
 ---
 

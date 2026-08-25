@@ -22,6 +22,8 @@ Questo è un elenco di modifiche da fare aggiornato man mano che vanno avanti i 
 - [x] Tab "Contributi" diventa "Moduli"
   - [x] "Campagne Fo.Ca." Diventa "Contributo Fo.Ca."
 - [ ] In home, dopo login, nei tab vanno inseriti gli stessi bsicon e/o md icon che sono nel menu della sidebar
+- [ ] In http://127.0.0.1:8000/impostazioni/template-email/ deve essere presente un pulsante per tornare a impostazioni (http://127.0.0.1:8000/impostazioni/). Inoltre manca il breadcrumb
+- [ ] Nel breadcrumb "Home" deve essere sempre rappresentato con l'icona della home prima del testo Home
 
 ## Altre modifiche
 - [x] Assegna incarico manuale deve funzionare per mettendo di selezionare un socio con ricerca con autocompletion per nome, cognome, gruppo, o codice socio. A questo vien poi assegnato una funzione (e se è capo unità o aiuto capo unità anche una branca, che altriumenti non è obbligatoria). Come gruppo in cui si presta servizio di default viene selzionato quello di appartenza del capo, ma si può selezionare eventualmente un altro se incarico esterno in altro gruppo.
