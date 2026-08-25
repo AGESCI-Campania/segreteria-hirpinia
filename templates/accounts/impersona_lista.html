@@ -16,39 +16,37 @@
     <button type="submit" class="btn btn-primary">Cerca</button>
   </form>
 
-  {% if query %}
-    <table class="table table-sm">
-      <thead>
+  <table class="table table-sm">
+    <thead>
+      <tr>
+        <th>Email</th>
+        <th>Nome</th>
+        <th>Tipo</th>
+        <th>Stato</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for utente in risultati %}
         <tr>
-          <th>Email</th>
-          <th>Nome</th>
-          <th>Tipo</th>
-          <th>Stato</th>
-          <th></th>
+          <td>{{ utente.email }}</td>
+          <td>{{ utente.get_full_name|default:"—" }}</td>
+          <td>{{ utente.get_tipo_display }}</td>
+          <td>{{ utente.get_stato_display }}</td>
+          <td>
+            {% if request.user|can_hijack:utente %}
+              <form method="post" action="{% url 'hijack:acquire' %}" class="d-inline">
+                {% csrf_token %}
+                <input type="hidden" name="user_pk" value="{{ utente.pk }}">
+                <input type="hidden" name="next" value="{% url 'core:home' %}">
+                <button type="submit" class="btn btn-sm btn-outline-primary">Impersona</button>
+              </form>
+            {% endif %}
+          </td>
         </tr>
-      </thead>
-      <tbody>
-        {% for utente in risultati %}
-          <tr>
-            <td>{{ utente.email }}</td>
-            <td>{{ utente.get_full_name|default:"—" }}</td>
-            <td>{{ utente.get_tipo_display }}</td>
-            <td>{{ utente.get_stato_display }}</td>
-            <td>
-              {% if request.user|can_hijack:utente %}
-                <form method="post" action="{% url 'hijack:acquire' %}" class="d-inline">
-                  {% csrf_token %}
-                  <input type="hidden" name="user_pk" value="{{ utente.pk }}">
-                  <input type="hidden" name="next" value="{% url 'core:home' %}">
-                  <button type="submit" class="btn btn-sm btn-outline-primary">Impersona</button>
-                </form>
-              {% endif %}
-            </td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="5">Nessun utente trovato.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% endif %}
+      {% empty %}
+        <tr><td colspan="5">Nessun utente trovato.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
 {% endblock %}

@@ -359,12 +359,18 @@ class VistaDiProvaView(RuoloRequiredMixin, View):
 
 
 class ImpersonaListaView(RuoloRequiredMixin, ListView):
-    """Ricerca dell'utente da impersonare (D-27). Il perimetro non è
+    """Elenco/ricerca dell'utente da impersonare (D-27). Il perimetro non è
     `ruoli_ammessi` ma `puo_impersonare_qualcuno()`, la stessa funzione usata
     per l'HIJACK_PERMISSION_CHECK: un ADMIN per delega o senza ruolo diretto
     non deve vedere né questa pagina né il bottone di hijack.
-    Niente elenco sfogliabile: senza una query non si mostra nessun
-    risultato, stesso principio della ricerca capo di D-34."""
+
+    M12, deviazione dichiarata dal principio "niente elenco sfogliabile" di
+    D-34: senza query mostra l'elenco completo (paginato), non
+    `Utente.objects.none()`. Qui il bersaglio è un elenco di account
+    piattaforma, non l'anagrafica soci (nessun dato di minori/recapiti), e la
+    pagina resta comunque riservata a chi supera `puo_impersonare_qualcuno()`
+    (oggi solo ADMIN diretto), il livello di privilegio più alto del
+    sistema."""
 
     template_name = "accounts/impersona_lista.html"
     context_object_name = "risultati"
@@ -377,16 +383,13 @@ class ImpersonaListaView(RuoloRequiredMixin, ListView):
 
     def get_queryset(self):
         query = self.request.GET.get("q", "").strip()
+        qs = Utente.objects.exclude(pk=self.request.user.pk).order_by("email")
         if not query:
-            return Utente.objects.none()
-        return (
-            Utente.objects.filter(
-                Q(email__icontains=query)
-                | Q(username__icontains=query)
-                | Q(codice_socio__icontains=query)
-            )
-            .exclude(pk=self.request.user.pk)
-            .order_by("email")
+            return qs
+        return qs.filter(
+            Q(email__icontains=query)
+            | Q(username__icontains=query)
+            | Q(codice_socio__icontains=query)
         )
 
     def get_context_data(self, **kwargs):

@@ -61,7 +61,7 @@ M8  ✅ Template email configurabili con rich text                              
 M9  ✅ Icone nei tab della home                                                  — indipendente
 M10 ✅ Invito diretto ristretto ad ADMIN/SEGRETERIA, fuso dentro "Ruoli"          — indipendente
 M11 ✅ Assegna ruolo direttamente (senza invito) a un utente già attivo          — dipende da M10 (stesso template ruolo_lista.html)
-M12 ⬜ Elenco degli utenti impersonabili + voce di menu                          — indipendente
+M12 ✅ Elenco degli utenti impersonabili + voce di menu                          — indipendente
 M13 ⬜ Rifiniture breadcrumb: icona Home + Template email completo               — indipendente
 ```
 
@@ -617,32 +617,35 @@ utente con lo stesso comportamento di `ImpersonaListaView`.
 
 ## M12 — Elenco degli utenti impersonabili + voce di menu
 
-**File coinvolti**: `apps/accounts/views.py::ImpersonaListaView`, `apps/core/menu.py`.
+**File coinvolti**: `apps/accounts/views.py::ImpersonaListaView`,
+`templates/accounts/impersona_lista.html`.
 
-- **Voce di menu "Impersona"** (nuova, sezione "Account" accanto a "Le mie deleghe"),
-  visibile quando `puo_impersonare_qualcuno(utente)` è vero — oggi la pagina esiste
-  (`/accounts/impersona/`) ma non è raggiungibile da nessun punto di navigazione: è
-  il problema reale, non l'assenza del pulsante per riga (che già esiste).
-- **Deviazione dichiarata da "niente elenco sfogliabile"** (decisione presa): senza
-  query, `ImpersonaListaView.get_queryset()` torna l'elenco completo (paginato,
-  `paginate_by = 20` già presente) invece di `Utente.objects.none()`. Motivazione da
-  scrivere esplicitamente nel codice (docstring aggiornato): bersaglio sono account
-  piattaforma non anagrafica soci, pagina già riservata al livello di privilegio più
-  alto (`puo_impersonare_qualcuno`, oggi solo ADMIN diretto). La query resta comunque
+- **Deviazione dal testo del piano originale**: la voce di menu **esisteva già**
+  (`templates/base.html:82-84`, dropdown utente, "Impersona un utente" verso
+  `accounts:impersona_lista`, gated da `puo_impersonare_qualcuno` — commit `513cf80`,
+  precedente alla sessione di pianificazione M9-M12). L'affermazione del piano
+  originale ("nessuna voce di navigazione punta lì") era quindi errata: verificato
+  con `git log -p` prima di aggiungere una seconda voce, che sarebbe stata
+  ridondante. **Nessuna voce nuova aggiunta.**
+- **Deviazione dichiarata da "niente elenco sfogliabile"** (decisione presa,
+  implementata): senza query, `ImpersonaListaView.get_queryset()` torna l'elenco
+  completo (`paginate_by = 20` già presente) invece di `Utente.objects.none()`.
+  Motivazione nel docstring aggiornato: bersaglio sono account piattaforma non
+  anagrafica soci, pagina già riservata al livello di privilegio più alto
+  (`puo_impersonare_qualcuno`, oggi solo ADMIN diretto). La query resta comunque
   disponibile per filtrare un elenco lungo.
-- Il pulsante "Impersona" per riga (`templates/accounts/impersona_lista.html:38-45`)
-  **non cambia**: già gated correttamente da `can_hijack`/`puo_impersonare()`.
+- Il template mostrava la tabella solo `{% if query %}`: tolto il condizionale, ora
+  visibile sempre. Il pulsante "Impersona" per riga non cambia: già gated
+  correttamente da `can_hijack`/`puo_impersonare()`.
 
-**Difficoltà: media.** Il cambiamento tecnico è piccolo (una riga di query in meno +
-una voce di menu), ma è una deviazione di postura di sicurezza rispetto a una scelta
-già scritta nel codice — va documentata con la stessa cura di ogni altra deviazione
-dichiarata del progetto (CLAUDE.md).
+**Difficoltà: media** (rivista a **bassa** in fase di implementazione: il vero lavoro
+era solo la deviazione di postura sulla query, non la voce di menu che già esisteva).
 
 **Test**: senza query, la lista mostra utenti (non più vuota) per chi ha
-`puo_impersonare_qualcuno`; la query continua a filtrare; il pulsante impersona
-compare solo per gli utenti effettivamente impersonabili (`can_hijack`, invariato); la
-voce di menu compare/sparisce secondo permesso; nessuna regressione sul flusso di
-impersonificazione esistente (D-27, doppia identità registrata).
+`puo_impersonare_qualcuno`, esclude sempre se stesso; la query continua a filtrare; il
+pulsante impersona compare solo per gli utenti effettivamente impersonabili
+(`can_hijack`, invariato); nessuna regressione sul flusso di impersonificazione
+esistente (D-27, doppia identità registrata).
 
 ---
 
@@ -708,7 +711,7 @@ primo livello e una pagina figlia via `BreadcrumbExtraMixin`, es. `gruppo_gestio
 | M9 | Icone nei tab della home | Bassa | ✅ completata | Dato già presente in `menu.py`, solo da renderizzare; scoperto un ramo morto preesistente in home.html (sezioni_menu non è mai vuota) |
 | M10 | Invito diretto ristretto + fuso in Ruoli | Bassa-media | ✅ completata | Campo `gruppo` rimosso da InvitoSingoloForm (CG resta solo nel flusso massivo allowlist); RDZ mantiene solo la visualizzazione storico |
 | M11 | Assegna ruolo diretto (senza invito) | Alta | ✅ completata | CG escluso (D-35); nuova crea_ruolo_esplicito() sul modello di revoca_ruolo_esplicito; blocco duplicati e RDZ→CG(E9001) coperti |
-| M12 | Elenco utenti impersonabili | Media | ⬜ da fare | Deviazione dichiarata dal principio "niente elenco sfogliabile"; il vero problema era l'assenza di voce menu |
+| M12 | Elenco utenti impersonabili | Media | ✅ completata | Deviazione dichiarata dal principio "niente elenco sfogliabile"; la voce di menu esisteva già nel dropdown utente, nessuna voce nuova da aggiungere |
 | M13 | Rifiniture breadcrumb (Home + Template email) | Bassa | ⬜ da fare | Gap lasciato da M8 (BreadcrumbExtraMixin mancante); icona Home via override locale di un partial del tema |
 
 ---

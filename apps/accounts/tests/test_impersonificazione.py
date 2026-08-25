@@ -105,13 +105,25 @@ class TestImpersonaListaView:
         response = client.get("/accounts/impersona/")
         assert response.status_code == 302
 
-    def test_senza_query_non_mostra_risultati(self, client):
+    def test_senza_query_mostra_elenco_completo(self, client):
+        # M12, deviazione dichiarata da "niente elenco sfogliabile" (D-34):
+        # qui il bersaglio è un elenco di account piattaforma, non
+        # l'anagrafica soci.
         admin = _persona("admin3@campania.agesci.it")
+        Ruolo.objects.create(utente=admin, tipo=Ruolo.Tipo.ADMIN)
+        altro = _persona("altro3@campania.agesci.it")
+        client.force_login(admin)
+        response = client.get("/accounts/impersona/")
+        assert response.status_code == 200
+        assert list(response.context["risultati"]) == [altro]
+
+    def test_senza_query_esclude_se_stesso(self, client):
+        admin = _persona("admin3b@campania.agesci.it")
         Ruolo.objects.create(utente=admin, tipo=Ruolo.Tipo.ADMIN)
         client.force_login(admin)
         response = client.get("/accounts/impersona/")
         assert response.status_code == 200
-        assert list(response.context["risultati"]) == []
+        assert admin not in list(response.context["risultati"])
 
     def test_ricerca_per_email_trova_lutente(self, client):
         admin = _persona("admin4@campania.agesci.it")
