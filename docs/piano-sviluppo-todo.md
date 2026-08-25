@@ -63,7 +63,18 @@ M10 ✅ Invito diretto ristretto ad ADMIN/SEGRETERIA, fuso dentro "Ruoli"       
 M11 ✅ Assegna ruolo direttamente (senza invito) a un utente già attivo          — dipende da M10 (stesso template ruolo_lista.html)
 M12 ✅ Elenco degli utenti impersonabili + voce di menu                          — indipendente
 M13 ✅ Rifiniture breadcrumb: icona Home + Template email completo               — indipendente
+M14 ✅ Autocomplete codice socio in "Inserisci partecipazione" (perimetro per ruolo) — indipendente
+M15 ⬜ Tipologia partecipazione "Altro (specificare)"                            — indipendente
+M16 ⬜ Validazioni e campi minori (data_fine ≥ data_inizio, luogo opzionale, note) — indipendente
+M17 ⬜ Quota versata obbligatoria con default 51,50€ per CCG/CFM/CFA              — dipende da M15 (stesso form)
 ```
+
+M14-M17 nascono dall'unica sezione ancora aperta di `docs/TODO.md`, "Modulo contributo
+Fo.Ca." → "inserisci partecipazione": 6 richieste emerse dal beta test, nessuna
+corrispondente a una milestone M1-M13. M17 dipende da M15 perché entrambe toccano lo
+stesso blocco JS "il campo reagisce al cambio di tipologia" in
+`partecipazione_inserisci.html`: farle in sequenza evita di riscrivere due volte quella
+logica.
 
 Le voci A5 e C del TODO toccano la stessa view (`AssegnaIncaricoView`): farle in
 sequenza (M6 poi M7) evita di riscrivere due volte template/test. Lo stesso vale per
@@ -695,6 +706,199 @@ primo livello e una pagina figlia via `BreadcrumbExtraMixin`, es. `gruppo_gestio
 
 ---
 
+## M14 — Autocomplete codice socio in "Inserisci partecipazione" (perimetro per ruolo) ✅
+
+**File coinvolti**: `PartecipazioniRicercaSociAutocompleteView` in
+`apps/contributi/views.py`, voce `partecipazioni_ricerca_soci_autocomplete` in
+`apps/contributi/urls.py`, `apps/contributi/forms.py::PartecipazioneManualeForm`
+(`codice_socio` da `CharField` libero a `forms.HiddenInput`), `templates/contributi/
+partecipazione_inserisci.html`, nuovo `static/js/
+ricerca-socio-contributo-autocomplete.js` (copia trimmata di `ricerca-socio-
+autocomplete.js`, senza la logica di precompilazione gruppo/branca che qui non serve),
+nuovo `apps/contributi/tests/test_views_ricerca_soci_autocomplete.py`.
+
+**Deviazione rispetto al testo pianificato, scoperta in implementazione**: la query
+filtra su `gruppi_visibili(request.user, campagna.anno).exclude(is_comitato_zona=True)`,
+non solo su `gruppi_visibili(...)`. Come documentato in
+`inserimento.py::risolvi_gruppo_competente`, **`gruppi_visibili()` da sola non esclude
+E9001** per i ruoli a perimetro zona (SEGRETERIA/ADMIN/RDZ): senza l'esclusione
+esplicita l'autocomplete avrebbe proposto censiti in E9001 che poi
+`inserisci_partecipazione_manuale` avrebbe comunque rifiutato (A-8), con un'esperienza
+confusa (risultato selezionabile ma non inseribile). Endpoint URL con `campagna_id`
+(non `anno_scout_corrente()`): usa `campagna.anno`, coerente con
+`risolvi_gruppo_competente`, che risolve sempre sull'anno della campagna in corso, non
+sull'anno scout "oggi".
+
+- **Verificato**: `codice_socio` oggi è un `forms.CharField(max_length=20)` senza
+  autocomplete (`forms.py:27`); `capo` sul modello `Partecipazione` è una FK, non un
+  campo `codice_socio` — il codice socio è la PK del capo (`inserimento.py:79`,
+  `capo_id=codice_socio`).
+- **Non riusare `RicercaSociAutocompleteView` di M7** (`apps/anagrafica/
+  views.py:397-437`): quell'endpoint è **esplicitamente cross-gruppo per
+  decisione presa in M7** (confermato dal test `test_cg_trova_capi_censiti_in_un_altro_gruppo`),
+  incompatibile col perimetro per ruolo richiesto qui. **Non riusare nemmeno**
+  `cerca_capo_per_codice_socio` (D-34: solo match esatto per codice socio, nessun
+  elenco sfogliabile). Terzo endpoint di ricerca soci, con un terzo perimetro
+  distinto: da documentare nel docstring della nuova view con un rimando esplicito a
+  entrambi gli altri due, come già fatto in M7 verso D-34.
+- Query: filtra `CensimentoCapo` dell'anno corrente per `gruppo_id` in
+  `gruppi_visibili(request.user, anno_scout_corrente())` (stessa funzione già
+  importata e usata da `apps/contributi/inserimento.py::risolvi_gruppo_competente`,
+  righe 30-51: un CG vede solo il proprio gruppo, SEGRETERIA/ADMIN/RDZ tutta la zona),
+  più gli stessi filtri icontains nome/cognome/codice_socio/gruppo di M7.
+- Risposta JSON: `{"codice_socio", "nome", "cognome", "gruppo"}` — niente
+  `gruppo_codice`: qui non c'è un campo "gruppo di servizio" da precompilare come in
+  M7.
+- Etichetta risultato in UI: `"[Nome] [Cognome] ([Codice Socio])"`, come da TODO
+  (diversa dal formato `"nome cognome (gruppo)"` usato in M7).
+
+**Difficoltà: media.** Nessuna logica di dominio nuova (riusa `gruppi_visibili`), ma un
+terzo endpoint di ricerca soci da mantenere isolato dagli altri due: il rischio reale
+è che in futuro qualcuno li "unifichi" senza notare che i tre perimetri sono diversi
+per decisione esplicita (nullo in M7, esatto in D-34, per-ruolo qui).
+
+**Test**: CG vede solo censiti nel proprio gruppo; SEGRETERIA/ADMIN/RDZ vedono tutta la
+zona; censito in E9001 escluso (coerente con `risolvi_gruppo_competente`); risposta non
+contiene dati riservati; meno di `MINIMO_CARATTERI_AUTOCOMPLETE` restituisce lista
+vuota.
+
+---
+
+## M15 — Tipologia partecipazione "Altro (specificare)"
+
+**File coinvolti**: nuova migrazione `apps/contributi/migrations/
+0004_seed_tipologia_altro.py` (stesso pattern di `0002_seed_tipologie.py`, `RunPython`
+reversibile), `apps/contributi/forms.py::PartecipazioneManualeForm`,
+`apps/contributi/inserimento.py::inserisci_partecipazione_manuale`,
+`apps/contributi/models.py::Partecipazione.clean()`, `templates/contributi/
+partecipazione_inserisci.html`, JS condiviso con M17.
+
+- **Verificato**: `Partecipazione.descrizione_altro` esiste già sul modello
+  (`models.py:154`, `CharField(max_length=200, blank=True)`) ma non è nel form né in
+  `inserimento.py` né validato in `clean()` — costruito in anticipo, mai collegato.
+  `TipologiaCampo` non è un enum ma un modello DB (`models.py:109-126`): "Altro" deve
+  esistere come riga, non come scelta hardcoded nel form.
+- Seed di `TipologiaCampo(codice="ALTRO", nome="Altro", livello=LivelloCampo.ALTRO,
+  approvazione_automatica=False, quota_default=None)` — **decisione da confermare in
+  fase di implementazione**: `approvazione_automatica=False` è coerente con D-11 ("le
+  altre valutate dal Comitato"), da verificare che nessun ramo del service layer
+  assuma implicitamente che solo CFM/CFA/CCG esistano come tipologie automatiche.
+- `Partecipazione.clean()` (righe 193-210): aggiungere che `descrizione_altro` sia
+  obbligatorio quando `self.tipologia.codice == "ALTRO"`, stesso stile del controllo
+  già presente su `motivazione_respingimento` per lo stato RESPINTA.
+- Form: campo `descrizione_altro` sempre presente, reso obbligatorio via JS solo
+  quando la tipologia selezionata è "Altro" (mostra/nasconde il campo) — la
+  validazione reale resta nel `clean()` del modello, mai solo lato client (stesso
+  principio di branca/settore condizionali in M7/M11).
+
+**Difficoltà: media.** Il campo modello esiste già (riduce il rischio), ma tocca
+migrazione dati + validazione condizionale + JS, tre superfici da tenere coerenti.
+
+**Test**: submit con tipologia "Altro" e `descrizione_altro` vuoto rifiutato dal
+`clean()` anche forzando il form lato client; submit con "Altro" e descrizione
+compilata accettato; le tre tipologie esistenti (CCG/CFM/CFA) restano invariate.
+
+---
+
+## M16 — Validazioni e campi minori (data_fine, luogo, note)
+
+**File coinvolti**: `apps/contributi/models.py::Partecipazione` (nuovo campo `note` +
+`clean()`), nuova migrazione `0005_partecipazione_note_luogo_blank.py`,
+`apps/contributi/forms.py::PartecipazioneManualeForm`,
+`apps/contributi/inserimento.py::inserisci_partecipazione_manuale`,
+`templates/contributi/partecipazione_inserisci.html`.
+
+- **Data fine ≥ data inizio**: nessun vincolo esiste oggi né in
+  `PartecipazioneManualeForm` né in `Partecipazione.clean()` (righe 193-210) né nel
+  service. Aggiungere in `clean()`, accanto al controllo di finestra associativa già
+  presente (righe 203-208), `self.data_fine < self.data_inizio` →
+  `ValidationError` su `data_fine` — "al massimo stessa data" per il TODO, quindi `<`
+  non `<=` (stesso stile del controllo gemello già su `Campagna.clean()`, righe
+  62-71).
+- **Luogo non obbligatorio**: `luogo` oggi è `CharField(max_length=200)` senza
+  `blank=True` sul modello (riga 157) e obbligatorio nel form (riga 31). Aggiungere
+  `blank=True` al modello (nuova migrazione) e `required=False` al form;
+  `inserimento.py` già passa `luogo` così com'è, nessuna modifica lì.
+- **Campo Note**: nessun campo di note libere esiste (`motivazione_respingimento` ha
+  semantica diversa: causale di respingimento, non note in inserimento). Nuovo `note =
+  models.TextField(blank=True)` sul modello, nuovo campo nel form, propagato in
+  `inserisci_partecipazione_manuale`.
+- Le tre modifiche al modello (`note` nuovo, `luogo` `blank=True`) vanno in un'unica
+  migrazione, non tre, per non sporcare la cronologia.
+
+**Difficoltà: bassa.** Nessuna logica di dominio complessa, solo migrazioni additive e
+validazione semplice.
+
+**Test**: partecipazione con `data_fine < data_inizio` rifiutata; `data_fine ==
+data_inizio` accettata; `luogo=""` accettato; `note` opzionale, salvata e mostrata nel
+dettaglio campagna (verificare se `campagna_dettaglio.html` va esteso con la colonna).
+
+---
+
+## M17 — Quota versata obbligatoria con default 51,50€ per CCG/CFM/CFA
+
+**File coinvolti**: `apps/contributi/forms.py::PartecipazioneManualeForm`,
+`apps/contributi/views.py::PartecipazioneInserisciView`, `templates/contributi/
+partecipazione_inserisci.html`, JS condiviso con M15.
+
+- **Verificato**: `quota_default = Decimal("51.50")` è già seedato per CCG/CFM/CFA in
+  `migrations/0002_seed_tipologie.py`; il fallback server-side quando
+  `quota_versata is None` esiste già in `inserimento.py:70-74`
+  (`quota = quota_versata if quota_versata is not None else tipologia.quota_default`).
+  Il TODO chiede però il comportamento opposto in UI: campo visibilmente obbligatorio
+  e precompilato, non lasciato vuoto contando sul fallback silenzioso.
+- Il fallback server-side **resta invariato**: è la garanzia di ultima istanza per
+  l'import massivo xlsx, che non passa da questo form (`inserimento.py` è condiviso
+  fra form manuale e import — verificare in fase di implementazione quale funzione
+  usa l'import xlsx, per assicurarsi che non venga toccata).
+- Form: `quota_versata` da `required=False` a obbligatorio, con `initial` calcolato
+  lato view in base alla tipologia eventualmente già selezionata, più JS che
+  aggiorna il valore quando l'utente cambia la tendina tipologia (stesso blocco JS
+  "reagisce al cambio tipologia" di M15 — motivo della dipendenza M17→M15). Il valore
+  precompilato resta editabile: se l'utente lo modifica, prevale l'input manuale
+  (comportamento naturale di un campo obbligatorio pre-riempito, nessun controllo
+  aggiuntivo necessario).
+
+**Difficoltà: bassa-media.** Cambiare `required=False` → obbligatorio è banale; il
+punto delicato è non rompere il fallback usato dall'import massivo.
+
+**Test**: submit senza `quota_versata` dal form manuale ora rifiutato (era accettato
+prima); import massivo xlsx senza quota per CCG/CFM/CFA continua a usare il default
+(nessuna regressione su quel percorso); cambiando la tipologia in UI il campo quota si
+aggiorna via JS ma resta editabile.
+
+---
+
+## M18 — Proposte di usabilità aggiuntive (M14-M17)
+
+Emerse durante l'esplorazione di M14-M17, non richieste esplicitamente nel TODO — da
+discutere e decidere con l'utente prima dell'implementazione, sullo stesso modello
+della sezione "Proposte di usabilità aggiuntive" già usata per M1-M13 più sotto.
+
+1. **M14** — mostrare il gruppo di censimento accanto a ciascun risultato
+   dell'autocomplete (stesso arricchimento non sensibile già fatto in M7), utile
+   perché qui il perimetro può includere più gruppi (SEGRETERIA/ADMIN/RDZ).
+2. **M15** — tenere "Altro" come ultima opzione nella tendina "Tipologia
+   partecipazione" (non alfabetica): `TipologiaCampo.Meta.ordering = ["codice"]` la
+   piazzerebbe prima delle altre ("ALTRO" < "CCG"), serve un ordinamento esplicito nel
+   form.
+3. **M17** — testo o badge accanto al campo quota ("precompilato, modificabile")
+   quando il valore è stato riempito automaticamente dalla tipologia, per non farlo
+   sembrare un valore già inserito da altri.
+4. **M16** — campo Note visibile anche nel riepilogo/dettaglio partecipazione
+   (`campagna_dettaglio.html`), ma **escluso dall'export bonifici**
+   (`apps/contributi/bonifici.py::genera_righe_bonifici` — verificare prima di
+   deciderlo) per lo stesso principio di minimizzazione già applicato altrove nel
+   progetto (es. export anagrafica a profilo minimo).
+5. **Generale** — valutare se documentare in CLAUDE.md una tabella comparativa dei tre
+   perimetri di ricerca soci ora esistenti (D-34, M7, M14), per ridurre il rischio che
+   vengano confusi o "unificati" per errore in futuro — modifica alla documentazione,
+   non al codice, da proporre separatamente.
+
+Nessuna di queste è implementabile isolatamente: dipendono tutte da M14-M17.
+
+---
+
 ## Riepilogo difficoltà
 
 | Milestone | Voce TODO | Difficoltà | Stato | Nota principale |
@@ -713,6 +917,10 @@ primo livello e una pagina figlia via `BreadcrumbExtraMixin`, es. `gruppo_gestio
 | M11 | Assegna ruolo diretto (senza invito) | Alta | ✅ completata | CG escluso (D-35); nuova crea_ruolo_esplicito() sul modello di revoca_ruolo_esplicito; blocco duplicati e RDZ→CG(E9001) coperti |
 | M12 | Elenco utenti impersonabili | Media | ✅ completata | Deviazione dichiarata dal principio "niente elenco sfogliabile"; la voce di menu esisteva già nel dropdown utente, nessuna voce nuova da aggiungere |
 | M13 | Rifiniture breadcrumb (Home + Template email) | Bassa | ✅ completata | Gap lasciato da M8 (BreadcrumbExtraMixin mancante); icona Home via override locale di un partial del tema (versione 2.4.1 annotata nel commento) |
+| M14 | Autocomplete codice socio (perimetro per ruolo) | Media | ✅ completata | Terzo endpoint di ricerca soci, distinto da D-34 (match esatto) e da M7 (cross-gruppo): filtra per `gruppi_visibili()` come `risolvi_gruppo_competente`; E9001 escluso esplicitamente (A-8), come in `risolvi_gruppo_competente`, perché `gruppi_visibili()` da sola non lo fa |
+| M15 | Tipologia "Altro (specificare)" | Media | ⬜ da fare | `descrizione_altro` esiste già sul modello (mai collegato); nuova riga `TipologiaCampo` da seedare via migrazione |
+| M16 | Validazioni e campi minori (data_fine, luogo, note) | Bassa | ⬜ da fare | Migrazione additiva unica per `note` + `luogo blank=True`; validazione `data_fine < data_inizio` nel `clean()` |
+| M17 | Quota versata obbligatoria + default 51,50€ CCG/CFM/CFA | Bassa-media | ⬜ da fare | Il default 51,50€ è già seedato e il fallback server-side già esiste; non toccare il fallback usato dall'import massivo |
 
 ---
 

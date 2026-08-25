@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block page_title %}Inserisci partecipazione{% endblock %}
 
@@ -11,13 +12,46 @@
 
   <form method="post">
     {% csrf_token %}
+
+    <div class="mb-3 position-relative">
+      <label for="ricerca-socio" class="form-label">
+        Cerca socio (nome, cognome, gruppo o codice socio)
+      </label>
+      <input
+        type="text"
+        id="ricerca-socio"
+        class="form-control"
+        autocomplete="off"
+        placeholder="Digita almeno 2 caratteri…"
+      >
+      <ul
+        class="list-group position-absolute w-100"
+        id="ricerca-socio-risultati"
+        style="z-index: 1000; display: none;"
+      ></ul>
+      <div class="form-text" id="ricerca-socio-selezionato"></div>
+      {{ form.codice_socio.errors }}
+    </div>
+    {{ form.codice_socio }}
+
     {% for field in form %}
-      <div class="mb-3">
-        {{ field.label_tag }}
-        {{ field }}
-        {{ field.errors }}
-      </div>
+      {% if field.name != "codice_socio" %}
+        <div class="mb-3">
+          {{ field.label_tag }}
+          {{ field }}
+          {{ field.errors }}
+        </div>
+      {% endif %}
     {% endfor %}
     <button type="submit" class="btn btn-primary">Inserisci</button>
   </form>
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script
+    src="{% static 'js/ricerca-socio-contributo-autocomplete.js' %}"
+    defer
+    data-url-autocomplete="{% url 'contributi:partecipazioni_ricerca_soci_autocomplete' campagna.pk %}"
+  ></script>
 {% endblock %}

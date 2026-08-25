@@ -10,7 +10,8 @@ import io
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.files.base import ContentFile
-from django.http import HttpResponse
+from django.db.models import Q
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
@@ -19,6 +20,8 @@ from django.views.generic import ListView
 from openpyxl import Workbook
 
 from apps.accounts.mixins import RuoloRequiredMixin
+from apps.accounts.permessi import gruppi_visibili
+from apps.anagrafica.models import CensimentoCapo
 from apps.core.models import ImpostazioniPiattaforma
 
 from .bonifici import RigaBonifico, genera_righe_bonifici
@@ -152,6 +155,59 @@ class PartecipazioneInserisciView(RuoloRequiredMixin, View):
 
         messages.success(request, "Partecipazione inserita.")
         return redirect(reverse("contributi:campagna_dettaglio", args=[campagna.pk]))
+
+
+LIMITE_RISULTATI_AUTOCOMPLETE = 15
+MINIMO_CARATTERI_AUTOCOMPLETE = 2
+
+
+class PartecipazioniRicercaSociAutocompleteView(RuoloRequiredMixin, View):
+    """Autocompletamento per "Inserisci partecipazione" (M14): **terzo**
+    endpoint di ricerca soci, distinto sia da `cerca_capo_per_codice_socio`
+    (D-34, solo match esatto per codice socio, nessun elenco sfogliabile) sia
+    da `apps.anagrafica.views.RicercaSociAutocompleteView` (M7, che copre
+    esplicitamente tutti i gruppi per decisione di prodotto presa in quella
+    milestone). Qui il perimetro è quello dell'inserimento partecipazioni
+    (D-21/D-34): un CG vede solo i censiti nel proprio gruppo, SEGRETERIA/
+    ADMIN/RDZ vedono tutta la zona — stessa `gruppi_visibili()` già usata da
+    `apps.contributi.inserimento.risolvi_gruppo_competente`. Non riusare
+    questo endpoint per l'assegnazione incarico né viceversa: i due perimetri
+    sono diversi per decisione esplicita."""
+
+    ruoli_ammessi = RUOLI_GESTIONE_PARTECIPAZIONI
+
+    def get(self, request, campagna_id):
+        campagna = get_object_or_404(Campagna, pk=campagna_id)
+        query = request.GET.get("q", "").strip()
+        if len(query) < MINIMO_CARATTERI_AUTOCOMPLETE:
+            return JsonResponse({"risultati": []})
+
+        # Esclude E9001 (A-8), come già fa risolvi_gruppo_competente: né
+        # gruppi_visibili() né GruppoQuerySet.attivi() lo escludono da soli,
+        # e senza questo filtro l'autocomplete proporrebbe censiti che poi
+        # l'inserimento rifiuterebbe comunque.
+        gruppi = gruppi_visibili(request.user, campagna.anno).exclude(is_comitato_zona=True)
+        censimenti = (
+            CensimentoCapo.objects.filter(anno_scout=campagna.anno, gruppo__in=gruppi)
+            .filter(
+                Q(capo__nome__icontains=query)
+                | Q(capo__cognome__icontains=query)
+                | Q(capo__codice_socio__icontains=query)
+                | Q(gruppo__nome__icontains=query)
+            )
+            .select_related("capo", "gruppo")
+            .order_by("capo__cognome", "capo__nome")[:LIMITE_RISULTATI_AUTOCOMPLETE]
+        )
+        risultati = [
+            {
+                "codice_socio": c.capo.codice_socio,
+                "nome": c.capo.nome,
+                "cognome": c.capo.cognome,
+                "gruppo": c.gruppo.nome,
+            }
+            for c in censimenti
+        ]
+        return JsonResponse({"risultati": risultati})
 
 
 class PartecipazioniImportAnteprimaView(RuoloRequiredMixin, View):

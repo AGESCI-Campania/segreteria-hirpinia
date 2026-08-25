@@ -48,6 +48,11 @@ urlpatterns = [
         name="partecipazione_inserisci",
     ),
     path(
+        "campagne/<int:campagna_id>/partecipazioni/ricerca-soci-autocomplete/",
+        views.PartecipazioniRicercaSociAutocompleteView.as_view(),
+        name="partecipazioni_ricerca_soci_autocomplete",
+    ),
+    path(
         "campagne/<int:campagna_id>/partecipazioni/<int:pk>/approva/",
         views.PartecipazioneApprovaView.as_view(),
         name="partecipazione_approva",

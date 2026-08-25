@@ -43,10 +43,10 @@ Questo è un elenco di modifiche da fare aggiornato man mano che vanno avanti i 
 - [x] Per gli utenti che ne hanno il permesso deve essere visibile un elenco degli altri utenti che posso inpersonificare con un pulsante per impersonare quell'utente di fianco al nome
 
 ## Modulo contributo Fo.Ca.
-- [ ] in inserisci partecipazione:
-  - [ ] "Codice socio" deve essere un campo di ricerca con autocompletamento tra i soci del gruppo (se CG) o di tutta la zona se il ruolo prevede la possibilità di inserire anche partecipazioni di altri gruppi. Sarà poi visualizzato come "[Nome] [Cognome] ([Codice Socio])"
-  - [ ] "Tipologia partecipazione" deve prevedere anche "Altro (specificare)", in questo caso compare subito sotto un altro field che sarà obbligatorio
-  - [ ] "Data fine" deve essere successiva a "Data inizio" (al massimo stessa data, non precedente)
-  - [ ] "Luogo" non è obbligatorio
-  - [ ] "Quota versata" è obbligatorio, ma con le tipologie CCG, CFM e CFA viene inzializzato a 51,50€
-  - [ ] Serve un campo "Note" dove inserire note libere
+- [ ] in inserisci partecipazione: (pianificato in `docs/piano-sviluppo-todo.md` M14-M17)
+  - [x] "Codice socio" deve essere un campo di ricerca con autocompletamento tra i soci del gruppo (se CG) o di tutta la zona se il ruolo prevede la possibilità di inserire anche partecipazioni di altri gruppi. Sarà poi visualizzato come "[Nome] [Cognome] ([Codice Socio])" → M14
+  - [ ] "Tipologia partecipazione" deve prevedere anche "Altro (specificare)", in questo caso compare subito sotto un altro field che sarà obbligatorio → M15
+  - [ ] "Data fine" deve essere successiva a "Data inizio" (al massimo stessa data, non precedente) → M16
+  - [ ] "Luogo" non è obbligatorio → M16
+  - [ ] "Quota versata" è obbligatorio, ma con le tipologie CCG, CFM e CFA viene inzializzato a 51,50€ → M17
+  - [ ] Serve un campo "Note" dove inserire note libere → M16
