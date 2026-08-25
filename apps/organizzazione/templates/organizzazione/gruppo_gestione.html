@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block page_title %}Gestione gruppo{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Gestione gruppo — {{ gruppo.nome }} ({{ gruppo.codice }})</h1>
+    <a href="{% url 'anagrafica:gruppo_incarichi' gruppo.codice %}" class="btn btn-outline-secondary">
+      Incarichi del gruppo
+    </a>
+  </div>
+  <p class="text-muted">
+    Email istituzionale: {{ gruppo.email_istituzionale|default:"—" }} (da import, non
+    modificabile qui).
+  </p>
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="mb-3">
+        {{ field.label_tag }}
+        {{ field }}
+        {{ field.errors }}
+      </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-primary">Salva</button>
+  </form>
+{% endblock %}

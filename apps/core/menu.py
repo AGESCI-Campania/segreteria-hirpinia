@@ -13,6 +13,7 @@ from django.urls import reverse
 
 from apps.accounts.models import Ruolo, Utente
 from apps.accounts.permessi import ruoli_effettivi
+from apps.accounts.ruoli import RUOLI_GESTIONE_RUOLI
 from apps.accounts.views import RUOLI_CHE_INVITANO
 from apps.anagrafica.esportazione import RUOLI_EXPORT_ANAGRAFICA, RUOLI_VISUALIZZAZIONE_ESPORTAZIONI
 from apps.anagrafica.importazione import RUOLI_IMPORT_ANAGRAFICA
@@ -31,8 +32,8 @@ class VoceMenu:
     icona: str
 
 
-def _voce(etichetta: str, url_name: str, icona: str) -> VoceMenu:
-    return VoceMenu(etichetta, reverse(url_name), icona)
+def _voce(etichetta: str, url_name: str, icona: str, args: list | None = None) -> VoceMenu:
+    return VoceMenu(etichetta, reverse(url_name, args=args), icona)
 
 
 @dataclass(frozen=True)
@@ -79,6 +80,31 @@ def sezioni_menu(utente: Utente | AnonymousUser) -> list[SezioneMenu]:
         )
     if consentito(RUOLI_GESTIONE_GRUPPI):
         voci_anagrafica.append(_voce("Gruppi", "organizzazione:gruppo_lista", "diagram-3"))
+    else:
+        # "Il mio gruppo" (D-35): un CG senza RUOLI_GESTIONE_GRUPPI non vede
+        # "Gruppi" e non avrebbe altrimenti un punto di accesso a
+        # gruppo_gestione. Grazie a D-35 un CG ha al più un gruppo reale +
+        # l'eventuale E9001 derivato (che però implica RDZ, già coperto dal
+        # ramo sopra): in pratica qui c'è sempre al più un gruppo, ma il ramo
+        # multiplo resta gestito esplicitamente, non assunto.
+        gruppi_cg = {
+            r.gruppo.codice: r.gruppo for r in ruoli if r.tipo == Ruolo.Tipo.CG and r.gruppo
+        }
+        if len(gruppi_cg) == 1:
+            (codice,) = gruppi_cg
+            voci_anagrafica.append(
+                _voce("Il mio gruppo", "organizzazione:gruppo_gestione", "diagram-3", args=[codice])
+            )
+        else:
+            for codice, gr in sorted(gruppi_cg.items()):
+                voci_anagrafica.append(
+                    _voce(
+                        f"Il mio gruppo — {gr.nome}",
+                        "organizzazione:gruppo_gestione",
+                        "diagram-3",
+                        args=[codice],
+                    )
+                )
     if voci_anagrafica:
         sezioni.append(SezioneMenu("Anagrafica", "people-fill", voci_anagrafica))
 
@@ -102,6 +128,8 @@ def sezioni_menu(utente: Utente | AnonymousUser) -> list[SezioneMenu]:
         voci_amministrazione.append(
             _voce("Allowlist gruppi", "organizzazione:allowlist_lista", "shield-check")
         )
+    if consentito(RUOLI_GESTIONE_RUOLI, solo_diretti=True):
+        voci_amministrazione.append(_voce("Ruoli", "accounts:ruolo_lista", "person-badge"))
     if consentito(RUOLI_GESTIONE_IMPOSTAZIONI, solo_diretti=True):
         voci_amministrazione.append(_voce("Impostazioni", "core:impostazioni", "sliders"))
     if voci_amministrazione:

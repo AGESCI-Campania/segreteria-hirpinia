@@ -26,11 +26,11 @@ Questo è un elenco di modifiche da fare aggiornato man mano che vanno avanti i 
 - [ ] Assegna incarico manuale deve funzionare per mettendo di selezionare un socio con ricerca con autocompletion per nome, cognome, gruppo, o codice socio. A questo vien poi assegnato una funzione (e se è capo unità o aiuto capo unità anche una branca, che altriumenti non è obbligatoria). Come gruppo in cui si presta servizio di default viene selzionato quello di appartenza del capo, ma si può selezionare eventualmente un altro se incarico esterno in altro gruppo.
 
 ## Nuove funzionalità
-- [ ] "Gestione gruppo"
-  - [ ] Contiene i dati del gruppo e permette di modificarli, Email di default (quella da import su dominio campania.agesci.it) non può essere modificata, ma si può inserire una email alternativa. Il capogruppo o un suo delegato può inserire e\o modificare:
+- [ ] "Gestione gruppo" (resta da fare la voce riga 20, Assegna incarico dentro Gestione gruppo — M6)
+  - [x] Contiene i dati del gruppo e permette di modificarli, Email di default (quella da import su dominio campania.agesci.it) non può essere modificata, ma si può inserire una email alternativa. Il capogruppo o un suo delegato può inserire e\o modificare:
     - la mail alternativa
     - indirizzo della sede del gruppo
     - Codice fiscale del gruppo
-  - [ ] Segreteria, RdZ e superadmin possono fare lo stesso, ma per tutti i gruppi. Accedono cliccando sul nome di un gruppo nell'anagrafica "Gruppi", tramite la voce "Gestione Gruppo" vedono il gruppo COM ZONA HIRPINIA
-  - [ ] Deve avere una subview per vedere tutti gli incarichi di quel gruppo
+  - [x] Segreteria, RdZ e superadmin possono fare lo stesso, ma per tutti i gruppi. Accedono cliccando sul nome di un gruppo nell'anagrafica "Gruppi", tramite la voce "Gestione Gruppo" vedono il gruppo COM ZONA HIRPINIA
+  - [x] Deve avere una subview per vedere tutti gli incarichi di quel gruppo
 - [ ] In "impostazioni" deve essere possibile impostare il template delle mail inviate dalla piattaforma nelle varie funzioni. I template devono essere impostabili con tag per inserimento di variabili e con html (rich text editor)

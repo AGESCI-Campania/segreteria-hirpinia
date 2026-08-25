@@ -4,6 +4,7 @@ PermissionDenied/ValidationError → messaggio, mai una scrittura prima della
 conferma esplicita)."""
 
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -13,10 +14,24 @@ from django.views.generic import ListView
 from apps.accounts.inviti import candidati_invito_massivo, invia_inviti_multipli
 from apps.accounts.mixins import RuoloRequiredMixin
 from apps.contributi.disattivazione_gruppo import conta_effetti_disattivazione
+from apps.core.mixins import BreadcrumbExtraMixin
 
 from .allowlist import crea_voce_allowlist, elimina_voce_allowlist
-from .forms import AllowlistCreaForm, GruppoCreaForm, GruppoDisattivaForm, GruppoRiattivaForm
-from .gruppi import RUOLI_GESTIONE_GRUPPI, crea_gruppo, disattiva_gruppo, riattiva_gruppo
+from .forms import (
+    AllowlistCreaForm,
+    GruppoCreaForm,
+    GruppoDisattivaForm,
+    GruppoModificaForm,
+    GruppoRiattivaForm,
+)
+from .gruppi import (
+    RUOLI_GESTIONE_GRUPPI,
+    crea_gruppo,
+    disattiva_gruppo,
+    modifica_dati_gruppo,
+    riattiva_gruppo,
+    verifica_ruolo_gestione_dati_gruppo,
+)
 from .models import AllowlistGruppo, Gruppo, anno_scout_corrente
 
 
@@ -124,6 +139,43 @@ class GruppoRiattivaView(RuoloRequiredMixin, View):
             return render(request, self.template_name, {"gruppo": gruppo, "form": form})
         messages.success(request, "Gruppo riattivato.")
         return redirect(reverse("organizzazione:gruppo_lista"))
+
+
+class GruppoGestioneView(BreadcrumbExtraMixin, LoginRequiredMixin, View):
+    """Perimetro per-oggetto (D-35), non esprimibile con `RuoloRequiredMixin`
+    (che filtra solo per tipo di ruolo, mai per gruppo specifico)."""
+
+    template_name = "organizzazione/gruppo_gestione.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        codice = request.resolver_match.kwargs.get("codice")
+        gruppo = Gruppo.objects.filter(pk=codice).first()
+        return [
+            {"label": "Gruppi"},
+            {"label": gruppo.nome if gruppo else codice},
+            {"label": "Gestione"},
+        ]
+
+    def get(self, request, codice):
+        gruppo = get_object_or_404(Gruppo, pk=codice)
+        verifica_ruolo_gestione_dati_gruppo(request.user, gruppo)
+        form = GruppoModificaForm(instance=gruppo)
+        return render(request, self.template_name, {"gruppo": gruppo, "form": form})
+
+    def post(self, request, codice):
+        gruppo = get_object_or_404(Gruppo, pk=codice)
+        verifica_ruolo_gestione_dati_gruppo(request.user, gruppo)
+        form = GruppoModificaForm(request.POST, instance=gruppo)
+        if not form.is_valid():
+            return render(request, self.template_name, {"gruppo": gruppo, "form": form})
+        try:
+            modifica_dati_gruppo(utente=request.user, gruppo=gruppo, **form.cleaned_data)
+        except (PermissionDenied, ValidationError) as exc:
+            form.add_error(None, _messaggio(exc))
+            return render(request, self.template_name, {"gruppo": gruppo, "form": form})
+        messages.success(request, "Dati del gruppo aggiornati.")
+        return redirect(reverse("organizzazione:gruppo_gestione", args=[gruppo.codice]))
 
 
 class AllowlistListaView(RuoloRequiredMixin, ListView):

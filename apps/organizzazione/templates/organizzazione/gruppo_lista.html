@@ -20,7 +20,9 @@
       {% for gruppo in gruppi %}
         <tr>
           <td>{{ gruppo.codice }}</td>
-          <td>{{ gruppo.nome }}</td>
+          <td>
+            <a href="{% url 'organizzazione:gruppo_gestione' gruppo.codice %}">{{ gruppo.nome }}</a>
+          </td>
           <td>
             {% if gruppo.is_comitato_zona %}
               —

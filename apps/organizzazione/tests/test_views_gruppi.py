@@ -88,3 +88,79 @@ class TestGruppoRiattivaView:
         )
         assert response.status_code == 302
         assert gruppo.e_attivo(anno + 1)
+
+
+class TestGruppoGestioneView:
+    def _dati(self):
+        return {
+            "email_alternativa": "alt@example.com",
+            "indirizzo": "Via Roma",
+            "civico": "1",
+            "cap": "83100",
+            "comune": "Avellino",
+            "provincia": "AV",
+            "codice_fiscale": "12345678901",
+        }
+
+    def test_cg_accede_e_modifica_il_proprio_gruppo(self, client, cg_gruppo, gruppo):
+        client.force_login(cg_gruppo)
+        response = client.get(f"/gruppi/{gruppo.codice}/gestione/")
+        assert response.status_code == 200
+
+        response = client.post(f"/gruppi/{gruppo.codice}/gestione/", self._dati())
+        assert response.status_code == 302
+        gruppo.refresh_from_db()
+        assert gruppo.email_alternativa == "alt@example.com"
+
+    def test_cg_non_accede_a_un_altro_gruppo(self, client, cg_gruppo):
+        altro = Gruppo.objects.create(codice="E0134", nome="AVELLINO 2")
+        client.force_login(cg_gruppo)
+        response = client.get(f"/gruppi/{altro.codice}/gestione/")
+        assert response.status_code == 403
+
+    def test_segreteria_accede_a_e9001(self, client, segreteria):
+        client.force_login(segreteria)
+        response = client.get("/gruppi/E9001/gestione/")
+        assert response.status_code == 200
+
+    def test_email_istituzionale_forzata_nel_post_non_viene_scritta(
+        self, client, segreteria, gruppo
+    ):
+        client.force_login(segreteria)
+        dati = self._dati()
+        dati["email_istituzionale"] = "forzata@x.it"
+        client.post(f"/gruppi/{gruppo.codice}/gestione/", dati)
+        gruppo.refresh_from_db()
+        assert gruppo.email_istituzionale == ""
+
+    def test_link_visibile_in_lista_gruppi(self, client, segreteria, gruppo):
+        client.force_login(segreteria)
+        response = client.get("/gruppi/")
+        assert f"/gruppi/{gruppo.codice}/gestione/" in response.content.decode()
+
+    def test_breadcrumb_pagina_figlia(self, client, segreteria, gruppo):
+        # Segreteria arriva a gruppo_gestione via il link nella lista "Gruppi"
+        # (voce di menu diversa dalla pagina corrente): a differenza del CG,
+        # per cui "Il mio gruppo" punta esattamente a questa stessa URL e fa
+        # scattare il ramo standard sezione/voce, qui si esercita
+        # BreadcrumbExtraMixin.
+        client.force_login(segreteria)
+        response = client.get(f"/gruppi/{gruppo.codice}/gestione/")
+        items = response.context["breadcrumb_items"]
+        assert items[0] == {"label": "Home", "url": "/"}
+        assert items[-3] == {"label": "Gruppi"}
+        assert items[-2] == {"label": gruppo.nome}
+        assert items[-1] == {"label": "Gestione"}
+
+    def test_breadcrumb_cg_su_il_mio_gruppo_usa_la_voce_di_menu(self, client, cg_gruppo, gruppo):
+        # "Il mio gruppo" punta esattamente alla stessa URL: il ramo standard
+        # sezione/voce del breadcrumb la intercetta prima di arrivare al
+        # mixin, comportamento coerente con tutte le altre voci di menu.
+        client.force_login(cg_gruppo)
+        response = client.get(f"/gruppi/{gruppo.codice}/gestione/")
+        items = response.context["breadcrumb_items"]
+        assert items == [
+            {"label": "Home", "url": "/"},
+            {"label": "Anagrafica"},
+            {"label": "Il mio gruppo"},
+        ]

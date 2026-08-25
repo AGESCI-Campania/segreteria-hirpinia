@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block page_title %}Ruoli{% endblock %}
+
+{% block content %}
+  <h1>Ruoli amministrativi</h1>
+  <p class="text-muted">
+    I ruoli derivati (CG da incarico o da RDZ su E9001) non compaiono qui: si
+    aprono e chiudono da soli in base a incarichi/altri ruoli, non si revocano
+    a mano.
+  </p>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Utente</th>
+        <th>Ruolo</th>
+        <th>Gruppo</th>
+        <th>Dal</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ruolo in ruoli %}
+        <tr>
+          <td>{{ ruolo.utente }}</td>
+          <td>{{ ruolo.get_tipo_display }}</td>
+          <td>{{ ruolo.gruppo|default:"—" }}</td>
+          <td>{{ ruolo.data_inizio }}</td>
+          <td>
+            <form method="post" action="{% url 'accounts:ruolo_revoca' ruolo.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-danger">Revoca</button>
+            </form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">Nessun ruolo amministrativo attivo.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

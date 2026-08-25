@@ -23,6 +23,21 @@ def _verifica_ruolo_gestione_gruppi(utente: Utente) -> None:
         raise PermissionDenied(f"{utente}: azione riservata a SEGRETERIA/ADMIN/RDZ.")
 
 
+def verifica_ruolo_gestione_dati_gruppo(utente: Utente, gruppo: Gruppo) -> None:
+    """Perimetro di `modifica_dati_gruppo` (D-35 chiude il caso limite: un CG
+    ha al più un gruppo reale, quindi qui il controllo è deterministico)."""
+    ruoli = ruoli_effettivi(utente)
+    if any(r.tipo in RUOLI_GESTIONE_GRUPPI for r in ruoli):
+        return
+    if any(
+        r.tipo == Ruolo.Tipo.CG and r.gruppo and r.gruppo.codice == gruppo.codice for r in ruoli
+    ):
+        return
+    raise PermissionDenied(
+        f"{utente}: azione riservata a SEGRETERIA/ADMIN/RDZ o al capogruppo di {gruppo.codice}."
+    )
+
+
 def crea_gruppo(*, utente: Utente, codice: str, nome: str, email_istituzionale: str) -> Gruppo:
     _verifica_ruolo_gestione_gruppi(utente)
     if not email_istituzionale.strip():
@@ -101,3 +116,41 @@ def riattiva_gruppo(
     stato.full_clean()
     stato.save()
     return stato
+
+
+def modifica_dati_gruppo(
+    *,
+    utente: Utente,
+    gruppo: Gruppo,
+    email_alternativa: str,
+    indirizzo: str,
+    civico: str,
+    cap: str,
+    comune: str,
+    provincia: str,
+    codice_fiscale: str,
+) -> Gruppo:
+    """Dati modificabili da "Gestione gruppo": mai `email_istituzionale`, che
+    arriva solo da import e non è mai parametro di questa funzione."""
+    verifica_ruolo_gestione_dati_gruppo(utente, gruppo)
+
+    gruppo.email_alternativa = email_alternativa
+    gruppo.indirizzo = indirizzo
+    gruppo.civico = civico
+    gruppo.cap = cap
+    gruppo.comune = comune
+    gruppo.provincia = provincia
+    gruppo.codice_fiscale = codice_fiscale
+    gruppo.full_clean()
+    gruppo.save(
+        update_fields=[
+            "email_alternativa",
+            "indirizzo",
+            "civico",
+            "cap",
+            "comune",
+            "provincia",
+            "codice_fiscale",
+        ]
+    )
+    return gruppo

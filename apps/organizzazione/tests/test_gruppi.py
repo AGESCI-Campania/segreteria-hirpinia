@@ -1,11 +1,18 @@
 """Ciclo di vita del gruppo da interfaccia (D-24): permessi, creazione con
 allowlist, disattivazione, riattivazione."""
 
+import datetime
+
 import pytest
 from django.core.exceptions import PermissionDenied, ValidationError
 
-from apps.accounts.models import Ruolo, TipoUtente, Utente
-from apps.organizzazione.gruppi import crea_gruppo, disattiva_gruppo, riattiva_gruppo
+from apps.accounts.models import Delega, Ruolo, TipoUtente, Utente
+from apps.organizzazione.gruppi import (
+    crea_gruppo,
+    disattiva_gruppo,
+    modifica_dati_gruppo,
+    riattiva_gruppo,
+)
 from apps.organizzazione.models import AllowlistGruppo, Gruppo, StatoGruppoAnno, anno_scout_corrente
 
 pytestmark = pytest.mark.django_db
@@ -101,3 +108,75 @@ class TestRiattivaGruppo:
         )
         assert stato.attivo is True
         assert gruppo.e_attivo(anno + 1) is True
+
+
+class TestModificaDatiGruppo:
+    def _dati(self, **override):
+        dati = {
+            "email_alternativa": "alt@example.com",
+            "indirizzo": "Via Roma",
+            "civico": "1",
+            "cap": "83100",
+            "comune": "Avellino",
+            "provincia": "AV",
+            "codice_fiscale": "12345678901",
+        }
+        dati.update(override)
+        return dati
+
+    def test_segreteria_modifica_qualunque_gruppo(self, segreteria, gruppo):
+        risultato = modifica_dati_gruppo(utente=segreteria, gruppo=gruppo, **self._dati())
+        assert risultato.email_alternativa == "alt@example.com"
+        assert risultato.comune == "Avellino"
+
+    def test_segreteria_modifica_e9001(self, segreteria):
+        e9001 = Gruppo.objects.get(codice="E9001")
+        risultato = modifica_dati_gruppo(utente=segreteria, gruppo=e9001, **self._dati())
+        assert risultato.email_alternativa == "alt@example.com"
+
+    def test_cg_modifica_il_proprio_gruppo(self, gruppo):
+        cg = _persona("cg@campania.agesci.it")
+        Ruolo.objects.create(utente=cg, tipo=Ruolo.Tipo.CG, gruppo=gruppo)
+
+        risultato = modifica_dati_gruppo(utente=cg, gruppo=gruppo, **self._dati())
+
+        assert risultato.email_alternativa == "alt@example.com"
+
+    def test_cg_per_delega_modifica_il_gruppo(self, gruppo):
+        titolare = _persona("cg-titolare@campania.agesci.it")
+        ruolo = Ruolo.objects.create(utente=titolare, tipo=Ruolo.Tipo.CG, gruppo=gruppo)
+        delegato = _persona("delegato@campania.agesci.it")
+        Delega.objects.create(
+            delegante=titolare,
+            delegato=delegato,
+            ruolo=ruolo,
+            data_fine=datetime.date.today() + datetime.timedelta(days=30),
+        )
+
+        risultato = modifica_dati_gruppo(utente=delegato, gruppo=gruppo, **self._dati())
+
+        assert risultato.email_alternativa == "alt@example.com"
+
+    def test_cg_non_modifica_un_altro_gruppo(self, gruppo):
+        altro_gruppo = Gruppo.objects.create(codice="E0134", nome="AVELLINO 2")
+        cg = _persona("cg@campania.agesci.it")
+        Ruolo.objects.create(utente=cg, tipo=Ruolo.Tipo.CG, gruppo=gruppo)
+
+        with pytest.raises(PermissionDenied):
+            modifica_dati_gruppo(utente=cg, gruppo=altro_gruppo, **self._dati())
+
+    def test_estraneo_non_modifica(self, gruppo):
+        estraneo = _persona("estraneo@campania.agesci.it")
+        with pytest.raises(PermissionDenied):
+            modifica_dati_gruppo(utente=estraneo, gruppo=gruppo, **self._dati())
+
+    def test_email_istituzionale_non_e_un_parametro(self, segreteria, gruppo):
+        # Verifica statica: la firma della funzione non accetta
+        # email_istituzionale, quindi passarlo solleva TypeError.
+        with pytest.raises(TypeError):
+            modifica_dati_gruppo(
+                utente=segreteria,
+                gruppo=gruppo,
+                email_istituzionale="forzata@x.it",
+                **self._dati(),
+            )

@@ -15,6 +15,8 @@ urlpatterns = [
     path("deleghe/nuova/", views.DelegaCreaView.as_view(), name="delega_crea"),
     path("deleghe/<int:pk>/revoca/", views.DelegaRevocaView.as_view(), name="delega_revoca"),
     path("deleghe/zona/", views.DelegheZonaListaView.as_view(), name="deleghe_zona"),
+    path("ruoli/", views.RuoloListaView.as_view(), name="ruolo_lista"),
+    path("ruoli/<int:pk>/revoca/", views.RuoloRevocaView.as_view(), name="ruolo_revoca"),
     path("vista-di-prova/", views.VistaDiProvaView.as_view(), name="vista_di_prova"),
     path("impersona/", views.ImpersonaListaView.as_view(), name="impersona_lista"),
 ]

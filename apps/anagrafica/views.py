@@ -8,6 +8,7 @@ import io
 import re
 
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.files.base import ContentFile
 from django.http import HttpResponse
@@ -19,7 +20,9 @@ from openpyxl import Workbook
 
 from apps.accounts.mixins import RuoloRequiredMixin
 from apps.accounts.permessi import gruppi_visibili
-from apps.organizzazione.models import anno_scout_corrente
+from apps.core.mixins import BreadcrumbExtraMixin
+from apps.organizzazione.gruppi import verifica_ruolo_gestione_dati_gruppo
+from apps.organizzazione.models import Gruppo, anno_scout_corrente
 
 from .esportazione import (
     RUOLI_VISUALIZZA_ANAGRAFICA,
@@ -468,6 +471,43 @@ class CapoIncarichiView(RuoloRequiredMixin, View):
             request,
             self.template_name,
             {"codice_socio": codice_socio, "anno_scout": anno, "incarichi": incarichi},
+        )
+
+
+class GruppoIncarichiView(BreadcrumbExtraMixin, LoginRequiredMixin, View):
+    """Subview di "Gestione gruppo" (D-35, M5.4): vive in `apps.anagrafica`,
+    non in `apps.organizzazione`, perché quest'ultima non deve importare
+    logica/modelli da `apps.anagrafica` (organizzazione è la base della
+    catena di dipendenze) — qui è il verso opposto, già in uso altrove in
+    questo modulo. Stesso perimetro di `GruppoGestioneView`: chi gestisce i
+    dati del gruppo vede anche i suoi incarichi."""
+
+    template_name = "anagrafica/gruppo_incarichi.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        codice = request.resolver_match.kwargs.get("codice")
+        gruppo = Gruppo.objects.filter(pk=codice).first()
+        return [
+            {"label": "Gruppi"},
+            {"label": gruppo.nome if gruppo else codice},
+            {"label": "Incarichi"},
+        ]
+
+    def get(self, request, codice):
+        gruppo = get_object_or_404(Gruppo, pk=codice)
+        verifica_ruolo_gestione_dati_gruppo(request.user, gruppo)
+
+        storico = request.GET.get("storico") == "1"
+        incarichi = IncaricoUnita.objects.filter(gruppo_servizio=gruppo).select_related("capo")
+        if not storico:
+            incarichi = incarichi.filter(cessato_il__isnull=True)
+        incarichi = incarichi.order_by("-anno_scout", "capo_id", "codice_unita")
+
+        return render(
+            request,
+            self.template_name,
+            {"gruppo": gruppo, "incarichi": incarichi, "storico": storico},
         )
 
 

@@ -24,6 +24,7 @@ from .derivazioni import ricalcola_derivati_capo, ricalcola_pattuglia
 from .models import (
     BrancaUnita,
     Capo,
+    CensimentoCapo,
     FileAutorizzazionePDF,
     FunzioneIncarico,
     ImportazioneAutorizzazioni,
@@ -146,6 +147,11 @@ class OperazioneIncarico:
     genere_unita: str
     funzione: str
     livello_foca: int | None
+    # Sesso della persona (M/F), da record["genere"] del PDF stesso
+    # (parser/autorizzazioni.py::_RE_GENDER) — non Capo.sesso (fonte diversa,
+    # dal CSV Buona Caccia): per D-35 si usa il dato legato all'incarico
+    # CAPO_GRUPPO stesso. Vuoto se il parser non l'ha riconosciuto.
+    genere: str = ""
 
 
 @dataclass
@@ -283,6 +289,7 @@ def costruisci_piano_autorizzazioni(pdf_caricati: list[PdfCaricato]) -> PianoAut
                     genere_unita=record["genere_unita"],
                     funzione=funzione,
                     livello_foca=record["livello_foca"] or None,
+                    genere=record["genere"],
                 )
             )
 
@@ -370,7 +377,46 @@ def applica_piano_autorizzazioni(
                 }
                 attivi_prima.update(cessato_il=ora)
 
+        # D-35: due CG attivi dello stesso sesso sullo stesso gruppo/anno non
+        # sono rappresentabili nel dominio — unica eccezione bloccante allo
+        # stile generale di import (anomalie non bloccanti). Il sesso viene dal
+        # PDF stesso (op.genere), non da Capo.sesso (fonte diversa, CSV): un
+        # sesso ignoto (regex non riconosciuta) non partecipa al blocco, solo
+        # all'anomalia finale sul conteggio dei CG.
+        genere_per_capo: dict[str, str] = {
+            op.codice_socio: op.genere
+            for op in piano.incarichi
+            if op.funzione == FunzioneIncarico.CAPO_GRUPPO
+        }
+        cg_attivi_per_gruppo: dict[tuple[str, int], list[str]] = {}
+
         for op in piano.incarichi:
+            if op.funzione == FunzioneIncarico.CAPO_GRUPPO:
+                chiave = (op.gruppo_codice, op.anno_scout)
+                sesso = op.genere
+                if sesso:
+                    conflitto = next(
+                        (
+                            c
+                            for c in cg_attivi_per_gruppo.get(chiave, [])
+                            if genere_per_capo.get(c) == sesso
+                        ),
+                        None,
+                    )
+                    if conflitto is not None:
+                        anomalie.append(
+                            AnomaliaRiga(
+                                0,
+                                ERRORE,
+                                "CapoGruppo",
+                                f"{op.codice_socio}: stesso sesso di {conflitto}, già "
+                                f"capogruppo attivo di {op.gruppo_codice} (D-35). "
+                                "Incarico non creato.",
+                                op.codice_socio,
+                            )
+                        )
+                        continue
+
             incarico = IncaricoUnita(
                 capo_id=op.codice_socio,
                 anno_scout=op.anno_scout,
@@ -392,6 +438,41 @@ def applica_piano_autorizzazioni(
                 continue
             capi_impattati.add((op.codice_socio, op.anno_scout))
             conteggi["incarichi_creati"] += 1
+            if op.funzione == FunzioneIncarico.CAPO_GRUPPO:
+                cg_attivi_per_gruppo.setdefault((op.gruppo_codice, op.anno_scout), []).append(
+                    op.codice_socio
+                )
+
+        for (gruppo_codice, anno), codici in cg_attivi_per_gruppo.items():
+            if len(codici) == 1:
+                anomalie.append(
+                    AnomaliaRiga(
+                        0,
+                        AVVISO,
+                        "CapoGruppo",
+                        f"{gruppo_codice} ({anno}): un solo capogruppo attivo "
+                        f"({codici[0]}), posto vacante (D-35).",
+                        codici[0],
+                    )
+                )
+            livelli = dict(
+                CensimentoCapo.objects.filter(capo_id__in=codici, anno_scout=anno).values_list(
+                    "capo_id", "livello_foca"
+                )
+            )
+            for codice_socio in codici:
+                if livelli.get(codice_socio) != 5:
+                    anomalie.append(
+                        AnomaliaRiga(
+                            0,
+                            AVVISO,
+                            "CapoGruppo",
+                            f"{codice_socio}: capogruppo di {gruppo_codice} ({anno}) con "
+                            f"Livello Fo.Ca. {livelli.get(codice_socio) or 'assente'}, "
+                            "diverso da 5 (D-35).",
+                            codice_socio,
+                        )
+                    )
 
         capi_map = {
             c.codice_socio: c
@@ -414,16 +495,32 @@ def applica_piano_autorizzazioni(
                 )
                 continue
 
+            gruppi_capogruppo = frozenset(
+                IncaricoUnita.objects.filter(
+                    capo_id=capo_id,
+                    anno_scout=anno,
+                    funzione=FunzioneIncarico.CAPO_GRUPPO,
+                    cessato_il__isnull=True,
+                ).values_list("gruppo_servizio_id", flat=True)
+            )
+            if len(gruppi_capogruppo) > 1:
+                # D-35: un solo gruppo reale per CG — anomalia non bloccante,
+                # mai una scelta arbitraria di quale tenere. Vale anche per i
+                # capi senza account: è un fatto sull'incarico, non sul ruolo.
+                anomalie.append(
+                    AnomaliaRiga(
+                        0,
+                        AVVISO,
+                        "CapoGruppo",
+                        f"{capo_id}: capogruppo attivo su più gruppi reali "
+                        f"contemporaneamente ({', '.join(sorted(gruppi_capogruppo))}), "
+                        "atteso un solo gruppo (D-35).",
+                        capo_id,
+                    )
+                )
+
             capo = capi_map.get(capo_id)
             if capo is not None and capo.utente_id:
-                gruppi_capogruppo = frozenset(
-                    IncaricoUnita.objects.filter(
-                        capo_id=capo_id,
-                        anno_scout=anno,
-                        funzione=FunzioneIncarico.CAPO_GRUPPO,
-                        cessato_il__isnull=True,
-                    ).values_list("gruppo_servizio_id", flat=True)
-                )
                 sincronizza_ruoli_cg(
                     utente=capo.utente, gruppi_capogruppo=gruppi_capogruppo, assegnato_da=utente
                 )

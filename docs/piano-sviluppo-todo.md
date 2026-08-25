@@ -36,14 +36,15 @@ tabella "Riepilogo difficoltà" in fondo al documento.
 ## Mappa di dipendenza fra le milestone
 
 ```
-M1 ✅ Rinomine testuali (Contributi→Moduli, Campagne Fo.Ca.→Contributo Fo.Ca.)  — nessuna dipendenza
-M2 ✅ Allowlist gruppi → tab Amministrazione                                    — nessuna dipendenza
-M3 ✅ Import unificato (voce Importa)                                           — indipendente
-M4 ✅ Visualizza anagrafica: pulsanti Ricerca capo + Registro esportazioni      — dipende da M1 (label)
-M5 ⬜ Gestione gruppo — modello, permessi, view base, subview incarichi         — nessuna dipendenza da M1-M4
-M6 ⬜ Assegna incarico: spostamento dentro Gestione gruppo + default gruppo     — dipende da M5
-M7 ⬜ Assegna incarico: ricerca con autocompletamento + branca condizionale     — dipende da M6 (stessa view)
-M8 ⬜ Template email configurabili con rich text                                — indipendente, va per ultima
+M1  ✅ Rinomine testuali (Contributi→Moduli, Campagne Fo.Ca.→Contributo Fo.Ca.)  — nessuna dipendenza
+M2  ✅ Allowlist gruppi → tab Amministrazione                                    — nessuna dipendenza
+M3  ✅ Import unificato (voce Importa)                                           — indipendente
+M4  ✅ Visualizza anagrafica: pulsanti Ricerca capo + Registro esportazioni      — dipende da M1 (label)
+M4.5 ✅ Vincolo CG unico per gruppo reale + derivazione CG(E9001) da RDZ (D-35)  — nessuna dipendenza da M1-M4, prerequisito di M5
+M5  ✅ Gestione gruppo — modello, permessi, view base, subview incarichi         — dipende da M4.5
+M6  ⬜ Assegna incarico: spostamento dentro Gestione gruppo + default gruppo     — dipende da M5
+M7  ⬜ Assegna incarico: ricerca con autocompletamento + branca condizionale     — dipende da M6 (stessa view)
+M8  ⬜ Template email configurabili con rich text                                — indipendente, va per ultima
 ```
 
 Le voci A5 e C del TODO toccano la stessa view (`AssegnaIncaricoView`): farle in
@@ -172,6 +173,58 @@ template `esportazione_form.html`.
 
 ---
 
+## M4.5 — Vincolo CG unico per gruppo reale + derivazione CG(E9001) da RDZ (D-35)
+
+Prerequisito di M5: la voce "Il mio gruppo" (M5.3) si appoggia al fatto che un CG abbia
+al più due gruppi (il proprio + eventuale E9001). Regola completa in D-35
+(`docs/Catello_Progettazione.md`), che corregge il testo precedente di D-33.
+
+**File coinvolti**: `apps/accounts/ruoli_derivati.py`, nuovo `apps/accounts/ruoli.py`,
+`apps/accounts/views.py`/`urls.py` (nuova view di revoca), `apps/anagrafica/
+importazione_autorizzazioni.py`.
+
+- **Nuovo service layer di revoca ruolo esplicito** (`apps/accounts/ruoli.py::
+  revoca_ruolo_esplicito(*, utente, ruolo)`): oggi non esiste alcun flusso applicativo
+  per chiudere un ruolo `RDZ`/`ADMIN`/`SEGRETERIA` — solo modifica diretta via Django
+  admin, senza cascata sulle deleghe collegate (gap preesistente). La nuova funzione
+  chiude il ruolo (`attivo=False`, `data_fine=oggi`), chiama
+  `revoca_deleghe_di_ruolo(ruolo)` (`apps/accounts/deleghe.py`) e, se il ruolo è `RDZ`,
+  richiama `sincronizza_cg_comitato_zona`. Nuova view minima di revoca (sul modello di
+  `DelegaRevocaView`) per non lasciare l'admin come unica via che bypasserebbe il
+  service layer.
+- **`sincronizza_cg_comitato_zona(*, utente)`** in `apps/accounts/ruoli_derivati.py`,
+  sullo stesso schema di `sincronizza_ruoli_cg`: se l'utente ha `RDZ` attivo diretto →
+  assicura `Ruolo(tipo=CG, gruppo=E9001, origine=DERIVATO)` attivo; altrimenti chiude
+  l'eventuale CG derivato su E9001. Chiamata alla creazione di un ruolo RDZ
+  (`apps/accounts/inviti.py::verifica_e_completa`) e da `revoca_ruolo_esplicito`.
+- **Vincolo "un solo gruppo reale"**: in `sincronizza_ruoli_cg()` e nell'import
+  autorizzazioni, se lo stesso capo risulta `CAPO_GRUPPO` su più gruppi reali → anomalia
+  non bloccante (mai un blocco dell'intero import, mai una scelta arbitraria di quale
+  gruppo tenere).
+- **Vincolo "2 CG per gruppo, 1M+1F"**: usa il sesso **estratto dal PDF stesso** per
+  ogni riga `CAPO GRUPPO` (`parser/autorizzazioni.py::_RE_GENDER`, già parsato ma finora
+  scartato a valle) — verificato che non serve `Capo.sesso` (fonte diversa, dal CSV
+  Buona Caccia): il dato del PDF è già disponibile ed è quello legato all'incarico
+  stesso — e `CensimentoCapo.livello_foca` (già usato con lo stesso significato in M8).
+  Due CG attivi dello stesso sesso sullo stesso gruppo → **errore bloccante** sulla riga
+  (unica eccezione allo stile "mai bloccare per dati anomali" del resto degli import,
+  perché la situazione non è rappresentabile nel dominio). Un solo CG, o
+  `livello_foca != 5` per uno dei due → anomalia non bloccante. Sesso non riconosciuto
+  dal parser per quella riga → niente blocco per quel capo, solo anomalia informativa.
+
+**Difficoltà: alta** — introduce un service layer nuovo (revoca ruolo, oggi assente),
+un vincolo che deve convivere con lo stile "mai bloccare per dati anomali" senza
+diventarne un'eccezione silenziosa, e va tenuto sincronizzato con D-33/D-35 nel
+documento di progettazione.
+
+**Test**: `revoca_ruolo_esplicito` (cascata deleghe + CG(E9001) solo per RDZ, permesso
+negato altrove); `sincronizza_cg_comitato_zona` (crea/chiude, non duplica, ignora RDZ
+per delega); vincolo un-solo-gruppo-reale → anomalia, import non bloccato; vincolo
+2CG/1M+1F → blocco su stesso sesso, anomalia su singolo CG e su livello FoCa, nessun
+blocco con sesso non valorizzato.
+
+---
+
 ## M5 — "Gestione gruppo": modello, permessi, view base, subview incarichi
 
 Milestone più corposa. Sotto-step:
@@ -217,35 +270,36 @@ Milestone più corposa. Sotto-step:
   permesso in `apps/core/menu.py`), quindi non avrebbe altrimenti un punto di accesso a
   `gruppo_gestione` per il proprio gruppo. Aggiungere in `voci_anagrafica` una voce "Il
   mio gruppo" visibile quando l'utente ha `Ruolo.Tipo.CG` (diretto o per delega) e
-  **non** ha `RUOLI_GESTIONE_GRUPPI` (altrimenti duplicherebbe "Gruppi"), che punta
-  direttamente a `gruppo_gestione` con il codice del gruppo del ruolo CG. Se l'utente ha
-  più ruoli CG su gruppi diversi (caso raro ma non escluso da CLAUDE.md: "un capo può
-  avere incarichi attivi in più gruppi"), la voce elenca i gruppi invece di puntare
-  diretta a uno solo — da verificare in fase di implementazione se il caso si presenta
-  davvero per un ruolo (non incarico) CG.
-- **Breadcrumb (decisione presa, proposta usabilità #4)**: `breadcrumb()` in
-  `apps/core/context_processors.py` oggi genera solo Home + Sezione + Voce quando
-  `request.path` combacia esattamente con una voce di menu — le pagine figlie (come
-  `gruppo_gestione/<codice>/`) mostrano solo Home, perché non sono nel menu. Estendere
-  il context processor con un meccanismo esplicito per le pagine figlie (es. la view
-  imposta `self.extra_context["breadcrumb_extra"] = [...]` o un attributo di classe
-  risolto dal context processor) per ottenere `Anagrafica › Gruppi › <Nome gruppo> ›
-  Gestione`, senza duplicare la logica di traduzione permesso→voce già presente lì.
-  Questo è un'estensione del meccanismo esistente, non una riscrittura.
+  **non** ha `RUOLI_GESTIONE_GRUPPI` (altrimenti duplicherebbe "Gruppi"). **Grazie a
+  D-35 (M4.5)**, un CG ha al più due gruppi (il proprio + eventuale E9001 se anche
+  RDZ): niente lista arbitraria, gestire esplicitamente i due casi — 1 gruppo → link
+  diretto a `gruppo_gestione`; 2 gruppi → piccolo elenco di 2 elementi. `_voce()`
+  (`apps/core/menu.py`) va esteso per accettare argomenti di `reverse()`: oggi risolve
+  solo `reverse(url_name)` senza parametri, nessun precedente nel menu per voci con URL
+  specifico dell'utente.
+- **Breadcrumb (decisione presa)**: mixin con attributo di classe. `breadcrumb()` in
+  `apps/core/context_processors.py` oggi confronta `request.path` con le URL statiche
+  del menu e non ha alcun meccanismo di estensione (verificato sul codice, il docstring
+  lo dichiara esplicitamente) — le pagine figlie (come `gruppo_gestione/<codice>/`)
+  mostrano solo Home. Introdurre un `BreadcrumbExtraMixin` (nuovo, in `apps/core/`) con
+  un attributo/metodo di classe che il context processor legge via
+  `request.resolver_match.func.view_class`, per ottenere `Anagrafica › Gruppi › <Nome
+  gruppo> › Gestione` sulle pagine figlie. È un context processor **globale**: la
+  modifica va scritta e testata perché il comportamento delle altre pagine resti
+  invariato quando l'attributo non è presente.
 
 ### M5.4 — Subview incarichi del gruppo
 
-- Sotto-pagina/tab (url separata `organizzazione:gruppo_incarichi` o sezione della
-  stessa view) che elenca `IncaricoUnita.objects.filter(gruppo_servizio=gruppo,
+- Sotto-pagina/tab che elenca `IncaricoUnita.objects.filter(gruppo_servizio=gruppo,
   cessato_il__isnull=True)` di default, con toggle per lo storico.
-- **Direzione delle dipendenze fra app**: il commento in testa a
-  `apps/organizzazione/gruppi.py` è esplicito — "organizzazione è la base della catena
-  di dipendenze", non deve importare logica di servizio da `apps.anagrafica`. La query
-  sugli incarichi in questa subview importa solo il *modello* `IncaricoUnita` (dato,
-  non logica), non funzioni da `apps/anagrafica/incarichi.py`: verificare che questo
-  pattern (import di un modello di un'altra app) sia già in uso altrove in
-  `organizzazione` prima di darlo per scontato, altrimenti la subview va spostata come
-  vista in `apps/anagrafica` che riceve il gruppo come parametro.
+- **Direzione delle dipendenze fra app (verificato, decisione presa)**: `grep -rn
+  "anagrafica" apps/organizzazione/` non trova alcuna occorrenza — organizzazione è
+  oggi completamente pulita rispetto ad anagrafica, coerente col commento di testa di
+  `apps/organizzazione/gruppi.py` ("organizzazione è la base della catena di
+  dipendenze"). Il pattern "importare il modello `IncaricoUnita` dentro organizzazione"
+  **non è in uso altrove**: la subview va quindi scritta come vista in
+  `apps/anagrafica` (non in `apps/organizzazione/gruppi.py`), che riceve il gruppo come
+  parametro/URL — non un'eccezione nuova alla direzione delle dipendenze.
 - **Filtro/ricerca rapida (decisione presa, proposta usabilità #5)**: riusare
   `static/js/table-filter.js` e `static/js/table-sort.js`, già presenti nel repo e usati
   per altre tabelle del tema — nessun JS nuovo da scrivere, solo applicare gli stessi
@@ -430,7 +484,8 @@ regressione sui 6 flussi di invio esistenti con i template di default precompila
 | M2 | Allowlist→Amministrazione | Bassa | ✅ completata | Permessi non divergenti: Allowlist mantiene le deleghe, Impostazioni resta solo diretti |
 | M3 | Importa unificato | Media | ✅ completata | Cruscotto aggrega in Python, badge da `bool(anomalie)`, liste esistenti raggiungibili come link |
 | M4 | Visualizza anagrafica | Bassa-media | ✅ completata | Accesso view = unione dei 3 permessi, ogni scheda condizionata al proprio; nessun ruolo reale oggi ha RICERCA_CAPO/REGISTRO senza EXPORT |
-| M5 | Gestione gruppo (base) | Alta | ⬜ da fare | Perimetro CG-vs-Zona, caso E9001, dipendenze fra app |
+| M4.5 | Vincolo CG unico per gruppo (D-35) | Alta | ✅ completata | Sesso preso dal PDF (record["genere"]), non da Capo.sesso; nuovo apps/accounts/ruoli.py per la revoca esplicita |
+| M5 | Gestione gruppo (base) | Alta | ✅ completata | Subview incarichi spostata in apps.anagrafica (dipendenze verificate); breadcrumb via BreadcrumbExtraMixin |
 | M6 | Assegna incarico → dentro Gestione gruppo | Media | ⬜ da fare | Punto di ingresso e default, logica invariata |
 | M7 | Autocomplete + branca condizionale | Alta | ⬜ da fare | Nessuna infrastruttura esistente; isolare da D-34 |
 | M8 | Template email + rich text | Alta | ⬜ da fare | Nessuna infrastruttura; superficie sicurezza nuova; refactor trasversale |

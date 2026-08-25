@@ -12,6 +12,7 @@ from apps.organizzazione.models import Gruppo
 
 from . import deleghe as deleghe_service
 from . import inviti as inviti_service
+from . import ruoli as ruoli_service
 from .forms import AttivazioneForm, DelegaForm, InvitoSingoloForm, RecuperoOtpForm
 from .mixins import RuoloRequiredMixin
 from .models import Delega, InvitoAttivazione, Ruolo, Utente
@@ -196,6 +197,35 @@ class DelegaRevocaView(RuoloRequiredMixin, View):
         deleghe_service.revoca_delega(delega, revocata_da=request.user)
         messages.success(request, "Delega revocata.")
         return redirect(request.META.get("HTTP_REFERER") or reverse_lazy("accounts:deleghe_lista"))
+
+
+class RuoloListaView(RuoloRequiredMixin, ListView):
+    """Ruoli amministrativi espliciti (D-35): unico punto applicativo da cui
+    revocarli, per non lasciare Django admin come unica via (senza cascata su
+    deleghe/CG derivato)."""
+
+    ruoli_ammessi = ruoli_service.RUOLI_GESTIONE_RUOLI
+    ruoli_ammessi_solo_diretti = True
+    template_name = "accounts/ruolo_lista.html"
+    context_object_name = "ruoli"
+
+    def get_queryset(self):
+        return (
+            Ruolo.objects.filter(origine=Ruolo.Origine.AMMINISTRATIVO, attivo=True)
+            .select_related("utente", "gruppo")
+            .order_by("tipo", "utente__email")
+        )
+
+
+class RuoloRevocaView(RuoloRequiredMixin, View):
+    ruoli_ammessi = ruoli_service.RUOLI_GESTIONE_RUOLI
+    ruoli_ammessi_solo_diretti = True
+
+    def post(self, request, pk):
+        ruolo = Ruolo.objects.select_related("utente").get(pk=pk)
+        ruoli_service.revoca_ruolo_esplicito(utente=request.user, ruolo=ruolo)
+        messages.success(request, f"Ruolo revocato: {ruolo}.")
+        return redirect(request.META.get("HTTP_REFERER") or reverse_lazy("accounts:ruolo_lista"))
 
 
 class VistaDiProvaView(RuoloRequiredMixin, View):

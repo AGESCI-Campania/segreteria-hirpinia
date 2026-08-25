@@ -42,6 +42,11 @@ class Gruppo(models.Model):
         help_text="True solo per E9001: non è una Comunità Capi (D-33).",
     )
     email_istituzionale = models.EmailField(blank=True)
+    email_alternativa = models.EmailField(
+        blank=True,
+        help_text="Impostabile dal gruppo (Gestione gruppo): email_istituzionale, "
+        "da import, non è mai modificabile da quel form.",
+    )
     indirizzo = models.CharField(max_length=200, blank=True)
     civico = models.CharField(max_length=10, blank=True)
     cap = models.CharField(max_length=10, blank=True)

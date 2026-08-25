@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block page_title %}Incarichi {{ gruppo.nome }}{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Incarichi — {{ gruppo.nome }} ({{ gruppo.codice }})</h1>
+    <a
+      href="?{% if not storico %}storico=1{% endif %}"
+      class="btn btn-outline-secondary btn-sm"
+    >
+      {% if storico %}Solo attivi{% else %}Mostra storico{% endif %}
+    </a>
+  </div>
+
+  <table class="table table-sm">
+    <thead>
+      <tr>
+        <th>Anno</th>
+        <th>Capo</th>
+        <th>Unità</th>
+        <th>Funzione</th>
+        <th>Origine</th>
+        <th>Cessato il</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for incarico in incarichi %}
+        <tr>
+          <td>{{ incarico.anno_scout }}</td>
+          <td>{{ incarico.capo }}</td>
+          <td>{{ incarico.codice_unita }} {{ incarico.nome_unita }}</td>
+          <td>{{ incarico.get_funzione_display }}</td>
+          <td>{{ incarico.get_origine_display }}</td>
+          <td>{{ incarico.cessato_il|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6">Nessun incarico.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <a href="{% url 'anagrafica:assegna_incarico' %}" class="btn btn-primary">Assegna incarico</a>
+{% endblock %}

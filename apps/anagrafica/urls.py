@@ -68,6 +68,11 @@ urlpatterns = [
         views.CapoIncarichiView.as_view(),
         name="capo_incarichi",
     ),
+    path(
+        "gruppi/<str:codice>/incarichi/",
+        views.GruppoIncarichiView.as_view(),
+        name="gruppo_incarichi",
+    ),
     path("export/", views.EsportazioneAnagraficaView.as_view(), name="esportazione"),
     path(
         "export/registro/",

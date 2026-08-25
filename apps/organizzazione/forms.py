@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import CODICE_ORDINALE_VALIDATOR
+from .models import CODICE_ORDINALE_VALIDATOR, Gruppo
 
 
 class GruppoCreaForm(forms.Form):
@@ -9,6 +9,22 @@ class GruppoCreaForm(forms.Form):
     )
     nome = forms.CharField(label="Nome", max_length=100)
     email_istituzionale = forms.EmailField(label="Email istituzionale")
+
+
+class GruppoModificaForm(forms.ModelForm):
+    """`email_istituzionale` non è mai incluso: arriva solo da import (D-35)."""
+
+    class Meta:
+        model = Gruppo
+        fields = [
+            "email_alternativa",
+            "indirizzo",
+            "civico",
+            "cap",
+            "comune",
+            "provincia",
+            "codice_fiscale",
+        ]
 
 
 class GruppoDisattivaForm(forms.Form):

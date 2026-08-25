@@ -196,6 +196,11 @@ def verifica_e_completa(*, email: str, codice: str, password: str) -> Utente:
                 origine=Ruolo.Origine.AMMINISTRATIVO,
                 assegnato_da=invito.creato_da,
             )
+            if invito.ruolo_proposto == Ruolo.Tipo.RDZ:
+                # D-35: il CG derivato su E9001 segue il possesso di RDZ.
+                from .ruoli_derivati import sincronizza_cg_comitato_zona
+
+                sincronizza_cg_comitato_zona(utente=utente)
 
         invito.stato = StatoInvito.USATO
         invito.usato_il = timezone.now()

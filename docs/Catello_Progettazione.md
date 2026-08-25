@@ -1210,6 +1210,62 @@ Per `SEGRETERIA`, `ADMIN` e `RDZ` esiste la via alternativa dell'**import
 dell'autorizzazione** del gruppo di servizio, che popola gli incarichi in blocco senza
 ricerche manuali.
 
+### D-35 — Cardinalità del ruolo `CG`: un gruppo reale per capo, derivazione su `E9001`
+
+**Questa decisione corregge il testo di D-33 sul CG di un RdZ** (righe "Un RdZ che sia
+anche capogruppo... detiene semplicemente due ruoli") e integra D-30.
+
+**Un capo ha ruolo `CG` attivo su un solo gruppo reale alla volta.** `E9001` non è un
+gruppo reale ai fini di questo vincolo (A-8, D-33): un RdZ può quindi avere
+contemporaneamente `CG` sul proprio gruppo di censimento **e** `CG` derivato su `E9001`
+(vedi sotto) — è l'unica combinazione ammessa di due `Ruolo(tipo=CG)` attivi per lo
+stesso utente.
+
+**`E9001` riceve un `CG` derivato automaticamente da chi detiene ruolo `RDZ` diretto**
+(non per delega): finché il ruolo `RDZ` resta attivo, esiste un
+`Ruolo(tipo=CG, gruppo=E9001, origine=DERIVATO)` corrispondente; alla chiusura del
+`RDZ` (D-30, stesso schema di cessazione: `attivo=False`, `data_fine` valorizzata, mai
+delete, cascata sulle deleghe che ne discendono) il `CG` derivato si chiude a sua volta.
+Questo **corregge** la lettura precedente di D-33, secondo cui il CG di un RdZ è sempre
+e solo quello del proprio gruppo di censimento: quella lettura resta vera per il CG
+*non derivato*, ma non esclude più il CG derivato su `E9001`.
+
+**Un gruppo reale ha normalmente due `CG` attivi, un uomo e una donna.** Il sesso usato
+per questo vincolo è quello **estratto dal PDF stesso** per ogni riga `CAPO GRUPPO`
+(`parser/autorizzazioni.py::_RE_GENDER`, già presente nel testo del PDF accanto alla
+data di nascita) — non `Capo.sesso`, che ha fonte diversa (CSV Buona Caccia) e può
+essere vuoto o non aggiornato: il dato del PDF è quello legato all'incarico stesso, non
+un campo anagrafico separato da tenere sincronizzato. Questa regola vale solo in fase di
+**importazione dell'autorizzazione** (unico punto che deriva `CG` da incarico
+`CAPO_GRUPPO`, D-30) e produce, senza mai bloccare l'intero import:
+
+- **due `CG` attivi con lo stesso sesso sullo stesso gruppo → errore bloccante** sulla
+  riga interessata (unico caso, in tutto il sistema di import, in cui una condizione
+  non di perimetro blocca invece di produrre un'anomalia — deviazione dichiarata
+  rispetto allo stile generale D-21/D-24, giustificata dal fatto che la situazione non
+  è rappresentabile nel dominio, non è un dato "anomalo ma reale");
+- **un solo `CG` attivo sul gruppo → anomalia non bloccante** (il secondo posto è
+  vacante, situazione reale e temporanea);
+- **`CG` con `livello_foca` (da `CensimentoCapo`, D-23) diverso da 5 → anomalia non
+  bloccante**, per ciascuno dei due capigruppo;
+- **sesso non riconosciuto dal parser per quella riga** → il blocco per "stesso sesso"
+  **non si applica** al capo con sesso ignoto (non è verificabile né escludibile), ma la
+  situazione produce comunque un'anomalia informativa sul conteggio dei CG del gruppo.
+
+**Violazione di "un solo gruppo reale"**: se l'autorizzazione importata mostra lo stesso
+capo come `CAPO_GRUPPO` in due gruppi reali diversi nello stesso anno, è **anomalia non
+bloccante** (coerente con lo stile generale di import, D-21/D-24): il sistema non sceglie
+arbitrariamente quale gruppo tenere né blocca l'intero import per una situazione che può
+riflettere un errore nei PDF quanto un caso reale da verificare a mano.
+
+**La revoca di un `CG` (compreso il derivato su `E9001`) è sempre un atto
+amministrativo esplicito** — delibera della Comunità Capi, o dell'Assemblea di Zona per
+`E9001`, oppure dimissioni — mai un effetto collaterale automatico di altri dati. Questo
+richiede un percorso applicativo di revoca per i ruoli non derivati da incarico (oggi
+assente: la sola via era la modifica diretta dei campi da Django admin, senza cascata
+sulle deleghe collegate — gap preesistente, colmato da questa stessa decisione
+introducendo un service layer dedicato di revoca ruolo).
+
 ---
 
 ## 3. Stack

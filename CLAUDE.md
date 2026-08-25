@@ -156,6 +156,17 @@ nel service layer.
 - La revoca o la scadenza di un ruolo deve revocare a cascata le sue deleghe (D-26).
   Se stai scrivendo un filtro sulle deleghe che non guarda il ruolo di origine, manca
   quel pezzo.
+- **La revoca di un ruolo esplicito (RDZ/ADMIN/SEGRETERIA/ecc.) passa sempre da
+  `apps/accounts/ruoli.py::revoca_ruolo_esplicito()`** (D-35), mai da una scrittura
+  diretta di `Ruolo.attivo`/`data_fine` in una view o da Django admin: è l'unico punto
+  che fa la cascata sulle deleghe e, per RDZ, sul `CG` derivato di E9001
+  (`sincronizza_cg_comitato_zona`). Un `Ruolo(origine=DERIVATO)` non si revoca mai da
+  qui: si chiude da solo quando cessa la condizione che lo genera
+  (`sincronizza_ruoli_cg`/`sincronizza_cg_comitato_zona`).
+- **Un CG ha ruolo attivo su un solo gruppo reale** (D-35); l'unica eccezione è il `CG`
+  derivato su `E9001` per chi ha ruolo `RDZ` diretto, che può coesistere col `CG` del
+  proprio gruppo di censimento. Non scrivere codice che assuma un CG possa avere più di
+  un gruppo reale contemporaneamente.
 - Le azioni precluse in impersonificazione (D-27) si verificano nel service layer, non
   nel template: nascondere un pulsante non è un controllo di accesso.
 - Ogni azione compiuta in impersonificazione registra **due** identità, quella

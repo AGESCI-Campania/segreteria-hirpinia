@@ -100,7 +100,14 @@ def altro_gruppo() -> Gruppo:
 @pytest.fixture
 def capo(gruppo) -> Capo:
     c = Capo.objects.create(codice_socio="10001", nome="MARIO", cognome="ROSSI")
-    CensimentoCapo.objects.create(capo=c, anno_scout=ANNO, gruppo=gruppo)
+    CensimentoCapo.objects.create(capo=c, anno_scout=ANNO, gruppo=gruppo, livello_foca=5)
+    return c
+
+
+@pytest.fixture
+def seconda_capa(gruppo) -> Capo:
+    c = Capo.objects.create(codice_socio="10002", nome="MARIA", cognome="BIANCHI")
+    CensimentoCapo.objects.create(capo=c, anno_scout=ANNO, gruppo=gruppo, livello_foca=5)
     return c
 
 
@@ -376,6 +383,130 @@ class TestApplicaPiano:
     def test_piano_non_valido_solleva_errore(self):
         with pytest.raises(ValueError):
             applica_piano_autorizzazioni(costruisci_piano_autorizzazioni([]), utente=None)
+
+
+class TestVincoloCapogruppo:
+    """D-35: un solo gruppo reale per CG, 2 CG per gruppo (1M+1F)."""
+
+    def _record_cg(self, **kwargs):
+        return _record(funzione="CAPO GRUPPO", branca="Adulti", unita="G1 COMUNITA CAPI", **kwargs)
+
+    def test_due_cg_stesso_sesso_il_secondo_non_viene_creato(self, capo, seconda_capa, gruppo):
+        pdf = _pdf(
+            records=[
+                self._record_cg(codice_socio="10001", genere="M"),
+                self._record_cg(codice_socio="10002", genere="M"),
+            ]
+        )
+        piano = costruisci_piano_autorizzazioni([pdf])
+
+        importazione = applica_piano_autorizzazioni(piano, utente=None)
+
+        assert (
+            IncaricoUnita.objects.filter(
+                funzione=FunzioneIncarico.CAPO_GRUPPO, cessato_il__isnull=True
+            ).count()
+            == 1
+        )
+        assert any(
+            a["livello"] == ERRORE and a["campo"] == "CapoGruppo" for a in importazione.anomalie
+        )
+
+    def test_due_cg_sessi_diversi_entrambi_creati_nessuna_anomalia(
+        self, capo, seconda_capa, gruppo
+    ):
+        pdf = _pdf(
+            records=[
+                self._record_cg(codice_socio="10001", genere="M"),
+                self._record_cg(codice_socio="10002", genere="F"),
+            ]
+        )
+        piano = costruisci_piano_autorizzazioni([pdf])
+
+        importazione = applica_piano_autorizzazioni(piano, utente=None)
+
+        assert (
+            IncaricoUnita.objects.filter(
+                funzione=FunzioneIncarico.CAPO_GRUPPO, cessato_il__isnull=True
+            ).count()
+            == 2
+        )
+        assert not any(a["campo"] == "CapoGruppo" for a in importazione.anomalie)
+
+    def test_un_solo_cg_produce_anomalia_non_bloccante(self, capo, gruppo):
+        pdf = _pdf(records=[self._record_cg(codice_socio="10001", genere="M")])
+        piano = costruisci_piano_autorizzazioni([pdf])
+
+        importazione = applica_piano_autorizzazioni(piano, utente=None)
+
+        assert (
+            IncaricoUnita.objects.filter(
+                funzione=FunzioneIncarico.CAPO_GRUPPO, cessato_il__isnull=True
+            ).count()
+            == 1
+        )
+        assert any(
+            a["livello"] == AVVISO
+            and a["campo"] == "CapoGruppo"
+            and "un solo capogruppo" in a["dettaglio"]
+            for a in importazione.anomalie
+        )
+
+    def test_sesso_non_riconosciuto_non_blocca_ma_segnala(self, capo, seconda_capa, gruppo):
+        pdf = _pdf(
+            records=[
+                self._record_cg(codice_socio="10001", genere=""),
+                self._record_cg(codice_socio="10002", genere=""),
+            ]
+        )
+        piano = costruisci_piano_autorizzazioni([pdf])
+
+        importazione = applica_piano_autorizzazioni(piano, utente=None)
+
+        assert (
+            IncaricoUnita.objects.filter(
+                funzione=FunzioneIncarico.CAPO_GRUPPO, cessato_il__isnull=True
+            ).count()
+            == 2
+        )
+        assert not any(
+            a["livello"] == ERRORE and a["campo"] == "CapoGruppo" for a in importazione.anomalie
+        )
+
+    def test_livello_foca_diverso_da_5_produce_anomalia(self, gruppo):
+        c = Capo.objects.create(codice_socio="10003", nome="LUCA", cognome="VERDI")
+        CensimentoCapo.objects.create(capo=c, anno_scout=ANNO, gruppo=gruppo, livello_foca=3)
+        pdf = _pdf(records=[self._record_cg(codice_socio="10003", genere="M")])
+        piano = costruisci_piano_autorizzazioni([pdf])
+
+        importazione = applica_piano_autorizzazioni(piano, utente=None)
+
+        assert any(
+            a["campo"] == "CapoGruppo" and "Livello Fo.Ca." in a["dettaglio"]
+            for a in importazione.anomalie
+        )
+
+    def test_capo_capogruppo_su_due_gruppi_reali_produce_anomalia(self, capo, gruppo, altro_gruppo):
+        pdf1 = _pdf(
+            "e0133.pdf",
+            gruppo_codice="E0133",
+            gruppo_nome="AVELLINO 1",
+            records=[self._record_cg(codice_socio="10001", genere="M")],
+        )
+        pdf2 = _pdf(
+            "e0134.pdf",
+            gruppo_codice="E0134",
+            gruppo_nome="AVELLINO 2",
+            records=[self._record_cg(codice_socio="10001", genere="M")],
+        )
+        piano = costruisci_piano_autorizzazioni([pdf1, pdf2])
+
+        importazione = applica_piano_autorizzazioni(piano, utente=None)
+
+        assert any(
+            a["campo"] == "CapoGruppo" and "più gruppi reali" in a["dettaglio"]
+            for a in importazione.anomalie
+        )
 
 
 class TestEstraiPdfDaFileCaricati:
