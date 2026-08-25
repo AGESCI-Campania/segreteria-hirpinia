@@ -18,6 +18,8 @@ from django.core.cache import cache
 from django.core.mail.backends.base import BaseEmailBackend
 
 if TYPE_CHECKING:  # pragma: no cover
+    from collections.abc import Sequence
+
     from django.core.mail import EmailMessage
 
 logger = logging.getLogger(__name__)
@@ -53,7 +55,7 @@ class ApiEmailBackend(BaseEmailBackend):
         cache.set(self.cache_key, token, min(durata - 60, CACHE_TOKEN_SECONDI))
         return token
 
-    def send_messages(self, email_messages: list[EmailMessage]) -> int:
+    def send_messages(self, email_messages: Sequence[EmailMessage]) -> int:
         if not email_messages:
             return 0
 
@@ -63,7 +65,10 @@ class ApiEmailBackend(BaseEmailBackend):
         for message in email_messages:
             try:
                 self._invia_mime(
-                    mime=message.message().as_bytes(linesep="\r\n"),
+                    # Django tipizza come email.message.Message (stdlib), ma restituisce
+                    # sempre una sua sottoclasse (SafeMIMEText/SafeMIMEMultipart) che
+                    # aggiunge il parametro linesep a as_bytes().
+                    mime=message.message().as_bytes(linesep="\r\n"),  # type: ignore[call-arg]
                     token=token,
                     mittente=message.from_email,
                 )

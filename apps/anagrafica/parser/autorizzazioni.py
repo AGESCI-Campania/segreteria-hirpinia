@@ -76,8 +76,8 @@ def _parse_date(s: str) -> datetime:
         return datetime.min
 
 
-def _extract_pdf_metadata(pages_text: list[str]) -> tuple[int, str, str, str, datetime]:
-    """Return (anno, gruppo_nome, gruppo_codice, raw_header, data_aggiornamento)."""
+def _extract_pdf_metadata(pages_text: list[str]) -> tuple[int, str, str, datetime]:
+    """Return (anno, gruppo_nome, gruppo_codice, data_aggiornamento)."""
     full = "\n".join(pages_text)
     anno = 0
     gruppo_nome = ""
@@ -202,7 +202,7 @@ def _parse_pdf(source: Path | str | BinaryIO) -> tuple[datetime, int, str, str, 
     """
     pages_text: list[str] = []
 
-    with pdfplumber.open(source) as pdf:
+    with pdfplumber.open(source) as pdf:  # type: ignore[arg-type]  # stub troppo stretto per BinaryIO
         for page in pdf.pages:
             text = page.extract_text() or ""
             if _is_formation_page(text):
