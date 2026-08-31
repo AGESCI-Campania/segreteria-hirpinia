@@ -235,3 +235,84 @@ class TestFlussoAnteprimaConferma:
             "luogo",
             "quota_versata",
         ]
+
+
+class TestPartecipazioneInserisciErroriCampo:
+    """Issue GitHub #1: gli errori di validazione devono comparire sul
+    campo corretto (non genericamente in cima al form) e senza i codici di
+    decisione interni (issue #4)."""
+
+    def test_data_inizio_fuori_finestra_su_campo_corretto(
+        self, client, campagna, capo, tipologia, cg_gruppo
+    ):
+        client.force_login(cg_gruppo)
+        response = client.post(
+            f"/contributi/campagne/{campagna.pk}/partecipazioni/inserisci/",
+            {
+                "codice_socio": capo.codice_socio,
+                "tipologia": tipologia.pk,
+                "descrizione_altro": "",
+                "data_inizio": "2020-01-01",
+                "data_fine": "2020-01-08",
+                "luogo": "Base scout",
+                "quota_versata": "10.00",
+                "note": "",
+            },
+        )
+
+        assert response.status_code == 200
+        form = response.context["form"]
+        assert "data_inizio" in form.errors
+        assert "__all__" not in form.errors
+        messaggio = form.errors["data_inizio"][0]
+        assert "01/10/2025" in messaggio
+        assert "30/09/2026" in messaggio
+        assert "D-10" not in messaggio
+
+    def test_descrizione_altro_mancante_su_campo_corretto(self, client, campagna, capo, cg_gruppo):
+        tipologia_altro = TipologiaCampo.objects.get(codice="ALTRO")
+        client.force_login(cg_gruppo)
+        response = client.post(
+            f"/contributi/campagne/{campagna.pk}/partecipazioni/inserisci/",
+            {
+                "codice_socio": capo.codice_socio,
+                "tipologia": tipologia_altro.pk,
+                "descrizione_altro": "",
+                "data_inizio": "2026-06-01",
+                "data_fine": "2026-06-08",
+                "luogo": "Base scout",
+                "quota_versata": "10.00",
+                "note": "",
+            },
+        )
+
+        assert response.status_code == 200
+        form = response.context["form"]
+        assert "descrizione_altro" in form.errors
+        assert "__all__" not in form.errors
+
+    def test_codice_socio_fuori_perimetro_resta_errore_generale(
+        self, client, campagna, tipologia, cg_gruppo
+    ):
+        # ValidationError "piatta" da risolvi_gruppo_competente (nessun
+        # dict per campo): deve restare un errore non-field (nessuna
+        # regressione).
+        client.force_login(cg_gruppo)
+        response = client.post(
+            f"/contributi/campagne/{campagna.pk}/partecipazioni/inserisci/",
+            {
+                "codice_socio": "99999",
+                "tipologia": tipologia.pk,
+                "descrizione_altro": "",
+                "data_inizio": "2026-06-01",
+                "data_fine": "2026-06-08",
+                "luogo": "Base scout",
+                "quota_versata": "10.00",
+                "note": "",
+            },
+        )
+
+        assert response.status_code == 200
+        form = response.context["form"]
+        assert "__all__" in form.errors
+        assert "data_inizio" not in form.errors

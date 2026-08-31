@@ -8,12 +8,15 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.debug import sensitive_post_parameters
 from django.views.generic import ListView
 
 from apps.accounts.inviti import candidati_invito_massivo, invia_inviti_multipli
 from apps.accounts.mixins import RuoloRequiredMixin
 from apps.contributi.disattivazione_gruppo import conta_effetti_disattivazione
+from apps.core.messaggi import messaggio_utente
 from apps.core.mixins import BreadcrumbExtraMixin
 
 from .allowlist import crea_voce_allowlist, elimina_voce_allowlist
@@ -68,7 +71,7 @@ class GruppoCreaView(RuoloRequiredMixin, View):
         try:
             crea_gruppo(utente=request.user, **form.cleaned_data)
         except (PermissionDenied, ValidationError) as exc:
-            form.add_error(None, _messaggio(exc))
+            form.add_error(None, messaggio_utente(exc))
             return render(request, self.template_name, {"form": form})
         messages.success(request, "Gruppo creato.")
         return redirect(reverse("organizzazione:gruppo_lista"))
@@ -100,7 +103,7 @@ class GruppoDisattivaView(RuoloRequiredMixin, View):
         try:
             disattiva_gruppo(utente=request.user, gruppo=gruppo, motivo=form.cleaned_data["motivo"])
         except (PermissionDenied, ValidationError) as exc:
-            form.add_error(None, _messaggio(exc))
+            form.add_error(None, messaggio_utente(exc))
             conteggi = conta_effetti_disattivazione(gruppo, anno_scout_corrente())
             return render(
                 request,
@@ -135,7 +138,7 @@ class GruppoRiattivaView(RuoloRequiredMixin, View):
                 motivo=form.cleaned_data["motivo"],
             )
         except (PermissionDenied, ValidationError) as exc:
-            form.add_error(None, _messaggio(exc))
+            form.add_error(None, messaggio_utente(exc))
             return render(request, self.template_name, {"gruppo": gruppo, "form": form})
         messages.success(request, "Gruppo riattivato.")
         return redirect(reverse("organizzazione:gruppo_lista"))
@@ -163,6 +166,7 @@ class GruppoGestioneView(BreadcrumbExtraMixin, LoginRequiredMixin, View):
         form = GruppoModificaForm(instance=gruppo)
         return render(request, self.template_name, {"gruppo": gruppo, "form": form})
 
+    @method_decorator(sensitive_post_parameters("iban"))
     def post(self, request, codice):
         gruppo = get_object_or_404(Gruppo, pk=codice)
         verifica_ruolo_gestione_dati_gruppo(request.user, gruppo)
@@ -172,7 +176,7 @@ class GruppoGestioneView(BreadcrumbExtraMixin, LoginRequiredMixin, View):
         try:
             modifica_dati_gruppo(utente=request.user, gruppo=gruppo, **form.cleaned_data)
         except (PermissionDenied, ValidationError) as exc:
-            form.add_error(None, _messaggio(exc))
+            form.add_error(None, messaggio_utente(exc))
             return render(request, self.template_name, {"gruppo": gruppo, "form": form})
         messages.success(request, "Dati del gruppo aggiornati.")
         return redirect(reverse("organizzazione:gruppo_gestione", args=[gruppo.codice]))
@@ -242,7 +246,7 @@ class AllowlistCreaView(RuoloRequiredMixin, View):
         try:
             crea_voce_allowlist(utente=request.user, **form.cleaned_data)
         except (PermissionDenied, ValidationError) as exc:
-            form.add_error(None, _messaggio(exc))
+            form.add_error(None, messaggio_utente(exc))
             return render(request, self.template_name, {"form": form})
         messages.success(request, "Voce allowlist creata.")
         return redirect(reverse("organizzazione:allowlist_lista"))
@@ -261,13 +265,7 @@ class AllowlistEliminaView(RuoloRequiredMixin, View):
         try:
             elimina_voce_allowlist(utente=request.user, voce=voce)
         except PermissionDenied as exc:
-            messages.error(request, _messaggio(exc))
+            messages.error(request, messaggio_utente(exc))
             return render(request, self.template_name, {"voce": voce})
         messages.success(request, "Voce allowlist eliminata.")
         return redirect(reverse("organizzazione:allowlist_lista"))
-
-
-def _messaggio(exc: Exception) -> str:
-    if hasattr(exc, "messages"):
-        return "; ".join(exc.messages)
-    return str(exc)

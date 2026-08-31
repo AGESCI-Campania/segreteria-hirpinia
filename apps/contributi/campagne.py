@@ -51,6 +51,16 @@ def verifica_ruolo_gestione_campagna(utente: Utente) -> None:
         )
 
 
+def puo_gestire_campagna(utente: Utente) -> bool:
+    """Versione non-raising di `verifica_ruolo_gestione_campagna`, per
+    decidere in UI se mostrare le azioni di gestione campagna (avvia
+    valutazione, simula, chiudi, genera bonifici, riepilogo PDF, liquida):
+    l'unico punto di verità per l'autorizzazione resta la funzione raising,
+    invocata dalle view/servizi target ad ogni richiesta."""
+    ruoli = ruoli_effettivi(utente)
+    return any(r.tipo in RUOLI_GESTIONE_CAMPAGNA for r in ruoli)
+
+
 def apri_campagna(
     *,
     utente: Utente,

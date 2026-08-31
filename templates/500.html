@@ -1,0 +1,28 @@
+{% load static %}
+{% comment %}
+Django renderizza 500.html senza request e senza context processor (vedi
+django.views.defaults.server_error): niente sezioni_menu, breadcrumb,
+utente, né le variabili del tema (agesci_theme_nome, agesci_theme_logo_*)
+che arrivano solo da agesci_theme.context_processors.agesci_theme.
+Per questo qui NON si estende base.html/agesci_theme/base.html (si
+romperebbe silenziosamente), si carica direttamente il CSS del tema con
+{% static %} (che non dipende dal context) e si usano solo le classi
+utility già definite dal tema, nessun CSS custom.
+{% endcomment %}
+<!DOCTYPE html>
+<html lang="it" data-branca="capi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Errore imprevisto — Zona Hirpinia</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="{% static 'agesci_theme/css/agesci.min.css' %}" rel="stylesheet">
+</head>
+<body class="d-flex flex-column min-vh-100">
+  <main class="container py-5 text-center my-auto">
+    <h1>Si è verificato un errore imprevisto</h1>
+    <p>Il team è già stato avvisato. Riprova tra qualche minuto.</p>
+    <a href="/" class="btn btn-primary">Torna alla home</a>
+  </main>
+</body>
+</html>

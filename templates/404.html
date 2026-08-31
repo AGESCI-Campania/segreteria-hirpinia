@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block page_title %}Pagina non trovata{% endblock %}
+
+{% block sidebar %}{% endblock %}
+
+{% block content %}
+  <h1>Pagina non trovata</h1>
+  <p>L'indirizzo richiesto non corrisponde a nessuna pagina di Catello.</p>
+  <a href="{% url 'core:home' %}" class="btn btn-primary">Torna alla home</a>
+{% endblock %}

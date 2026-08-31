@@ -21,36 +21,44 @@
       <a href="{% url 'contributi:partecipazioni_modello_xlsx' campagna.pk %}" class="btn btn-outline-secondary">
         Scarica modello
       </a>
-      <form method="post" action="{% url 'contributi:campagna_avvia_valutazione' campagna.pk %}" class="d-inline">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-warning">Avvia valutazione</button>
-      </form>
+      {% if puo_gestire_campagna %}
+        <form method="post" action="{% url 'contributi:campagna_avvia_valutazione' campagna.pk %}" class="d-inline">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-warning">Avvia valutazione</button>
+        </form>
+      {% endif %}
     {% elif campagna.stato == "IN_VALUTAZIONE" %}
-      <form method="post" action="{% url 'contributi:campagna_simula' campagna.pk %}" class="d-inline">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-secondary">Simula calcolo</button>
-      </form>
-      <form method="post" action="{% url 'contributi:campagna_chiudi' campagna.pk %}" class="d-inline">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-danger">Chiudi campagna</button>
-      </form>
+      {% if puo_gestire_campagna %}
+        <form method="post" action="{% url 'contributi:campagna_simula' campagna.pk %}" class="d-inline">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-secondary">Simula calcolo</button>
+        </form>
+        <form method="post" action="{% url 'contributi:campagna_chiudi' campagna.pk %}" class="d-inline">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">Chiudi campagna</button>
+        </form>
+      {% endif %}
     {% elif campagna.stato == "CHIUSA" %}
-      <a href="{% url 'contributi:campagna_bonifici' campagna.pk %}" class="btn btn-secondary">
-        Genera bonifici
-      </a>
-      <a href="{% url 'contributi:campagna_riepilogo_pdf' campagna.pk %}" class="btn btn-outline-secondary">
-        Scarica riepilogo PDF
-      </a>
-      <a href="{% url 'contributi:campagna_liquida' campagna.pk %}" class="btn btn-danger">
-        Liquida campagna
-      </a>
+      {% if puo_gestire_campagna %}
+        <a href="{% url 'contributi:campagna_bonifici' campagna.pk %}" class="btn btn-secondary">
+          Genera bonifici
+        </a>
+        <a href="{% url 'contributi:campagna_riepilogo_pdf' campagna.pk %}" class="btn btn-outline-secondary">
+          Scarica riepilogo PDF
+        </a>
+        <a href="{% url 'contributi:campagna_liquida' campagna.pk %}" class="btn btn-danger">
+          Liquida campagna
+        </a>
+      {% endif %}
     {% elif campagna.stato == "LIQUIDATA" %}
-      <a href="{% url 'contributi:campagna_bonifici' campagna.pk %}" class="btn btn-secondary">
-        Genera bonifici
-      </a>
-      <a href="{% url 'contributi:campagna_riepilogo_pdf' campagna.pk %}" class="btn btn-outline-secondary">
-        Scarica riepilogo PDF
-      </a>
+      {% if puo_gestire_campagna %}
+        <a href="{% url 'contributi:campagna_bonifici' campagna.pk %}" class="btn btn-secondary">
+          Genera bonifici
+        </a>
+        <a href="{% url 'contributi:campagna_riepilogo_pdf' campagna.pk %}" class="btn btn-outline-secondary">
+          Scarica riepilogo PDF
+        </a>
+      {% endif %}
       <p class="mb-0">
         Liquidata il {{ campagna.liquidata_il|date:"d/m/Y" }} — riferimento: {{ campagna.riferimento_bonifico }}
       </p>
@@ -121,17 +129,20 @@
           {% if campagna.stato == "IN_VALUTAZIONE" %}
             <td>
               {% if p.stato == "INSERITA" or p.stato == "DOCUMENTI_RICHIESTI" %}
-                <form method="post" action="{% url 'contributi:partecipazione_approva' campagna.pk p.pk %}" class="d-inline">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-sm btn-success">Approva</button>
-                </form>
-                <a href="{% url 'contributi:partecipazione_respingi' campagna.pk p.pk %}" class="btn btn-sm btn-danger">Respingi</a>
-                {% if p.stato == "INSERITA" %}
-                  <form method="post" action="{% url 'contributi:partecipazione_richiedi_documenti' campagna.pk p.pk %}" class="d-inline">
+                {% if puo_valutare_partecipazioni %}
+                  <form method="post" action="{% url 'contributi:partecipazione_approva' campagna.pk p.pk %}" class="d-inline">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-sm btn-outline-secondary">Richiedi documenti</button>
+                    <button type="submit" class="btn btn-sm btn-success">Approva</button>
                   </form>
-                {% else %}
+                  <a href="{% url 'contributi:partecipazione_respingi' campagna.pk p.pk %}" class="btn btn-sm btn-danger">Respingi</a>
+                  {% if p.stato == "INSERITA" %}
+                    <form method="post" action="{% url 'contributi:partecipazione_richiedi_documenti' campagna.pk p.pk %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-outline-secondary">Richiedi documenti</button>
+                    </form>
+                  {% endif %}
+                {% endif %}
+                {% if p.stato == "DOCUMENTI_RICHIESTI" %}
                   <a href="{% url 'contributi:partecipazione_allegato_carica' campagna.pk p.pk %}" class="btn btn-sm btn-outline-secondary">Carica allegato</a>
                 {% endif %}
               {% endif %}

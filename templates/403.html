@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block page_title %}Accesso negato{% endblock %}
+
+{% block sidebar %}{% endblock %}
+
+{% block content %}
+  <h1>Accesso negato</h1>
+  <p>Non hai i permessi per accedere a questa pagina.</p>
+  <a href="{% url 'core:home' %}" class="btn btn-primary">Torna alla home</a>
+{% endblock %}

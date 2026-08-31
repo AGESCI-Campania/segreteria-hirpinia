@@ -9,6 +9,7 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.generic import FormView, ListView, TemplateView
 
+from apps.core.messaggi import messaggio_utente
 from apps.core.mixins import BreadcrumbExtraMixin
 
 from . import deleghe as deleghe_service
@@ -329,16 +330,10 @@ class RuoloAssegnaView(BreadcrumbExtraMixin, RuoloRequiredMixin, View):
                 data_fine=form.cleaned_data["data_fine"],
             )
         except (PermissionDenied, ValidationError, ValueError) as exc:
-            form.add_error(None, _messaggio(exc))
+            form.add_error(None, messaggio_utente(exc))
             return render(request, self.template_name, contesto)
         messages.success(request, f"Ruolo assegnato a {utente_destinatario}.")
         return redirect(reverse_lazy("accounts:ruolo_lista"))
-
-
-def _messaggio(exc: Exception) -> str:
-    if hasattr(exc, "messages"):
-        return "; ".join(exc.messages)
-    return str(exc)
 
 
 class VistaDiProvaView(RuoloRequiredMixin, View):

@@ -1,9 +1,17 @@
 from django.core.exceptions import ImproperlyConfigured
 
 from .base import *  # noqa: F403
-from .base import BASE_DIR, EMAIL_PROVIDER, _env_bool
+from .base import BASE_DIR, EMAIL_PROVIDER, _env_bool, _env_list
 
 DEBUG = False
+
+# Issue GitHub #3: destinatari della mail di errore 500 (AdminEmailHandler,
+# vedi LOGGING sotto). Formato "Nome:email", più voci separate da virgola.
+# Se ImpostazioniPiattaforma.email_su_mailpit è attivo, questa mail (come
+# ogni altra) viene reindirizzata su Mailpit invece che ai destinatari reali
+# (EMAIL_BACKEND sotto): comportamento coerente col resto dell'infrastruttura
+# email, non un'eccezione da correggere qui.
+ADMINS = [tuple(coppia.split(":", 1)) for coppia in _env_list("DJANGO_ADMINS") if ":" in coppia]
 
 # D-17/§8 (docs/email/README.md): console e locmem sono provider di sviluppo/test,
 # mai di produzione. Bloccarlo qui evita che un .env dimenticato faccia
@@ -49,6 +57,11 @@ LOG_DIR.mkdir(parents=True, exist_ok=True)
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "filters": {
+        "require_debug_false": {
+            "()": "django.utils.log.RequireDebugFalse",
+        },
+    },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
@@ -59,6 +72,11 @@ LOGGING = {
             "maxBytes": 10 * 1024 * 1024,
             "backupCount": 5,
         },
+        "mail_admins": {
+            "level": "ERROR",
+            "filters": ["require_debug_false"],
+            "class": "django.utils.log.AdminEmailHandler",
+        },
     },
     "root": {
         "handlers": ["console"],
@@ -68,6 +86,16 @@ LOGGING = {
         "django": {
             "handlers": ["console", "file"],
             "level": "WARNING",
+            "propagate": False,
+        },
+        # Logger dedicato agli errori delle view (issue GitHub #3): il
+        # logger "django" sopra ha propagate=False, quindi il comportamento
+        # di default Django (mail automatica su django.request) è disattivo
+        # e va riattivato qui esplicitamente, a parte per non essere
+        # rumoroso quanto il livello WARNING di "django".
+        "django.request": {
+            "handlers": ["console", "file", "mail_admins"],
+            "level": "ERROR",
             "propagate": False,
         },
         "apps": {

@@ -205,7 +205,8 @@ class Partecipazione(FSMModelMixin, models.Model):
             inizio, fine = self.campagna.finestra_associativa
             if not (inizio <= self.data_inizio <= fine):
                 errors["data_inizio"] = (
-                    f"Fuori dalla finestra dell'anno associativo {self.campagna.anno} (D-10)."
+                    f"Fuori dalla finestra dell'anno associativo {self.campagna.anno}: "
+                    f"deve essere tra {inizio:%d/%m/%Y} e {fine:%d/%m/%Y} (D-10)."
                 )
         if self.data_inizio and self.data_fine and self.data_fine < self.data_inizio:
             errors["data_fine"] = "Non può essere precedente alla data inizio."

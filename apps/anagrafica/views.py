@@ -21,6 +21,7 @@ from openpyxl import Workbook
 
 from apps.accounts.mixins import RuoloRequiredMixin
 from apps.accounts.permessi import gruppi_visibili
+from apps.core.messaggi import messaggio_utente
 from apps.core.mixins import BreadcrumbExtraMixin
 from apps.organizzazione.gruppi import verifica_ruolo_gestione_dati_gruppo
 from apps.organizzazione.models import Gruppo, anno_scout_corrente
@@ -481,12 +482,8 @@ class AssegnaIncaricoView(RuoloRequiredMixin, View):
                 funzione=dati["funzione"],
                 livello_foca=dati["livello_foca"],
             )
-        except PermissionDenied as exc:
-            form.add_error(None, str(exc))
-            return render(request, self.template_name, {"form": form})
-        except ValidationError as exc:
-            messaggio = "; ".join(exc.messages) if hasattr(exc, "messages") else str(exc)
-            form.add_error(None, messaggio)
+        except (PermissionDenied, ValidationError) as exc:
+            form.add_error(None, messaggio_utente(exc))
             return render(request, self.template_name, {"form": form})
 
         messages.success(request, "Incarico assegnato.")
@@ -500,12 +497,8 @@ class CessaIncaricoView(RuoloRequiredMixin, View):
         incarico = get_object_or_404(IncaricoUnita, pk=pk)
         try:
             cessa_incarico_manuale(utente=request.user, incarico=incarico)
-        except PermissionDenied as exc:
-            messages.error(request, str(exc))
-        except ValidationError as exc:
-            messages.error(
-                request, "; ".join(exc.messages) if hasattr(exc, "messages") else str(exc)
-            )
+        except (PermissionDenied, ValidationError) as exc:
+            messages.error(request, messaggio_utente(exc))
         else:
             messages.success(request, "Incarico cessato.")
         return redirect("anagrafica:capo_incarichi", codice_socio=incarico.capo_id)
@@ -645,7 +638,7 @@ class EsportazioneAnagraficaView(RuoloRequiredMixin, View):
             try:
                 righe = genera_righe_esportazione(request.user, filtri)
             except PermissionDenied as exc:
-                form.add_error("gruppo", str(exc))
+                form.add_error("gruppo", messaggio_utente(exc))
             else:
                 colonne = colonne_per_profilo(filtri.profilo_colonne)
                 righe_ordinate = ordina_per_raggruppamento(righe, filtri.raggruppamento)
@@ -670,7 +663,7 @@ class EsportazioneAnagraficaView(RuoloRequiredMixin, View):
         try:
             righe = genera_righe_esportazione(request.user, filtri)
         except PermissionDenied as exc:
-            form.add_error("gruppo", str(exc))
+            form.add_error("gruppo", messaggio_utente(exc))
             return render(request, self.template_name, {**permessi, "form": form})
 
         EsportazioneAnagrafica.objects.create(

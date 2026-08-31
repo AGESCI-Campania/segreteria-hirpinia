@@ -22,6 +22,7 @@ from openpyxl import Workbook
 from apps.accounts.mixins import RuoloRequiredMixin
 from apps.accounts.permessi import gruppi_visibili
 from apps.anagrafica.models import CensimentoCapo
+from apps.core.messaggi import messaggi_per_campo, messaggio_utente
 from apps.core.models import ImpostazioniPiattaforma
 
 from .bonifici import RigaBonifico, genera_righe_bonifici
@@ -31,6 +32,7 @@ from .campagne import (
     avvia_valutazione,
     chiudi_campagna,
     liquida_campagna,
+    puo_gestire_campagna,
 )
 from .forms import (
     AllegatoPartecipazioneForm,
@@ -56,6 +58,7 @@ from .valutazione import (
     RUOLI_VALUTAZIONE_PARTECIPAZIONI,
     approva_partecipazione,
     carica_allegato,
+    puo_valutare_partecipazioni,
     respingi_partecipazione,
     richiedi_documenti,
 )
@@ -96,7 +99,7 @@ class CampagnaCreaView(RuoloRequiredMixin, View):
         try:
             campagna = apri_campagna(utente=request.user, **form.cleaned_data)
         except (PermissionDenied, ValidationError) as exc:
-            form.add_error(None, _messaggio(exc))
+            form.add_error(None, messaggio_utente(exc))
             return render(request, self.template_name, {"form": form})
 
         messages.success(request, "Campagna creata.")
@@ -114,7 +117,12 @@ class CampagnaDettaglioView(RuoloRequiredMixin, View):
             .select_related("capo", "gruppo", "tipologia")
             .prefetch_related("contributi")
         )
-        contesto = {"campagna": campagna, "partecipazioni": partecipazioni}
+        contesto = {
+            "campagna": campagna,
+            "partecipazioni": partecipazioni,
+            "puo_gestire_campagna": puo_gestire_campagna(request.user),
+            "puo_valutare_partecipazioni": puo_valutare_partecipazioni(request.user),
+        }
         if campagna.stato in STATI_CON_VISIBILITA_CROSS_GRUPPO:
             contesto["riepilogo"] = calcola_riepilogo(campagna)
             contesto["totali_altri_gruppi"] = totali_altri_gruppi(request.user, campagna)
@@ -176,7 +184,15 @@ class PartecipazioneInserisciView(RuoloRequiredMixin, View):
                 note=dati["note"],
             )
         except (PermissionDenied, ValidationError) as exc:
-            form.add_error(None, _messaggio(exc))
+            campi = messaggi_per_campo(exc) if isinstance(exc, ValidationError) else None
+            if campi:
+                for campo, messaggio in campi.items():
+                    if campo in form.fields:
+                        form.add_error(campo, messaggio)
+                    else:
+                        form.add_error(None, messaggio)
+            else:
+                form.add_error(None, messaggio_utente(exc))
             return render(request, self.template_name, self._contesto(campagna, form))
 
         messages.success(request, "Partecipazione inserita.")
@@ -361,7 +377,7 @@ class CampagnaAvviaValutazioneView(RuoloRequiredMixin, View):
         try:
             avvia_valutazione(utente=request.user, campagna=campagna)
         except (PermissionDenied, ValidationError) as exc:
-            messages.error(request, _messaggio(exc))
+            messages.error(request, messaggio_utente(exc))
         else:
             messages.success(
                 request,
@@ -379,7 +395,7 @@ class CampagnaSimulaView(RuoloRequiredMixin, View):
         try:
             risultato = simula_calcolo(utente=request.user, campagna=campagna)
         except (PermissionDenied, ValidationError) as exc:
-            messages.error(request, _messaggio(exc))
+            messages.error(request, messaggio_utente(exc))
         else:
             messages.success(
                 request,
@@ -398,7 +414,7 @@ class CampagnaChiudiView(RuoloRequiredMixin, View):
         try:
             chiudi_campagna(request, utente=request.user, campagna=campagna)
         except (PermissionDenied, ValidationError) as exc:
-            messages.error(request, _messaggio(exc))
+            messages.error(request, messaggio_utente(exc))
         else:
             messages.success(request, "Campagna chiusa: importi congelati.")
         return redirect(reverse("contributi:campagna_dettaglio", args=[campagna.pk]))
@@ -425,7 +441,7 @@ class BonificiGeneraView(RuoloRequiredMixin, View):
         try:
             righe = genera_righe_bonifici(campagna, causale=form.cleaned_data["causale"])
         except ValidationError as exc:
-            form.add_error(None, _messaggio(exc))
+            form.add_error(None, messaggio_utente(exc))
             return render(request, self.template_name, {"campagna": campagna, "form": form})
 
         if form.cleaned_data["formato"] == "xlsx":
@@ -458,7 +474,7 @@ class CampagnaLiquidaView(RuoloRequiredMixin, View):
                 riferimento_bonifico=form.cleaned_data["riferimento_bonifico"],
             )
         except (PermissionDenied, ValidationError) as exc:
-            form.add_error(None, _messaggio(exc))
+            form.add_error(None, messaggio_utente(exc))
             return render(request, self.template_name, {"campagna": campagna, "form": form})
 
         messages.success(request, "Campagna liquidata.")
@@ -482,7 +498,7 @@ class CampagnaReportPdfView(RuoloRequiredMixin, View):
         try:
             riepilogo = calcola_riepilogo(campagna)
         except ValidationError as exc:
-            messages.error(request, _messaggio(exc))
+            messages.error(request, messaggio_utente(exc))
             return redirect(reverse("contributi:campagna_dettaglio", args=[campagna.pk]))
 
         html = render_to_string(
@@ -502,7 +518,7 @@ class PartecipazioneApprovaView(RuoloRequiredMixin, View):
         try:
             approva_partecipazione(utente=request.user, partecipazione=partecipazione)
         except (PermissionDenied, ValidationError) as exc:
-            messages.error(request, _messaggio(exc))
+            messages.error(request, messaggio_utente(exc))
         else:
             messages.success(request, "Partecipazione approvata.")
         return redirect(reverse("contributi:campagna_dettaglio", args=[campagna_id]))
@@ -534,7 +550,7 @@ class PartecipazioneRespingiView(RuoloRequiredMixin, View):
                 motivazione=form.cleaned_data["motivazione"],
             )
         except (PermissionDenied, ValidationError) as exc:
-            form.add_error(None, _messaggio(exc))
+            form.add_error(None, messaggio_utente(exc))
             return render(
                 request, self.template_name, {"partecipazione": partecipazione, "form": form}
             )
@@ -550,7 +566,7 @@ class PartecipazioneRichiediDocumentiView(RuoloRequiredMixin, View):
         try:
             richiedi_documenti(utente=request.user, partecipazione=partecipazione)
         except (PermissionDenied, ValidationError) as exc:
-            messages.error(request, _messaggio(exc))
+            messages.error(request, messaggio_utente(exc))
         else:
             messages.success(request, "Documentazione richiesta al gruppo.")
         return redirect(reverse("contributi:campagna_dettaglio", args=[campagna_id]))
@@ -583,7 +599,7 @@ class AllegatoPartecipazioneCaricaView(RuoloRequiredMixin, View):
                 tipo=form.cleaned_data["tipo"],
             )
         except (PermissionDenied, ValidationError) as exc:
-            form.add_error(None, _messaggio(exc))
+            form.add_error(None, messaggio_utente(exc))
             return render(
                 request, self.template_name, {"partecipazione": partecipazione, "form": form}
             )
@@ -629,9 +645,3 @@ def _leggi_righe(nome_file: str, contenuto: bytes):
     if nome_file.lower().endswith(".csv"):
         return leggi_righe_csv(contenuto.decode("utf-8-sig"))
     return leggi_righe_xlsx(contenuto)
-
-
-def _messaggio(exc: Exception) -> str:
-    if hasattr(exc, "messages"):
-        return "; ".join(exc.messages)
-    return str(exc)

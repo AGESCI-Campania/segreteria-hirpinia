@@ -46,6 +46,75 @@ def test_provider_smtp_non_bloccato_in_produzione():
     assert risultato.returncode == 0, risultato.stderr
 
 
+def test_admins_vuoto_senza_env():
+    risultato = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import config.settings.prod; print(config.settings.prod.ADMINS)",
+        ],
+        env={
+            **os.environ,
+            "DJANGO_SETTINGS_MODULE": "config.settings.prod",
+            "SECRET_KEY": "chiave-di-test",
+            "EMAIL_PROVIDER": "smtp",
+        },
+        capture_output=True,
+        text=True,
+        cwd=BASE_DIR,
+    )
+    assert risultato.returncode == 0, risultato.stderr
+    assert risultato.stdout.strip() == "[]"
+
+
+def test_admins_popolato_da_env():
+    risultato = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import config.settings.prod; print(config.settings.prod.ADMINS)",
+        ],
+        env={
+            **os.environ,
+            "DJANGO_SETTINGS_MODULE": "config.settings.prod",
+            "SECRET_KEY": "chiave-di-test",
+            "EMAIL_PROVIDER": "smtp",
+            "DJANGO_ADMINS": "Segreteria:segreteria@example.org,Admin:admin@example.org",
+        },
+        capture_output=True,
+        text=True,
+        cwd=BASE_DIR,
+    )
+    assert risultato.returncode == 0, risultato.stderr
+    assert risultato.stdout.strip() == (
+        "[('Segreteria', 'segreteria@example.org'), ('Admin', 'admin@example.org')]"
+    )
+
+
+def test_logging_ha_mail_admins_su_django_request():
+    risultato = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import config.settings.prod as s\n"
+            "assert 'mail_admins' in s.LOGGING['handlers']\n"
+            "assert 'mail_admins' in s.LOGGING['loggers']['django.request']['handlers']\n"
+            "print('ok')",
+        ],
+        env={
+            **os.environ,
+            "DJANGO_SETTINGS_MODULE": "config.settings.prod",
+            "SECRET_KEY": "chiave-di-test",
+            "EMAIL_PROVIDER": "smtp",
+        },
+        capture_output=True,
+        text=True,
+        cwd=BASE_DIR,
+    )
+    assert risultato.returncode == 0, risultato.stderr
+    assert risultato.stdout.strip() == "ok"
+
+
 def test_email_backend_e_override_mailpit():
     # M-mailpit: in produzione EMAIL_BACKEND punta sempre al backend che
     # decide a ogni invio (via ImpostazioniPiattaforma), non al provider

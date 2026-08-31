@@ -29,6 +29,15 @@ def _verifica_ruolo_valutazione(utente: Utente) -> None:
         )
 
 
+def puo_valutare_partecipazioni(utente: Utente) -> bool:
+    """Versione non-raising di `_verifica_ruolo_valutazione`, per decidere
+    in UI se mostrare Approva/Respingi/Richiedi documenti: l'unico punto di
+    verità per l'autorizzazione resta la funzione raising, invocata dai
+    servizi target ad ogni richiesta."""
+    ruoli = ruoli_effettivi(utente)
+    return any(r.tipo in RUOLI_VALUTAZIONE_PARTECIPAZIONI for r in ruoli)
+
+
 def _verifica_in_valutazione(partecipazione: Partecipazione) -> None:
     if partecipazione.campagna.stato != StatoCampagna.IN_VALUTAZIONE:
         raise ValidationError(

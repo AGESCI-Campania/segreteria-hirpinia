@@ -246,6 +246,7 @@ assenti da `.env.example` (aggiungerle solo se serve cambiare il default):
 | `GUNICORN_WORKERS` | `3` | Numero di worker Gunicorn (`docker/entrypoint.sh`) |
 | `GUNICORN_TIMEOUT` | `120` | Timeout per richiesta, in secondi |
 | `EMAIL_MAILPIT_HOST` / `EMAIL_MAILPIT_PORT` | Vuoto / `1025` | Endpoint di un Mailpit interno usato **solo** quando l'interruttore "Invia le email su Mailpit" in Impostazioni è attivo — vedi [`docs/email/mailpit-override-produzione.md`](email/mailpit-override-produzione.md) |
+| `DJANGO_ADMINS` | Vuoto | Destinatari della mail di errore 500 (`AdminEmailHandler` su `django.request`, livello `ERROR`), formato `Nome:email`, più voci separate da virgola (es. `Segreteria:segreteria@zonahirpinia.org,RDZ:rdz@zonahirpinia.org`). Vuoto = nessuna mail di errore inviata. Se "Invia le email su Mailpit" è attivo in Impostazioni, anche questa mail finisce su Mailpit come tutte le altre |
 
 ### 3. Scegli il reverse proxy
 
