@@ -51,6 +51,29 @@ Applicazione su `http://127.0.0.1:8000/`.
 Guida completa (task disponibili, reset del database, troubleshooting):
 [`docs/docker.md`](docs/docker.md).
 
+### Mailpit in sviluppo (opzionale)
+
+Alternativa a `EMAIL_PROVIDER=console` (default) con interfaccia web invece di
+terminale/file: utile per leggere il rendering HTML reale delle email.
+
+```bash
+mise run mailpit-up          # docker compose up -d mailpit
+```
+
+In `.env`:
+
+```bash
+EMAIL_PROVIDER=smtp
+EMAIL_HOST=localhost
+EMAIL_PORT=1025
+EMAIL_USE_TLS=False
+EMAIL_USE_SSL=False
+```
+
+Riavviare `mise run dev`, poi leggere le email inviate su `http://localhost:8025`
+(mai consegnate davvero). `mise run mailpit-down` per fermarlo. Dettagli:
+[`docs/email/sviluppo-e-test.md`](docs/email/sviluppo-e-test.md).
+
 ## Task disponibili
 
 | Comando | Descrizione |
@@ -89,6 +112,32 @@ docker compose -f compose.prod.yaml -f compose.prod.nginx.yaml up -d --build
 
 Guida completa (variabili d'ambiente, TLS, redeploy, backup, troubleshooting):
 [`docs/docker.md`](docs/docker.md).
+
+### Mailpit in produzione (opzionale)
+
+Interruttore per verificare l'invio reale senza recapitare email vere, senza toccare
+`EMAIL_PROVIDER` né riavviare `web` — si attiva e disattiva da Impostazioni. Il
+container non parte con `up -d --build` sopra: è dietro il profilo Compose `mailpit`.
+
+```bash
+docker compose -f compose.prod.yaml up -d mailpit   # solo se serve l'interruttore
+```
+
+In `.env`:
+
+```bash
+EMAIL_MAILPIT_HOST=mailpit   # nome del servizio Compose
+EMAIL_MAILPIT_PORT=1025
+```
+
+poi riavviare `web` (`docker compose -f compose.prod.yaml up -d --build web`) perché
+legga le variabili, e infine attivare "Invia le email su Mailpit invece del provider
+configurato" in Amministrazione → Impostazioni. L'interfaccia web di Mailpit resta solo
+su `127.0.0.1:8025` (mai esposta pubblicamente): consultarla via tunnel SSH
+(`ssh -L 8025:localhost:8025 utente@server`). **Attenzione**: mentre attivo, nessuna
+email reale (reset password, OTP, inviti) raggiunge i destinatari — ricordarsi di
+disattivarlo a verifica conclusa. Dettagli e rischi:
+[`docs/email/mailpit-override-produzione.md`](docs/email/mailpit-override-produzione.md).
 
 ## Accessi
 

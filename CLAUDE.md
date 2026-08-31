@@ -39,11 +39,13 @@ MIT, copyright Andrea Bruno. Ogni nuovo file sostanziale non deve contraddire
 - `mise` per i task: `mise run dev`, `mise run test`, `mise run lint`.
 - Python ≥ 3.14, Django ≥ 6.0, PostgreSQL ≥ 17.
 - Docker: in sviluppo solo il database gira sempre (`compose.yaml`); Mailpit è nello
-  stesso file ma va avviato esplicitamente (`mise run mailpit-up`), mai con un
-  `docker compose up -d`/`mise run db-up` qualunque. In produzione tutto tranne il
+  stesso file ma va avviato esplicitamente con `mise run mailpit-up` (=
+  `docker compose up -d mailpit`), mai con un `docker compose up -d`/`mise run db-up`
+  qualunque — `mise run mailpit-down` per fermarlo. In produzione tutto tranne il
   reverse proxy (`compose.prod.yaml`), Mailpit compreso ma dietro il profilo Compose
-  `mailpit`, anch'esso mai avviato implicitamente. Guida completa in `docs/docker.md`,
-  vincoli operativi in [Docker e deploy](#docker-e-deploy) più sotto.
+  `mailpit`: si avvia solo con `docker compose -f compose.prod.yaml up -d mailpit`
+  (mai con l'`up -d --build` del deploy normale, che lo salta). Guida completa in
+  `docs/docker.md`, vincoli operativi in [Docker e deploy](#docker-e-deploy) più sotto.
 
 ---
 
@@ -317,6 +319,16 @@ Docker/deploy non deve violare:
   non spostare uno dei due altrove senza spostare anche il volume in
   `compose.prod.yaml`. `email-console.log` in produzione non dovrebbe mai comparire:
   vedi il vincolo su `EMAIL_PROVIDER` in [Email](#email).
+- **Mailpit, dev**: `mise run mailpit-up`, poi in `.env`
+  `EMAIL_PROVIDER=smtp`/`EMAIL_HOST=localhost`/`EMAIL_PORT=1025`/`EMAIL_USE_TLS=False`.
+  Nessun backend nuovo: è il provider `smtp` già esistente puntato su un endpoint
+  locale — vedi `docs/email/sviluppo-e-test.md`.
+- **Mailpit, prod**: `docker compose -f compose.prod.yaml up -d mailpit` (profilo
+  `mailpit`, mai avviato dall'`up -d --build` del deploy normale), poi in `.env`
+  `EMAIL_MAILPIT_HOST=mailpit`/`EMAIL_MAILPIT_PORT=1025` e riavviare `web`. L'interruttore
+  vero e proprio resta però in Impostazioni (`email_su_mailpit`), non in `.env`: la
+  presenza delle due variabili da sola non reindirizza nulla — vedi
+  `docs/email/mailpit-override-produzione.md`.
 
 ---
 
