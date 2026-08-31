@@ -185,3 +185,39 @@ class TestInserimentoManuale:
             descrizione_altro="Campo di specialità",
         )
         assert partecipazione.descrizione_altro == "Campo di specialità"
+
+    def test_note_opzionale_salvata(self, capo, campagna, tipologia, segreteria):
+        partecipazione = _inserisci(
+            utente=segreteria, campagna=campagna, tipologia=tipologia, note="Nota libera."
+        )
+        assert partecipazione.note == "Nota libera."
+
+    def test_note_omessa_resta_vuota(self, capo, campagna, tipologia, segreteria):
+        partecipazione = _inserisci(utente=segreteria, campagna=campagna, tipologia=tipologia)
+        assert partecipazione.note == ""
+
+    def test_luogo_vuoto_accettato(self, capo, campagna, tipologia, segreteria):
+        partecipazione = _inserisci(
+            utente=segreteria, campagna=campagna, tipologia=tipologia, luogo=""
+        )
+        assert partecipazione.luogo == ""
+
+    def test_data_fine_precedente_a_inizio_rifiutata(self, capo, campagna, tipologia, segreteria):
+        with pytest.raises(ValidationError):
+            _inserisci(
+                utente=segreteria,
+                campagna=campagna,
+                tipologia=tipologia,
+                data_inizio=datetime.date(2026, 6, 8),
+                data_fine=datetime.date(2026, 6, 1),
+            )
+
+    def test_data_fine_uguale_a_inizio_accettata(self, capo, campagna, tipologia, segreteria):
+        partecipazione = _inserisci(
+            utente=segreteria,
+            campagna=campagna,
+            tipologia=tipologia,
+            data_inizio=datetime.date(2026, 6, 1),
+            data_fine=datetime.date(2026, 6, 1),
+        )
+        assert partecipazione.data_fine == partecipazione.data_inizio

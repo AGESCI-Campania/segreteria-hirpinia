@@ -905,11 +905,14 @@ della sezione "Proposte di usabilità aggiuntive" già usata per M1-M13 più sot
 3. **M17** — testo o badge accanto al campo quota ("precompilato, modificabile")
    quando il valore è stato riempito automaticamente dalla tipologia, per non farlo
    sembrare un valore già inserito da altri.
-4. **M16** — campo Note visibile anche nel riepilogo/dettaglio partecipazione
+4. ✅ **M16** — campo Note visibile anche nel riepilogo/dettaglio partecipazione
    (`campagna_dettaglio.html`), ma **escluso dall'export bonifici**
    (`apps/contributi/bonifici.py::genera_righe_bonifici` — verificare prima di
    deciderlo) per lo stesso principio di minimizzazione già applicato altrove nel
-   progetto (es. export anagrafica a profilo minimo).
+   progetto (es. export anagrafica a profilo minimo). **Verificato**:
+   `genera_righe_bonifici` aggrega solo per gruppo (`ContributoPartecipazione`), non
+   legge mai campi della singola `Partecipazione` come `note`: nessuna modifica
+   necessaria lì, l'esclusione è già garantita dalla struttura esistente.
 5. **Generale** — valutare se documentare in CLAUDE.md una tabella comparativa dei tre
    perimetri di ricerca soci ora esistenti (D-34, M7, M14), per ridurre il rischio che
    vengano confusi o "unificati" per errore in futuro — modifica alla documentazione,
@@ -939,7 +942,7 @@ Nessuna di queste è implementabile isolatamente: dipendono tutte da M14-M17.
 | M13 | Rifiniture breadcrumb (Home + Template email) | Bassa | ✅ completata | Gap lasciato da M8 (BreadcrumbExtraMixin mancante); icona Home via override locale di un partial del tema (versione 2.4.1 annotata nel commento) |
 | M14 | Autocomplete codice socio (perimetro per ruolo) | Media | ✅ completata | Terzo endpoint di ricerca soci, distinto da D-34 (match esatto) e da M7 (cross-gruppo): filtra per `gruppi_visibili()` come `risolvi_gruppo_competente`; E9001 escluso esplicitamente (A-8), come in `risolvi_gruppo_competente`, perché `gruppi_visibili()` da sola non lo fa |
 | M15 | Tipologia "Altro (specificare)" | Media | ✅ completata | `descrizione_altro` esisteva già sul modello (mai collegato); nuova riga `TipologiaCampo` seedata via migrazione 0004; un test preesistente riusava il codice "ALTRO" per un'altra tipologia fittizia ed è stato rinominato |
-| M16 | Validazioni e campi minori (data_fine, luogo, note) | Bassa | ⬜ da fare | Migrazione additiva unica per `note` + `luogo blank=True`; validazione `data_fine < data_inizio` nel `clean()` |
+| M16 | Validazioni e campi minori (data_fine, luogo, note) | Bassa | ✅ completata | Migrazione additiva unica per `note` + `luogo blank=True`; validazione `data_fine < data_inizio` nel `clean()`; colonna Note aggiunta a `campagna_dettaglio.html` (proposta M18 #4 accolta) |
 | M17 | Quota versata obbligatoria + default 51,50€ CCG/CFM/CFA | Bassa-media | ⬜ da fare | Il default 51,50€ è già seedato e il fallback server-side già esiste; non toccare il fallback usato dall'import massivo |
 
 ---

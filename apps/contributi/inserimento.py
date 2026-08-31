@@ -63,6 +63,7 @@ def inserisci_partecipazione_manuale(
     luogo: str,
     quota_versata: Decimal | None,
     descrizione_altro: str = "",
+    note: str = "",
 ) -> Partecipazione:
     if campagna.stato != StatoCampagna.APERTA or not campagna.in_finestra_inserimento():
         raise ValidationError("La campagna non è aperta all'inserimento o è fuori finestra (D-21).")
@@ -85,6 +86,7 @@ def inserisci_partecipazione_manuale(
         data_fine=data_fine,
         luogo=luogo,
         quota_versata=quota,
+        note=note,
         inserita_da=utente,
     )
     # exclude=["stato"]: vedi commento identico in campagne.py::apri_campagna.

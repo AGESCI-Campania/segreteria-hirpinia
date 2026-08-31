@@ -98,6 +98,7 @@
         <th>Data inizio</th>
         <th>Stato</th>
         <th>Quota versata</th>
+        <th>Note</th>
         <th>Importo</th>
         {% if campagna.stato == "IN_VALUTAZIONE" %}<th>Valutazione</th>{% endif %}
       </tr>
@@ -111,6 +112,7 @@
           <td>{{ p.data_inizio }}</td>
           <td>{{ p.get_stato_display }}</td>
           <td>{{ p.quota_versata }}</td>
+          <td>{{ p.note|truncatewords:15 }}</td>
           <td>
             {% for c in p.contributi.all %}
               {{ c.importo }}{% if c.is_simulazione %} (simulato){% endif %}<br>

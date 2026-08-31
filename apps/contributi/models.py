@@ -154,8 +154,9 @@ class Partecipazione(FSMModelMixin, models.Model):
     descrizione_altro = models.CharField(max_length=200, blank=True)
     data_inizio = models.DateField()
     data_fine = models.DateField()
-    luogo = models.CharField(max_length=200)
+    luogo = models.CharField(max_length=200, blank=True)
     quota_versata = models.DecimalField(max_digits=10, decimal_places=2)
+    note = models.TextField(blank=True)
     stato = FSMField(
         default=StatoPartecipazione.INSERITA, choices=StatoPartecipazione.choices, protected=True
     )
@@ -206,6 +207,8 @@ class Partecipazione(FSMModelMixin, models.Model):
                 errors["data_inizio"] = (
                     f"Fuori dalla finestra dell'anno associativo {self.campagna.anno} (D-10)."
                 )
+        if self.data_inizio and self.data_fine and self.data_fine < self.data_inizio:
+            errors["data_fine"] = "Non può essere precedente alla data inizio."
         if (
             self.tipologia_id
             and self.tipologia.codice == "ALTRO"

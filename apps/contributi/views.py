@@ -158,6 +158,7 @@ class PartecipazioneInserisciView(RuoloRequiredMixin, View):
                 data_fine=dati["data_fine"],
                 luogo=dati["luogo"],
                 quota_versata=dati["quota_versata"],
+                note=dati["note"],
             )
         except (PermissionDenied, ValidationError) as exc:
             form.add_error(None, _messaggio(exc))

@@ -34,13 +34,14 @@ class PartecipazioneManualeForm(forms.Form):
     )
     data_inizio = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}))
     data_fine = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}))
-    luogo = forms.CharField(max_length=200)
+    luogo = forms.CharField(max_length=200, required=False)
     quota_versata = forms.DecimalField(
         max_digits=10,
         decimal_places=2,
         required=False,
         help_text="Vuota: precompilata dalla quota di default della tipologia.",
     )
+    note = forms.CharField(widget=forms.Textarea, required=False)
 
 
 class ImportazionePartecipazioniForm(forms.Form):

@@ -148,6 +148,40 @@ class TestPartecipazione:
         partecipazione = _partecipazione(campagna, capo, gruppo, tipologia)
         partecipazione.full_clean(exclude=["stato"])  # non deve sollevare
 
+    def test_data_fine_precedente_a_inizio_rifiutata(self, campagna, capo, gruppo, tipologia):
+        partecipazione = _partecipazione(
+            campagna,
+            capo,
+            gruppo,
+            tipologia,
+            data_inizio=datetime.date(2026, 6, 8),
+            data_fine=datetime.date(2026, 6, 1),
+        )
+        with pytest.raises(ValidationError):
+            partecipazione.full_clean(exclude=["stato"])
+
+    def test_data_fine_uguale_a_inizio_accettata(self, campagna, capo, gruppo, tipologia):
+        partecipazione = _partecipazione(
+            campagna,
+            capo,
+            gruppo,
+            tipologia,
+            data_inizio=datetime.date(2026, 6, 1),
+            data_fine=datetime.date(2026, 6, 1),
+        )
+        partecipazione.full_clean(exclude=["stato"])  # non deve sollevare
+
+    def test_luogo_vuoto_accettato(self, campagna, capo, gruppo, tipologia):
+        partecipazione = _partecipazione(campagna, capo, gruppo, tipologia, luogo="")
+        partecipazione.full_clean(exclude=["stato"])  # non deve sollevare
+
+    def test_note_opzionale_salvata(self, campagna, capo, gruppo, tipologia):
+        partecipazione = _partecipazione(campagna, capo, gruppo, tipologia, note="Nota libera.")
+        partecipazione.full_clean(exclude=["stato"])
+        partecipazione.save()
+        partecipazione.refresh_from_db()
+        assert partecipazione.note == "Nota libera."
+
 
 class TestTipologiaCampoSeed:
     def test_cfm_cfa_ccg_seminate(self):
