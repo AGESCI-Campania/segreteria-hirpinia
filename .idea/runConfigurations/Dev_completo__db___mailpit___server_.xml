@@ -1,8 +1,0 @@
-<component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Dev completo (db + mailpit + server)" type="CompoundRunConfigurationType">
-    <toRun name="Run db-up" type="MiseTomlTaskRunConfigurationType" />
-    <toRun name="Run mailpit-up" type="MiseTomlTaskRunConfigurationType" />
-    <toRun name="Run dev" type="MiseTomlTaskRunConfigurationType" />
-    <method v="2" />
-  </configuration>
-</component>
