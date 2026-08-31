@@ -124,11 +124,44 @@
     aggiorna();
   }
 
+  function attivaPrecompilazioneQuota(script) {
+    // M17: precompila quota_versata con la quota_default della tipologia
+    // scelta, quando esiste. Solo un aiuto lato client sul cambio
+    // tipologia (mai al caricamento pagina, per non sovrascrivere un
+    // valore già digitato in un ripresentazione del form dopo un errore
+    // di validazione): il campo resta comunque obbligatorio e modificabile,
+    // il fallback reale è server-side in inserimento.py.
+    var quoteDefaultId = script.dataset.quoteDefaultId;
+    var selectTipologia = document.getElementById("id_tipologia");
+    var inputQuota = document.getElementById("id_quota_versata");
+    if (!quoteDefaultId || !selectTipologia || !inputQuota) {
+      return;
+    }
+    var elementoDati = document.getElementById(quoteDefaultId);
+    if (!elementoDati) {
+      return;
+    }
+    var quoteDefault;
+    try {
+      quoteDefault = JSON.parse(elementoDati.textContent);
+    } catch (e) {
+      return;
+    }
+
+    selectTipologia.addEventListener("change", function () {
+      var quota = quoteDefault[selectTipologia.value];
+      if (quota !== undefined) {
+        inputQuota.value = quota;
+      }
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     var script = document.querySelector("script[data-url-autocomplete]");
     if (script) {
       attivaAutocomplete(script);
       attivaDescrizioneAltroCondizionale(script);
+      attivaPrecompilazioneQuota(script);
     }
   });
 })();

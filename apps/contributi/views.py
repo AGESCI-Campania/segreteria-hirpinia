@@ -132,7 +132,22 @@ class PartecipazioneInserisciView(RuoloRequiredMixin, View):
         tipologia_altro_pk = (
             TipologiaCampo.objects.filter(codice="ALTRO").values_list("pk", flat=True).first()
         )
-        return {"campagna": campagna, "form": form, "tipologia_altro_pk": tipologia_altro_pk}
+        # Mappa tipologia -> quota_default (M17): serve al JS per
+        # precompilare quota_versata quando cambia la tipologia scelta; il
+        # fallback server-side in inserimento.py resta il punto di verità,
+        # questo è solo un aiuto in UI, non validato lato client.
+        quote_default = {
+            str(pk): str(quota)
+            for pk, quota in TipologiaCampo.objects.filter(
+                attiva=True, quota_default__isnull=False
+            ).values_list("pk", "quota_default")
+        }
+        return {
+            "campagna": campagna,
+            "form": form,
+            "tipologia_altro_pk": tipologia_altro_pk,
+            "quote_default": quote_default,
+        }
 
     def get(self, request, campagna_id):
         campagna = get_object_or_404(Campagna, pk=campagna_id)

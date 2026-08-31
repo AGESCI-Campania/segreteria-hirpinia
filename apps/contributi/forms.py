@@ -38,8 +38,10 @@ class PartecipazioneManualeForm(forms.Form):
     quota_versata = forms.DecimalField(
         max_digits=10,
         decimal_places=2,
-        required=False,
-        help_text="Vuota: precompilata dalla quota di default della tipologia.",
+        help_text=(
+            "Precompilata dalla quota di default della tipologia, quando esiste (M17); "
+            "resta modificabile."
+        ),
     )
     note = forms.CharField(widget=forms.Textarea, required=False)
 

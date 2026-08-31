@@ -943,7 +943,7 @@ Nessuna di queste è implementabile isolatamente: dipendono tutte da M14-M17.
 | M14 | Autocomplete codice socio (perimetro per ruolo) | Media | ✅ completata | Terzo endpoint di ricerca soci, distinto da D-34 (match esatto) e da M7 (cross-gruppo): filtra per `gruppi_visibili()` come `risolvi_gruppo_competente`; E9001 escluso esplicitamente (A-8), come in `risolvi_gruppo_competente`, perché `gruppi_visibili()` da sola non lo fa |
 | M15 | Tipologia "Altro (specificare)" | Media | ✅ completata | `descrizione_altro` esisteva già sul modello (mai collegato); nuova riga `TipologiaCampo` seedata via migrazione 0004; un test preesistente riusava il codice "ALTRO" per un'altra tipologia fittizia ed è stato rinominato |
 | M16 | Validazioni e campi minori (data_fine, luogo, note) | Bassa | ✅ completata | Migrazione additiva unica per `note` + `luogo blank=True`; validazione `data_fine < data_inizio` nel `clean()`; colonna Note aggiunta a `campagna_dettaglio.html` (proposta M18 #4 accolta) |
-| M17 | Quota versata obbligatoria + default 51,50€ CCG/CFM/CFA | Bassa-media | ⬜ da fare | Il default 51,50€ è già seedato e il fallback server-side già esiste; non toccare il fallback usato dall'import massivo |
+| M17 | Quota versata obbligatoria + default 51,50€ CCG/CFM/CFA | Bassa-media | ✅ completata | `required` sul form, JS precompila su change tipologia (mai al load, per non sovrascrivere un valore già digitato in un ripresentazione dopo errore); fallback server-side e import massivo invariati (verificato) |
 
 ---
 

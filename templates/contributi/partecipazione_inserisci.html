@@ -49,10 +49,12 @@
 
 {% block extra_js %}
   {{ block.super }}
+  {{ quote_default|json_script:"quote-default-tipologia" }}
   <script
     src="{% static 'js/ricerca-socio-contributo-autocomplete.js' %}"
     defer
     data-url-autocomplete="{% url 'contributi:partecipazioni_ricerca_soci_autocomplete' campagna.pk %}"
     data-tipologia-altro-pk="{{ tipologia_altro_pk|default_if_none:'' }}"
+    data-quote-default-id="quote-default-tipologia"
   ></script>
 {% endblock %}

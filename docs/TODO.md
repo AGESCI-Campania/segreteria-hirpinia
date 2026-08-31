@@ -48,5 +48,5 @@ Questo è un elenco di modifiche da fare aggiornato man mano che vanno avanti i 
   - [x] "Tipologia partecipazione" deve prevedere anche "Altro (specificare)", in questo caso compare subito sotto un altro field che sarà obbligatorio → M15
   - [x] "Data fine" deve essere successiva a "Data inizio" (al massimo stessa data, non precedente) → M16
   - [x] "Luogo" non è obbligatorio → M16
-  - [ ] "Quota versata" è obbligatorio, ma con le tipologie CCG, CFM e CFA viene inzializzato a 51,50€ → M17
+  - [x] "Quota versata" è obbligatorio, ma con le tipologie CCG, CFM e CFA viene inzializzato a 51,50€ → M17
   - [x] Serve un campo "Note" dove inserire note libere → M16
