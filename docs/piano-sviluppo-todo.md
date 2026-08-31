@@ -895,16 +895,23 @@ Emerse durante l'esplorazione di M14-M17, non richieste esplicitamente nel TODO 
 discutere e decidere con l'utente prima dell'implementazione, sullo stesso modello
 della sezione "Proposte di usabilità aggiuntive" già usata per M1-M13 più sotto.
 
-1. **M14** — mostrare il gruppo di censimento accanto a ciascun risultato
+1. ✅ **M14** — mostrare il gruppo di censimento accanto a ciascun risultato
    dell'autocomplete (stesso arricchimento non sensibile già fatto in M7), utile
    perché qui il perimetro può includere più gruppi (SEGRETERIA/ADMIN/RDZ).
-2. **M15** — tenere "Altro" come ultima opzione nella tendina "Tipologia
+   **Implementato**: l'endpoint restituiva già `gruppo` nel JSON (mai usato in UI);
+   solo `mostraRisultati()` in `ricerca-socio-contributo-autocomplete.js` aggiornata
+   per includerlo negli elementi della lista a discesa, mentre l'etichetta dopo la
+   selezione resta quella già decisa in M14 (senza gruppo).
+2. ✅ **M15** — tenere "Altro" come ultima opzione nella tendina "Tipologia
    partecipazione" (non alfabetica): `TipologiaCampo.Meta.ordering = ["codice"]` la
    piazzerebbe prima delle altre ("ALTRO" < "CCG"), serve un ordinamento esplicito nel
-   form.
-3. **M17** — testo o badge accanto al campo quota ("precompilato, modificabile")
+   form. **Implementato**: `queryset.order_by(Case(When(codice="ALTRO", then=1),
+   default=0), "codice")` in `PartecipazioneManualeForm`.
+3. ✅ **M17** — testo o badge accanto al campo quota ("precompilato, modificabile")
    quando il valore è stato riempito automaticamente dalla tipologia, per non farlo
-   sembrare un valore già inserito da altri.
+   sembrare un valore già inserito da altri. **Implementato**: badge Bootstrap
+   nascosto di default, mostrato dal JS al cambio tipologia insieme alla
+   precompilazione, nascosto di nuovo al primo `input` manuale sul campo.
 4. ✅ **M16** — campo Note visibile anche nel riepilogo/dettaglio partecipazione
    (`campagna_dettaglio.html`), ma **escluso dall'export bonifici**
    (`apps/contributi/bonifici.py::genera_righe_bonifici` — verificare prima di
@@ -913,12 +920,14 @@ della sezione "Proposte di usabilità aggiuntive" già usata per M1-M13 più sot
    `genera_righe_bonifici` aggrega solo per gruppo (`ContributoPartecipazione`), non
    legge mai campi della singola `Partecipazione` come `note`: nessuna modifica
    necessaria lì, l'esclusione è già garantita dalla struttura esistente.
-5. **Generale** — valutare se documentare in CLAUDE.md una tabella comparativa dei tre
+5. ✅ **Generale** — valutare se documentare in CLAUDE.md una tabella comparativa dei tre
    perimetri di ricerca soci ora esistenti (D-34, M7, M14), per ridurre il rischio che
    vengano confusi o "unificati" per errore in futuro — modifica alla documentazione,
-   non al codice, da proporre separatamente.
+   non al codice, da proporre separatamente. **Implementato**: nuova sezione "Ricerca
+   soci: tre perimetri distinti, non unificare" in CLAUDE.md con tabella comparativa.
 
-Nessuna di queste è implementabile isolatamente: dipendono tutte da M14-M17.
+Tutte e cinque discusse e accolte con l'utente il 2026-08-31; nessuna era
+implementabile isolatamente prima, dato che dipendevano da M14-M17.
 
 ---
 

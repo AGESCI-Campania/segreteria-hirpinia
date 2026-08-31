@@ -146,6 +146,34 @@ nel service layer.
 - **Non assumere un solo account per gruppo**: il limite è `Gruppo.account_consentiti`,
   e la Comitato di Zona ne ha due (D-33).
 
+### Ricerca soci: tre perimetri distinti, non unificare
+
+Esistono tre endpoint/funzioni di ricerca soci, ciascuno con perimetro e finalità diversi
+per decisione esplicita di prodotto. Non riusare l'uno al posto dell'altro, non fonderli
+"per DRY": la differenza è la regola, non una duplicazione accidentale.
+
+| | `cerca_capo_per_codice_socio` (D-34) | `RicercaSociAutocompleteView` (M7) | `PartecipazioniRicercaSociAutocompleteView` (M14) |
+| --- | --- | --- | --- |
+| File | `apps/anagrafica/incarichi.py` | `apps/anagrafica/views.py` | `apps/contributi/views.py` |
+| Usato da | "Cerca capo censito altrove" (Gestione gruppo) | Assegnazione incarico manuale | Inserimento manuale partecipazione |
+| Perimetro | Nessuno: cerca su tutta l'anagrafica | Tutti i gruppi (non `gruppi_visibili`), per decisione utente | `gruppi_visibili(utente, anno)`, **esclude E9001** (A-8) |
+| Match | Solo codice socio **esatto** | Nome, cognome, gruppo, codice socio (parziale) | Nome, cognome, gruppo, codice socio (parziale) |
+| Elenco sfogliabile | **No** | Sì | Sì |
+| Campi restituiti | Nome, cognome, gruppo di censimento — mai recapiti | Nome, cognome, gruppo (+ `gruppo_codice` per precompilare) | Nome, cognome, gruppo |
+
+Punti da non confondere:
+- Il perimetro di D-34 e quello di M14 sembrano simili (entrambi legati al censimento) ma
+  non coincidono: D-34 non ha perimetro di gruppo perché è pensato per capi già fuori dal
+  perimetro dell'utente (per questo niente elenco, solo match esatto); M14 filtra invece su
+  `gruppi_visibili()` perché l'inserimento partecipazioni deve restare dentro il perimetro
+  di chi inserisce.
+- M7 è l'unico dei tre a coprire esplicitamente **tutti** i gruppi indipendentemente dal
+  ruolo di chi cerca: è una decisione di prodotto della milestone, non un'omissione del
+  filtro di perimetro.
+- Solo M14 esclude E9001 esplicitamente (i censiti in Comitato di Zona non generano
+  contributo, A-8): non è un caso che gli altri due non lo facciano, dato che la ricerca
+  capo/incarico non ha lo stesso vincolo.
+
 ### Ruoli, perimetro, impersonificazione
 
 - **Mai ricavare il perimetro da `utente.gruppo`.** Quel campo identifica l'account

@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Case, When
 
 from .models import Campagna, TipologiaCampo
 
@@ -25,7 +26,13 @@ class CampagnaForm(forms.ModelForm):
 
 class PartecipazioneManualeForm(forms.Form):
     codice_socio = forms.CharField(max_length=20, widget=forms.HiddenInput)
-    tipologia = forms.ModelChoiceField(queryset=TipologiaCampo.objects.filter(attiva=True))
+    tipologia = forms.ModelChoiceField(
+        # "Altro" sempre in fondo alla tendina (M18 #2): l'ordinamento per
+        # codice del modello lo piazzerebbe prima di CCG.
+        queryset=TipologiaCampo.objects.filter(attiva=True).order_by(
+            Case(When(codice="ALTRO", then=1), default=0), "codice"
+        )
+    )
     descrizione_altro = forms.CharField(
         label='Specificare "Altro"',
         max_length=200,

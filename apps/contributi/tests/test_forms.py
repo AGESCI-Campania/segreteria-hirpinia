@@ -48,3 +48,11 @@ class TestPartecipazioneManualeForm:
         form = PartecipazioneManualeForm(data=_dati(note="Nota libera."))
         assert form.is_valid(), form.errors
         assert form.cleaned_data["note"] == "Nota libera."
+
+    def test_altro_ultima_opzione_tendina(self):
+        # M18 #2: l'ordinamento per codice del modello piazzerebbe "ALTRO"
+        # prima di "CCG" (alfabetico); qui deve restare sempre in fondo.
+        form = PartecipazioneManualeForm()
+        codici = list(form.fields["tipologia"].queryset.values_list("codice", flat=True))
+        assert codici[-1] == "ALTRO"
+        assert codici == sorted(codici[:-1]) + ["ALTRO"]

@@ -56,7 +56,12 @@
         var voce = document.createElement("li");
         voce.className = "list-group-item list-group-item-action";
         voce.style.cursor = "pointer";
-        voce.textContent = etichetta(risultato);
+        // Gruppo di censimento in coda (M18 #1): non è dato riservato
+        // (a differenza dei recapiti, stesso principio già applicato in
+        // M7), utile qui perché il perimetro può includere più gruppi
+        // per SEGRETERIA/ADMIN/RDZ. L'etichetta dopo la selezione resta
+        // invece quella richiesta dal TODO M14, senza gruppo.
+        voce.textContent = etichetta(risultato) + " — " + risultato.gruppo;
         voce.addEventListener("click", function () {
           selezionaRisultato(risultato);
         });
@@ -134,6 +139,7 @@
     var quoteDefaultId = script.dataset.quoteDefaultId;
     var selectTipologia = document.getElementById("id_tipologia");
     var inputQuota = document.getElementById("id_quota_versata");
+    var badge = document.getElementById("quota-badge-precompilato");
     if (!quoteDefaultId || !selectTipologia || !inputQuota) {
       return;
     }
@@ -152,8 +158,19 @@
       var quota = quoteDefault[selectTipologia.value];
       if (quota !== undefined) {
         inputQuota.value = quota;
+        if (badge) {
+          badge.classList.remove("d-none");
+        }
       }
     });
+
+    // M18 #3: il badge sparisce non appena l'utente modifica manualmente
+    // il valore precompilato, per non farlo sembrare ancora "automatico".
+    if (badge) {
+      inputQuota.addEventListener("input", function () {
+        badge.classList.add("d-none");
+      });
+    }
   }
 
   document.addEventListener("DOMContentLoaded", function () {

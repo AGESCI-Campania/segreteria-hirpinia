@@ -39,6 +39,11 @@
         <div class="mb-3"{% if field.name == "descrizione_altro" %} id="campo-descrizione-altro"{% endif %}>
           {{ field.label_tag }}
           {{ field }}
+          {% if field.name == "quota_versata" %}
+            <span class="badge text-bg-secondary d-none" id="quota-badge-precompilato">
+              Precompilato, modificabile
+            </span>
+          {% endif %}
           {{ field.errors }}
         </div>
       {% endif %}
