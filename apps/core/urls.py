@@ -1,6 +1,7 @@
 from django.urls import path
 
 from apps.core.views import (
+    CaricaImmagineTemplateEmailView,
     HomeView,
     ImpostazioniPiattaformaView,
     TemplateEmailListaView,
@@ -21,5 +22,10 @@ urlpatterns = [
         "impostazioni/template-email/<int:pk>/",
         TemplateEmailModificaView.as_view(),
         name="template_email_modifica",
+    ),
+    path(
+        "impostazioni/template-email/carica-immagine/",
+        CaricaImmagineTemplateEmailView.as_view(),
+        name="template_email_carica_immagine",
     ),
 ]

@@ -50,6 +50,29 @@ class TemplateEmail(models.Model):
         return self.get_codice_display()
 
 
+class ImmagineTemplateEmail(models.Model):
+    """Libreria di immagini caricabili dall'editor Rich Text dei template
+    email: a differenza delle altre `FileField` del progetto (import CSV/PDF,
+    allegati partecipazioni), qui `.url` è pensato per essere pubblico — i
+    client email dei destinatari devono poterla scaricare senza sessione
+    Django. Nessun dato personale: solo contenuto scelto apposta
+    dall'amministratore per comparire nelle email. Nessuna UI di elenco o
+    cancellazione per ora (limite dichiarato, non un'omissione)."""
+
+    file = models.ImageField(upload_to="template_email_immagini/%Y/")
+    caricata_da = models.ForeignKey(
+        "accounts.Utente", on_delete=models.SET_NULL, null=True, blank=True
+    )
+    caricata_il = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Immagine template email"
+        verbose_name_plural = "Immagini template email"
+
+    def __str__(self) -> str:
+        return self.file.name or ""
+
+
 class ImpostazioniPiattaforma(models.Model):
     id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
     causale_bonifico_default = models.CharField(max_length=200, blank=True)
@@ -79,4 +102,9 @@ class ImpostazioniPiattaforma(models.Model):
         return cls.objects.get_or_create(pk=1)[0]
 
 
-__all__ = ["CodiceTemplateEmail", "ImpostazioniPiattaforma", "TemplateEmail"]
+__all__ = [
+    "CodiceTemplateEmail",
+    "ImmagineTemplateEmail",
+    "ImpostazioniPiattaforma",
+    "TemplateEmail",
+]

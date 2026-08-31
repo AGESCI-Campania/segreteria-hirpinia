@@ -66,17 +66,55 @@
   {{ block.super }}
   <script src="{% static 'vendor/tinymce/tinymce.min.js' %}"></script>
   <script>
+    // Pattern standard Django per leggere un cookie non-HttpOnly da JS
+    // (CSRF_COOKIE_HTTPONLY è False, mai cambiato in questo progetto):
+    // serve solo qui, per allegare X-CSRFToken all'upload immagini via fetch,
+    // che non passa da un <form> e quindi non ha {% csrf_token %}.
+    function leggiCookie(nome) {
+      const valore = document.cookie
+        .split("; ")
+        .find((riga) => riga.startsWith(nome + "="));
+      return valore ? decodeURIComponent(valore.split("=")[1]) : "";
+    }
+
     if (window.tinymce) {
       tinymce.init({
         selector: "#id_corpo_html",
         license_key: "gpl",
         base_url: "{% static 'vendor/tinymce' %}",
         suffix: ".min",
-        plugins: "lists link autolink table",
-        toolbar: "undo redo | bold italic underline | bullist numlist | link table",
+        plugins: "lists link autolink table image",
+        toolbar: "undo redo | bold italic underline | bullist numlist | link table image",
         menubar: false,
         branding: false,
         height: 400,
+        // Tabelle "email-safe" (M-tabelle-immagini): attributi HTML classici
+        // invece di CSS dove possibile, più compatibili coi client di posta.
+        // Vedi apps/core/invio_email.py::_ATTRIBUTI_AMMESSI, che deve
+        // ammettere esattamente ciò che TinyMCE produce con questa config.
+        table_default_attributes: { border: "1" },
+        table_style_by_css: false,
+        table_use_colgroups: true,
+        table_sizing_mode: "fixed",
+        images_upload_handler: (blobInfo) =>
+          new Promise((resolve, reject) => {
+            const formData = new FormData();
+            formData.append("file", blobInfo.blob(), blobInfo.filename());
+            fetch("{% url 'core:template_email_carica_immagine' %}", {
+              method: "POST",
+              headers: { "X-CSRFToken": leggiCookie("csrftoken") },
+              body: formData,
+            })
+              .then((risposta) => risposta.json())
+              .then((dati) => {
+                if (dati.location) {
+                  resolve(dati.location);
+                } else {
+                  reject(dati.error || "Errore di caricamento.");
+                }
+              })
+              .catch(() => reject("Errore di rete durante il caricamento."));
+          }),
       });
     }
   </script>

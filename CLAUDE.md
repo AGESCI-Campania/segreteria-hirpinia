@@ -271,7 +271,26 @@ utility del tema (`bg-ag-viola`, `text-ag-*`, `{% branca_bg %}`) e i blocchi di
 porta il proprio CSS/JS di toolbar, vendorizzato in `static/vendor/tinymce/` (nessuna
 API key, nessun CDN esterno — build self-hosted, licenza GPL in
 `static/vendor/tinymce/LICENSE-tinymce.md`). Limitata alla sola pagina di modifica
-template email: non toccare né estendere per altre parti del tema.
+template email: non toccare né estendere per altre parti del tema. I plugin `table` e
+`image` sono vendorizzati (stessa versione 8.8.2 del core, stessa fonte, stesso file di
+licenza) — se serve un altro plugin, stessa procedura: scaricare **la stessa versione
+esatta** del core, mai `latest`.
+- L'allowlist di `apps/core/invio_email.py::sanifica_html()` per tabelle/colonne
+  (`table`/`col`) è stata verificata **empiricamente** contro il markup reale prodotto
+  da TinyMCE, non dedotta dalla documentazione: la larghezza arriva sempre come
+  `style="width:...px"`, mai come attributo `width` — la documentazione ufficiale di
+  TinyMCE per `<col>` dichiara il contrario (solo attributo), ma non è quello che il
+  plugin genera davvero in questa versione. Se cambi versione di TinyMCE, riverifica
+  prima di toccare l'allowlist: non fidarti della documentazione da sola.
+- Le immagini caricate dall'editor (`ImmagineTemplateEmail`) sono l'**unica**
+  `FileField` del progetto il cui `.url` è pensato per essere pubblico (mai
+  un'eccezione per le altre: import CSV/PDF e allegati partecipazioni restano dietro
+  view autenticate, contengono dati personali). L'URL assoluto si costruisce con
+  `f"{settings.SITE_URL}{...}"`, mai `request.build_absolute_uri()` — stessa
+  convenzione già in uso per i link nelle email (`apps/accounts/inviti.py`).
+- La validazione del contenuto (Pillow, tramite `forms.ImageField`) vive nel **form**
+  (`CaricaImmagineTemplateEmailForm`), non nel model field: `Model.full_clean()` da
+  solo non la esegue, è un comportamento di Django facilmente frainteso.
 
 ### Parsing PDF
 

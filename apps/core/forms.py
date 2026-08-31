@@ -30,3 +30,11 @@ class TemplateEmailForm(forms.ModelForm):
             "corpo_html": forms.Textarea(attrs={"id": "id_corpo_html", "rows": 15}),
             "corpo_testo": forms.Textarea(attrs={"rows": 10}),
         }
+
+
+class CaricaImmagineTemplateEmailForm(forms.Form):
+    """`forms.ImageField` (non il campo modello) è ciò che verifica
+    davvero il contenuto con Pillow: `Model.full_clean()` da solo non lo fa
+    (il controllo vive solo nel form field di Django)."""
+
+    file = forms.ImageField()

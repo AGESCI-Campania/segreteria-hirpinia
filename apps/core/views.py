@@ -1,5 +1,7 @@
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views import View
@@ -8,13 +10,19 @@ from django.views.generic import ListView, TemplateView
 from apps.accounts.mixins import RuoloRequiredMixin
 from apps.accounts.models import Ruolo
 
-from .forms import ImpostazioniPiattaformaForm, TemplateEmailForm
+from .forms import (
+    CaricaImmagineTemplateEmailForm,
+    ImpostazioniPiattaformaForm,
+    TemplateEmailForm,
+)
 from .invio_email import invia_email_template, sanifica_html
 from .mixins import BreadcrumbExtraMixin
-from .models import ImpostazioniPiattaforma, TemplateEmail
+from .models import ImmagineTemplateEmail, ImpostazioniPiattaforma, TemplateEmail
 from .template_email import CONTESTO_ESEMPIO, VARIABILI_PER_CODICE, sostituisci_placeholder
 
 RUOLI_GESTIONE_IMPOSTAZIONI = frozenset({Ruolo.Tipo.ADMIN, Ruolo.Tipo.SEGRETERIA, Ruolo.Tipo.RDZ})
+
+DIMENSIONE_MASSIMA_IMMAGINE_BYTES = 5 * 1024 * 1024
 
 
 class HomeView(LoginRequiredMixin, TemplateView):
@@ -130,3 +138,31 @@ class TemplateEmailModificaView(BreadcrumbExtraMixin, RuoloRequiredMixin, View):
         else:
             messages.success(request, "Template aggiornato.")
         return redirect(reverse("core:template_email_modifica", args=[template.pk]))
+
+
+class CaricaImmagineTemplateEmailView(RuoloRequiredMixin, View):
+    """Upload immagini per l'editor Rich Text (M-tabelle-immagini): stesso
+    perimetro di `ImpostazioniPiattaformaView`, mai un accesso pubblico. A
+    differenza delle altre `FileField` del progetto, qui `.url` è pensato per
+    essere pubblico (i client email dei destinatari lo scaricano senza
+    sessione Django) — vedi `ImmagineTemplateEmail`."""
+
+    ruoli_ammessi = RUOLI_GESTIONE_IMPOSTAZIONI
+    ruoli_ammessi_solo_diretti = True
+
+    def post(self, request):
+        file = request.FILES.get("file")
+        if file is not None and file.size > DIMENSIONE_MASSIMA_IMMAGINE_BYTES:
+            return JsonResponse({"error": "File troppo grande (max 5 MB)."}, status=400)
+
+        # forms.ImageField (non il campo modello) verifica davvero il
+        # contenuto con Pillow: Model.full_clean() da solo non lo farebbe.
+        form = CaricaImmagineTemplateEmailForm(request.POST, request.FILES)
+        if not form.is_valid():
+            errori = "; ".join(form.errors.get("file", ["File non valido."]))
+            return JsonResponse({"error": errori}, status=400)
+
+        immagine = ImmagineTemplateEmail.objects.create(
+            file=form.cleaned_data["file"], caricata_da=request.user
+        )
+        return JsonResponse({"location": f"{settings.SITE_URL}{immagine.file.url}"})

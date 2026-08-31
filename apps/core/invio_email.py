@@ -9,6 +9,7 @@ il messaggio."""
 from __future__ import annotations
 
 import bleach
+from bleach.css_sanitizer import CSSSanitizer
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 
@@ -38,9 +39,31 @@ _TAG_AMMESSI = [
     "tr",
     "th",
     "td",
+    "colgroup",
+    "col",
+    "img",
 ]
-_ATTRIBUTI_AMMESSI = {"a": ["href", "title"]}
+# Attributi tabelle/immagini (M-tabelle-immagini): allowlist verificata
+# empiricamente contro il markup reale prodotto da TinyMCE 8.8.2 (vedi
+# template_email_modifica.html), non solo dedotta dalla documentazione — la
+# larghezza di <table> e <col> arriva SEMPRE come `style="width:...px"`,
+# mai come attributo `width` (la documentazione TinyMCE per <col> dichiara
+# solo l'attributo, ma non è quello che il plugin genera davvero). <td>/<th>
+# non portano mai una propria larghezza: vive solo su <col>.
+_ATTRIBUTI_AMMESSI = {
+    "a": ["href", "title"],
+    "table": ["border", "cellpadding", "cellspacing", "style"],
+    "td": ["colspan", "rowspan"],
+    "th": ["colspan", "rowspan"],
+    "col": ["style"],
+    "img": ["src", "alt", "width", "height"],
+}
 _PROTOCOLLI_AMMESSI = ["http", "https", "mailto"]
+# Solo "width": è l'unica proprietà CSS che serve a "bordi e larghezza" (il
+# bordo è già coperto dall'attributo HTML `border`). Un allowlist più ampio
+# sarebbe superficie di attacco non necessaria.
+_PROPRIETA_CSS_AMMESSE = ["width"]
+_CSS_SANITIZER = CSSSanitizer(allowed_css_properties=_PROPRIETA_CSS_AMMESSE)
 
 # Fallback hardcoded (M8.3): stessi file .txt già usati prima di M8, letti
 # come sorgente grezza (mai renderizzati con l'autoescape di Django, che
@@ -81,6 +104,7 @@ def sanifica_html(html: str) -> str:
         tags=_TAG_AMMESSI,
         attributes=_ATTRIBUTI_AMMESSI,
         protocols=_PROTOCOLLI_AMMESSI,
+        css_sanitizer=_CSS_SANITIZER,
         strip=True,
     )
 
