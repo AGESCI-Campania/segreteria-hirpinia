@@ -44,3 +44,28 @@ def test_provider_smtp_non_bloccato_in_produzione():
     risultato = _importa_prod_settings(EMAIL_PROVIDER="smtp")
 
     assert risultato.returncode == 0, risultato.stderr
+
+
+def test_email_backend_e_override_mailpit():
+    # M-mailpit: in produzione EMAIL_BACKEND punta sempre al backend che
+    # decide a ogni invio (via ImpostazioniPiattaforma), non al provider
+    # scelto direttamente — vedi apps/core/email/override.py.
+    risultato = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import config.settings.prod; print(config.settings.prod.EMAIL_BACKEND)",
+        ],
+        env={
+            **os.environ,
+            "DJANGO_SETTINGS_MODULE": "config.settings.prod",
+            "SECRET_KEY": "chiave-di-test",
+            "EMAIL_PROVIDER": "smtp",
+        },
+        capture_output=True,
+        text=True,
+        cwd=BASE_DIR,
+    )
+
+    assert risultato.returncode == 0, risultato.stderr
+    assert risultato.stdout.strip() == "apps.core.email.override.MailpitOverridableBackend"

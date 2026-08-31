@@ -14,6 +14,21 @@ services:
       timeout: 5s
       retries: 5
 
+  # Opzionale: attivo solo con `docker compose -f compose.prod.yaml up -d
+  # mailpit` (o `--profile mailpit up -d`), mai da un `up -d` senza
+  # argomenti — chi non usa l'interruttore "Invia le email su Mailpit" in
+  # Impostazioni non deve far girare un container in più. Interfaccia web
+  # solo su loopback, come "web" sotto: mai esposta pubblicamente. Con
+  # questo servizio attivo, impostare EMAIL_MAILPIT_HOST=mailpit in .env
+  # (il nome del servizio, risolto sulla rete Docker interna).
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: catello_mailpit
+    restart: unless-stopped
+    profiles: ["mailpit"]
+    ports:
+      - "127.0.0.1:8025:8025"
+
   web:
     build:
       context: .

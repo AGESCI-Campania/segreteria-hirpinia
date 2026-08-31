@@ -1,6 +1,9 @@
-# `console` e `locmem` — sviluppo e test
+# `console`, `locmem` e Mailpit — sviluppo e test
 
 Nessuna configurazione lato provider: sono backend Django standard, già pronti all'uso.
+Mailpit fa eccezione solo perché serve un container in più (opzionale), non perché
+richieda un backend dedicato — usa lo stesso provider `smtp` già documentato in
+[`smtp.md`](smtp.md), solo puntato su un catcher locale invece che su un server reale.
 
 ## `console` — sviluppo locale
 
@@ -33,6 +36,37 @@ tail -f log/email-console.log
 
 Il file si trova nella cartella `log/`, già esclusa da `.gitignore`: non va mai
 versionato, anche se contiene solo email di prova.
+
+## Mailpit — alternativa a `console` con interfaccia web
+
+`console` stampa le email su terminale/file: leggibile, ma scomodo per verificare
+rendering HTML, allegati o intestazioni come li vedrebbe davvero un client di posta.
+Mailpit è un catcher SMTP con interfaccia web che cattura ogni email inviata con
+`EMAIL_PROVIDER=smtp` puntato su di lui, senza consegnarla mai davvero.
+
+```bash
+mise run mailpit-up   # docker compose up -d mailpit — vedi docs/docker.md
+```
+
+```bash
+# .env
+EMAIL_PROVIDER=smtp
+DEFAULT_FROM_EMAIL=Catello <segreteria@zonahirpinia.org>
+EMAIL_HOST=localhost
+EMAIL_PORT=1025
+EMAIL_USE_TLS=False
+EMAIL_USE_SSL=False
+```
+
+Verifica: avviare `mise run dev`, innescare un invio, poi aprire
+`http://localhost:8025` — l'email compare nell'elenco con anteprima HTML e testo,
+intestazioni comprese. `mise run mailpit-down` ferma il container; i messaggi restano
+solo in memoria, non sopravvivono a un riavvio.
+
+Non è pensato per la produzione con questo meccanismo (`EMAIL_PROVIDER=smtp` punterebbe
+altrove): il caso d'uso di produzione — un interruttore in Impostazioni che reindirizza
+temporaneamente le email reali su Mailpit — è un meccanismo diverso, documentato in
+[`mailpit-override-produzione.md`](mailpit-override-produzione.md).
 
 ## `locmem` — test automatici
 

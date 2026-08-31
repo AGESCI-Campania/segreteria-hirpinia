@@ -16,6 +16,14 @@ if EMAIL_PROVIDER in {"console", "locmem"}:
         "o microsoft_graph."
     )
 
+# Deviazione dichiarata da "il provider si sceglie solo con EMAIL_PROVIDER"
+# (CLAUDE.md, § Email): solo in produzione il trasporto reale passa da questo
+# backend, che decide a ogni invio se usare EMAIL_PROVIDER (sopra) o
+# reindirizzare su Mailpit in base al flag `email_su_mailpit` di
+# `ImpostazioniPiattaforma` — vedi apps/core/email/override.py e
+# docs/email/mailpit-override-produzione.md.
+EMAIL_BACKEND = "apps.core.email.override.MailpitOverridableBackend"
+
 # Tabella creata una tantum con `manage.py createcachetable` (comando NON
 # idempotente: non va in docker/entrypoint.sh, va eseguito manualmente al primo
 # deploy — vedi README §Produzione).

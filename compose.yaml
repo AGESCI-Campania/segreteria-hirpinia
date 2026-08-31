@@ -1,4 +1,7 @@
-# Sviluppo: solo il database in Docker, Django gira sull'host.
+# Sviluppo: database (sempre) + Mailpit (opzionale, cattura email locale),
+# Django gira sull'host. `mise run db-up`/`mise run mailpit-up` avviano i
+# singoli servizi esplicitamente: un `docker compose up -d` senza argomenti
+# avvia comunque entrambi, dato che nessuno dei due usa un profilo Compose.
 services:
   db:
     image: postgres:17-alpine
@@ -17,6 +20,17 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # Cattura ogni email inviata con EMAIL_PROVIDER=smtp puntato su
+  # localhost:1025, senza consegnarla davvero: interfaccia di lettura su
+  # http://localhost:8025. Vedi docs/email/sviluppo-e-test.md.
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: catello_mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+      - "1025:1025"
 
 volumes:
   postgres_data:

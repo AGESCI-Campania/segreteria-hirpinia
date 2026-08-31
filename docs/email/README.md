@@ -19,6 +19,7 @@ Microsoft 365, ecc.) la fonte di verità resta **§ 8 di
 | --- | --- | --- |
 | `console` | Sviluppo: stampa le email sul terminale, non le invia | [sviluppo-e-test.md](sviluppo-e-test.md) |
 | `locmem` | Test automatici: le email restano in memoria, mai inviate | [sviluppo-e-test.md](sviluppo-e-test.md) |
+| `smtp` puntato su Mailpit (dev) | Alternativa a `console` con interfaccia web per leggere le email catturate | [sviluppo-e-test.md](sviluppo-e-test.md) |
 | `smtp` | Exchange on-premises, relay interni, provider transazionali (Brevo, Postmark, Mailgun…) | [smtp.md](smtp.md) |
 | `gmail_service_account` | Gmail/Google Workspace — **consigliato** per Workspace | [gmail-service-account.md](gmail-service-account.md) |
 | `gmail_oauth` | Gmail/Google Workspace, ripiego quando la delega di dominio non è disponibile | [gmail-oauth.md](gmail-oauth.md) |
@@ -88,4 +89,15 @@ Microsoft 365, ecc.) la fonte di verità resta **§ 8 di
 - **Exchange on-premises, relay interno, provider transazionale (Brevo, Postmark,
   Mailgun…), o ripiego rapido** → `smtp` ([guida](smtp.md)).
 - **Sviluppo locale e test automatici** → `console`/`locmem`
-  ([guida](sviluppo-e-test.md)), già impostato di default in `.env.example`.
+  ([guida](sviluppo-e-test.md)), già impostato di default in `.env.example`. Per
+  un'anteprima con interfaccia web invece del terminale, `smtp` puntato su Mailpit
+  locale (stessa guida).
+
+## Interruttore Mailpit in produzione (diverso da quanto sopra)
+
+Un meccanismo separato, non selezionabile con `EMAIL_PROVIDER`: un flag in
+"Impostazioni di piattaforma" che, quando attivo, reindirizza ogni email su Mailpit
+invece del provider scelto qui sopra — senza riavviare il container. Deviazione
+dichiarata dalla regola "solo `EMAIL_PROVIDER` sceglie il trasporto" di questo
+documento, confinata a `apps/core/email/override.py`. Vedi
+[mailpit-override-produzione.md](mailpit-override-produzione.md).

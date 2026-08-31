@@ -87,6 +87,26 @@ class TestPermessi:
         assert response.status_code == 403
 
 
+class TestEmailSuMailpit:
+    def test_attivazione_rifiutata_senza_host_configurato(self, client, segreteria, settings):
+        settings.EMAIL_MAILPIT_HOST = ""
+        client.force_login(segreteria)
+        response = client.post(
+            "/impostazioni/", {"causale_bonifico_default": "", "email_su_mailpit": "on"}
+        )
+        assert response.status_code == 200  # form non valido, ripresentato
+        assert not ImpostazioniPiattaforma.corrente().email_su_mailpit
+
+    def test_attivazione_accettata_con_host_configurato(self, client, segreteria, settings):
+        settings.EMAIL_MAILPIT_HOST = "localhost"
+        client.force_login(segreteria)
+        response = client.post(
+            "/impostazioni/", {"causale_bonifico_default": "", "email_su_mailpit": "on"}
+        )
+        assert response.status_code == 302
+        assert ImpostazioniPiattaforma.corrente().email_su_mailpit
+
+
 class TestAuditlog:
     def test_modifica_tracciata(self, client, segreteria):
         ImpostazioniPiattaforma.corrente()  # crea la riga con il default

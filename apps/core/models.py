@@ -53,6 +53,15 @@ class TemplateEmail(models.Model):
 class ImpostazioniPiattaforma(models.Model):
     id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
     causale_bonifico_default = models.CharField(max_length=200, blank=True)
+    email_su_mailpit = models.BooleanField(
+        default=False,
+        verbose_name="Invia le email su Mailpit invece del provider configurato",
+        help_text=(
+            "Solo in produzione (apps.core.email.override.MailpitOverridableBackend): "
+            "reindirizza ogni email verso Mailpit invece di consegnarla davvero. "
+            "Richiede EMAIL_MAILPIT_HOST configurato."
+        ),
+    )
 
     class Meta:
         verbose_name = "Impostazioni piattaforma"

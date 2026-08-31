@@ -1677,6 +1677,38 @@ entrambe, mai nessuna delle due), credenziali solo in `.env`.
 - Le email della piattaforma sono transazionali (verifica registrazione, reset
   password, notifiche di valutazione): volumi bassi, nessun invio massivo.
 
+### 8.7 Mailpit — sviluppo e interruttore di produzione
+
+Due meccanismi distinti, entrambi appoggiati allo stesso strumento (Mailpit, catcher
+SMTP con interfaccia web), da non confondere:
+
+**In sviluppo**, Mailpit è semplicemente una destinazione per il provider `smtp` già
+esistente (§ 8.5): `EMAIL_PROVIDER=smtp` puntato su `localhost:1025` invece che su un
+server reale. Nessun backend nuovo, nessuna eccezione all'architettura di § 8.1 — è lo
+stesso meccanismo di scelta del provider all'avvio, solo con un endpoint locale.
+Girato in Docker (`compose.yaml`, servizio opzionale, mai avviato da un `up -d` senza
+argomenti) per non richiedere un'installazione a parte.
+
+**In produzione** esiste invece un secondo meccanismo, volutamente un'eccezione a § 8.1:
+un flag booleano su "Impostazioni di piattaforma" (`ImpostazioniPiattaforma.
+email_su_mailpit`), letto **a ogni invio** anziché una sola volta all'avvio. Quando
+attivo, ogni email che l'applicazione tenta di inviare viene reindirizzata su un
+Mailpit interno (`EMAIL_MAILPIT_HOST`/`EMAIL_MAILPIT_PORT`) invece di raggiungere il
+provider configurato in `EMAIL_PROVIDER`, senza riavviare il processo. Implementato in
+un solo modulo aggiuntivo, `apps/core/email/override.py::MailpitOverridableBackend`,
+selezionato incondizionatamente da `config/settings/prod.py` come `EMAIL_BACKEND`: la
+decisione fra provider reale e Mailpit avviene lì, mai in view o service layer, che
+continuano a usare solo `django.core.mail`.
+
+Motivazione: verificare in produzione, con dati e configurazione reali, che l'intera
+catena di invio funzioni — `TemplateEmail` compreso — senza recapitare email vere
+durante la verifica. Il rischio operativo è simmetrico al beneficio: mentre attivo,
+nessuna email reale (reset password, OTP, inviti) raggiunge i destinatari, senza errore
+visibile lato utente. Per questo il flag è tracciato in `django-auditlog` (come ogni
+altro campo di `ImpostazioniPiattaforma`) e l'interfaccia mostra un avviso esplicito
+accanto al controllo. Dettagli operativi in
+`docs/email/mailpit-override-produzione.md`.
+
 ## 9. Milestone
 
 | # | Contenuto | Dipendenze |

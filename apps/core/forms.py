@@ -1,4 +1,5 @@
 from django import forms
+from django.conf import settings
 
 from .models import ImpostazioniPiattaforma, TemplateEmail
 
@@ -6,7 +7,15 @@ from .models import ImpostazioniPiattaforma, TemplateEmail
 class ImpostazioniPiattaformaForm(forms.ModelForm):
     class Meta:
         model = ImpostazioniPiattaforma
-        fields = ["causale_bonifico_default"]
+        fields = ["causale_bonifico_default", "email_su_mailpit"]
+
+    def clean_email_su_mailpit(self):
+        attivo = self.cleaned_data["email_su_mailpit"]
+        if attivo and not settings.EMAIL_MAILPIT_HOST:
+            raise forms.ValidationError(
+                "EMAIL_MAILPIT_HOST non è configurato: impossibile attivare l'invio su Mailpit."
+            )
+        return attivo
 
 
 class TemplateEmailForm(forms.ModelForm):

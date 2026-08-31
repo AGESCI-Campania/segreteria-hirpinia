@@ -1,9 +1,9 @@
 # Docker — installazione, configurazione ed esecuzione
 
 Guida operativa per eseguire Catello con Docker, sia in sviluppo che in produzione. Per
-le decisioni architetturali dietro queste scelte (perché solo il database è
-containerizzato in sviluppo, perché il reverse proxy è selezionabile, perché
-`createcachetable` non è nell'entrypoint) la fonte di verità resta
+le decisioni architetturali dietro queste scelte (perché solo il database gira sempre
+in sviluppo, perché il reverse proxy è selezionabile, perché `createcachetable` non è
+nell'entrypoint) la fonte di verità resta
 [`docs/Catello_Progettazione.md`](Catello_Progettazione.md) § D-17/D-18; questa guida è
 il "come fare".
 
@@ -14,10 +14,17 @@ Catello usa Docker in due modi diversi, non intercambiabili:
 | | Sviluppo | Produzione |
 | --- | --- | --- |
 | File compose | `compose.yaml` | `compose.prod.yaml` (+ `compose.prod.nginx.yaml` opzionale) |
-| Cosa gira in Docker | Solo PostgreSQL | PostgreSQL + applicazione (Gunicorn), reverse proxy incluso solo con l'opzione `nginx-docker` |
+| Cosa gira in Docker | PostgreSQL (sempre) + Mailpit (opzionale, solo se avviato esplicitamente) | PostgreSQL + applicazione (Gunicorn) + Mailpit (opzionale, profilo `mailpit`), reverse proxy incluso solo con l'opzione `nginx-docker` |
 | Cosa gira sull'host | Django (`manage.py runserver`), via `uv`/`mise` | Nulla, salvo eventualmente il reverse proxy (`nginx-host`/`apache-host`) |
 | Server applicativo | `runserver` (autoreload, debug toolbar) | `gunicorn` |
 | Immagine applicativa | Non costruita | Costruita da `docker/Dockerfile` |
+
+Mailpit non è un provider email in più: è un catcher SMTP usato **tramite il provider
+`smtp` già esistente**, puntato su `localhost:1025` invece che su un server reale — vedi
+[`docs/email/sviluppo-e-test.md`](email/sviluppo-e-test.md). In produzione lo stesso
+container serve invece da destinazione per l'interruttore "Invia le email su Mailpit" in
+Impostazioni — vedi
+[`docs/email/mailpit-override-produzione.md`](email/mailpit-override-produzione.md).
 
 Non esiste un solo `docker-compose.yml`: usare il file giusto per l'ambiente giusto è
 essenziale, altrimenti si finisce per costruire un'immagine di produzione mentre si
@@ -41,8 +48,10 @@ docker compose version   # richiede il plugin "compose", non il vecchio docker-c
 
 ## Sviluppo
 
-In sviluppo **solo PostgreSQL gira in Docker**; Django gira sull'host per avere
-autoreload, debug toolbar e un ciclo di modifica/verifica rapido.
+In sviluppo **PostgreSQL gira sempre in Docker**; Django gira sull'host per avere
+autoreload, debug toolbar e un ciclo di modifica/verifica rapido. Mailpit (cattura email
+locale) è nello stesso `compose.yaml` ma **opzionale**: va avviato esplicitamente, non
+parte con `mise run db-up`.
 
 ### 1. Clona e installa i tool
 
@@ -116,6 +125,32 @@ automaticamente in `config/settings/dev.py` (limitata a `INTERNAL_IPS = ["127.0.
 | `mise run lint` | ruff + black --check + mypy |
 | `mise run format` | ruff --fix + black |
 | `mise run db-up` / `mise run db-down` | Avvia/ferma PostgreSQL in Docker |
+| `mise run mailpit-up` / `mise run mailpit-down` | Avvia/ferma Mailpit in Docker (opzionale) |
+
+### Mailpit (opzionale): leggere le email senza inviarle davvero
+
+Alternativa a `EMAIL_PROVIDER=console` quando serve un'interfaccia web invece del
+terminale/file di log, o per verificare che un'email costruita da `TemplateEmail` (M8)
+si veda correttamente come la vedrebbe un client di posta reale.
+
+```bash
+mise run mailpit-up     # equivalente a: docker compose up -d mailpit
+```
+
+Poi in `.env`:
+
+```bash
+EMAIL_PROVIDER=smtp
+EMAIL_HOST=localhost
+EMAIL_PORT=1025
+EMAIL_USE_TLS=False
+EMAIL_USE_SSL=False
+```
+
+Le email inviate dall'app si leggono su `http://localhost:8025`, mai consegnate
+davvero. `mise run mailpit-down` ferma il container (i messaggi in memoria si perdono,
+Mailpit non li persiste su disco per default). Dettagli in
+[`docs/email/sviluppo-e-test.md`](email/sviluppo-e-test.md).
 
 ### Reset completo del database di sviluppo
 
@@ -210,6 +245,7 @@ assenti da `.env.example` (aggiungerle solo se serve cambiare il default):
 | `DJANGO_CSRF_COOKIE_SECURE` | `False` | Cookie CSRF solo su HTTPS — stessa avvertenza |
 | `GUNICORN_WORKERS` | `3` | Numero di worker Gunicorn (`docker/entrypoint.sh`) |
 | `GUNICORN_TIMEOUT` | `120` | Timeout per richiesta, in secondi |
+| `EMAIL_MAILPIT_HOST` / `EMAIL_MAILPIT_PORT` | Vuoto / `1025` | Endpoint di un Mailpit interno usato **solo** quando l'interruttore "Invia le email su Mailpit" in Impostazioni è attivo — vedi [`docs/email/mailpit-override-produzione.md`](email/mailpit-override-produzione.md) |
 
 ### 3. Scegli il reverse proxy
 
@@ -265,6 +301,11 @@ Con `nginx-host`/`apache-host` (o senza reverse proxy in Docker):
 ```bash
 docker compose -f compose.prod.yaml up -d --build
 ```
+
+Nessuno dei due comandi avvia Mailpit: è dietro il profilo Compose `mailpit`, va aggiunto
+esplicitamente (`docker compose -f compose.prod.yaml up -d mailpit`) solo se si intende
+usare l'interruttore "Invia le email su Mailpit" in Impostazioni — vedi
+[`docs/email/mailpit-override-produzione.md`](email/mailpit-override-produzione.md).
 
 Al primo avvio, `docker/entrypoint.sh` esegue automaticamente, in quest'ordine:
 

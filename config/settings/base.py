@@ -154,6 +154,14 @@ EMAIL_USE_TLS = _env_bool("EMAIL_USE_TLS", default=True)
 EMAIL_USE_SSL = _env_bool("EMAIL_USE_SSL", default=False)
 EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "20"))
 
+# Endpoint di un Mailpit raggiungibile solo dal container, usato esclusivamente
+# da apps.core.email.override.MailpitOverridableBackend (solo
+# config.settings.prod, vedi docs/email/mailpit-override-produzione.md). Non è
+# un provider selezionabile con EMAIL_PROVIDER: l'interruttore è un campo di
+# ImpostazioniPiattaforma, letto a ogni invio, non una scelta fatta all'avvio.
+EMAIL_MAILPIT_HOST = os.environ.get("EMAIL_MAILPIT_HOST", "")
+EMAIL_MAILPIT_PORT = int(os.environ.get("EMAIL_MAILPIT_PORT", "1025"))
+
 # ─── Parametri applicativi, usati a partire da M1+ ─────────────────────────────
 DOMINI_RUOLI_EFFETTIVI = _env_list("DOMINI_RUOLI_EFFETTIVI")
 EMAIL_SEGRETERIA = os.environ.get("EMAIL_SEGRETERIA", "")

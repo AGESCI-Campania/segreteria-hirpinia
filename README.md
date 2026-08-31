@@ -62,6 +62,7 @@ Guida completa (task disponibili, reset del database, troubleshooting):
 | `mise run lint` | ruff + black + mypy |
 | `mise run format` | Formattazione automatica |
 | `mise run db-up` / `db-down` | PostgreSQL in Docker |
+| `mise run mailpit-up` / `mailpit-down` | Mailpit in Docker (opzionale, alternativa a `console` con interfaccia web) |
 
 ## Produzione
 
@@ -117,6 +118,13 @@ uv sync --extra microsoft    # msal
 ```
 
 Dettagli e configurazione lato Google/Microsoft: § 8 del documento di progettazione.
+
+In sviluppo, `smtp` puntato su Mailpit locale (`mise run mailpit-up`) è un'alternativa a
+`console` con interfaccia web su `http://localhost:8025` — vedi
+[`docs/email/sviluppo-e-test.md`](docs/email/sviluppo-e-test.md). In produzione, un
+interruttore separato in Impostazioni può reindirizzare temporaneamente ogni email su
+Mailpit indipendentemente dal provider scelto — vedi
+[`docs/email/mailpit-override-produzione.md`](docs/email/mailpit-override-produzione.md).
 
 ## Struttura
 

@@ -38,9 +38,12 @@ MIT, copyright Andrea Bruno. Ogni nuovo file sostanziale non deve contraddire
 - `uv` per le dipendenze — **mai** `pip install` diretto.
 - `mise` per i task: `mise run dev`, `mise run test`, `mise run lint`.
 - Python ≥ 3.14, Django ≥ 6.0, PostgreSQL ≥ 17.
-- Docker: in sviluppo solo il database (`compose.yaml`); in produzione tutto tranne il
-  reverse proxy (`compose.prod.yaml`). Guida completa in `docs/docker.md`, vincoli
-  operativi in [Docker e deploy](#docker-e-deploy) più sotto.
+- Docker: in sviluppo solo il database gira sempre (`compose.yaml`); Mailpit è nello
+  stesso file ma va avviato esplicitamente (`mise run mailpit-up`), mai con un
+  `docker compose up -d`/`mise run db-up` qualunque. In produzione tutto tranne il
+  reverse proxy (`compose.prod.yaml`), Mailpit compreso ma dietro il profilo Compose
+  `mailpit`, anch'esso mai avviato implicitamente. Guida completa in `docs/docker.md`,
+  vincoli operativi in [Docker e deploy](#docker-e-deploy) più sotto.
 
 ---
 
@@ -224,7 +227,13 @@ nelle fixture di test.
 
 - Il provider si sceglie **solo** con `EMAIL_PROVIDER`. Non scrivere mai `EMAIL_BACKEND`
   a mano nei settings d'ambiente e non introdurre `if provider == ...` nel codice
-  applicativo: allauth e le view usano `django.core.mail` e basta.
+  applicativo: allauth e le view usano `django.core.mail` e basta. **Unica eccezione
+  dichiarata**: `apps/core/email/override.py::MailpitOverridableBackend`, selezionato
+  incondizionatamente da `config/settings/prod.py` (mai da `base.py`/`dev.py`), che a
+  ogni invio decide fra `EMAIL_PROVIDER` e Mailpit in base al flag
+  `ImpostazioniPiattaforma.email_su_mailpit`. È confinata a quel solo modulo: nessun'altra
+  view o service layer legge mai quel flag. Dettagli e rischi operativi in
+  `docs/email/mailpit-override-produzione.md`.
 - I backend Gmail e Graph estendono `apps/core/email/base.py::ApiEmailBackend` e
   implementano solo `_richiedi_token()` e `_invia_mime()`. Se stai riscrivendo la
   conversione MIME o la gestione di `fail_silently`, sei nel posto sbagliato.

@@ -47,3 +47,11 @@ run = "docker compose up -d db"
 [tasks.db-down]
 description = "Ferma PostgreSQL"
 run = "docker compose down"
+
+[tasks.mailpit-up]
+description = "Avvia Mailpit in Docker (cattura le email inviate con EMAIL_PROVIDER=smtp in sviluppo)"
+run = "docker compose up -d mailpit"
+
+[tasks.mailpit-down]
+description = "Ferma Mailpit"
+run = "docker compose stop mailpit"
