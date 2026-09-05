@@ -73,8 +73,9 @@ GMAIL_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"...","private
 
 # In alternativa al valore inline sopra: percorso di un file montato in sola lettura
 # (utile in Docker con un secret montato). Se entrambe le variabili sono valorizzate,
-# vale quella che il codice del backend privilegia — verificarlo in
-# apps/core/email/gmail.py quando sarà implementato; nel dubbio, valorizzarne una sola.
+# GMAIL_SERVICE_ACCOUNT_JSON ha priorità (apps/core/email/gmail.py::
+# GmailServiceAccountBackend._carica_service_account_info): nel dubbio, valorizzarne
+# una sola.
 # GMAIL_SERVICE_ACCOUNT_FILE=/run/secrets/gmail-service-account.json
 
 # Casella impersonata: DEVE coincidere con DEFAULT_FROM_EMAIL sopra

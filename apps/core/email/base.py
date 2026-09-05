@@ -5,7 +5,7 @@ di invio: la conversione del messaggio Django in MIME, la gestione di ``fail_sil
 e la cache del token di accesso sono identiche e stanno qui.
 
 Le sottoclassi implementano soltanto:
-    - ``_access_token()``  -> str
+    - ``_richiedi_token()``  -> tuple[str, int]  (token, durata in secondi)
     - ``_invia_mime(mime: bytes, token: str, mittente: str) -> None``
 """
 
@@ -65,10 +65,12 @@ class ApiEmailBackend(BaseEmailBackend):
         for message in email_messages:
             try:
                 self._invia_mime(
-                    # Django tipizza come email.message.Message (stdlib), ma restituisce
-                    # sempre una sua sottoclasse (SafeMIMEText/SafeMIMEMultipart) che
-                    # aggiunge il parametro linesep a as_bytes().
-                    mime=message.message().as_bytes(linesep="\r\n"),  # type: ignore[call-arg]
+                    # Django 6.1 costruisce il messaggio con email.message.EmailMessage
+                    # (stdlib, policy=email.policy.default), non più con le SafeMIMEText/
+                    # SafeMIMEMultipart di Django: quella classe non accetta un parametro
+                    # linesep su as_bytes(). Il default della policy va bene sia per il
+                    # campo "raw" della Gmail API sia per Microsoft Graph.
+                    mime=message.message().as_bytes(),
                     token=token,
                     mittente=message.from_email,
                 )

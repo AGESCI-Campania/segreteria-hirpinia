@@ -43,13 +43,13 @@ Microsoft 365, ecc.) la fonte di verità resta **§ 8 di
    `_invia_mime()`.
 
 > **Stato dell'implementazione.** `apps/core/email/__init__.py` (selezione del
-> provider) e `apps/core/email/base.py` (base comune per i backend API) esistono già.
-> `apps/core/email/gmail.py` e `apps/core/email/microsoft.py`, con i backend concreti,
-> sono pianificati per M1 e non sono ancora scritti: con questi due provider selezionati
-> oggi, l'invio fallirebbe all'`import`. I provider `console`, `locmem` e `smtp` sono
-> invece backend Django standard e funzionano già. Le guide di questa cartella
-> descrivono comunque la configurazione **lato Google/Microsoft**, che è indipendente
-> dallo stato del codice e può essere preparata in anticipo.
+> provider), `apps/core/email/base.py` (base comune per i backend API) e
+> `apps/core/email/gmail.py` (`gmail_service_account`, `gmail_oauth`) esistono e sono
+> testati (`apps/core/tests/test_email_gmail.py`). **`apps/core/email/microsoft.py`
+> (`microsoft_graph`) non è ancora scritto**: selezionandolo oggi l'invio fallirebbe
+> all'`import`. I provider `console`, `locmem` e `smtp` sono backend Django standard e
+> funzionano già. La guida di Microsoft Graph descrive comunque la configurazione
+> **lato Microsoft**, indipendente dallo stato del codice.
 
 ## Requisiti trasversali (tutti i provider)
 

@@ -33,6 +33,11 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
+      args:
+        # Vuoto di default: chi usa solo smtp/console/locmem non installa
+        # google-auth/msal. Impostare EMAIL_EXTRA=gmail o =microsoft in .env
+        # in base a EMAIL_PROVIDER.
+        EMAIL_EXTRA: ${EMAIL_EXTRA:-}
     container_name: catello_web
     restart: unless-stopped
     env_file: .env

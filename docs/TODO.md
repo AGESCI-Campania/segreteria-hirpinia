@@ -50,3 +50,10 @@ Questo è un elenco di modifiche da fare aggiornato man mano che vanno avanti i 
   - [x] "Luogo" non è obbligatorio → M16
   - [x] "Quota versata" è obbligatorio, ma con le tipologie CCG, CFM e CFA viene inzializzato a 51,50€ → M17
   - [x] Serve un campo "Note" dove inserire note libere → M16
+
+## Gap noti (scoperti in verifica, non da una milestone)
+- [ ] `apps/core/email/microsoft.py` (provider `microsoft_graph`) non è implementato:
+  `apps/core/email/gmail.py` esiste ed è testato (implementato durante il deploy di
+  produzione del 2026-09-05, sbloccando un 500 al login dovuto proprio a questo gap),
+  ma il backend Microsoft Graph resta solo documentato in `docs/email/microsoft-graph.md`
+  — selezionare `EMAIL_PROVIDER=microsoft_graph` oggi fa fallire l'app all'avvio.

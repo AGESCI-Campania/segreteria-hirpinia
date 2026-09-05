@@ -15,11 +15,16 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 WORKDIR /app
 
+# Extra opzionale per il provider email scelto: "gmail", "microsoft" o vuoto
+# (solo smtp/console/locmem, default). Mai obbligatorio: un deploy SMTP non
+# deve installare google-auth/msal (vedi CLAUDE.md § Email).
+ARG EMAIL_EXTRA=""
+
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev --no-install-project
+RUN uv sync --frozen --no-dev --no-install-project ${EMAIL_EXTRA:+--extra "$EMAIL_EXTRA"}
 
 COPY . .
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev ${EMAIL_EXTRA:+--extra "$EMAIL_EXTRA"}
 
 RUN chmod +x docker/entrypoint.sh
 ENTRYPOINT ["docker/entrypoint.sh"]

@@ -162,6 +162,15 @@ EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "20"))
 EMAIL_MAILPIT_HOST = os.environ.get("EMAIL_MAILPIT_HOST", "")
 EMAIL_MAILPIT_PORT = int(os.environ.get("EMAIL_MAILPIT_PORT", "1025"))
 
+# --- gmail_service_account / gmail_oauth (apps.core.email.gmail) -------------
+# Vedi docs/email/gmail-service-account.md e docs/email/gmail-oauth.md.
+GMAIL_SERVICE_ACCOUNT_JSON = os.environ.get("GMAIL_SERVICE_ACCOUNT_JSON", "")
+GMAIL_SERVICE_ACCOUNT_FILE = os.environ.get("GMAIL_SERVICE_ACCOUNT_FILE", "")
+GMAIL_MITTENTE = os.environ.get("GMAIL_MITTENTE", "")
+GMAIL_CLIENT_ID = os.environ.get("GMAIL_CLIENT_ID", "")
+GMAIL_CLIENT_SECRET = os.environ.get("GMAIL_CLIENT_SECRET", "")
+GMAIL_REFRESH_TOKEN = os.environ.get("GMAIL_REFRESH_TOKEN", "")
+
 # ─── Parametri applicativi, usati a partire da M1+ ─────────────────────────────
 DOMINI_RUOLI_EFFETTIVI = _env_list("DOMINI_RUOLI_EFFETTIVI")
 EMAIL_SEGRETERIA = os.environ.get("EMAIL_SEGRETERIA", "")
