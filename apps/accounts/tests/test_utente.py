@@ -1,7 +1,7 @@
 import pytest
 from django.core.exceptions import ValidationError
 
-from apps.accounts.models import TipoUtente, Utente
+from apps.accounts.models import Ruolo, StatoUtente, TipoUtente, Utente
 from apps.organizzazione.models import Gruppo
 
 pytestmark = pytest.mark.django_db
@@ -41,6 +41,22 @@ class TestClean:
     def test_gruppo_valido(self, gruppo):
         u = _utente(tipo=TipoUtente.GRUPPO, gruppo=gruppo)
         u.clean()  # non deve sollevare
+
+
+class TestCreateSuperuser:
+    def test_crea_anche_il_ruolo_admin(self):
+        utente = Utente.objects.create_superuser(
+            username="admin", email="admin@example.com", password="password123!"
+        )
+
+        assert Ruolo.objects.filter(utente=utente, tipo=Ruolo.Tipo.ADMIN, attivo=True).exists()
+
+    def test_nasce_attivo_senza_invito(self):
+        utente = Utente.objects.create_superuser(
+            username="admin2", email="admin2@example.com", password="password123!"
+        )
+
+        assert utente.stato == StatoUtente.ATTIVO
 
 
 class TestAccountConsentiti:

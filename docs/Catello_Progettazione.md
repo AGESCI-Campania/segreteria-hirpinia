@@ -103,7 +103,10 @@ Si porta il modello di `Dashboard_Zona`, che già implementa il requisito.
 
 **Vincolo di dominio:** un ruolo effettivo può essere assegnato solo a un utente con
 email su `@campania.agesci.it` o `@zonahirpinia.org`. Validazione nel form e nel
-`clean()` del modello.
+`clean()` del modello. **Eccezione: `ADMIN`** — assegnabile su qualunque dominio, per
+non escludere l'amministratore tecnico della piattaforma (che può non avere un
+indirizzo AGESCI) e per il bootstrap del primo account (`createsuperuser` crea sempre
+anche il `Ruolo(ADMIN)`, vedi `apps/accounts/models.py::UtenteManager`).
 
 **Deleghe** (`Delega`): vedi **D-26**, che estende questa decisione consentendo la
 delega a iniziativa del titolare del ruolo. In sintesi la delega:

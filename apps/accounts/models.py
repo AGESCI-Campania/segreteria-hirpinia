@@ -25,11 +25,19 @@ class StatoUtente(models.TextChoices):
 
 class UtenteManager(UserManager["Utente"]):
     """Un superuser creato con `createsuperuser` (A-2) non passa dall'invito
-    OTP: non ha nessuno che lo attivi, quindi nasce già `ATTIVO`."""
+    OTP: non ha nessuno che lo attivi, quindi nasce già `ATTIVO`. Riceve anche
+    subito un `Ruolo(tipo=ADMIN)`: `is_superuser` da solo dà accesso a
+    `/admin/` e all'impersonificazione (`_e_admin_diretto()` in
+    `apps/accounts/permessi.py`), ma il resto dell'app (menu, tab
+    "Amministrazione") guarda solo `ruoli_effettivi()`, che legge esclusivamente
+    la tabella `Ruolo` — senza questo, un superuser appena creato non
+    comparirebbe come amministratore nell'interfaccia applicativa."""
 
     def create_superuser(self, username, email=None, password=None, **extra_fields):
         extra_fields.setdefault("stato", StatoUtente.ATTIVO)
-        return super().create_superuser(username, email, password, **extra_fields)
+        utente = super().create_superuser(username, email, password, **extra_fields)
+        Ruolo.objects.create(utente=utente, tipo=Ruolo.Tipo.ADMIN)
+        return utente
 
 
 class Utente(AbstractUser):
@@ -177,11 +185,11 @@ class Ruolo(models.Model):
         elif self.gruppo_id or self.branca or self.settore:
             raise ValidationError(f"Il ruolo {self.tipo} non usa gruppo, branca né settore.")
 
-        if self.utente_id and not self._email_su_dominio_ammesso():
+        if self.tipo != self.Tipo.ADMIN and self.utente_id and not self._email_su_dominio_ammesso():
             raise ValidationError(
                 "Un ruolo effettivo può essere assegnato solo a un utente con "
                 f"email sui domini ammessi ({', '.join(settings.DOMINI_RUOLI_EFFETTIVI)}), "
-                "D-04."
+                "D-04. Eccezione: ADMIN, assegnabile su qualunque dominio."
             )
 
     def _email_su_dominio_ammesso(self) -> bool:

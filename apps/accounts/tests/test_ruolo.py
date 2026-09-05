@@ -36,6 +36,10 @@ class TestDominioEmail:
         ruolo = Ruolo(utente=utente_dominio_ammesso, tipo=Ruolo.Tipo.RDZ)
         ruolo.clean()  # non deve sollevare
 
+    def test_admin_esente_dal_vincolo_di_dominio(self, utente_dominio_non_ammesso):
+        ruolo = Ruolo(utente=utente_dominio_non_ammesso, tipo=Ruolo.Tipo.ADMIN)
+        ruolo.clean()  # non deve sollevare: ADMIN è l'unica eccezione a D-04
+
 
 class TestCoerenzaCampi:
     def test_cg_senza_gruppo_e_un_errore(self, utente_dominio_ammesso):
