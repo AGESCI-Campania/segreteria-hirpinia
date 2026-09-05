@@ -4,10 +4,22 @@ build:
   os: ubuntu-24.04
   tools:
     python: "3.13"
+  apt_packages:
+    # Richieste da WeasyPrint (mkdocs-with-pdf), stesso elenco di docker/Dockerfile.
+    - libpango-1.0-0
+    - libpangoft2-1.0-0
+    - libcairo2
+    - libgdk-pixbuf-2.0-0
+    - shared-mime-info
   jobs:
     install:
       - pip install uv
-      - uv sync --group docs --no-install-project
+      # UV_PROJECT_ENVIRONMENT: senza questa variabile `uv sync` installa nel
+      # proprio .venv locale al progetto, non nel virtualenv che Read the Docs
+      # usa poi per eseguire `mkdocs build` (`$READTHEDOCS_VIRTUALENV_PATH`) —
+      # con `mkdocs` installato altrove, quel comando fallisce con
+      # "No module named mkdocs".
+      - UV_PROJECT_ENVIRONMENT=$READTHEDOCS_VIRTUALENV_PATH uv sync --group docs --no-install-project
 
 mkdocs:
   configuration: mkdocs.yml
