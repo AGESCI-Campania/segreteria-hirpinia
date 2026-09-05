@@ -1,0 +1,48 @@
+# Segreteria Hirpinia (Catello) — systemd unit per lo stack Docker Compose di
+# produzione. Stesso pattern già in uso sullo stesso host per plancia.service e
+# dashboard-zona.service: non build automatico (va fatto esplicitamente con
+# `docker compose -f compose.prod.yaml up -d --build`), reload = ricreazione dei
+# container per rileggere `.env` (un semplice `docker compose restart` NON
+# rilegge `env_file` sui container già esistenti).
+#
+# Installazione:
+#   sudo cp deploy/segreteriahirpinia.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now segreteriahirpinia
+#
+# Comandi:
+#   sudo systemctl start|stop|restart|reload segreteriahirpinia
+#   sudo systemctl status segreteriahirpinia
+#   sudo journalctl -u segreteriahirpinia -f
+
+[Unit]
+Description=Segreteria Hirpinia (Catello) — Contributo Fo.Ca. AGESCI Zona Hirpinia (Docker Compose)
+Documentation=https://github.com/AGESCI-Campania/segreteria-hirpinia
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/segreteriahirpinia
+
+# --no-build: nessun build implicito in produzione, va fatto a mano prima di
+# un redeploy (vedi docs/docker.md § Redeploy di una nuova versione)
+ExecStart=/usr/bin/docker compose -f compose.prod.yaml up -d --no-build
+
+ExecStop=/usr/bin/docker compose -f compose.prod.yaml down
+
+# up -d, non restart: serve a ricreare i container che leggono un .env
+# cambiato (es. dopo aver aggiornato una variabile email o i cookie *_SECURE)
+ExecReload=/usr/bin/docker compose -f compose.prod.yaml up -d --no-build
+
+# Attende fino a 5 minuti al primo avvio (migrate, collectstatic)
+TimeoutStartSec=300
+TimeoutStopSec=60
+
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target

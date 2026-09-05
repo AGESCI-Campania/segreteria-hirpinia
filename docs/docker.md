@@ -393,13 +393,42 @@ scrive in `log/` alla radice del repository — già escluso da `.gitignore` (`*
 ### Riavvio / arresto
 
 ```bash
-docker compose -f compose.prod.yaml restart web   # riavvia solo l'app, utile dopo un cambio in .env
+docker compose -f compose.prod.yaml restart web   # riavvia il processo, NON rilegge .env
+docker compose -f compose.prod.yaml up -d          # ricrea i container con .env aggiornato
 docker compose -f compose.prod.yaml down           # ferma tutto, il volume postgres_data resta
 ```
 
-Dopo una modifica a `.env`, `restart` non basta se la variabile è letta solo in fase di
-build (nessuna, oggi, lo è): per le variabili d'ambiente a runtime `restart` è
-sufficiente, Compose rilegge `.env` ad ogni comando.
+**`restart` non rilegge `env_file`**: riavvia lo stesso container con l'ambiente con cui
+era stato creato, non quello attuale di `.env`. Dopo una modifica a `.env` serve `up -d`
+(ricrea solo i servizi il cui `env_file` risulta cambiato, senza toccare i volumi):
+verificato direttamente in produzione attivando `DJANGO_SECURE_SSL_REDIRECT` e i cookie
+`*_SECURE`, dove un `restart` non aveva alcun effetto sulle variabili nel processo.
+
+### Avvio automatico al riavvio del sistema (systemd)
+
+Il `restart: unless-stopped` di ogni servizio in `compose.prod.yaml` fa già ripartire i
+container quando il demone Docker si riavvia (e `docker.service` è abilitato di
+default). Il file [`deploy/segreteriahirpinia.service`](../deploy/segreteriahirpinia.service)
+aggiunge sopra un'interfaccia `systemctl` uniforme — stesso pattern già in uso sullo
+stesso host di produzione per altri progetti (`plancia.service`,
+`dashboard-zona.service`):
+
+```bash
+sudo cp deploy/segreteriahirpinia.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now segreteriahirpinia
+```
+
+```bash
+sudo systemctl start|stop|restart|reload segreteriahirpinia
+sudo systemctl status segreteriahirpinia
+sudo journalctl -u segreteriahirpinia -f
+```
+
+`reload` esegue `up -d` (non un vero e proprio segnale di reload dei singoli processi):
+è il modo corretto per applicare un `.env` cambiato, per lo stesso motivo spiegato sopra
+su `restart`. `stop`/`start` mappano su `down`/`up -d --no-build` — nessun build
+implicito: un redeploy con codice nuovo resta un passo esplicito (vedi sotto).
 
 ---
 
