@@ -333,7 +333,7 @@ Docker/deploy non deve violare:
   TLS: è dichiarato esplicitamente nell'output dello script e in `docs/docker.md`, non
   va presentato come già pronto per un go-live.
 - **Tutti i log di produzione vivono in `LOG_DIR` (`BASE_DIR/log`, montato su
-  `/srv/catello/log`)**: `catello.log` (applicativo) ed `email-console.log` (se mai
+  `/srv/segreteriahirpinia/log`)**: `catello.log` (applicativo) ed `email-console.log` (se mai
   raggiungibile) condividono la stessa directory per costruzione, non per coincidenza —
   non spostare uno dei due altrove senza spostare anche il volume in
   `compose.prod.yaml`. `email-console.log` in produzione non dovrebbe mai comparire:

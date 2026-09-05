@@ -197,7 +197,7 @@ nginx.
 - Directory sul filesystem host per i dati persistenti dell'applicazione:
 
   ```bash
-  sudo mkdir -p /srv/catello/{static,media,log}
+  sudo mkdir -p /srv/segreteriahirpinia/{static,media,log}
   ```
 
   `compose.prod.yaml` monta questi percorsi come bind mount nel container; se non
@@ -376,11 +376,11 @@ I dati di PostgreSQL vivono nel volume Docker `postgres_data`, non in un bind mo
 
 ```bash
 docker compose -f compose.prod.yaml logs -f web      # stdout/stderr del container
-tail -f /srv/catello/log/catello.log                  # log applicativo su file (rotazione automatica, 5×10MB)
+tail -f /srv/segreteriahirpinia/log/catello.log                  # log applicativo su file (rotazione automatica, 5×10MB)
 ```
 
 Tutti i log dell'applicazione finiscono nella stessa directory `log/` (`BASE_DIR/log`
-nel container, montata su `/srv/catello/log` sull'host): oltre a `catello.log`, anche
+nel container, montata su `/srv/segreteriahirpinia/log` sull'host): oltre a `catello.log`, anche
 `email-console.log` — il file scritto dal backend email `console` — condivide questo
 percorso. In produzione non lo si vedrà mai comparire: `config/settings/prod.py`
 impedisce l'avvio del container se `EMAIL_PROVIDER` è `console` o `locmem` (vedi la
@@ -412,5 +412,5 @@ sufficiente, Compose rilegge `.env` ad ogni comando.
 | Il container `web` non parte, log con `ImproperlyConfigured: EMAIL_PROVIDER=...` | `EMAIL_PROVIDER` è ancora su `console`/`locmem` in `.env`: bloccato di proposito da `config/settings/prod.py`, impostare un provider reale — vedi [`docs/email/README.md`](email/README.md) |
 | Le email non partono in produzione (container avviato) | Librerie `gmail`/`microsoft` mancanti nell'immagine, o credenziali del provider errate — vedi [`docs/email/README.md`](email/README.md) |
 | `createcachetable` fallisce con "la tabella esiste già" | È già stato eseguito: comando non idempotente per natura, va lanciato una sola volta per installazione, non ad ogni deploy |
-| I file statici non si vedono (404 su `/static/...`) dietro `nginx-docker` | `docker/nginx/catello.conf` punta a `/srv/catello/static/`: verificare che la directory sul host esista e coincida con il volume montato in `compose.prod.yaml` |
+| I file statici non si vedono (404 su `/static/...`) dietro `nginx-docker` | `docker/nginx/catello.conf` punta a `/srv/segreteriahirpinia/static/`: verificare che la directory sul host esista e coincida con il volume montato in `compose.prod.yaml` |
 | I test locali su macOS falliscono sul rendering PDF | Librerie WeasyPrint (Pango/Cairo) non nel percorso di link dinamico di Homebrew: eseguire con `DYLD_LIBRARY_PATH=/opt/homebrew/lib`, non serve in Docker/CI |

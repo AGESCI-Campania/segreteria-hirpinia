@@ -75,12 +75,12 @@ server {
     client_max_body_size 20M;
 
     location /static/ {
-        alias /srv/catello/static/;
+        alias /srv/segreteriahirpinia/static/;
     }
 
-    location /media/ {
-        alias /srv/catello/media/;
-    }
+    # Niente location /media/: quei file richiedono l'autenticazione applicata
+    # da Django (PDF, CSV, allegati con dati personali), un alias diretto la
+    # bypasserebbe. Le richieste a /media/... vanno proxate come tutto il resto.
 
     location / {
         proxy_pass http://web:8000;
@@ -106,8 +106,7 @@ services:
       - "80:80"
     volumes:
       - ./docker/nginx/catello.conf:/etc/nginx/conf.d/default.conf:ro
-      - /srv/catello/static:/srv/catello/static:ro
-      - /srv/catello/media:/srv/catello/media:ro
+      - /srv/segreteriahirpinia/static:/srv/segreteriahirpinia/static:ro
 EOF
 
     echo
@@ -132,12 +131,12 @@ server {
     client_max_body_size 20M;
 
     location /static/ {
-        alias /srv/catello/static/;
+        alias /srv/segreteriahirpinia/static/;
     }
 
-    location /media/ {
-        alias /srv/catello/media/;
-    }
+    # Niente location /media/: quei file richiedono l'autenticazione applicata
+    # da Django (PDF, CSV, allegati con dati personali), un alias diretto la
+    # bypasserebbe. Le richieste a /media/... vanno proxate come tutto il resto.
 
     location / {
         proxy_pass http://127.0.0.1:8000;
@@ -160,12 +159,14 @@ EOF
     ServerName segreteria.agescihirpinia.it
     ServerAlias catello.agescihirpinia.it
 
-    Alias /static/ /srv/catello/static/
-    Alias /media/ /srv/catello/media/
+    Alias /static/ /srv/segreteriahirpinia/static/
+
+    # Niente Alias /media/: quei file richiedono l'autenticazione applicata da
+    # Django (PDF, CSV, allegati con dati personali), un alias diretto la
+    # bypasserebbe. Le richieste a /media/... vanno proxate come tutto il resto.
 
     ProxyPreserveHost On
     ProxyPass /static/ !
-    ProxyPass /media/ !
     ProxyPass / http://127.0.0.1:8000/
     ProxyPassReverse / http://127.0.0.1:8000/
 </VirtualHost>

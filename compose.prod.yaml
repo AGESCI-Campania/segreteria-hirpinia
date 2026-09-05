@@ -45,9 +45,9 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
     volumes:
-      - /srv/catello/static:/app/staticfiles
-      - /srv/catello/media:/app/media
-      - /srv/catello/log:/app/log
+      - /srv/segreteriahirpinia/static:/app/staticfiles
+      - /srv/segreteriahirpinia/media:/app/media
+      - /srv/segreteriahirpinia/log:/app/log
 
 volumes:
   postgres_data:
