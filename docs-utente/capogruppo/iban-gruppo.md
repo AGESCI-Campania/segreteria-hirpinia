@@ -2,14 +2,14 @@
 
 Il contributo Fo.Ca. viene erogato al gruppo tramite bonifico bancario: perché
 la segreteria di Zona possa pagarlo, il gruppo deve avere un IBAN valido
-registrato su Catello.
+registrato su Segreteria AGESCI Hirpinia.
 
 ## Dove si trova
 
 1. Accedi con l'account del tuo gruppo.
 2. Dal menu, apri **Anagrafica → Il mio gruppo**.
 
-![Home di Catello con il menu Anagrafica](img/home.jpg)
+![Home della piattaforma con il menu Anagrafica](img/home.jpg)
 
 Si apre la pagina "Gestione gruppo", con i dati anagrafici del gruppo e, in
 fondo, i campi **Iban** e **Intestazione conto**.
@@ -36,7 +36,7 @@ alla pagina.
     l'IBAN non viene corretto. Ricontrolla ogni carattere prima di salvare.
 
 Se inserisci un IBAN con un formato non valido (lunghezza sbagliata, caratteri
-non ammessi, codice paese sconosciuto), Catello rifiuta il salvataggio e
+non ammessi, codice paese sconosciuto), la piattaforma rifiuta il salvataggio e
 mostra un messaggio di errore sotto il campo, senza salvare nulla: correggi il
 valore e premi di nuovo **Salva**.
 

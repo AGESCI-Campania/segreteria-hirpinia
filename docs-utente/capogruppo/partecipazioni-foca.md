@@ -2,7 +2,7 @@
 
 Il contributo Fo.Ca. (Formazione Capi) rimborsa, entro un tetto per
 partecipazione, la quota versata dai capi del tuo gruppo per campi di
-formazione. Per ottenerlo, ogni partecipazione va registrata su Catello
+formazione. Per ottenerlo, ogni partecipazione va registrata su Segreteria AGESCI Hirpinia
 durante la finestra di inserimento della campagna dell'anno.
 
 Puoi registrare le partecipazioni in due modi: **una alla volta** (più comodo
@@ -17,7 +17,7 @@ per pochi casi) oppure **caricando un file** con più partecipazioni insieme
 ![Dettaglio della campagna, con i pulsanti Inserisci partecipazione e Carica da xlsx/CSV](img/campagna-dettaglio.jpg)
 
 In cima alla pagina vedi budget, tetto massimo per partecipazione e finestra
-di inserimento consentita: fuori da questa finestra Catello non accetta nuove
+di inserimento consentita: fuori da questa finestra la piattaforma non accetta nuove
 partecipazioni.
 
 ## Inserire una partecipazione singola
@@ -53,7 +53,7 @@ ripetere il form per ognuna:
 2. Compila una riga per ogni partecipazione (stessi dati del form singolo:
    capo, tipologia, date, luogo, quota versata).
 3. Clicca **Carica da xlsx/CSV** e seleziona il file compilato.
-4. Catello mostra un'**anteprima** delle righe da importare, segnalando eventuali
+4. La piattaforma mostra un'**anteprima** delle righe da importare, segnalando eventuali
    errori (es. un capo non trovato, una data fuori campagna): correggi il file
    e ricaricalo se necessario.
 5. Solo dopo aver confermato l'anteprima le partecipazioni vengono

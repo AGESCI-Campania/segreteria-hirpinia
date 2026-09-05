@@ -1,7 +1,7 @@
 # Guida per i Capigruppo
 
-Questa guida spiega come usare **Catello**, la piattaforma di segreteria della
-AGESCI Zona Hirpinia, con l'account email del tuo gruppo (ruolo **CG**).
+Questa guida spiega come usare **Segreteria AGESCI Hirpinia**, la piattaforma
+di segreteria della Zona, con l'account email del tuo gruppo (ruolo **CG**).
 
 !!! info "A chi è rivolta"
     L'account email di gruppo ha accesso a un numero ristretto di funzionalità:
@@ -21,6 +21,6 @@ Vai su [segreteria.agescihirpinia.it](https://segreteria.agescihirpinia.it) e
 accedi con l'email e la password dell'account del tuo gruppo. Se non hai ancora
 attivato l'account, segui il link ricevuto via email dalla segreteria di Zona.
 
-Al primo accesso ti verrà chiesto di configurare l'**autenticazione a due
-fattori** (un'app come Google Authenticator o Microsoft Authenticator): è
-obbligatoria per tutti gli account, a protezione dei dati dei soci.
+!!! info "Autenticazione a due fattori"
+    Non è richiesta per l'account del gruppo (ruolo CG): è obbligatoria solo per
+    segreteria di Zona, RDZ e amministratori.

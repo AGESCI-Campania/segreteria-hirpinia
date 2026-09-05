@@ -1,7 +1,7 @@
-site_name: Catello — Guida per i Capigruppo
+site_name: Segreteria AGESCI Hirpinia — Guida per i Capigruppo
 site_description: >-
   Guida operativa per il ruolo CG (account email di gruppo) sulla piattaforma
-  Catello, AGESCI Zona Hirpinia.
+  Segreteria AGESCI Hirpinia.
 site_author: AGESCI Zona Hirpinia
 docs_dir: docs-utente
 site_dir: site
@@ -27,7 +27,7 @@ plugins:
   - with-pdf:
       output_path: pdf/guida-capigruppo.pdf
       cover_title: Guida per i Capigruppo
-      cover_subtitle: Catello — AGESCI Zona Hirpinia
+      cover_subtitle: Segreteria AGESCI Hirpinia
       author: AGESCI Zona Hirpinia
 
 markdown_extensions:
