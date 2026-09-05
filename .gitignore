@@ -58,3 +58,6 @@ docs/beta/
 
 # Note di lavoro locali, non destinate al repository condiviso
 docs/ignored/
+
+# Output generato da MkDocs (HTML + PDF): si rigenera con `mise run docs-build`
+site/

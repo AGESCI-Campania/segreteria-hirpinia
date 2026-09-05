@@ -55,3 +55,11 @@ run = "docker compose up -d mailpit"
 [tasks.mailpit-down]
 description = "Ferma Mailpit"
 run = "docker compose stop mailpit"
+
+[tasks.docs-serve]
+description = "Anteprima locale della documentazione utente (MkDocs)"
+run = "uv run --group docs mkdocs serve"
+
+[tasks.docs-build]
+description = "Genera la documentazione utente (HTML + PDF) in site/"
+run = "uv run --group docs mkdocs build"

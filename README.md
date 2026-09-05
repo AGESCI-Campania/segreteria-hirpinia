@@ -86,6 +86,8 @@ Riavviare `mise run dev`, poi leggere le email inviate su `http://localhost:8025
 | `mise run format` | Formattazione automatica |
 | `mise run db-up` / `db-down` | PostgreSQL in Docker |
 | `mise run mailpit-up` / `mailpit-down` | Mailpit in Docker (opzionale, alternativa a `console` con interfaccia web) |
+| `mise run docs-serve` | Anteprima locale della documentazione utente (MkDocs) |
+| `mise run docs-build` | Genera la documentazione utente (HTML + PDF) in `site/` |
 
 ## Produzione
 
@@ -194,6 +196,9 @@ apps/
 
 ## Documentazione
 
+- [`docs-utente/`](docs-utente/index.md) — guida per gli utenti finali (oggi: ruolo CG),
+  costruita con MkDocs (`mise run docs-serve`/`docs-build`), pubblicata su Read the Docs
+  e distribuita anche in PDF
 - [`docs/Catello_Progettazione.md`](docs/Catello_Progettazione.md) — documento di
   progettazione, fonte di verità per modello dati, regole di dominio e decisioni
   architetturali

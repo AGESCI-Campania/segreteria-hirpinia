@@ -49,6 +49,11 @@ dev = [
     "django-debug-toolbar>=6.0",
     "selenium>=4.47.0",
 ]
+docs = [
+    "mkdocs>=1.6",
+    "mkdocs-material>=9.5",
+    "mkdocs-with-pdf>=0.9",
+]
 
 [project.urls]
 Homepage = "https://github.com/AGESCI-Campania/catello-hirpinia"
