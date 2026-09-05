@@ -120,6 +120,8 @@ class TestModificaDatiGruppo:
             "comune": "Avellino",
             "provincia": "AV",
             "codice_fiscale": "12345678901",
+            "iban": "",
+            "intestazione_conto": "",
         }
         dati.update(override)
         return dati
@@ -169,6 +171,15 @@ class TestModificaDatiGruppo:
         estraneo = _persona("estraneo@campania.agesci.it")
         with pytest.raises(PermissionDenied):
             modifica_dati_gruppo(utente=estraneo, gruppo=gruppo, **self._dati())
+
+    def test_iban_e_intestazione_conto_salvati(self, segreteria, gruppo):
+        risultato = modifica_dati_gruppo(
+            utente=segreteria,
+            gruppo=gruppo,
+            **self._dati(iban="IT60X0542811101000000123456", intestazione_conto="AVELLINO 1"),
+        )
+        assert risultato.iban == "IT60X0542811101000000123456"
+        assert risultato.intestazione_conto == "AVELLINO 1"
 
     def test_email_istituzionale_non_e_un_parametro(self, segreteria, gruppo):
         # Verifica statica: la firma della funzione non accetta

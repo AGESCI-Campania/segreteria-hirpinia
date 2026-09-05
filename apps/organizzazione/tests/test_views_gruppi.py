@@ -133,6 +133,37 @@ class TestGruppoGestioneView:
         gruppo.refresh_from_db()
         assert gruppo.email_istituzionale == ""
 
+    def test_cg_imposta_iban_e_intestazione_conto(self, client, cg_gruppo, gruppo):
+        client.force_login(cg_gruppo)
+        dati = self._dati()
+        dati["iban"] = "IT60X0542811101000000123456"
+        dati["intestazione_conto"] = "AVELLINO 1"
+
+        response = client.post(f"/gruppi/{gruppo.codice}/gestione/", dati)
+
+        assert response.status_code == 302
+        gruppo.refresh_from_db()
+        assert gruppo.iban == "IT60X0542811101000000123456"
+        assert gruppo.intestazione_conto == "AVELLINO 1"
+
+    def test_iban_non_valido_rifiutato_senza_esporlo_nell_errore(self, client, segreteria, gruppo):
+        client.force_login(segreteria)
+        dati = self._dati()
+        dati["iban"] = "IT00INVALIDO"
+
+        response = client.post(f"/gruppi/{gruppo.codice}/gestione/", dati)
+
+        assert response.status_code == 200
+        # Il valore digitato può essere ripresentato nel campo per la
+        # correzione (comportamento standard di Django), ma il MESSAGGIO
+        # d'errore non deve mai contenerlo (CLAUDE.md: IBAN mai nei messaggi
+        # di errore) — a differenza di valida_iban(), che lo include.
+        errori_iban = response.context["form"].errors["iban"]
+        assert "IT00INVALIDO" not in " ".join(errori_iban)
+        assert "IBAN non valido" in " ".join(errori_iban)
+        gruppo.refresh_from_db()
+        assert gruppo.iban == ""
+
     def test_link_visibile_in_lista_gruppi(self, client, segreteria, gruppo):
         client.force_login(segreteria)
         response = client.get("/gruppi/")

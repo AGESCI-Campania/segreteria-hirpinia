@@ -24,6 +24,12 @@
       <div class="mb-3">
         {{ field.label_tag }}
         {{ field }}
+        {% if field.name == "iban" %}
+          <div class="form-text">
+            Usato per i bonifici del contributo Fo.Ca.: verificarlo con attenzione,
+            un errore qui blocca l'erogazione al gruppo.
+          </div>
+        {% endif %}
         {{ field.errors }}
       </div>
     {% endfor %}

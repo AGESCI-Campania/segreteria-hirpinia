@@ -129,9 +129,15 @@ def modifica_dati_gruppo(
     comune: str,
     provincia: str,
     codice_fiscale: str,
+    iban: str,
+    intestazione_conto: str,
 ) -> Gruppo:
     """Dati modificabili da "Gestione gruppo": mai `email_istituzionale`, che
-    arriva solo da import e non è mai parametro di questa funzione."""
+    arriva solo da import e non è mai parametro di questa funzione. `iban`/
+    `intestazione_conto`: dato bancario sensibile, mai loggato né incluso in
+    messaggi di errore (CLAUDE.md) — la validazione del formato IBAN avviene
+    nel form (`GruppoModificaForm.clean_iban`), che intercetta e sanifica
+    l'errore di `valida_iban()` prima che arrivi qui."""
     verifica_ruolo_gestione_dati_gruppo(utente, gruppo)
 
     gruppo.email_alternativa = email_alternativa
@@ -141,6 +147,8 @@ def modifica_dati_gruppo(
     gruppo.comune = comune
     gruppo.provincia = provincia
     gruppo.codice_fiscale = codice_fiscale
+    gruppo.iban = iban
+    gruppo.intestazione_conto = intestazione_conto
     gruppo.full_clean()
     gruppo.save(
         update_fields=[
@@ -149,6 +157,8 @@ def modifica_dati_gruppo(
             "civico",
             "cap",
             "comune",
+            "iban",
+            "intestazione_conto",
             "provincia",
             "codice_fiscale",
         ]
