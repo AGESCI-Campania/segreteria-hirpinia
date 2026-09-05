@@ -243,6 +243,7 @@ assenti da `.env.example` (aggiungerle solo se serve cambiare il default):
 | `DJANGO_SECURE_SSL_REDIRECT` | `False` | Redirect forzato HTTP→HTTPS. **Attivare solo dopo** aver messo un reverse proxy TLS reale davanti all'app: altrimenti l'health check e ogni accesso diretto vanno in loop di redirect |
 | `DJANGO_SESSION_COOKIE_SECURE` | `False` | Cookie di sessione solo su HTTPS — stessa avvertenza |
 | `DJANGO_CSRF_COOKIE_SECURE` | `False` | Cookie CSRF solo su HTTPS — stessa avvertenza |
+| `WEB_PORT` | `8000` | Porta host su cui `compose.prod.yaml` pubblica il servizio `web` (`127.0.0.1:${WEB_PORT}:8000`). Cambiarla solo se la 8000 è già occupata da un'altra applicazione sullo stesso host (es. server condiviso con più progetti): il reverse proxy va allineato alla stessa porta |
 | `GUNICORN_WORKERS` | `3` | Numero di worker Gunicorn (`docker/entrypoint.sh`) |
 | `GUNICORN_TIMEOUT` | `120` | Timeout per richiesta, in secondi |
 | `EMAIL_MAILPIT_HOST` / `EMAIL_MAILPIT_PORT` | Vuoto / `1025` | Endpoint di un Mailpit interno usato **solo** quando l'interruttore "Invia le email su Mailpit" in Impostazioni è attivo — vedi [`docs/email/mailpit-override-produzione.md`](email/mailpit-override-produzione.md) |
