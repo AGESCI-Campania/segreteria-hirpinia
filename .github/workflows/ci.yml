@@ -45,7 +45,7 @@ jobs:
         run: uv python install 3.14
 
       - name: Installa le dipendenze
-        run: uv sync --all-groups
+        run: uv sync --all-groups --all-extras
 
       - name: Lint (ruff)
         run: uv run ruff check .
