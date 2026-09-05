@@ -13,8 +13,12 @@ from bleach.css_sanitizer import CSSSanitizer
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 
-from .models import CodiceTemplateEmail, TemplateEmail
-from .template_email import sostituisci_placeholder
+from .models import CodiceTemplateEmail, ImpostazioniPiattaforma, TemplateEmail
+from .template_email import (
+    applica_prefisso_oggetto,
+    contesto_con_variabili_globali,
+    sostituisci_placeholder,
+)
 
 # Vocabolario ridotto: solo markup semantico, niente <script>/<style>/eventi
 # inline. `strip=True` rimuove i tag non ammessi invece di limitarsi a
@@ -109,14 +113,46 @@ def sanifica_html(html: str) -> str:
     )
 
 
-def _contenuto_fallback(codice_template: str, contesto: dict[str, str]) -> tuple[str, str]:
+def _contenuto_fallback(codice_template: str) -> tuple[str, str]:
     oggetto_default, percorso = _FALLBACK[codice_template]
     # .template.source legge la sorgente grezza del file, mai renderizzata
     # (quindi mai passata per l'autoescape di Django, che guasterebbe un URL
     # con "&" nella querystring): attributo non tipizzato da django-stubs,
     # ma parte dell'API pubblica di django.template.backends.django.Template.
+    # La sostituzione dei placeholder avviene sempre dopo, in
+    # `comporre_contenuto()`, per non farla due volte.
     sorgente_grezza = get_template(percorso).template.source  # type: ignore[attr-defined]
-    return oggetto_default, sostituisci_placeholder(sorgente_grezza, contesto)
+    return oggetto_default, sorgente_grezza
+
+
+def comporre_contenuto(
+    *, oggetto: str, corpo_testo: str, corpo_html: str, contesto: dict[str, str]
+) -> tuple[str, str, str]:
+    """Applica prefisso oggetto e firma comuni (Impostazioni piattaforma) a
+    un contenuto grezzo (template configurato o fallback): unico punto usato
+    sia dall'invio reale (`invia_email_template`) sia dall'anteprima
+    (`TemplateEmailModificaView`), per non duplicare la regola in due posti."""
+    impostazioni = ImpostazioniPiattaforma.corrente()
+    contesto_esteso = contesto_con_variabili_globali(contesto, impostazioni.prefisso_oggetto_email)
+
+    oggetto_finale = applica_prefisso_oggetto(
+        sostituisci_placeholder(oggetto, contesto), impostazioni.prefisso_oggetto_email
+    )
+    corpo_testo_finale = sostituisci_placeholder(corpo_testo, contesto_esteso)
+    corpo_html_finale = sostituisci_placeholder(corpo_html, contesto_esteso)
+
+    if impostazioni.firma_testo.strip():
+        corpo_testo_finale = (
+            f"{corpo_testo_finale}\n\n"
+            f"{sostituisci_placeholder(impostazioni.firma_testo, contesto_esteso)}"
+        )
+    if impostazioni.firma_html.strip():
+        corpo_html_finale = (
+            f"{corpo_html_finale}"
+            f"{sostituisci_placeholder(impostazioni.firma_html, contesto_esteso)}"
+        )
+
+    return oggetto_finale, corpo_testo_finale, corpo_html_finale
 
 
 def invia_email_template(
@@ -127,23 +163,29 @@ def invia_email_template(
     fail_silently: bool = True,
 ) -> None:
     """Sempre multipart: il corpo testo è sempre presente, l'HTML è
-    un'alternativa solo se `corpo_html` è configurato. Se il record manca o
-    è vuoto usa il fallback hardcoded (mai bloccare un invio critico come
-    l'attivazione account)."""
+    un'alternativa solo se il corpo o la firma configurano contenuto HTML. Se
+    il record manca o è vuoto usa il fallback hardcoded (mai bloccare un
+    invio critico come l'attivazione account)."""
     if not destinatari:
         return
 
     template = TemplateEmail.objects.filter(codice=codice_template).first()
-    corpo_html_sorgente = ""
     if template is not None and (template.corpo_testo.strip() or template.corpo_html.strip()):
-        oggetto = sostituisci_placeholder(template.oggetto, contesto)
-        corpo_testo = sostituisci_placeholder(template.corpo_testo, contesto)
-        corpo_html_sorgente = template.corpo_html
+        oggetto_grezzo = template.oggetto
+        corpo_testo_grezzo = template.corpo_testo
+        corpo_html_grezzo = template.corpo_html
     else:
-        oggetto, corpo_testo = _contenuto_fallback(codice_template, contesto)
+        oggetto_grezzo, corpo_testo_grezzo = _contenuto_fallback(codice_template)
+        corpo_html_grezzo = ""
+
+    oggetto, corpo_testo, corpo_html = comporre_contenuto(
+        oggetto=oggetto_grezzo,
+        corpo_testo=corpo_testo_grezzo,
+        corpo_html=corpo_html_grezzo,
+        contesto=contesto,
+    )
 
     messaggio = EmailMultiAlternatives(subject=oggetto, body=corpo_testo, to=destinatari)
-    if corpo_html_sorgente.strip():
-        corpo_html = sostituisci_placeholder(corpo_html_sorgente, contesto)
+    if corpo_html.strip():
         messaggio.attach_alternative(sanifica_html(corpo_html), "text/html")
     messaggio.send(fail_silently=fail_silently)

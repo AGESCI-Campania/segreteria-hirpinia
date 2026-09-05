@@ -5,7 +5,7 @@ import pytest
 from django.core import mail
 
 from apps.core.invio_email import invia_email_template, sanifica_html
-from apps.core.models import CodiceTemplateEmail, TemplateEmail
+from apps.core.models import CodiceTemplateEmail, ImpostazioniPiattaforma, TemplateEmail
 
 pytestmark = pytest.mark.django_db
 
@@ -254,6 +254,141 @@ class TestSanitizzazioneTabelleImmagini:
         html = mail.outbox[0].alternatives[0][0]
         assert "javascript:" not in html
         assert "<img" in html
+
+
+class TestPrefissoOggetto:
+    def test_prefisso_configurato_antepone_all_oggetto(self):
+        ImpostazioniPiattaforma.objects.update_or_create(
+            pk=1, defaults={"prefisso_oggetto_email": "Zona Hirpinia"}
+        )
+        TemplateEmail.objects.filter(codice=CodiceTemplateEmail.DELEGA_CREATA).update(
+            oggetto="Delega creata"
+        )
+
+        invia_email_template(
+            codice_template=CodiceTemplateEmail.DELEGA_CREATA,
+            destinatari=["mario@campania.agesci.it"],
+            contesto={"ruolo": "Capogruppo", "delegato": "Mario Rossi"},
+        )
+
+        assert mail.outbox[0].subject == "Zona Hirpinia - Delega creata"
+
+    def test_prefisso_vuoto_non_modifica_oggetto(self):
+        ImpostazioniPiattaforma.objects.update_or_create(
+            pk=1, defaults={"prefisso_oggetto_email": ""}
+        )
+        TemplateEmail.objects.filter(codice=CodiceTemplateEmail.DELEGA_CREATA).update(
+            oggetto="Delega creata"
+        )
+
+        invia_email_template(
+            codice_template=CodiceTemplateEmail.DELEGA_CREATA,
+            destinatari=["mario@campania.agesci.it"],
+            contesto={"ruolo": "Capogruppo", "delegato": "Mario Rossi"},
+        )
+
+        assert mail.outbox[0].subject == "Delega creata"
+
+    def test_prefisso_disponibile_come_variabile_nel_corpo(self):
+        ImpostazioniPiattaforma.objects.update_or_create(
+            pk=1, defaults={"prefisso_oggetto_email": "Zona Hirpinia"}
+        )
+        TemplateEmail.objects.filter(codice=CodiceTemplateEmail.DELEGA_CREATA).update(
+            corpo_testo="Un saluto da {{ subjectPrefix }}."
+        )
+
+        invia_email_template(
+            codice_template=CodiceTemplateEmail.DELEGA_CREATA,
+            destinatari=["mario@campania.agesci.it"],
+            contesto={"ruolo": "Capogruppo", "delegato": "Mario Rossi"},
+        )
+
+        assert "Un saluto da Zona Hirpinia." in mail.outbox[0].body
+
+    def test_prefisso_applicato_anche_al_fallback(self):
+        ImpostazioniPiattaforma.objects.update_or_create(
+            pk=1, defaults={"prefisso_oggetto_email": "Zona Hirpinia"}
+        )
+        TemplateEmail.objects.filter(codice=CodiceTemplateEmail.DELEGA_CREATA).delete()
+
+        invia_email_template(
+            codice_template=CodiceTemplateEmail.DELEGA_CREATA,
+            destinatari=["mario@campania.agesci.it"],
+            contesto={"ruolo": "Capogruppo", "delegato": "Mario Rossi", "scadenza": "01/01/2027"},
+        )
+
+        assert mail.outbox[0].subject == "Zona Hirpinia - Catello — hai concesso una delega"
+
+
+class TestFirmaComune:
+    def test_firma_testo_aggiunta_in_coda(self):
+        ImpostazioniPiattaforma.objects.update_or_create(
+            pk=1, defaults={"firma_testo": "Cordiali saluti,\nSegreteria di Zona"}
+        )
+        TemplateEmail.objects.filter(codice=CodiceTemplateEmail.DELEGA_CREATA).update(
+            corpo_testo="Corpo del messaggio."
+        )
+
+        invia_email_template(
+            codice_template=CodiceTemplateEmail.DELEGA_CREATA,
+            destinatari=["mario@campania.agesci.it"],
+            contesto={"ruolo": "Capogruppo", "delegato": "Mario Rossi"},
+        )
+
+        assert mail.outbox[0].body == (
+            "Corpo del messaggio.\n\nCordiali saluti,\nSegreteria di Zona"
+        )
+
+    def test_firma_html_aggiunta_in_coda_e_sanificata(self):
+        ImpostazioniPiattaforma.objects.update_or_create(
+            pk=1, defaults={"firma_html": "<p>Saluti</p><script>alert(1)</script>"}
+        )
+        TemplateEmail.objects.filter(codice=CodiceTemplateEmail.DELEGA_CREATA).update(
+            corpo_html="<p>Corpo</p>"
+        )
+
+        invia_email_template(
+            codice_template=CodiceTemplateEmail.DELEGA_CREATA,
+            destinatari=["mario@campania.agesci.it"],
+            contesto={"ruolo": "Capogruppo", "delegato": "Mario Rossi"},
+        )
+
+        html = mail.outbox[0].alternatives[0][0]
+        assert "<script>" not in html
+        assert html.startswith("<p>Corpo</p><p>Saluti</p>")
+
+    def test_firma_html_senza_corpo_html_genera_comunque_alternativa(self):
+        ImpostazioniPiattaforma.objects.update_or_create(
+            pk=1, defaults={"firma_html": "<p>Solo firma</p>"}
+        )
+        TemplateEmail.objects.filter(codice=CodiceTemplateEmail.DELEGA_CREATA).update(
+            corpo_html="", corpo_testo="Corpo testuale"
+        )
+
+        invia_email_template(
+            codice_template=CodiceTemplateEmail.DELEGA_CREATA,
+            destinatari=["mario@campania.agesci.it"],
+            contesto={"ruolo": "Capogruppo", "delegato": "Mario Rossi"},
+        )
+
+        assert mail.outbox[0].alternatives[0][0] == "<p>Solo firma</p>"
+
+    def test_nessuna_firma_configurata_nessun_cambiamento(self):
+        ImpostazioniPiattaforma.objects.update_or_create(
+            pk=1, defaults={"firma_testo": "", "firma_html": ""}
+        )
+        TemplateEmail.objects.filter(codice=CodiceTemplateEmail.DELEGA_CREATA).update(
+            corpo_testo="Corpo del messaggio.", corpo_html=""
+        )
+
+        invia_email_template(
+            codice_template=CodiceTemplateEmail.DELEGA_CREATA,
+            destinatari=["mario@campania.agesci.it"],
+            contesto={"ruolo": "Capogruppo", "delegato": "Mario Rossi"},
+        )
+
+        assert mail.outbox[0].body == "Corpo del messaggio."
+        assert mail.outbox[0].alternatives == []
 
 
 class TestNonRegressioneTemplateSeminati:

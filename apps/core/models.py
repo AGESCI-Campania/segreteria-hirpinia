@@ -76,6 +76,26 @@ class ImmagineTemplateEmail(models.Model):
 class ImpostazioniPiattaforma(models.Model):
     id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
     causale_bonifico_default = models.CharField(max_length=200, blank=True)
+    prefisso_oggetto_email = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name="Prefisso oggetto email",
+        help_text=(
+            "Anteposto automaticamente all'oggetto di ogni email inviata (\"prefisso - "
+            'oggetto"). Disponibile anche come {{ subjectPrefix }} nel corpo e nella '
+            "firma, ma non nell'oggetto del singolo template: ci finirebbe due volte."
+        ),
+    )
+    firma_html = models.TextField(
+        blank=True,
+        verbose_name="Firma (HTML)",
+        help_text="Aggiunta in coda al corpo HTML di ogni email inviata tramite template.",
+    )
+    firma_testo = models.TextField(
+        blank=True,
+        verbose_name="Firma (testo)",
+        help_text="Aggiunta in coda al corpo testuale di ogni email inviata tramite template.",
+    )
     email_su_mailpit = models.BooleanField(
         default=False,
         verbose_name="Invia le email su Mailpit invece del provider configurato",

@@ -14,6 +14,14 @@ from .models import CodiceTemplateEmail
 
 _RE_PLACEHOLDER = re.compile(r"\{\{\s*(\w+)\s*\}\}")
 
+# Variabile globale (M-usabilita-template-email): a differenza di quelle in
+# VARIABILI_PER_CODICE, non è specifica di un template ma disponibile ovunque
+# tranne che nell'oggetto — lì il prefisso è già applicato automaticamente da
+# `applica_prefisso_oggetto`, per evitare la duplicazione segnalata in issue
+# (vincolo imposto anche a monte in `TemplateEmailForm.clean_oggetto`).
+VARIABILE_PREFISSO_OGGETTO = "subjectPrefix"
+VARIABILI_GLOBALI: list[str] = [VARIABILE_PREFISSO_OGGETTO]
+
 # Elenco delle variabili disponibili per ciascun codice, mostrato in UI come
 # legenda (M8.2). Deve restare sincronizzato a mano con il contesto
 # effettivamente costruito in ogni punto di invio (apps/accounts/inviti.py,
@@ -96,3 +104,20 @@ def sostituisci_placeholder(testo: str, contesto: dict[str, str]) -> str:
         return str(contesto.get(m.group(1), ""))
 
     return _RE_PLACEHOLDER.sub(_sostituisci, testo)
+
+
+def applica_prefisso_oggetto(oggetto: str, prefisso: str) -> str:
+    prefisso = prefisso.strip()
+    if not prefisso:
+        return oggetto
+    return f"{prefisso} - {oggetto}"
+
+
+def contesto_con_variabili_globali(
+    contesto: dict[str, str], prefisso_oggetto: str
+) -> dict[str, str]:
+    """Non muta il contesto passato dal chiamante: usato per il corpo e per
+    la firma, mai per l'oggetto (vedi `applica_prefisso_oggetto`)."""
+    esteso = dict(contesto)
+    esteso.setdefault(VARIABILE_PREFISSO_OGGETTO, prefisso_oggetto)
+    return esteso

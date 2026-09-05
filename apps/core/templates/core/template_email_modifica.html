@@ -14,6 +14,14 @@
       nessuna
     {% endfor %}
   </p>
+  <p class="text-muted">
+    Variabili globali, disponibili in corpo HTML e testo di ogni template (mai
+    nell'oggetto):
+    {% for variabile in variabili_globali %}
+      <code>{% templatetag openvariable %} {{ variabile }} {% templatetag closevariable %}</code>{% if not forloop.last %}, {% endif %}
+    {% endfor %}
+    — valorizzata da <a href="{% url 'core:impostazioni' %}">Impostazioni di piattaforma</a>.
+  </p>
 
   {% if form.non_field_errors %}
     <div class="alert alert-danger">{{ form.non_field_errors }}</div>
@@ -34,6 +42,9 @@
     <div class="mb-3">
       {{ form.corpo_testo.label_tag }}
       <div class="form-text">Fallback testuale, sempre inviato insieme all'HTML.</div>
+      <button type="button" id="genera-testo-da-html" class="btn btn-outline-secondary btn-sm mb-1">
+        Genera dal contenuto HTML
+      </button>
       {{ form.corpo_testo }}
       {{ form.corpo_testo.errors }}
     </div>
@@ -77,14 +88,22 @@
       return valore ? decodeURIComponent(valore.split("=")[1]) : "";
     }
 
+    document.getElementById("genera-testo-da-html")?.addEventListener("click", () => {
+      if (window.tinymce && tinymce.get("id_corpo_html")) {
+        document.getElementById("id_corpo_testo").value =
+          tinymce.get("id_corpo_html").getContent({ format: "text" });
+      }
+    });
+
     if (window.tinymce) {
       tinymce.init({
         selector: "#id_corpo_html",
         license_key: "gpl",
         base_url: "{% static 'vendor/tinymce' %}",
         suffix: ".min",
-        plugins: "lists link autolink table image",
-        toolbar: "undo redo | bold italic underline | bullist numlist | link table image",
+        plugins: "lists link autolink table image code",
+        toolbar:
+          "undo redo | bold italic underline | bullist numlist | link table image | code",
         menubar: false,
         branding: false,
         height: 400,

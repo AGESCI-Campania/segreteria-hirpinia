@@ -95,6 +95,44 @@ class TestPermessi:
         assert template_delega_creata.oggetto == "Oggetto aggiornato"
 
 
+class TestSubjectPrefixNonInOggetto:
+    def test_subject_prefix_in_oggetto_rifiutato(self, client, segreteria, template_delega_creata):
+        client.force_login(segreteria)
+        oggetto_originale = template_delega_creata.oggetto
+
+        response = client.post(
+            f"/impostazioni/template-email/{template_delega_creata.pk}/",
+            {
+                "azione": "salva",
+                "oggetto": "{{ subjectPrefix }} Delega creata",
+                "corpo_html": "",
+                "corpo_testo": "",
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.context["form"].errors.get("oggetto")
+        template_delega_creata.refresh_from_db()
+        assert template_delega_creata.oggetto == oggetto_originale
+
+    def test_subject_prefix_nel_corpo_e_ammesso(self, client, segreteria, template_delega_creata):
+        client.force_login(segreteria)
+
+        response = client.post(
+            f"/impostazioni/template-email/{template_delega_creata.pk}/",
+            {
+                "azione": "salva",
+                "oggetto": "Delega creata",
+                "corpo_html": "",
+                "corpo_testo": "Un saluto da {{ subjectPrefix }}.",
+            },
+        )
+
+        assert response.status_code == 302
+        template_delega_creata.refresh_from_db()
+        assert template_delega_creata.corpo_testo == "Un saluto da {{ subjectPrefix }}."
+
+
 class TestAnteprima:
     def test_anteprima_non_salva(self, client, segreteria, template_delega_creata):
         client.force_login(segreteria)

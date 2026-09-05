@@ -107,6 +107,25 @@ class TestEmailSuMailpit:
         assert ImpostazioniPiattaforma.corrente().email_su_mailpit
 
 
+class TestPrefissoEFirma:
+    def test_prefisso_e_firma_salvati(self, client, segreteria):
+        client.force_login(segreteria)
+        response = client.post(
+            "/impostazioni/",
+            {
+                "causale_bonifico_default": "",
+                "prefisso_oggetto_email": "Zona Hirpinia",
+                "firma_html": "<p>Segreteria</p>",
+                "firma_testo": "Segreteria",
+            },
+        )
+        assert response.status_code == 302
+        impostazioni = ImpostazioniPiattaforma.corrente()
+        assert impostazioni.prefisso_oggetto_email == "Zona Hirpinia"
+        assert impostazioni.firma_html == "<p>Segreteria</p>"
+        assert impostazioni.firma_testo == "Segreteria"
+
+
 class TestAuditlog:
     def test_modifica_tracciata(self, client, segreteria):
         ImpostazioniPiattaforma.corrente()  # crea la riga con il default

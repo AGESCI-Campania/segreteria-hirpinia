@@ -15,10 +15,10 @@ from .forms import (
     ImpostazioniPiattaformaForm,
     TemplateEmailForm,
 )
-from .invio_email import invia_email_template, sanifica_html
+from .invio_email import comporre_contenuto, invia_email_template, sanifica_html
 from .mixins import BreadcrumbExtraMixin
 from .models import ImmagineTemplateEmail, ImpostazioniPiattaforma, TemplateEmail
-from .template_email import CONTESTO_ESEMPIO, VARIABILI_PER_CODICE, sostituisci_placeholder
+from .template_email import CONTESTO_ESEMPIO, VARIABILI_GLOBALI, VARIABILI_PER_CODICE
 
 RUOLI_GESTIONE_IMPOSTAZIONI = frozenset({Ruolo.Tipo.ADMIN, Ruolo.Tipo.SEGRETERIA, Ruolo.Tipo.RDZ})
 
@@ -91,6 +91,7 @@ class TemplateEmailModificaView(BreadcrumbExtraMixin, RuoloRequiredMixin, View):
             "template": template,
             "form": form,
             "variabili": VARIABILI_PER_CODICE.get(template.codice, []),
+            "variabili_globali": VARIABILI_GLOBALI,
         }
         contesto.update(extra)
         return contesto
@@ -111,14 +112,16 @@ class TemplateEmailModificaView(BreadcrumbExtraMixin, RuoloRequiredMixin, View):
         contesto_esempio = CONTESTO_ESEMPIO.get(template.codice, {})
 
         if azione == "anteprima":
+            oggetto, corpo_testo, corpo_html = comporre_contenuto(
+                oggetto=form.cleaned_data["oggetto"],
+                corpo_testo=form.cleaned_data["corpo_testo"],
+                corpo_html=form.cleaned_data["corpo_html"],
+                contesto=contesto_esempio,
+            )
             anteprima = {
-                "oggetto": sostituisci_placeholder(form.cleaned_data["oggetto"], contesto_esempio),
-                "corpo_testo": sostituisci_placeholder(
-                    form.cleaned_data["corpo_testo"], contesto_esempio
-                ),
-                "corpo_html": sanifica_html(
-                    sostituisci_placeholder(form.cleaned_data["corpo_html"], contesto_esempio)
-                ),
+                "oggetto": oggetto,
+                "corpo_testo": corpo_testo,
+                "corpo_html": sanifica_html(corpo_html),
             }
             return render(
                 request,

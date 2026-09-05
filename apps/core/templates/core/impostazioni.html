@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block page_title %}Impostazioni{% endblock %}
 
@@ -19,7 +20,20 @@
     {% for field in form %}
       <div class="mb-3">
         {{ field.label_tag }}
+        {% if field.name == "firma_testo" %}
+          <button type="button" id="genera-firma-testo-da-html"
+                  class="btn btn-outline-secondary btn-sm mb-1">
+            Genera dalla firma HTML
+          </button>
+        {% endif %}
         {{ field }}
+        {% if field.name == "prefisso_oggetto_email" or field.name == "firma_html" or field.name == "firma_testo" %}
+          <div class="form-text">
+            Disponibile come <code>{% templatetag openvariable %} subjectPrefix {% templatetag closevariable %}</code>
+            nel corpo e nella firma dei template email (mai nell'oggetto, dove è già
+            applicato automaticamente).
+          </div>
+        {% endif %}
         {% if field.name == "email_su_mailpit" %}
           <div class="form-text text-warning">
             Attenzione: mentre è attivo, nessuna email (verifica registrazione, reset
@@ -32,4 +46,31 @@
     {% endfor %}
     <button type="submit" class="btn btn-primary">Salva</button>
   </form>
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script src="{% static 'vendor/tinymce/tinymce.min.js' %}"></script>
+  <script>
+    document.getElementById("genera-firma-testo-da-html")?.addEventListener("click", () => {
+      if (window.tinymce && tinymce.get("id_firma_html")) {
+        document.getElementById("id_firma_testo").value =
+          tinymce.get("id_firma_html").getContent({ format: "text" });
+      }
+    });
+
+    if (window.tinymce) {
+      tinymce.init({
+        selector: "#id_firma_html",
+        license_key: "gpl",
+        base_url: "{% static 'vendor/tinymce' %}",
+        suffix: ".min",
+        plugins: "lists link autolink code",
+        toolbar: "undo redo | bold italic underline | bullist numlist | link | code",
+        menubar: false,
+        branding: false,
+        height: 200,
+      });
+    }
+  </script>
 {% endblock %}
