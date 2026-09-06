@@ -4,6 +4,7 @@ from apps.core.views import (
     CaricaImmagineTemplateEmailView,
     HomeView,
     ImpostazioniPiattaformaView,
+    PrivacyPolicyView,
     TemplateEmailListaView,
     TemplateEmailModificaView,
 )
@@ -12,6 +13,7 @@ app_name = "core"
 
 urlpatterns = [
     path("", HomeView.as_view(), name="home"),
+    path("privacy/", PrivacyPolicyView.as_view(), name="privacy"),
     path("impostazioni/", ImpostazioniPiattaformaView.as_view(), name="impostazioni"),
     path(
         "impostazioni/template-email/",

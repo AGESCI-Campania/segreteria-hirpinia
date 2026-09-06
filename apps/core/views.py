@@ -29,6 +29,12 @@ class HomeView(LoginRequiredMixin, TemplateView):
     template_name = "core/home.html"
 
 
+class PrivacyPolicyView(TemplateView):
+    """Pubblica, senza login: linkata dal footer mostrato anche pre-login."""
+
+    template_name = "core/privacy.html"
+
+
 class ImpostazioniPiattaformaView(RuoloRequiredMixin, View):
     # D-11: stesso perimetro dei parametri di campagna, esclusi i delegati.
     ruoli_ammessi = RUOLI_GESTIONE_IMPOSTAZIONI

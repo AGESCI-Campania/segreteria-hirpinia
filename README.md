@@ -1,6 +1,6 @@
 # Catello
 
-[![build](https://github.com/AGESCI-Campania/catello-hirpinia/actions/workflows/ci.yml/badge.svg)](https://github.com/AGESCI-Campania/catello-hirpinia/actions/workflows/ci.yml)
+[![build](https://github.com/AGESCI-Campania/segreteria-hirpinia/actions/workflows/ci.yml/badge.svg)](https://github.com/AGESCI-Campania/segreteria-hirpinia/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.14%2B-blue.svg)](https://www.python.org/)
 [![Django](https://img.shields.io/badge/Django-6.0%2B-092E20.svg?logo=django&logoColor=white)](https://www.djangoproject.com/)
@@ -33,8 +33,8 @@ regionali AGESCI Campania, con autenticazione locale autonoma (non collegata a S
 ## Avvio in sviluppo
 
 ```bash
-git clone https://github.com/AGESCI-Campania/catello-hirpinia.git
-cd catello-hirpinia
+git clone https://github.com/AGESCI-Campania/segreteria-hirpinia.git
+cd segreteria-hirpinia
 
 mise install                 # Python e uv alla versione richiesta
 uv sync                      # crea .venv e installa le dipendenze

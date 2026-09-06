@@ -1,0 +1,65 @@
+{% comment %}
+Override locale di django-agesci-campania-theme
+(agesci_theme/templates/agesci_theme/partials/footer.html), scelto da Django
+al posto della versione del pacchetto perché TEMPLATES[0]["DIRS"] ha priorità
+su APP_DIRS (config/settings/base.py) — stesso pattern già usato per
+breadcrumb.html. Personalizza colonne, contatti e copyright per la Zona
+Hirpinia. Se il tema aggiorna questo partial, sincronizzare a mano.
+{% endcomment %}
+{% load static %}
+<footer class="ag-footer py-5">
+  <div class="container">
+    <div class="row g-4">
+
+      {# Colonna logo + brand #}
+      <div class="col-12 col-md-3">
+        <a href="/" class="d-inline-block mb-2">
+          <img src="{% static agesci_theme_logo_navbar %}" alt="{{ agesci_theme_nome }}" class="ag-footer__logo">
+        </a>
+        <p class="small">{% block footer_brand_text %}{{ agesci_theme_nome }}{% endblock %}</p>
+      </div>
+
+      {# Colonne link personalizzabili #}
+      {% block footer_columns %}
+      <div class="col-6 col-md-2">
+        <h5>{% block footer_col1_title %}Informazioni{% endblock %}</h5>
+        <ul class="ag-footer__nav">
+          {% block footer_col1_links %}
+          <li><a href="{% url 'core:privacy' %}">Privacy Policy</a></li>
+          <li><a href="https://segreteria-hirpinia.readthedocs.io" target="_blank" rel="noopener">Manuale d'uso</a></li>
+          {% endblock %}
+        </ul>
+      </div>
+      <div class="col-6 col-md-2">
+        <h5>{% block footer_col2_title %}Contatti{% endblock %}</h5>
+        <ul class="ag-footer__nav">
+          {% block footer_col2_links %}
+          <li><a href="mailto:zonahirpinia@campania.agesci.it">Responsabili di Zona</a></li>
+          <li><a href="https://www.instagram.com/agesci.zonahirpinia" target="_blank" rel="noopener">Instagram</a></li>
+          {% endblock %}
+        </ul>
+      </div>
+      {% endblock %}
+
+      {# Blocco testo centrale (compatibilità v1) #}
+      <div class="col-12 col-md-auto ms-md-auto text-center text-md-end small">
+        {% block footer_text %}
+        <strong>{{ agesci_theme_nome }}</strong><br>
+        Associazione Guide e Scouts Cattolici Italiani
+        {% endblock %}
+      </div>
+
+    </div>{# /row #}
+
+    {# Riga copyright + link legali #}
+    <div class="ag-footer__bottom d-flex flex-column flex-sm-row justify-content-between align-items-center pt-4 mt-4 gap-2">
+      <p>{% block footer_copyright %}© AGESCI Zona Hirpinia. Progetto con <a href="https://github.com/AGESCI-Campania/segreteria-hirpinia/blob/main/LICENSE" target="_blank" rel="noopener">Licenza MIT</a> realizzato da <a href="https://www.bruand81.it" target="_blank" rel="noopener">Andrea Bruno</a>{% endblock %}</p>
+      <ul>
+        {% block footer_links %}
+        <li><a href="https://www.agesci.it" target="_blank" rel="noopener">agesci.it</a></li>
+        {% endblock %}
+      </ul>
+    </div>
+
+  </div>{# /container #}
+</footer>
