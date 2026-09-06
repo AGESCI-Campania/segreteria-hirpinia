@@ -91,7 +91,7 @@ class Utente(AbstractUser):
                     {
                         "gruppo": (
                             f"Il gruppo {self.gruppo_id} ha già {attuali} account "
-                            f"funzionali su {consentiti} consentiti (D-33)."
+                            f"funzionali su {consentiti} consentiti."
                         )
                     }
                 )
@@ -119,7 +119,7 @@ class Ruolo(models.Model):
         RS = "RS", "Rover/Scolte"
 
     class Origine(models.TextChoices):
-        DERIVATO = "DERIVATO", "Derivato dall'incarico (D-30)"
+        DERIVATO = "DERIVATO", "Derivato dall'incarico"
         AMMINISTRATIVO = "AMMINISTRATIVO", "Amministrativo"
 
     utente = models.ForeignKey(Utente, on_delete=models.CASCADE, related_name="ruoli")
@@ -208,7 +208,7 @@ class Delega(models.Model):
     ruolo = models.ForeignKey(Ruolo, on_delete=models.CASCADE, related_name="deleghe")
     attiva = models.BooleanField(default=True)
     data_inizio = models.DateField(default=timezone.localdate)
-    data_fine = models.DateField(help_text="Obbligatoria, a differenza del ruolo (D-04).")
+    data_fine = models.DateField(help_text="Obbligatoria, a differenza del ruolo.")
     note = models.TextField(blank=True)
 
     class Meta:
@@ -228,7 +228,7 @@ class Delega(models.Model):
         if self.ruolo_id and self.delegante_id and self.ruolo.utente_id != self.delegante_id:
             raise ValidationError(
                 "Un ruolo è delegabile solo dal suo titolare: un delegato non può "
-                "a sua volta ri-delegare (D-04)."
+                "a sua volta ri-delegare."
             )
         if self.ruolo_id and self.ruolo.data_fine and self.data_fine > self.ruolo.data_fine:
             raise ValidationError(
@@ -244,8 +244,7 @@ class Delega(models.Model):
             )
             if self.attiva and not self.is_scaduta and attive >= max_deleghe:
                 raise ValidationError(
-                    f"Il ruolo ha già {attive} deleghe attive su {max_deleghe} "
-                    "consentite (D-26)."
+                    f"Il ruolo ha già {attive} deleghe attive su {max_deleghe} " "consentite."
                 )
 
 

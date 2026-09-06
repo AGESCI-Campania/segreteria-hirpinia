@@ -146,7 +146,7 @@ def costruisci_piano_partecipazioni(
                 ERRORE,
                 "Campagna",
                 f"La campagna {campagna.anno} non è aperta all'inserimento o è fuori "
-                "dalla finestra prevista (D-21).",
+                "dalla finestra prevista.",
                 "",
             )
         )

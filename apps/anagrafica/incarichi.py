@@ -204,7 +204,7 @@ def cessa_incarico_manuale(*, utente: Utente, incarico: IncaricoUnita) -> None:
     if incarico.origine != OrigineIncarico.MANUALE:
         raise ValidationError(
             "Solo un incarico manuale può essere cessato da qui: un incarico IMPORT si "
-            "sostituisce solo importando una nuova autorizzazione (D-32)."
+            "sostituisce solo importando una nuova autorizzazione."
         )
     if incarico.cessato_il is not None:
         raise ValidationError("Incarico già cessato.")

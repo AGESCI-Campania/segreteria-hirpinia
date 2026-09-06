@@ -39,9 +39,7 @@ def vieta_in_impersonificazione(azione: str):
         @functools.wraps(func)
         def wrapper(request, *args, **kwargs):
             if _e_impersonificato(request):
-                raise PermissionDenied(
-                    f"Azione '{azione}' preclusa durante l'impersonificazione (D-27)."
-                )
+                raise PermissionDenied(f"Azione '{azione}' preclusa durante l'impersonificazione.")
             return func(request, *args, **kwargs)
 
         return wrapper

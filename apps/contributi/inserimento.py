@@ -66,7 +66,7 @@ def inserisci_partecipazione_manuale(
     note: str = "",
 ) -> Partecipazione:
     if campagna.stato != StatoCampagna.APERTA or not campagna.in_finestra_inserimento():
-        raise ValidationError("La campagna non è aperta all'inserimento o è fuori finestra (D-21).")
+        raise ValidationError("La campagna non è aperta all'inserimento o è fuori finestra.")
 
     gruppo = risolvi_gruppo_competente(utente, codice_socio, anno_scout=campagna.anno)
 

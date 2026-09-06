@@ -34,7 +34,7 @@ def genera_righe_bonifici(campagna: Campagna, *, causale: str) -> list[RigaBonif
     if campagna.stato not in STATI_CON_IMPORTI_CONGELATI:
         raise ValidationError(
             "Gli importi non sono ancora congelati: la campagna deve essere "
-            "CHIUSA o LIQUIDATA per generare il file bonifici (D-14)."
+            "CHIUSA o LIQUIDATA per generare il file bonifici."
         )
 
     totali = (

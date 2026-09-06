@@ -39,7 +39,7 @@ class Gruppo(models.Model):
     nome = models.CharField(max_length=100)
     is_comitato_zona = models.BooleanField(
         default=False,
-        help_text="True solo per E9001: non è una Comunità Capi (D-33).",
+        help_text="True solo per E9001: non è una Comunità Capi.",
     )
     email_istituzionale = models.EmailField(blank=True)
     email_alternativa = models.EmailField(
@@ -62,12 +62,10 @@ class Gruppo(models.Model):
     data_autorizzazione = models.DateField(
         null=True,
         blank=True,
-        help_text="Ultima data_aggiornamento importata dall'autorizzazione (D-09, M3).",
+        help_text="Ultima data_aggiornamento importata dall'autorizzazione.",
     )
     origine = models.CharField(max_length=10, choices=Origine.choices, default=Origine.MANUALE)
-    account_consentiti = models.PositiveSmallIntegerField(
-        default=1, help_text="E9001 vale 2 (D-33)."
-    )
+    account_consentiti = models.PositiveSmallIntegerField(default=1, help_text="E9001 vale 2.")
 
     objects = GruppoQuerySet.as_manager()
 

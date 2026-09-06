@@ -219,7 +219,7 @@ def costruisci_piano_autorizzazioni(pdf_caricati: list[PdfCaricato]) -> PianoAut
                     ERRORE,
                     "Autorizzazione",
                     f"{pdf.nome_file}: data aggiornamento {nuova:%d/%m/%Y} precedente "
-                    f"all'ultima registrata per {codice} ({registrata:%d/%m/%Y}). Scartato (D-09).",
+                    f"all'ultima registrata per {codice} ({registrata:%d/%m/%Y}). Scartato.",
                     "",
                 )
             )
@@ -259,7 +259,7 @@ def costruisci_piano_autorizzazioni(pdf_caricati: list[PdfCaricato]) -> PianoAut
                         0,
                         ERRORE,
                         "Funzione",
-                        f"Funzione non nel vocabolario chiuso: {record['funzione']!r}. Riga non importata (D-08).",
+                        f"Funzione non nel vocabolario chiuso: {record['funzione']!r}. Riga non importata.",
                         record["codice_socio"],
                     )
                 )
@@ -271,7 +271,7 @@ def costruisci_piano_autorizzazioni(pdf_caricati: list[PdfCaricato]) -> PianoAut
                         0,
                         ERRORE,
                         "Capo",
-                        f"Codice socio {record['codice_socio']} assente in anagrafica: incarico non creato (D-34).",
+                        f"Codice socio {record['codice_socio']} assente in anagrafica: incarico non creato.",
                         record["codice_socio"],
                     )
                 )
@@ -333,7 +333,7 @@ def _anomalie_incarichi_manuali_sovrascritti(
             f"{incarico.capo_id} — {incarico.get_funzione_display()} in "
             f"{incarico.codice_unita} {incarico.nome_unita} ({incarico.gruppo_servizio_id}, "
             f"{incarico.anno_scout}): incarico assegnato manualmente, verrà sostituito "
-            "dall'autorizzazione importata (D-32). Conferma per procedere.",
+            "dall'autorizzazione importata. Conferma per procedere.",
             incarico.capo_id,
         )
         for incarico in manuali_sovrascritti.order_by("capo_id")
@@ -410,7 +410,7 @@ def applica_piano_autorizzazioni(
                                 ERRORE,
                                 "CapoGruppo",
                                 f"{op.codice_socio}: stesso sesso di {conflitto}, già "
-                                f"capogruppo attivo di {op.gruppo_codice} (D-35). "
+                                f"capogruppo attivo di {op.gruppo_codice}. "
                                 "Incarico non creato.",
                                 op.codice_socio,
                             )
@@ -451,7 +451,7 @@ def applica_piano_autorizzazioni(
                         AVVISO,
                         "CapoGruppo",
                         f"{gruppo_codice} ({anno}): un solo capogruppo attivo "
-                        f"({codici[0]}), posto vacante (D-35).",
+                        f"({codici[0]}), posto vacante.",
                         codici[0],
                     )
                 )
@@ -469,7 +469,7 @@ def applica_piano_autorizzazioni(
                             "CapoGruppo",
                             f"{codice_socio}: capogruppo di {gruppo_codice} ({anno}) con "
                             f"Livello Fo.Ca. {livelli.get(codice_socio) or 'assente'}, "
-                            "diverso da 5 (D-35).",
+                            "diverso da 5.",
                             codice_socio,
                         )
                     )
@@ -514,7 +514,7 @@ def applica_piano_autorizzazioni(
                         "CapoGruppo",
                         f"{capo_id}: capogruppo attivo su più gruppi reali "
                         f"contemporaneamente ({', '.join(sorted(gruppi_capogruppo))}), "
-                        "atteso un solo gruppo (D-35).",
+                        "atteso un solo gruppo.",
                         capo_id,
                     )
                 )

@@ -41,7 +41,7 @@ def puo_valutare_partecipazioni(utente: Utente) -> bool:
 def _verifica_in_valutazione(partecipazione: Partecipazione) -> None:
     if partecipazione.campagna.stato != StatoCampagna.IN_VALUTAZIONE:
         raise ValidationError(
-            "La campagna non è IN_VALUTAZIONE: nessuna valutazione è possibile ora (D-12)."
+            "La campagna non è IN_VALUTAZIONE: nessuna valutazione è possibile ora."
         )
 
 
@@ -66,12 +66,10 @@ def respingi_partecipazione(
     if partecipazione.stato == StatoPartecipazione.APPROVATA:
         raise ValidationError(
             "Una partecipazione già approvata non può essere respinta dalla valutazione "
-            "ordinaria (solo la disattivazione del gruppo può farlo, D-24)."
+            "ordinaria (solo la disattivazione del gruppo può farlo)."
         )
     if not motivazione.strip():
-        raise ValidationError(
-            "Un respingimento senza causale non è possibile, in nessun percorso (D-12/D-24)."
-        )
+        raise ValidationError("Un respingimento senza causale non è possibile, in nessun percorso.")
     partecipazione.respingi()
     partecipazione.motivazione_respingimento = motivazione
     partecipazione.valutata_da = utente
@@ -105,9 +103,7 @@ def carica_allegato(
     if partecipazione.gruppo_id not in visibili:
         raise PermissionDenied(f"{partecipazione.gruppo_id} non è nel perimetro di {utente}.")
     if partecipazione.stato != StatoPartecipazione.DOCUMENTI_RICHIESTI:
-        raise ValidationError(
-            "Nessun documento richiesto per questa partecipazione al momento (D-11)."
-        )
+        raise ValidationError("Nessun documento richiesto per questa partecipazione al momento.")
     allegato = AllegatoPartecipazione(
         partecipazione=partecipazione, file=file, tipo=tipo, caricato_da=utente
     )

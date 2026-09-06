@@ -89,7 +89,7 @@ class Capo(models.Model):
     data_disattivazione = models.DateField(
         null=True,
         blank=True,
-        help_text="Valorizzata alla disattivazione, azzerata alla riattivazione (D-22).",
+        help_text="Valorizzata alla disattivazione, azzerata alla riattivazione.",
     )
     utente = models.OneToOneField(
         "accounts.Utente",
@@ -151,7 +151,7 @@ class CensimentoCapo(models.Model):
     is_capogruppo = models.BooleanField(default=False)
     a_disposizione = models.BooleanField(
         default=True,
-        help_text="Derivato: nessun incarico attivo nell'anno (D-31). Ricalcolato "
+        help_text="Derivato: nessun incarico attivo nell'anno. Ricalcolato "
         "da zero a ogni import.",
     )
     livello_foca = models.IntegerField(null=True, blank=True)
@@ -250,7 +250,7 @@ class IncaricoUnita(models.Model):
         "organizzazione.Gruppo",
         on_delete=models.PROTECT,
         related_name="incarichi_unita",
-        help_text="Gruppo la cui autorizzazione dichiara l'incarico (D-34).",
+        help_text="Gruppo la cui autorizzazione dichiara l'incarico.",
     )
     codice_unita = models.CharField(max_length=10)
     nome_unita = models.CharField(max_length=100, blank=True)
@@ -260,7 +260,7 @@ class IncaricoUnita(models.Model):
     livello_foca = models.IntegerField(null=True, blank=True)
     origine = models.CharField(max_length=10, choices=OrigineIncarico.choices)
     cessato_il = models.DateTimeField(
-        null=True, blank=True, help_text="Attivo se nullo (D-32). Mai un delete."
+        null=True, blank=True, help_text="Attivo se nullo. Mai un delete."
     )
     assegnato_da = models.ForeignKey(
         "accounts.Utente",
@@ -395,7 +395,7 @@ class EsportazioneAnagrafica(models.Model):
     profilo_colonne = models.CharField(max_length=10, choices=ProfiloColonneEsportazione.choices)
     numero_righe = models.IntegerField()
     numero_capi = models.IntegerField(
-        help_text="Capi distinti, non righe: un capo con più incarichi genera più righe (D-23)."
+        help_text="Capi distinti, non righe: un capo con più incarichi genera più righe."
     )
     eseguita_il = models.DateTimeField(auto_now_add=True)
 

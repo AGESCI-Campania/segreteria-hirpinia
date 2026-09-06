@@ -199,14 +199,14 @@ class Partecipazione(FSMModelMixin, models.Model):
             and not self.motivazione_respingimento.strip()
         ):
             errors["motivazione_respingimento"] = (
-                "Un respingimento senza causale non è possibile, in nessun percorso (D-12/D-24)."
+                "Un respingimento senza causale non è possibile, in nessun percorso."
             )
         if self.campagna_id and self.data_inizio:
             inizio, fine = self.campagna.finestra_associativa
             if not (inizio <= self.data_inizio <= fine):
                 errors["data_inizio"] = (
                     f"Fuori dalla finestra dell'anno associativo {self.campagna.anno}: "
-                    f"deve essere tra {inizio:%d/%m/%Y} e {fine:%d/%m/%Y} (D-10)."
+                    f"deve essere tra {inizio:%d/%m/%Y} e {fine:%d/%m/%Y}."
                 )
         if self.data_inizio and self.data_fine and self.data_fine < self.data_inizio:
             errors["data_fine"] = "Non può essere precedente alla data inizio."
@@ -215,7 +215,7 @@ class Partecipazione(FSMModelMixin, models.Model):
             and self.tipologia.codice == "ALTRO"
             and not self.descrizione_altro.strip()
         ):
-            errors["descrizione_altro"] = 'Obbligatorio quando la tipologia è "Altro" (M15).'
+            errors["descrizione_altro"] = 'Obbligatorio quando la tipologia è "Altro".'
         if errors:
             raise ValidationError(errors)
 

@@ -42,12 +42,12 @@ def crea_gruppo(*, utente: Utente, codice: str, nome: str, email_istituzionale: 
     _verifica_ruolo_gestione_gruppi(utente)
     if not email_istituzionale.strip():
         raise ValidationError(
-            "L'email istituzionale è obbligatoria: alimenta l'allowlist per l'invito OTP (D-06)."
+            "L'email istituzionale è obbligatoria: alimenta l'allowlist per l'invito OTP."
         )
     if Gruppo.objects.filter(pk=codice).exists():
         raise ValidationError(
             f"{codice}: esiste già un gruppo con questo codice. Se è disattivato, "
-            "usa la riattivazione invece di crearne uno nuovo (D-24)."
+            "usa la riattivazione invece di crearne uno nuovo."
         )
     gruppo = Gruppo(
         codice=codice,
@@ -75,7 +75,7 @@ def disattiva_gruppo(*, utente: Utente, gruppo: Gruppo, motivo: str) -> StatoGru
     successivi finché non viene disposto un nuovo stato."""
     _verifica_ruolo_gestione_gruppi(utente)
     if not motivo.strip():
-        raise ValidationError("La disattivazione richiede una motivazione obbligatoria (D-24).")
+        raise ValidationError("La disattivazione richiede una motivazione obbligatoria.")
 
     anno = anno_scout_corrente()
     if StatoGruppoAnno.objects.filter(gruppo=gruppo, anno_scout=anno).exists():
@@ -97,7 +97,7 @@ def riattiva_gruppo(
     d'anno."""
     _verifica_ruolo_gestione_gruppi(utente)
     if not motivo.strip():
-        raise ValidationError("La riattivazione richiede una motivazione obbligatoria (D-24).")
+        raise ValidationError("La riattivazione richiede una motivazione obbligatoria.")
 
     ultimo = gruppo.stati_annuali.order_by("-anno_scout").first()
     if ultimo is not None and not ultimo.attivo and anno_scout <= ultimo.anno_scout:

@@ -46,7 +46,7 @@ class PartecipazioneManualeForm(forms.Form):
         max_digits=10,
         decimal_places=2,
         help_text=(
-            "Precompilata dalla quota di default della tipologia, quando esiste (M17); "
+            "Precompilata dalla quota di default della tipologia, quando esiste; "
             "resta modificabile."
         ),
     )

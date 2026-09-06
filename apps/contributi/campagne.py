@@ -35,7 +35,7 @@ def _verifica_ruolo_diretto_gestione_campagna(utente: Utente) -> None:
     if not any(r.tipo in RUOLI_GESTIONE_CAMPAGNA and not r.is_delega for r in ruoli):
         raise PermissionDenied(
             f"{utente}: i parametri di campagna sono riservati a SEGRETERIA/ADMIN/RDZ, "
-            "esclusi i delegati (D-11)."
+            "esclusi i delegati."
         )
 
 
@@ -98,9 +98,7 @@ def avvia_valutazione(*, utente: Utente, campagna: Campagna) -> Campagna:
     una per una così che ognuna passi da `full_clean(exclude=["stato"])`."""
     verifica_ruolo_gestione_campagna(utente)
     if campagna.stato != StatoCampagna.APERTA:
-        raise ValidationError(
-            "La campagna non è APERTA: impossibile avviare la valutazione (D-12)."
-        )
+        raise ValidationError("La campagna non è APERTA: impossibile avviare la valutazione.")
 
     campagna.avvia_valutazione()
     campagna.full_clean(exclude=["stato"])
@@ -131,7 +129,7 @@ def chiudi_campagna(request, *, utente: Utente, campagna: Campagna) -> Campagna:
     sessione impersonata (D-27)."""
     verifica_ruolo_gestione_campagna(utente)
     if campagna.stato != StatoCampagna.IN_VALUTAZIONE:
-        raise ValidationError("La campagna non è IN_VALUTAZIONE: impossibile chiuderla (D-12).")
+        raise ValidationError("La campagna non è IN_VALUTAZIONE: impossibile chiuderla.")
 
     if Partecipazione.objects.filter(
         campagna=campagna,
@@ -139,7 +137,7 @@ def chiudi_campagna(request, *, utente: Utente, campagna: Campagna) -> Campagna:
     ).exists():
         raise ValidationError(
             "Ci sono partecipazioni non ancora valutate (INSERITA o DOCUMENTI_RICHIESTI): "
-            "la chiusura non è consentita finché non sono tutte valutate (D-12)."
+            "la chiusura non è consentita finché non sono tutte valutate."
         )
 
     gruppi_da_pagare = Gruppo.objects.filter(
@@ -154,7 +152,7 @@ def chiudi_campagna(request, *, utente: Utente, campagna: Campagna) -> Campagna:
             non_validi.append(gruppo.codice)
     if non_validi:
         raise ValidationError(
-            "IBAN mancante o non valido per i gruppi: " + ", ".join(sorted(non_validi)) + " (D-14)."
+            "IBAN mancante o non valido per i gruppi: " + ", ".join(sorted(non_validi)) + "."
         )
 
     risultato = calcola_importi(campagna)
@@ -191,9 +189,9 @@ def liquida_campagna(
     non il momento in cui si preme questo bottone."""
     verifica_ruolo_gestione_campagna(utente)
     if campagna.stato != StatoCampagna.CHIUSA:
-        raise ValidationError("La campagna non è CHIUSA: impossibile liquidarla (D-12).")
+        raise ValidationError("La campagna non è CHIUSA: impossibile liquidarla.")
     if not riferimento_bonifico.strip():
-        raise ValidationError("Il riferimento del bonifico è obbligatorio (D-12).")
+        raise ValidationError("Il riferimento del bonifico è obbligatorio.")
 
     campagna.liquida()
     campagna.liquidata_il = timezone.make_aware(

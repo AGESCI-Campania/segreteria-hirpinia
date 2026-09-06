@@ -26,9 +26,7 @@ class RiepilogoCampagna:
 
 def calcola_riepilogo(campagna: Campagna) -> RiepilogoCampagna:
     if campagna.stato not in STATI_CON_VISIBILITA_CROSS_GRUPPO:
-        raise ValidationError(
-            "Il riepilogo è disponibile solo a campagna CHIUSA o LIQUIDATA (D-13)."
-        )
+        raise ValidationError("Il riepilogo è disponibile solo a campagna CHIUSA o LIQUIDATA.")
     # N dalle righe congelate, non dalle Partecipazione correnti: una
     # disattivazione di gruppo post-chiusura (M7b) può respingerne alcune,
     # ma l'importo individuale già congelato non cambia — ricalcolare N da

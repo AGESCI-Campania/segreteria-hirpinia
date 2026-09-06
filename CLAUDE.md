@@ -27,6 +27,19 @@ verità.** Questo file contiene i vincoli di lavoro, non le specifiche.
 - Codice di dominio (modelli, campi, label, testi utente): **italiano**
   (`Gruppo`, `Capo`, `quota_versata`, `Partecipazione`).
 - Identificatori tecnici generici: inglese (`get_queryset`, `save`, `parse_pdf`).
+- **Nessun riferimento a milestone (`M8`, `M15`) o a codici di decisione
+  (`D-10`, `D-24/A-10`) in un testo mostrato all'utente**: template HTML, `help_text`/
+  `label`/`choices` dei model e form field, messaggi `ValidationError`/
+  `PermissionDenied`, messaggi di `AnomaliaRiga` nei report di import. Nei **docstring**
+  e nei **commenti** `#` restano invece corretti (sono la traccia verso
+  `docs/Catello_Progettazione.md` per chi legge il codice). I messaggi
+  `ValidationError`/`PermissionDenied` del service layer passano da
+  `apps/core/messaggi.py::messaggio_utente()`/`messaggi_per_campo()` prima di
+  arrivare a una view (issue GitHub #4): ripuliscono i codici `D-NN`/`A-NN` in coda
+  al messaggio, ma **non** i codici `M-NN` (di proposito: sono milestone, non
+  decisioni) e **non** `help_text`/`choices` dei model field, mai instradati da lì —
+  su questi ultimi il codice va tolto direttamente dalla stringa sorgente, e se il
+  campo cambia va rigenerata la migrazione.
 
 ### 3. Licenza e attribuzione
 
@@ -291,6 +304,19 @@ esatta** del core, mai `latest`.
 - La validazione del contenuto (Pillow, tramite `forms.ImageField`) vive nel **form**
   (`CaricaImmagineTemplateEmailForm`), non nel model field: `Model.full_clean()` da
   solo non la esegue, è un comportamento di Django facilmente frainteso.
+
+**Footer e cookie banner**: `templates/agesci_theme/partials/footer.html` e
+`templates/agesci_theme/partials/cookie_banner.html` (incluso da `footer.html`) sono
+override locali del tema, stesso meccanismo già usato per `breadcrumb.html`
+(`TEMPLATES[0]["DIRS"]` ha priorità su `APP_DIRS`). Il cookie banner è **informativo**
+(una sola presa visione "Ho capito", persistita in `localStorage`), non un gate di
+consenso a categorie: verificato che l'app imposta solo cookie tecnici necessari
+(`sessionid`, `csrftoken`), che `django-axes`/`django-hijack` non usano cookie propri e
+che il "trust this device" di `allauth.mfa` non è mai attivo (`MFA_TRUST_ENABLED` non
+impostato). Se in futuro si introduce un cookie non necessario (analytics, terze parti,
+un `mfa_trusted` attivato), il banner va **rifatto** come vero consenso con
+accetta/rifiuta per categoria: non riusare quello attuale aggiungendo solo una voce,
+l'assenza di scelta è corretta solo finché non ci sono cookie su cui scegliere.
 
 ### Parsing PDF
 
