@@ -7,6 +7,7 @@ breadcrumb.html. Personalizza colonne, contatti e copyright per la Zona
 Hirpinia. Se il tema aggiorna questo partial, sincronizzare a mano.
 {% endcomment %}
 {% load static %}
+{% load bootstrap_icons %}
 <footer class="ag-footer py-5">
   <div class="container">
     <div class="row g-4">
@@ -25,8 +26,8 @@ Hirpinia. Se il tema aggiorna questo partial, sincronizzare a mano.
         <h5>{% block footer_col1_title %}Informazioni{% endblock %}</h5>
         <ul class="ag-footer__nav">
           {% block footer_col1_links %}
-          <li><a href="{% url 'core:privacy' %}">Privacy Policy</a></li>
-          <li><a href="https://segreteria-hirpinia.readthedocs.io" target="_blank" rel="noopener">Manuale d'uso</a></li>
+          <li><a href="{% url 'core:privacy' %}">{% bs_icon "shield-lock" %} Privacy Policy</a></li>
+          <li><a href="https://segreteria-hirpinia.readthedocs.io" target="_blank" rel="noopener">{% bs_icon "book" %} Manuale d'uso</a></li>
           {% endblock %}
         </ul>
       </div>
@@ -34,8 +35,8 @@ Hirpinia. Se il tema aggiorna questo partial, sincronizzare a mano.
         <h5>{% block footer_col2_title %}Contatti{% endblock %}</h5>
         <ul class="ag-footer__nav">
           {% block footer_col2_links %}
-          <li><a href="mailto:zonahirpinia@campania.agesci.it">Responsabili di Zona</a></li>
-          <li><a href="https://www.instagram.com/agesci.zonahirpinia" target="_blank" rel="noopener">Instagram</a></li>
+          <li><a href="mailto:zonahirpinia@campania.agesci.it">{% bs_icon "envelope" %} Responsabili di Zona</a></li>
+          <li><a href="https://www.instagram.com/agesci.zonahirpinia" target="_blank" rel="noopener">{% bs_icon "instagram" %} Instagram</a></li>
           {% endblock %}
         </ul>
       </div>
@@ -63,3 +64,4 @@ Hirpinia. Se il tema aggiorna questo partial, sincronizzare a mano.
 
   </div>{# /container #}
 </footer>
+{% include "agesci_theme/partials/cookie_banner.html" %}

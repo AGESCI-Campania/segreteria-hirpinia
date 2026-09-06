@@ -1,0 +1,17 @@
+{% comment %}
+Banner informativo sui cookie (non un gate di consenso): l'applicazione usa
+solo cookie tecnici necessari (sessione, CSRF), per cui non è richiesto un
+consenso preventivo — vedi la sezione "Cookie" di core/privacy.html. Nascosto
+di default (`d-none`), mostrato da static/js/cookie-banner.js solo se non è
+già stato chiuso (persistenza in localStorage, non in un ulteriore cookie).
+Incluso da footer.html per comparire su tutte le pagine, autenticate e
+pre-login.
+{% endcomment %}
+<div id="ag-cookie-banner" class="fixed-bottom bg-dark text-white p-3 d-none" role="region" aria-label="Informativa sui cookie">
+  <div class="container d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 small">
+    <p class="mb-0">
+      Questo sito utilizza solo cookie tecnici necessari al funzionamento (sessione e sicurezza): nessun cookie di profilazione o di terze parti. Maggiori informazioni nella <a href="{% url 'core:privacy' %}" class="link-light">Privacy Policy</a>.
+    </p>
+    <button type="button" id="ag-cookie-banner-dismiss" class="btn btn-sm btn-light flex-shrink-0">Ho capito</button>
+  </div>
+</div>
