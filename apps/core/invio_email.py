@@ -76,27 +76,27 @@ _CSS_SANITIZER = CSSSanitizer(allowed_css_properties=_PROPRIETA_CSS_AMMESSE)
 # sorgenti possibili.
 _FALLBACK: dict[str, tuple[str, str]] = {
     CodiceTemplateEmail.INVITO_ATTIVAZIONE: (
-        "Catello — attiva il tuo account",
+        "Segreteria — attiva il tuo account",
         "accounts/email/invito_attivazione.txt",
     ),
     CodiceTemplateEmail.FINE_IMPERSONIFICAZIONE: (
-        "Catello — è terminata una sessione di assistenza sul tuo account",
+        "Segreteria — è terminata una sessione di assistenza sul tuo account",
         "accounts/email/fine_impersonificazione.txt",
     ),
     CodiceTemplateEmail.DELEGA_CREATA: (
-        "Catello — hai concesso una delega",
+        "Segreteria — hai concesso una delega",
         "accounts/email/delega_creata.txt",
     ),
     CodiceTemplateEmail.DELEGA_REVOCATA: (
-        "Catello — una tua delega è stata revocata",
+        "Segreteria — una tua delega è stata revocata",
         "accounts/email/delega_revocata.txt",
     ),
     CodiceTemplateEmail.INCARICO_ASSEGNATO: (
-        "Catello — nuovo incarico assegnato",
+        "Segreteria — nuovo incarico assegnato",
         "anagrafica/email/incarico_assegnato.txt",
     ),
     CodiceTemplateEmail.INCARICO_CESSATO: (
-        "Catello — incarico cessato",
+        "Segreteria — incarico cessato",
         "anagrafica/email/incarico_cessato.txt",
     ),
 }

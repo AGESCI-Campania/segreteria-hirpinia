@@ -53,7 +53,7 @@ class TestFallback:
         )
 
         messaggio = mail.outbox[0]
-        assert messaggio.subject == "Catello — hai concesso una delega"
+        assert messaggio.subject == "Segreteria — hai concesso una delega"
         assert "Capogruppo" in messaggio.body
         assert "Mario Rossi" in messaggio.body
 
@@ -68,7 +68,7 @@ class TestFallback:
             contesto={"ruolo": "Capogruppo", "delegato": "Mario Rossi", "scadenza": "01/01/2027"},
         )
 
-        assert mail.outbox[0].subject == "Catello — hai concesso una delega"
+        assert mail.outbox[0].subject == "Segreteria — hai concesso una delega"
 
     def test_nessun_destinatario_non_invia_nulla(self):
         invia_email_template(
@@ -317,7 +317,7 @@ class TestPrefissoOggetto:
             contesto={"ruolo": "Capogruppo", "delegato": "Mario Rossi", "scadenza": "01/01/2027"},
         )
 
-        assert mail.outbox[0].subject == "Zona Hirpinia - Catello — hai concesso una delega"
+        assert mail.outbox[0].subject == "Zona Hirpinia - Segreteria — hai concesso una delega"
 
 
 class TestFirmaComune:

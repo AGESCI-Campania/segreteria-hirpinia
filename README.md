@@ -8,7 +8,7 @@
 [![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3.svg?logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
 [![uv](https://img.shields.io/badge/packaged%20with-uv-DE5FE9.svg?logo=uv&logoColor=white)](https://github.com/astral-sh/uv)
 [![Code style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Version](https://img.shields.io/badge/version-1.0.1-informational.svg)](pyproject.toml)
+[![Version](https://img.shields.io/badge/version-1.1.4-informational.svg)](pyproject.toml)
 
 Piattaforma di segreteria della **AGESCI Zona Hirpinia** (Regione Campania).
 
@@ -197,8 +197,9 @@ apps/
 ## Documentazione
 
 - [`docs-utente/`](docs-utente/index.md) — guida per gli utenti finali (oggi: ruolo CG),
-  costruita con MkDocs (`mise run docs-serve`/`docs-build`), pubblicata su Read the Docs
-  e distribuita anche in PDF
+  costruita con MkDocs (`mise run docs-serve`/`docs-build`), pubblicata su
+  [Read the Docs](https://segreteria-hirpinia.readthedocs.io) (linkata anche nel footer
+  dell'applicazione come "Manuale d'uso") e distribuita anche in PDF
 - [`docs/Catello_Progettazione.md`](docs/Catello_Progettazione.md) — documento di
   progettazione, fonte di verità per modello dati, regole di dominio e decisioni
   architetturali
@@ -210,6 +211,10 @@ apps/
   testing
 - [`CLAUDE.md`](CLAUDE.md) — vincoli operativi per lo sviluppo assistito
 - [`SETUP_PYCHARM.md`](SETUP_PYCHARM.md) — configurazione dell'IDE
+
+Pagina pubblica `/privacy/` (raggiungibile senza login) e cookie banner informativo nel
+footer: l'app usa solo cookie tecnici necessari (sessione, CSRF), nessuna profilazione né
+terze parti.
 
 ## Crediti
 

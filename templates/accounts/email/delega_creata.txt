@@ -2,5 +2,3 @@ Ciao,
 
 hai concesso una delega per il ruolo {{ ruolo }} a {{ delegato }},
 con scadenza {{ scadenza }}.
-
-— Catello, AGESCI Zona Hirpinia

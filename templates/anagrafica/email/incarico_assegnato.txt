@@ -7,5 +7,3 @@ Gruppo di servizio: {{ gruppo_servizio }}
 Unità: {{ unita }}
 Funzione: {{ funzione }}
 Assegnato da: {{ assegnato_da }}
-
-— Catello, AGESCI Zona Hirpinia
