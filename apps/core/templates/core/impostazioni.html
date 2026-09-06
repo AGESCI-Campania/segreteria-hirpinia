@@ -52,6 +52,17 @@
   {{ block.super }}
   <script src="{% static 'vendor/tinymce/tinymce.min.js' %}"></script>
   <script>
+    // Pattern standard Django per leggere un cookie non-HttpOnly da JS
+    // (CSRF_COOKIE_HTTPONLY è False, mai cambiato in questo progetto):
+    // serve solo qui, per allegare X-CSRFToken all'upload immagini via fetch,
+    // che non passa da un <form> e quindi non ha {% csrf_token %}.
+    function leggiCookie(nome) {
+      const valore = document.cookie
+        .split("; ")
+        .find((riga) => riga.startsWith(nome + "="));
+      return valore ? decodeURIComponent(valore.split("=")[1]) : "";
+    }
+
     document.getElementById("genera-firma-testo-da-html")?.addEventListener("click", () => {
       if (window.tinymce && tinymce.get("id_firma_html")) {
         document.getElementById("id_firma_testo").value =
@@ -65,11 +76,30 @@
         license_key: "gpl",
         base_url: "{% static 'vendor/tinymce' %}",
         suffix: ".min",
-        plugins: "lists link autolink code",
-        toolbar: "undo redo | bold italic underline | bullist numlist | link | code",
+        plugins: "lists link autolink image code",
+        toolbar: "undo redo | bold italic underline | bullist numlist | link image | code",
         menubar: false,
         branding: false,
         height: 200,
+        images_upload_handler: (blobInfo) =>
+          new Promise((resolve, reject) => {
+            const formData = new FormData();
+            formData.append("file", blobInfo.blob(), blobInfo.filename());
+            fetch("{% url 'core:template_email_carica_immagine' %}", {
+              method: "POST",
+              headers: { "X-CSRFToken": leggiCookie("csrftoken") },
+              body: formData,
+            })
+              .then((risposta) => risposta.json())
+              .then((dati) => {
+                if (dati.location) {
+                  resolve(dati.location);
+                } else {
+                  reject(dati.error || "Errore di caricamento.");
+                }
+              })
+              .catch(() => reject("Errore di rete durante il caricamento."));
+          }),
       });
     }
   </script>
