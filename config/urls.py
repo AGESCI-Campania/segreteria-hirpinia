@@ -18,6 +18,9 @@ if settings.DEBUG:
     from django.conf.urls.static import static
 
     urlpatterns += [path("__debug__/", include(debug_toolbar.urls))]
-    # Solo sviluppo: in produzione /media/ è servito dal reverse proxy
-    # (configure-prod.sh), mai da Django/gunicorn.
+    # Solo sviluppo: serve tutto MEDIA_ROOT senza autenticazione, comodo in
+    # locale ma non accettabile in produzione (PDF/CSV con dati personali).
+    # In produzione l'unico sottoalbero pubblico (immagini firma email) ha
+    # una route dedicata in apps/core/urls.py, non gated da DEBUG; il resto
+    # di /media/ resta senza pattern e richiede le view autenticate.
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

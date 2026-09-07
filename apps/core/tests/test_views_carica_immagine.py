@@ -55,6 +55,22 @@ class TestCaricaImmagine:
         immagine = ImmagineTemplateEmail.objects.get()
         assert immagine.caricata_da == segreteria
 
+    def test_immagine_caricata_scaricabile_senza_login(self, client, segreteria):
+        # A differenza delle altre FileField del progetto, qui .url deve
+        # restare raggiungibile senza sessione Django: i client email dei
+        # destinatari la scaricano da soli.
+        client.force_login(segreteria)
+        response = client.post(
+            "/impostazioni/template-email/carica-immagine/", {"file": _immagine_valida()}
+        )
+        location = response.json()["location"]
+        path = location.split("://", 1)[1].split("/", 1)[1]
+
+        client.logout()
+        response = client.get(f"/{path}")
+
+        assert response.status_code == 200
+
     def test_anonimo_non_carica(self, client):
         response = client.post(
             "/impostazioni/template-email/carica-immagine/", {"file": _immagine_valida()}
