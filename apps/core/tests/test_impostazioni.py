@@ -126,6 +126,28 @@ class TestPrefissoEFirma:
         assert impostazioni.firma_testo == "Segreteria"
 
 
+class TestBrancaTemaDefault:
+    def test_default_di_sistema_salvato(self, client, segreteria):
+        client.force_login(segreteria)
+        response = client.post(
+            "/impostazioni/", {"causale_bonifico_default": "", "branca_tema_default": "lc"}
+        )
+        assert response.status_code == 302
+        assert ImpostazioniPiattaforma.corrente().branca_tema_default == "lc"
+
+    def test_cg_non_puo_modificare_il_default_di_sistema(self, client):
+        utente = _persona("cg2@campania.agesci.it")
+        _con_mfa_configurata(utente)
+        gruppo = Gruppo.objects.create(codice="E0134", nome="AVELLINO 2")
+        Ruolo.objects.create(utente=utente, tipo=Ruolo.Tipo.CG, gruppo=gruppo)
+        client.force_login(utente)
+        response = client.post(
+            "/impostazioni/", {"causale_bonifico_default": "", "branca_tema_default": "lc"}
+        )
+        assert response.status_code == 403
+        assert ImpostazioniPiattaforma.corrente().branca_tema_default == ""
+
+
 class TestAuditlog:
     def test_modifica_tracciata(self, client, segreteria):
         ImpostazioniPiattaforma.corrente()  # crea la riga con il default

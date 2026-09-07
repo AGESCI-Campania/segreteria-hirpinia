@@ -79,6 +79,7 @@
         </li>
         <li><hr class="dropdown-divider"></li>
         <li><a class="dropdown-item" href="{% url 'account_change_password' %}">Cambia password</a></li>
+        <li><a class="dropdown-item" href="{% url 'accounts:preferenze' %}">Preferenze</a></li>
         {% if puo_impersonare %}
           <li><a class="dropdown-item" href="{% url 'accounts:impersona_lista' %}">Impersona un utente</a></li>
         {% endif %}

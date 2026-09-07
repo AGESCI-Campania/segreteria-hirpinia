@@ -110,6 +110,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "agesci_theme.context_processors.agesci_theme",
+                "apps.core.context_processors.tema_branca",
                 "apps.core.context_processors.menu_principale",
                 "apps.core.context_processors.breadcrumb",
             ],

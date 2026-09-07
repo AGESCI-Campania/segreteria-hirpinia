@@ -18,6 +18,7 @@ class ImpostazioniPiattaformaForm(forms.ModelForm):
             "firma_html",
             "firma_testo",
             "email_su_mailpit",
+            "branca_tema_default",
         ]
         widgets = {
             "firma_html": forms.Textarea(attrs={"id": "id_firma_html", "rows": 8}),

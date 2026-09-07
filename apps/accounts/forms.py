@@ -1,7 +1,13 @@
 from django import forms
 from django.contrib.auth.password_validation import validate_password
 
-from .models import Ruolo
+from .models import Ruolo, Utente
+
+
+class PreferenzeUtenteForm(forms.ModelForm):
+    class Meta:
+        model = Utente
+        fields = ["branca_tema_preferita"]
 
 
 class AttivazioneForm(forms.Form):

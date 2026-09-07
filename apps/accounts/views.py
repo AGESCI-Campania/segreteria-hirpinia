@@ -1,10 +1,11 @@
 from axes.decorators import axes_dispatch
 from django.contrib import messages
 from django.contrib.auth import login
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.generic import FormView, ListView, TemplateView
@@ -15,7 +16,14 @@ from apps.core.mixins import BreadcrumbExtraMixin
 from . import deleghe as deleghe_service
 from . import inviti as inviti_service
 from . import ruoli as ruoli_service
-from .forms import AttivazioneForm, DelegaForm, InvitoSingoloForm, RecuperoOtpForm, RuoloAssegnaForm
+from .forms import (
+    AttivazioneForm,
+    DelegaForm,
+    InvitoSingoloForm,
+    PreferenzeUtenteForm,
+    RecuperoOtpForm,
+    RuoloAssegnaForm,
+)
 from .mixins import RuoloRequiredMixin
 from .models import Delega, InvitoAttivazione, Ruolo, Utente
 from .permessi import puo_impersonare_qualcuno, ruoli_effettivi
@@ -391,3 +399,24 @@ class ImpersonaListaView(RuoloRequiredMixin, ListView):
         ctx = super().get_context_data(**kwargs)
         ctx["query"] = self.request.GET.get("q", "").strip()
         return ctx
+
+
+class PreferenzeView(LoginRequiredMixin, View):
+    """Preferenze personali (issue #7): schema colori, disponibile a
+    qualunque utente loggato, senza gate di ruolo — a differenza del default
+    di sistema, riservato a chi gestisce le Impostazioni di piattaforma
+    (`apps.core.views.ImpostazioniPiattaformaView`)."""
+
+    template_name = "accounts/preferenze.html"
+
+    def get(self, request):
+        form = PreferenzeUtenteForm(instance=request.user)
+        return render(request, self.template_name, {"form": form})
+
+    def post(self, request):
+        form = PreferenzeUtenteForm(request.POST, instance=request.user)
+        if not form.is_valid():
+            return render(request, self.template_name, {"form": form})
+        form.save()
+        messages.success(request, "Preferenze aggiornate.")
+        return redirect(reverse("accounts:preferenze"))

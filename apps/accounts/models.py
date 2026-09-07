@@ -11,6 +11,8 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
+from apps.core.tema import SCELTE_BRANCA_TEMA
+
 
 class TipoUtente(models.TextChoices):
     PERSONA = "PERSONA", "Persona"
@@ -57,6 +59,13 @@ class Utente(AbstractUser):
     codice_socio = models.CharField(max_length=20, null=True, blank=True, unique=True)
     stato = models.CharField(
         max_length=10, choices=StatoUtente.choices, default=StatoUtente.IN_ATTESA
+    )
+    branca_tema_preferita = models.CharField(
+        max_length=10,
+        blank=True,
+        choices=SCELTE_BRANCA_TEMA,
+        verbose_name="Schema colori preferito",
+        help_text="Vuoto = usa lo schema colori definito per tutta la piattaforma.",
     )
 
     objects: ClassVar[UtenteManager] = UtenteManager()

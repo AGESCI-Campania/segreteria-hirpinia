@@ -25,4 +25,5 @@ urlpatterns = [
     path("ruoli/assegna/nuovo/", views.RuoloAssegnaView.as_view(), name="ruolo_assegna"),
     path("vista-di-prova/", views.VistaDiProvaView.as_view(), name="vista_di_prova"),
     path("impersona/", views.ImpersonaListaView.as_view(), name="impersona_lista"),
+    path("preferenze/", views.PreferenzeView.as_view(), name="preferenze"),
 ]

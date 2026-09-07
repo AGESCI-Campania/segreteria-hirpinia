@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from django.db import models
 
+from .tema import SCELTE_BRANCA_TEMA
+
 
 class CodiceTemplateEmail(models.TextChoices):
     """Chiave stabile per ciascuno dei 6 flussi di invio esistenti (M8):
@@ -103,6 +105,16 @@ class ImpostazioniPiattaforma(models.Model):
             "Solo in produzione (apps.core.email.override.MailpitOverridableBackend): "
             "reindirizza ogni email verso Mailpit invece di consegnarla davvero. "
             "Richiede EMAIL_MAILPIT_HOST configurato."
+        ),
+    )
+    branca_tema_default = models.CharField(
+        max_length=10,
+        blank=True,
+        choices=SCELTE_BRANCA_TEMA,
+        verbose_name="Schema colori di sistema",
+        help_text=(
+            "Vuoto = usa lo schema colori predefinito del tema. Non sovrascrive le "
+            "preferenze personali già impostate dagli utenti."
         ),
     )
 
