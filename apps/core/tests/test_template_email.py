@@ -1,7 +1,8 @@
 """Motore di sostituzione ridotto (M8.2): solo `{{ variabile }}`, nessun tag
 Django, nessun placeholder mancante che blocchi l'output."""
 
-from apps.core.template_email import sostituisci_placeholder
+from apps.core.models import CodiceTemplateEmail
+from apps.core.template_email import contesto_esempio, sostituisci_placeholder
 
 
 class TestSostituisciPlaceholder:
@@ -30,3 +31,24 @@ class TestSostituisciPlaceholder:
         assert (
             sostituisci_placeholder("Testo semplice.", {"qualsiasi": "cosa"}) == "Testo semplice."
         )
+
+
+class TestContestoEsempio:
+    def test_link_invito_attivazione_usano_site_url(self, settings):
+        settings.SITE_URL = "https://catello.example.org"
+        contesto = contesto_esempio(CodiceTemplateEmail.INVITO_ATTIVAZIONE)
+
+        assert contesto["link_attivazione"].startswith("https://catello.example.org/accounts/")
+        assert contesto["link_recupero"].startswith("https://catello.example.org/accounts/")
+        assert "https://catello.example.org/contributi/" in contesto["paragrafo_gruppo"]
+
+    def test_link_invito_attivazione_seguono_site_url_configurato(self, settings):
+        settings.SITE_URL = "https://segreteria.agescihirpinia.it"
+        contesto = contesto_esempio(CodiceTemplateEmail.INVITO_ATTIVAZIONE)
+
+        assert contesto["link_attivazione"].startswith("https://segreteria.agescihirpinia.it/")
+        assert contesto["link_recupero"].startswith("https://segreteria.agescihirpinia.it/")
+        assert "https://segreteria.agescihirpinia.it/" in contesto["paragrafo_gruppo"]
+
+    def test_codice_senza_contesto_di_esempio_restituisce_dizionario_vuoto(self):
+        assert contesto_esempio("codice-inesistente") == {}

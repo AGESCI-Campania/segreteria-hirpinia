@@ -18,7 +18,7 @@ from .forms import (
 from .invio_email import comporre_contenuto, invia_email_template, sanifica_html
 from .mixins import BreadcrumbExtraMixin
 from .models import ImmagineTemplateEmail, ImpostazioniPiattaforma, TemplateEmail
-from .template_email import CONTESTO_ESEMPIO, VARIABILI_GLOBALI, VARIABILI_PER_CODICE
+from .template_email import VARIABILI_GLOBALI, VARIABILI_PER_CODICE, contesto_esempio
 
 RUOLI_GESTIONE_IMPOSTAZIONI = frozenset({Ruolo.Tipo.ADMIN, Ruolo.Tipo.SEGRETERIA, Ruolo.Tipo.RDZ})
 
@@ -115,14 +115,14 @@ class TemplateEmailModificaView(BreadcrumbExtraMixin, RuoloRequiredMixin, View):
         if not form.is_valid():
             return render(request, self.template_name, self._contesto_pagina(template, form))
 
-        contesto_esempio = CONTESTO_ESEMPIO.get(template.codice, {})
+        contesto_di_esempio = contesto_esempio(template.codice)
 
         if azione == "anteprima":
             oggetto, corpo_testo, corpo_html = comporre_contenuto(
                 oggetto=form.cleaned_data["oggetto"],
                 corpo_testo=form.cleaned_data["corpo_testo"],
                 corpo_html=form.cleaned_data["corpo_html"],
-                contesto=contesto_esempio,
+                contesto=contesto_di_esempio,
             )
             anteprima = {
                 "oggetto": oggetto,
@@ -141,7 +141,7 @@ class TemplateEmailModificaView(BreadcrumbExtraMixin, RuoloRequiredMixin, View):
             invia_email_template(
                 codice_template=template.codice,
                 destinatari=[request.user.email],
-                contesto=contesto_esempio,
+                contesto=contesto_di_esempio,
             )
             messages.success(request, f"Email di test inviata a {request.user.email}.")
         else:

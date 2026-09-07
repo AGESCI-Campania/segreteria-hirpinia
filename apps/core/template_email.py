@@ -10,6 +10,9 @@ from __future__ import annotations
 
 import re
 
+from django.conf import settings
+from django.urls import reverse
+
 from .models import CodiceTemplateEmail
 
 _RE_PLACEHOLDER = re.compile(r"\{\{\s*(\w+)\s*\}\}")
@@ -51,20 +54,30 @@ VARIABILI_PER_CODICE: dict[str, list[str]] = {
 
 
 # Contesto di esempio per l'anteprima e l'invio di test (M8.4): valori
-# plausibili, mai dati reali di soci/gruppi.
-CONTESTO_ESEMPIO: dict[str, dict[str, str]] = {
-    CodiceTemplateEmail.INVITO_ATTIVAZIONE: {
+# plausibili, mai dati reali di soci/gruppi. I link usano sempre
+# settings.SITE_URL/reverse() (mai un dominio fisso hardcoded, corretto solo
+# per caso in sviluppo): stesso pattern del contesto reale costruito in
+# apps/accounts/inviti.py, così anteprima e test mostrano URL realmente
+# cliccabili sull'istanza in esecuzione, non un placeholder rotto.
+def _contesto_esempio_invito_attivazione() -> dict[str, str]:
+    link_attivazione = f"{settings.SITE_URL}{reverse('accounts:attiva')}?email=mario.rossi@example.com&codice=ABC123XY"
+    link_recupero = f"{settings.SITE_URL}{reverse('accounts:recupero')}"
+    link_contributi = f"{settings.SITE_URL}{reverse('contributi:campagna_lista')}"
+    return {
         "codice": "ABC123XY",
         "email": "mario.rossi@example.com",
         "scadenza": "31/12/2026 18:00",
-        "link_attivazione": "https://catello.example.org/accounts/attiva/?email=...&codice=...",
-        "link_recupero": "https://catello.example.org/accounts/recupero/",
+        "link_attivazione": link_attivazione,
+        "link_recupero": link_recupero,
         "paragrafo_gruppo": (
             "\nUna volta attivato l'account, potrai caricare le partecipazioni per il\n"
             "contributo del tuo gruppo da qui:\n"
-            "https://catello.example.org/contributi/campagne/\n"
+            f"{link_contributi}\n"
         ),
-    },
+    }
+
+
+_CONTESTO_ESEMPIO_STATICO: dict[str, dict[str, str]] = {
     CodiceTemplateEmail.FINE_IMPERSONIFICAZIONE: {
         "amministratore": "Segreteria Zona",
         "quando": "31/12/2026 18:00",
@@ -93,6 +106,12 @@ CONTESTO_ESEMPIO: dict[str, dict[str, str]] = {
         "funzione": "Capo unità",
     },
 }
+
+
+def contesto_esempio(codice: str) -> dict[str, str]:
+    if codice == CodiceTemplateEmail.INVITO_ATTIVAZIONE:
+        return _contesto_esempio_invito_attivazione()
+    return _CONTESTO_ESEMPIO_STATICO.get(codice, {})
 
 
 def sostituisci_placeholder(testo: str, contesto: dict[str, str]) -> str:
