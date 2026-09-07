@@ -81,6 +81,12 @@
         menubar: false,
         branding: false,
         height: 200,
+        // TinyMCE per default riscrive gli URL assoluti come relativi alla
+        // pagina di modifica (relative_urls/convert_urls, entrambi true di
+        // default): un client email non ha alcuna base URL da cui risolverli.
+        // L'URL assoluto restituito dall'upload deve restare tale.
+        relative_urls: false,
+        convert_urls: false,
         images_upload_handler: (blobInfo) =>
           new Promise((resolve, reject) => {
             const formData = new FormData();
