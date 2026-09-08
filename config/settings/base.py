@@ -63,6 +63,11 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "allauth.mfa",
+    # Solo per il model UserSession (issue #9): niente decodifica manuale di
+    # django_session, il popolamento è automatico (segnale user_logged_in).
+    # Le view/URL applicative sono nostre (apps/accounts/sessioni.py e
+    # views.py), non quelle di default del pacchetto.
+    "allauth.usersessions",
     "auditlog",
     "hijack",
     "axes",
@@ -81,6 +86,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    "allauth.usersessions.middleware.UserSessionsMiddleware",
     "apps.accounts.middleware.MFAEnforcementMiddleware",
     "apps.accounts.middleware.StatoUtenteMiddleware",
     "apps.accounts.audit.CatelloAuditlogMiddleware",
@@ -189,6 +195,10 @@ ACCOUNT_USER_MODEL_USERNAME_FIELD = "username"
 
 MFA_ADAPTER = "apps.accounts.adapters.CatelloMFAAdapter"
 MFA_SUPPORTED_TYPES = ["totp", "recovery_codes"]
+
+# Issue #9: senza tracciamento, "ultima attività" coinciderebbe sempre con
+# "accesso effettuato il", rendendo la pagina sessioni poco utile.
+USERSESSIONS_TRACK_ACTIVITY = True
 
 AXES_FAILURE_LIMIT = 5
 AXES_COOLOFF_TIME = 1  # ore

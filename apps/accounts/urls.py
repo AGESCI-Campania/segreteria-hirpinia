@@ -26,4 +26,14 @@ urlpatterns = [
     path("vista-di-prova/", views.VistaDiProvaView.as_view(), name="vista_di_prova"),
     path("impersona/", views.ImpersonaListaView.as_view(), name="impersona_lista"),
     path("preferenze/", views.PreferenzeView.as_view(), name="preferenze"),
+    path("sessioni/", views.SessioniListaView.as_view(), name="sessioni_lista"),
+    path(
+        "sessioni/<int:pk>/termina/", views.SessioneTerminaView.as_view(), name="sessione_termina"
+    ),
+    path("sessioni/tutte/", views.SessioniTutteListaView.as_view(), name="sessioni_tutte_lista"),
+    path(
+        "sessioni/tutte/<int:pk>/termina/",
+        views.SessioneTerminaAltruiView.as_view(),
+        name="sessione_termina_altrui",
+    ),
 ]

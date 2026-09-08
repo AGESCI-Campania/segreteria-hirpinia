@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block page_title %}Sessioni utente{% endblock %}
+
+{% block content %}
+  <h1 class="mb-3">Sessioni utente</h1>
+  <p class="text-muted">
+    Tutte le sessioni ancora valide di tutti gli utenti della piattaforma.
+  </p>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Utente</th>
+        <th>Accesso effettuato il</th>
+        <th>Ultima attività</th>
+        <th>Indirizzo IP</th>
+        <th>Browser</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for sessione in sessioni %}
+        <tr>
+          <td>{{ sessione.user }}</td>
+          <td>{{ sessione.created_at|date:"d/m/Y H:i" }}</td>
+          <td>{{ sessione.last_seen_at|date:"d/m/Y H:i" }}</td>
+          <td>{{ sessione.ip }}</td>
+          <td>{{ sessione.user_agent|truncatechars:60 }}</td>
+          <td>
+            {% if sessione.is_current %}
+              <span class="badge bg-secondary">Sessione corrente</span>
+            {% endif %}
+            <form method="post" action="{% url 'accounts:sessione_termina_altrui' sessione.pk %}"
+                  class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-danger">Termina</button>
+            </form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6">Nessuna sessione attiva.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

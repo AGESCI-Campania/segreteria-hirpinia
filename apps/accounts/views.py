@@ -1,3 +1,4 @@
+from allauth.usersessions.models import UserSession
 from axes.decorators import axes_dispatch
 from django.contrib import messages
 from django.contrib.auth import login
@@ -16,6 +17,7 @@ from apps.core.mixins import BreadcrumbExtraMixin
 from . import deleghe as deleghe_service
 from . import inviti as inviti_service
 from . import ruoli as ruoli_service
+from . import sessioni as sessioni_service
 from .forms import (
     AttivazioneForm,
     DelegaForm,
@@ -420,3 +422,55 @@ class PreferenzeView(LoginRequiredMixin, View):
         form.save()
         messages.success(request, "Preferenze aggiornate.")
         return redirect(reverse("accounts:preferenze"))
+
+
+class SessioniListaView(LoginRequiredMixin, ListView):
+    """Sessioni connesse dell'utente corrente (issue #9), sopra
+    `allauth.usersessions`: qualunque utente loggato, nessun gate di ruolo."""
+
+    template_name = "accounts/sessioni_lista.html"
+    context_object_name = "sessioni"
+
+    def get_queryset(self):
+        return sessioni_service.sessioni_di(self.request.user)
+
+
+class SessioneTerminaView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        sessione = get_object_or_404(UserSession, pk=pk)
+        try:
+            sessioni_service.termina_sessione_propria(request=request, sessione=sessione)
+        except PermissionDenied as exc:
+            messages.error(request, messaggio_utente(exc))
+            return redirect(reverse("accounts:sessioni_lista"))
+        messages.success(request, "Sessione terminata.")
+        return redirect(reverse("accounts:sessioni_lista"))
+
+
+class SessioniTutteListaView(RuoloRequiredMixin, ListView):
+    """Tutte le sessioni connesse (issue #9), riservata ad Admin/Segreteria
+    diretti: stesso perimetro "sensibile" già usato per Ruoli/Impostazioni,
+    RDZ escluso di proposito (vedi `sessioni_service.RUOLI_GESTIONE_SESSIONI`)."""
+
+    ruoli_ammessi = sessioni_service.RUOLI_GESTIONE_SESSIONI
+    ruoli_ammessi_solo_diretti = True
+    template_name = "accounts/sessioni_tutte_lista.html"
+    context_object_name = "sessioni"
+
+    def get_queryset(self):
+        return sessioni_service.tutte_le_sessioni()
+
+
+class SessioneTerminaAltruiView(RuoloRequiredMixin, View):
+    ruoli_ammessi = sessioni_service.RUOLI_GESTIONE_SESSIONI
+    ruoli_ammessi_solo_diretti = True
+
+    def post(self, request, pk):
+        sessione = get_object_or_404(UserSession, pk=pk)
+        try:
+            sessioni_service.termina_sessione_di_altri(request=request, sessione=sessione)
+        except PermissionDenied as exc:
+            messages.error(request, messaggio_utente(exc))
+            return redirect(reverse("accounts:sessioni_tutte_lista"))
+        messages.success(request, f"Sessione di {sessione.user} terminata.")
+        return redirect(reverse("accounts:sessioni_tutte_lista"))

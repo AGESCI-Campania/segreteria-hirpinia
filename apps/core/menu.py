@@ -14,6 +14,7 @@ from django.urls import reverse
 from apps.accounts.models import Ruolo, Utente
 from apps.accounts.permessi import ruoli_effettivi
 from apps.accounts.ruoli import RUOLI_GESTIONE_RUOLI
+from apps.accounts.sessioni import RUOLI_GESTIONE_SESSIONI
 from apps.anagrafica.esportazione import RUOLI_EXPORT_ANAGRAFICA, RUOLI_VISUALIZZAZIONE_ESPORTAZIONI
 from apps.anagrafica.importazione import RUOLI_IMPORT_ANAGRAFICA
 from apps.anagrafica.incarichi import RUOLI_RICERCA_CAPO
@@ -111,7 +112,10 @@ def sezioni_menu(utente: Utente | AnonymousUser) -> list[SezioneMenu]:
     if voci_contributi:
         sezioni.append(SezioneMenu("Moduli", "cash-coin", voci_contributi))
 
-    voci_account = [_voce("Le mie deleghe", "accounts:deleghe_lista", "person-lines-fill")]
+    voci_account = [
+        _voce("Le mie deleghe", "accounts:deleghe_lista", "person-lines-fill"),
+        _voce("Le mie sessioni", "accounts:sessioni_lista", "laptop"),
+    ]
     if consentito(RUOLI_GESTIONE_DELEGHE_ZONA, solo_diretti=True):
         voci_account.append(_voce("Deleghe di Zona", "accounts:deleghe_zona", "people"))
     sezioni.append(SezioneMenu("Account", "person-circle", voci_account))
@@ -125,6 +129,10 @@ def sezioni_menu(utente: Utente | AnonymousUser) -> list[SezioneMenu]:
         voci_amministrazione.append(_voce("Ruoli", "accounts:ruolo_lista", "person-badge"))
     if consentito(RUOLI_GESTIONE_IMPOSTAZIONI, solo_diretti=True):
         voci_amministrazione.append(_voce("Impostazioni", "core:impostazioni", "sliders"))
+    if consentito(RUOLI_GESTIONE_SESSIONI, solo_diretti=True):
+        voci_amministrazione.append(
+            _voce("Sessioni utente", "accounts:sessioni_tutte_lista", "hdd-stack")
+        )
     if voci_amministrazione:
         sezioni.append(SezioneMenu("Amministrazione", "gear-fill", voci_amministrazione))
 
