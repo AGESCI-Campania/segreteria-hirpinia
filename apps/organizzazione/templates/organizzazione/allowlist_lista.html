@@ -41,6 +41,8 @@
             <td>
               {% if voce.mai_effettuato_accesso %}
                 Mai effettuato l'accesso
+              {% elif voce.ultimo_accesso %}
+                Ultimo accesso il {{ voce.ultimo_accesso|date:"d/m/Y H:i" }}
               {% else %}
                 Account già attivo o gruppo non attivo
               {% endif %}

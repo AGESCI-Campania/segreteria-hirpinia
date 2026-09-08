@@ -114,6 +114,38 @@ class TestAllowlistInvitoMassivoView:
         assert not InvitoAttivazione.objects.filter(email="a@x.it").exists()
 
 
+class TestAllowlistUltimoAccesso:
+    """Issue #8: la colonna "Stato accesso" mostra anche la data di ultimo
+    accesso quando disponibile (`Utente.last_login`), non solo il booleano
+    "mai effettuato l'accesso"."""
+
+    def test_mostra_data_ultimo_accesso(self, client, segreteria, gruppo):
+        acceduto = Utente.objects.create(
+            username="acceduto@x.it",
+            email="acceduto@x.it",
+            tipo=TipoUtente.GRUPPO,
+            gruppo=gruppo,
+            last_login=timezone.now(),
+        )
+        AllowlistGruppo.objects.create(codice_gruppo=gruppo.codice, email=acceduto.email)
+        client.force_login(segreteria)
+
+        response = client.get("/gruppi/allowlist/")
+
+        assert response.status_code == 200
+        assert b"Ultimo accesso il" in response.content
+
+    def test_mai_acceduto_non_mostra_data(self, client, segreteria, gruppo):
+        AllowlistGruppo.objects.create(codice_gruppo=gruppo.codice, email="mai@x.it")
+        client.force_login(segreteria)
+
+        response = client.get("/gruppi/allowlist/")
+
+        assert response.status_code == 200
+        assert b"Ultimo accesso il" not in response.content
+        assert b"Mai effettuato l'accesso" in response.content
+
+
 class TestAllowlistEliminaView:
     def test_elimina_voce(self, client, segreteria, gruppo):
         voce = AllowlistGruppo.objects.create(codice_gruppo=gruppo.codice, email="a@x.it")

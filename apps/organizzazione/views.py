@@ -15,6 +15,7 @@ from django.views.generic import ListView
 
 from apps.accounts.inviti import candidati_invito_massivo, invia_inviti_multipli
 from apps.accounts.mixins import RuoloRequiredMixin
+from apps.accounts.models import Utente
 from apps.contributi.disattivazione_gruppo import conta_effetti_disattivazione
 from apps.core.messaggi import messaggio_utente
 from apps.core.mixins import BreadcrumbExtraMixin
@@ -193,10 +194,19 @@ class AllowlistListaView(RuoloRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         contesto = super().get_context_data(**kwargs)
         pk_candidati = {c.voce.pk for c in candidati_invito_massivo()}
+        # Stesso match per email (case-insensitive) già usato in
+        # candidati_invito_massivo(), qui serve la data e non solo il booleano.
+        ultimo_accesso_per_email = {
+            email.lower(): last_login
+            for email, last_login in Utente.objects.filter(last_login__isnull=False).values_list(
+                "email", "last_login"
+            )
+        }
         # Precalcolato qui: il template non può richiamare pk in un set con
         # una lookup diretta su un oggetto, serve un attributo per riga.
         for voce in contesto["voci"]:
             voce.mai_effettuato_accesso = voce.pk in pk_candidati
+            voce.ultimo_accesso = ultimo_accesso_per_email.get(voce.email.lower())
         contesto["numero_candidati"] = len(pk_candidati)
         return contesto
 
