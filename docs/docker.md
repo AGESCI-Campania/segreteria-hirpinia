@@ -208,8 +208,8 @@ nginx.
 ### 1. Clona il repository sul server
 
 ```bash
-git clone https://github.com/AGESCI-Campania/catello-hirpinia.git /opt/catello
-cd /opt/catello
+git clone https://github.com/AGESCI-Campania/segreteria-hirpinia.git /opt/segreteriahirpinia
+cd /opt/segreteriahirpinia
 ```
 
 (o il percorso che si preferisce: nessuno script assume una posizione fissa).
@@ -348,7 +348,7 @@ curl -I http://127.0.0.1:8000/                # dall'host, se non c'è ancora un
 ### Redeploy di una nuova versione
 
 ```bash
-cd /opt/catello
+cd /opt/segreteriahirpinia
 git pull
 docker compose -f compose.prod.yaml up -d --build
 ```
