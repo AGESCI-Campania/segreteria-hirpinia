@@ -255,7 +255,7 @@ docs = [
 requires-dist = [
     { name = "bleach", extras = ["css"], specifier = ">=6.2" },
     { name = "django", specifier = ">=6.0" },
-    { name = "django-agesci-campania-theme", extras = ["icons"], specifier = ">=2.4.0" },
+    { name = "django-agesci-campania-theme", extras = ["icons"], specifier = ">=2.6.0" },
     { name = "django-allauth", extras = ["mfa"], specifier = ">=65.0" },
     { name = "django-auditlog", specifier = ">=3.0" },
     { name = "django-axes", specifier = ">=8.3" },
@@ -633,14 +633,14 @@ wheels = [
 
 [[package]]
 name = "django-agesci-campania-theme"
-version = "2.5.0"
+version = "2.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/81/fd/af119536bd900295032a831857d645d390aed7605f88bb743281e120bfaa/django_agesci_campania_theme-2.5.0.tar.gz", hash = "sha256:72aa766f02cfe408a8f608b5e3d0a58d053c9c6c5720cbc99676d70f53b9b4d0", size = 1496779, upload-time = "2026-09-07T05:07:35.853Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f4/fe/9c0623b8a96e523310db1f86129bd5c4e742359a0b155a674664ea5c93b2/django_agesci_campania_theme-2.6.0.tar.gz", hash = "sha256:96b76d16a09ab0082b8804f7e3ffc7e5a5637125fed24cef2a64ca11f5a9a15d", size = 1497916, upload-time = "2026-09-09T08:05:43.145Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1f/80/1e01b18590cfe35c086b30a4037fca28532d7fd961e28e3fb385e6ec370d/django_agesci_campania_theme-2.5.0-py3-none-any.whl", hash = "sha256:9d457ec1d1862afad75c371f5f7cf4e8f52bb7402e4347df7bf7f1888a244bd4", size = 1519601, upload-time = "2026-09-07T05:07:34.444Z" },
+    { url = "https://files.pythonhosted.org/packages/f2/ae/cd6499157b0056b706e67a3cc6b3e3e19f1b8023e8d6096b1b5148f2a11b/django_agesci_campania_theme-2.6.0-py3-none-any.whl", hash = "sha256:80498e7598d2b86708da0c7cf4caa9a5e25410b8b0229702726818d668dc0660", size = 1521013, upload-time = "2026-09-09T08:05:41.845Z" },
 ]
 
 [package.optional-dependencies]

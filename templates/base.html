@@ -15,8 +15,19 @@
 {% endblock %}
 
 {% block sidebar %}
-<nav class="ag-sidebar ag-sidebar--dark" id="agSidebar" aria-label="Menu laterale">
-  <button class="ag-sidebar__toggle"
+<button class="ag-sidebar__mobile-toggle d-lg-none"
+        type="button"
+        data-bs-toggle="offcanvas"
+        data-bs-target="#agSidebar"
+        aria-controls="agSidebar"
+        aria-label="Apri menu laterale">
+  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+    <path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5"/>
+  </svg>
+</button>
+
+<nav class="ag-sidebar ag-sidebar--dark offcanvas offcanvas-lg offcanvas-start" id="agSidebar" tabindex="-1" aria-label="Menu laterale">
+  <button class="ag-sidebar__toggle d-none d-lg-flex"
           id="agSidebarToggle"
           aria-label="Comprimi menu laterale"
           aria-expanded="true"
@@ -25,6 +36,15 @@
       <path d="M0 3a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm5-1v12h9a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zM4 2H2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h2z"/>
     </svg>
     <span class="ag-sidebar__toggle-label ms-2">Menu</span>
+  </button>
+
+  <button class="ag-sidebar__close d-lg-none"
+          type="button"
+          data-bs-dismiss="offcanvas"
+          aria-label="Chiudi menu laterale">
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z"/>
+    </svg>
   </button>
 
   <ul class="ag-sidebar__nav">
