@@ -8,6 +8,7 @@ davvero, non prima (CLAUDE.md: niente implementazioni a metà)."""
 
 from __future__ import annotations
 
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from .tema import SCELTE_BRANCA_TEMA
@@ -116,6 +117,12 @@ class ImpostazioniPiattaforma(models.Model):
             "Vuoto = usa lo schema colori predefinito del tema. Non sovrascrive le "
             "preferenze personali già impostate dagli utenti."
         ),
+    )
+    durata_inattivita_minuti = models.PositiveIntegerField(
+        default=60,
+        validators=[MinValueValidator(5), MaxValueValidator(480)],
+        verbose_name="Durata inattività prima della scadenza sessione (minuti)",
+        help_text="Trascorsi questi minuti senza richieste, l'utente autenticato viene disconnesso.",
     )
 
     class Meta:

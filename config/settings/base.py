@@ -92,6 +92,9 @@ MIDDLEWARE = [
     "apps.accounts.audit.CatelloAuditlogMiddleware",
     "hijack.middleware.HijackUserMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    # Dopo MessageMiddleware: usa messages.info() per avvisare l'utente
+    # disconnesso, quindi richiede request._messages già inizializzato.
+    "apps.accounts.middleware.SessionInactivityMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "axes.middleware.AxesMiddleware",
 ]

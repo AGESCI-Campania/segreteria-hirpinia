@@ -41,6 +41,12 @@
             su Mailpit. Ricordarsi di disattivarlo a test conclusi.
           </div>
         {% endif %}
+        {% if field.name == "durata_inattivita_minuti" %}
+          <div class="form-text">
+            Trascorso questo tempo senza alcuna richiesta, l'utente autenticato viene
+            disconnesso automaticamente e deve accedere di nuovo.
+          </div>
+        {% endif %}
         {{ field.errors }}
       </div>
     {% endfor %}

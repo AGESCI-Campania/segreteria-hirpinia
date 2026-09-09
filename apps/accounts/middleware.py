@@ -1,12 +1,53 @@
 from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import logout
 from django.shortcuts import redirect
 from django.urls import reverse
+from django.utils import timezone
 
 PERCORSI_ESCLUSI = ("/accounts/", "/hijack/", "/static/", "/media/", "/admin/")
+
+CHIAVE_SESSIONE_ULTIMA_ATTIVITA = "ultima_attivita"
 
 
 def _percorso_escluso(path: str) -> bool:
     return any(path.startswith(prefisso) for prefisso in PERCORSI_ESCLUSI)
+
+
+class SessionInactivityMiddleware:
+    """Disconnette l'utente autenticato dopo un periodo di inattività
+    configurabile da interfaccia (`ImpostazioniPiattaforma.durata_inattivita_minuti`).
+    Timeout scorrevole: ogni richiesta autenticata aggiorna il timestamp di
+    ultima attività salvato nella sessione stessa, non in un model esterno."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.user.is_authenticated and not _percorso_escluso(request.path):
+            ora = timezone.now().timestamp()
+            ultima_attivita = request.session.get(CHIAVE_SESSIONE_ULTIMA_ATTIVITA)
+            if ultima_attivita is not None:
+                timeout_secondi = self._timeout_minuti() * 60
+                if ora - ultima_attivita > timeout_secondi:
+                    logout(request)
+                    messages.info(request, "Sessione scaduta per inattività: accedi di nuovo.")
+                    return redirect(settings.LOGIN_URL)
+            request.session[CHIAVE_SESSIONE_ULTIMA_ATTIVITA] = ora
+        return self.get_response(request)
+
+    @staticmethod
+    def _timeout_minuti() -> int:
+        from apps.core.models import ImpostazioniPiattaforma
+
+        valore = (
+            ImpostazioniPiattaforma.objects.filter(pk=1)
+            .values_list("durata_inattivita_minuti", flat=True)
+            .first()
+        )
+        if valore is not None:
+            return valore
+        return ImpostazioniPiattaforma._meta.get_field("durata_inattivita_minuti").default
 
 
 class StatoUtenteMiddleware:

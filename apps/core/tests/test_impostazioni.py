@@ -67,7 +67,10 @@ class TestPermessi:
 
     def test_segreteria_diretta_accede_e_modifica(self, client, segreteria):
         client.force_login(segreteria)
-        response = client.post("/impostazioni/", {"causale_bonifico_default": "Nuova causale"})
+        response = client.post(
+            "/impostazioni/",
+            {"causale_bonifico_default": "Nuova causale", "durata_inattivita_minuti": 60},
+        )
         assert response.status_code == 302
         assert ImpostazioniPiattaforma.corrente().causale_bonifico_default == "Nuova causale"
 
@@ -101,7 +104,12 @@ class TestEmailSuMailpit:
         settings.EMAIL_MAILPIT_HOST = "localhost"
         client.force_login(segreteria)
         response = client.post(
-            "/impostazioni/", {"causale_bonifico_default": "", "email_su_mailpit": "on"}
+            "/impostazioni/",
+            {
+                "causale_bonifico_default": "",
+                "email_su_mailpit": "on",
+                "durata_inattivita_minuti": 60,
+            },
         )
         assert response.status_code == 302
         assert ImpostazioniPiattaforma.corrente().email_su_mailpit
@@ -117,6 +125,7 @@ class TestPrefissoEFirma:
                 "prefisso_oggetto_email": "Zona Hirpinia",
                 "firma_html": "<p>Segreteria</p>",
                 "firma_testo": "Segreteria",
+                "durata_inattivita_minuti": 60,
             },
         )
         assert response.status_code == 302
@@ -130,7 +139,12 @@ class TestBrancaTemaDefault:
     def test_default_di_sistema_salvato(self, client, segreteria):
         client.force_login(segreteria)
         response = client.post(
-            "/impostazioni/", {"causale_bonifico_default": "", "branca_tema_default": "lc"}
+            "/impostazioni/",
+            {
+                "causale_bonifico_default": "",
+                "branca_tema_default": "lc",
+                "durata_inattivita_minuti": 60,
+            },
         )
         assert response.status_code == 302
         assert ImpostazioniPiattaforma.corrente().branca_tema_default == "lc"
@@ -148,11 +162,43 @@ class TestBrancaTemaDefault:
         assert ImpostazioniPiattaforma.corrente().branca_tema_default == ""
 
 
+class TestDurataInattivita:
+    def test_default_60_minuti(self):
+        assert ImpostazioniPiattaforma.corrente().durata_inattivita_minuti == 60
+
+    def test_valore_nel_range_salvato(self, client, segreteria):
+        client.force_login(segreteria)
+        response = client.post(
+            "/impostazioni/", {"causale_bonifico_default": "", "durata_inattivita_minuti": 30}
+        )
+        assert response.status_code == 302
+        assert ImpostazioniPiattaforma.corrente().durata_inattivita_minuti == 30
+
+    def test_valore_sotto_il_minimo_rifiutato(self, client, segreteria):
+        client.force_login(segreteria)
+        response = client.post(
+            "/impostazioni/", {"causale_bonifico_default": "", "durata_inattivita_minuti": 1}
+        )
+        assert response.status_code == 200  # form non valido, ripresentato
+        assert ImpostazioniPiattaforma.corrente().durata_inattivita_minuti == 60
+
+    def test_valore_sopra_il_massimo_rifiutato(self, client, segreteria):
+        client.force_login(segreteria)
+        response = client.post(
+            "/impostazioni/", {"causale_bonifico_default": "", "durata_inattivita_minuti": 481}
+        )
+        assert response.status_code == 200  # form non valido, ripresentato
+        assert ImpostazioniPiattaforma.corrente().durata_inattivita_minuti == 60
+
+
 class TestAuditlog:
     def test_modifica_tracciata(self, client, segreteria):
         ImpostazioniPiattaforma.corrente()  # crea la riga con il default
         client.force_login(segreteria)
-        client.post("/impostazioni/", {"causale_bonifico_default": "Causale tracciata"})
+        client.post(
+            "/impostazioni/",
+            {"causale_bonifico_default": "Causale tracciata", "durata_inattivita_minuti": 60},
+        )
 
         ct = ContentType.objects.get_for_model(ImpostazioniPiattaforma)
         log = LogEntry.objects.filter(content_type=ct, object_id="1").latest("timestamp")

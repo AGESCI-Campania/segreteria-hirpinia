@@ -2,9 +2,15 @@
 IN_ATTESA/SOSPESO e per account di gruppo il cui gruppo non è più attivo,
 senza impedire l'autenticazione (mostrano solo una pagina di cortesia)."""
 
-import pytest
+import datetime
 
+import pytest
+from django.contrib import messages
+from django.utils import timezone
+
+from apps.accounts.middleware import CHIAVE_SESSIONE_ULTIMA_ATTIVITA
 from apps.accounts.models import StatoUtente, TipoUtente, Utente
+from apps.core.models import ImpostazioniPiattaforma
 from apps.organizzazione.gruppi import disattiva_gruppo
 from apps.organizzazione.models import Gruppo, anno_scout_corrente
 
@@ -70,3 +76,59 @@ class TestGruppoNonAttivo:
         client.force_login(persona)
         response = client.get("/")
         assert response.status_code == 200
+
+
+def _imposta_ultima_attivita(client, minuti_fa: int) -> None:
+    session = client.session
+    session[CHIAVE_SESSIONE_ULTIMA_ATTIVITA] = (
+        timezone.now() - datetime.timedelta(minutes=minuti_fa)
+    ).timestamp()
+    session.save()
+
+
+class TestSessionInactivityMiddleware:
+    def test_anonimo_non_tocca_la_sessione(self, client):
+        response = client.get("/")
+        assert response.status_code == 302  # "/" richiede login
+        assert CHIAVE_SESSIONE_ULTIMA_ATTIVITA not in client.session
+
+    def test_prima_richiesta_autenticata_inizializza_il_timestamp(self, client):
+        persona = _persona("persona1@campania.agesci.it")
+        client.force_login(persona)
+        response = client.get("/")
+        assert response.status_code == 200
+        assert CHIAVE_SESSIONE_ULTIMA_ATTIVITA in client.session
+
+    def test_entro_il_timeout_di_default_nessun_logout(self, client):
+        persona = _persona("persona2@campania.agesci.it")
+        client.force_login(persona)
+        _imposta_ultima_attivita(client, minuti_fa=30)
+
+        response = client.get("/")
+
+        assert response.status_code == 200
+        assert response.wsgi_request.user.is_authenticated
+
+    def test_oltre_il_timeout_di_default_logout_e_messaggio(self, client):
+        persona = _persona("persona3@campania.agesci.it")
+        client.force_login(persona)
+        _imposta_ultima_attivita(client, minuti_fa=61)
+
+        response = client.get("/", follow=True)
+
+        assert response.wsgi_request.user.is_anonymous
+        testi_messaggi = [m.message for m in messages.get_messages(response.wsgi_request)]
+        assert any("Sessione scaduta" in testo for testo in testi_messaggi)
+
+    def test_timeout_personalizzato_da_impostazioni_piattaforma(self, client):
+        impostazioni = ImpostazioniPiattaforma.corrente()
+        impostazioni.durata_inattivita_minuti = 10
+        impostazioni.save()
+
+        persona = _persona("persona4@campania.agesci.it")
+        client.force_login(persona)
+        _imposta_ultima_attivita(client, minuti_fa=11)
+
+        response = client.get("/")
+
+        assert response.wsgi_request.user.is_anonymous
