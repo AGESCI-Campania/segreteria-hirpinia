@@ -74,7 +74,7 @@
       tinymce.init({
         selector: "#id_firma_html",
         license_key: "gpl",
-        base_url: "{% static 'vendor/tinymce' %}",
+        base_url: "{% get_static_prefix %}vendor/tinymce",
         suffix: ".min",
         plugins: "lists link autolink image code",
         toolbar: "undo redo | bold italic underline | bullist numlist | link image | code",
