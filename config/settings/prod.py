@@ -42,6 +42,23 @@ CACHES = {
     }
 }
 
+# Cache busting sui file statici (issue: sidebar rimasta invisibile dopo il
+# deploy di django-agesci-campania-theme 2.6.0 perché il browser aveva ancora
+# in cache il vecchio agesci.min.css, servito con lo stesso nome file e
+# cache-control: max-age=2592000). ManifestStaticFilesStorage rinomina ogni
+# file con un hash del contenuto e riscrive i riferimenti da {% static %}:
+# un cambio di contenuto genera un URL diverso, quindi la cache del vecchio
+# file non viene più riletta. Solo in produzione: in sviluppo complicherebbe
+# senza motivo l'hot-reload dei file statici.
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
+    },
+}
+
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Disattivati di default: vanno attivati solo a valle di un vero reverse proxy
