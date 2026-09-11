@@ -39,6 +39,9 @@ htmlcov/
 .idea/shelf/
 .vscode/
 
+# Claude Code: impostazioni personali, non condivise (permessi locali dell'utente)
+.claude/settings.local.json
+
 # Sistema
 .DS_Store
 Thumbs.db
