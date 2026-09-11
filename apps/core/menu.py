@@ -115,6 +115,7 @@ def sezioni_menu(utente: Utente | AnonymousUser) -> list[SezioneMenu]:
     voci_account = [
         _voce("Le mie deleghe", "accounts:deleghe_lista", "person-lines-fill"),
         _voce("Le mie sessioni", "accounts:sessioni_lista", "laptop"),
+        _voce("Sicurezza account", "mfa_index", "shield-lock"),
     ]
     if consentito(RUOLI_GESTIONE_DELEGHE_ZONA, solo_diretti=True):
         voci_account.append(_voce("Deleghe di Zona", "accounts:deleghe_zona", "people"))

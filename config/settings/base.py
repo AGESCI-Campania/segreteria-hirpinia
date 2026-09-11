@@ -53,6 +53,9 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # Issue #10: mfa/webauthn/authenticator_list.html usa {% load humanize %}
+    # (naturaltime sulla data di creazione/ultimo uso della passkey).
+    "django.contrib.humanize",
     # Terze parti
     # agesci_theme PRIMA di allauth: i suoi override dei template allauth
     # sono trovati via APP_DIRS in ordine di INSTALLED_APPS, e vincono solo
@@ -197,7 +200,11 @@ ACCOUNT_ADAPTER = "apps.accounts.adapters.CatelloAccountAdapter"
 ACCOUNT_USER_MODEL_USERNAME_FIELD = "username"
 
 MFA_ADAPTER = "apps.accounts.adapters.CatelloMFAAdapter"
-MFA_SUPPORTED_TYPES = ["totp", "recovery_codes"]
+MFA_SUPPORTED_TYPES = ["totp", "webauthn", "recovery_codes"]
+# Issue #10: login diretto con passkey, senza password. Richiede un contesto
+# sicuro (HTTPS) lato browser: nessun impatto sui default TLS del reverse
+# proxy in prod.py, che restano una configurazione separata.
+MFA_PASSKEY_LOGIN_ENABLED = True
 
 # Issue #9: senza tracciamento, "ultima attività" coinciderebbe sempre con
 # "accesso effettuato il", rendendo la pagina sessioni poco utile.
@@ -221,6 +228,13 @@ LOGOUT_REDIRECT_URL = "core:home"
 # all'attivazione dell'account: non e' una deviazione, e' la sintesi delle due
 # decisioni.
 RUOLI_MFA_OBBLIGATORIA = {"ADMIN", "SEGRETERIA", "RDZ"}
+
+# Issue #10: per ADMIN/SEGRETERIA una passkey (WebAuthn) soddisfa da sola
+# l'obbligo MFA, in sostituzione del TOTP. RDZ e' un incarico di funzione (non
+# personale come gli altri due) e resta vincolato al solo TOTP anche quando lo
+# stesso utente ha anche ADMIN/SEGRETERIA diretti: se l'utente ha uno di questi
+# due ruoli, quello vince comunque (si veda apps.accounts.mfa.tipi_mfa_accettati).
+RUOLI_MFA_ACCETTA_PASSKEY = {"ADMIN", "SEGRETERIA"}
 
 # D-26: numero massimo di deleghe attive per uno stesso ruolo.
 MAX_DELEGHE_ATTIVE_PER_RUOLO = 3

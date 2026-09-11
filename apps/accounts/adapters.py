@@ -1,6 +1,5 @@
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.mfa.adapter import DefaultMFAAdapter
-from django.conf import settings
 
 from apps.organizzazione.models import AllowlistGruppo
 
@@ -43,27 +42,23 @@ class CatelloAccountAdapter(DefaultAccountAdapter):
 class CatelloMFAAdapter(DefaultMFAAdapter):
     """Nessun bypass della MFA: a differenza di eventuali piattaforme collegate
     a uno SSO, Catello non ha alcuna alternativa al secondo fattore (D-05).
-    Impedisce la disattivazione del TOTP ai ruoli per cui è obbligatoria."""
+    Impedisce la cancellazione dell'ultimo fattore fra quelli accettati per il
+    ruolo dell'utente (TOTP, e per ADMIN/SEGRETERIA anche WebAuthn — issue
+    #10): i recovery codes non contano come fattore a sé, restano il fallback
+    per quando si perde l'accesso al fattore principale."""
 
     def can_delete_authenticator(self, authenticator) -> bool:
         from allauth.mfa.models import Authenticator
 
-        if authenticator.type != Authenticator.Type.TOTP:
+        from .mfa import tipi_mfa_accettati
+
+        tipi_accettati = tipi_mfa_accettati(authenticator.user)
+        if authenticator.type not in tipi_accettati:
             return True
 
-        from .permessi import ruoli_effettivi
-
-        utente = authenticator.user
-        ruoli_obbligati = settings.RUOLI_MFA_OBBLIGATORIA
-        ha_ruolo_obbligato = any(
-            r.tipo in ruoli_obbligati and not r.is_delega for r in ruoli_effettivi(utente)
-        )
-        if not ha_ruolo_obbligato:
-            return True
-
-        altri_totp = (
-            Authenticator.objects.filter(user=utente, type=Authenticator.Type.TOTP)
+        altri = (
+            Authenticator.objects.filter(user=authenticator.user, type__in=tipi_accettati)
             .exclude(pk=authenticator.pk)
             .exists()
         )
-        return altri_totp
+        return altri

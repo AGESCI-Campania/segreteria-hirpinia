@@ -81,8 +81,9 @@ class StatoUtenteMiddleware:
 
 class MFAEnforcementMiddleware:
     """Chi detiene direttamente (non per delega) un ruolo in
-    RUOLI_MFA_OBBLIGATORIA deve configurare il secondo fattore prima di
-    accedere ai moduli (D-05, D-20)."""
+    RUOLI_MFA_OBBLIGATORIA deve configurare un fattore fra quelli accettati
+    per quel ruolo (D-05, D-20; passkey per ADMIN/SEGRETERIA, issue #10)
+    prima di accedere ai moduli."""
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -93,20 +94,16 @@ class MFAEnforcementMiddleware:
             and not _percorso_escluso(request.path)
             and self._richiede_mfa_non_configurata(request)
         ):
-            return redirect(reverse("mfa_activate_totp"))
+            return redirect(reverse("mfa_index"))
         return self.get_response(request)
 
     @staticmethod
     def _richiede_mfa_non_configurata(request) -> bool:
         from allauth.mfa.adapter import get_adapter as get_mfa_adapter
-        from allauth.mfa.models import Authenticator
 
-        from .permessi import ruoli_effettivi
+        from .mfa import tipi_mfa_accettati
 
-        ruoli_obbligati = settings.RUOLI_MFA_OBBLIGATORIA
-        ha_ruolo_obbligato = any(
-            r.tipo in ruoli_obbligati and not r.is_delega for r in ruoli_effettivi(request.user)
-        )
-        if not ha_ruolo_obbligato:
+        tipi_accettati = tipi_mfa_accettati(request.user)
+        if not tipi_accettati:
             return False
-        return not get_mfa_adapter().is_mfa_enabled(request.user, types=[Authenticator.Type.TOTP])
+        return not get_mfa_adapter().is_mfa_enabled(request.user, types=list(tipi_accettati))

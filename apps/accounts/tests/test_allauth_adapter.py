@@ -120,7 +120,7 @@ class TestMFAEnforcementMiddleware:
         response = middleware(request)
 
         assert response.status_code == 302
-        assert response.url == "/accounts/2fa/totp/activate/"
+        assert response.url == "/accounts/2fa/"
 
     def test_ruolo_non_obbligato_prosegue(self, rf: RequestFactory, settings):
         settings.RUOLI_MFA_OBBLIGATORIA = {"ADMIN"}
@@ -136,3 +136,145 @@ class TestMFAEnforcementMiddleware:
         response = middleware(request)
 
         assert response.status_code == 200
+
+    def test_admin_con_sola_passkey_non_viene_rediretto(self, rf: RequestFactory, settings):
+        from allauth.mfa.models import Authenticator
+
+        settings.RUOLI_MFA_OBBLIGATORIA = {"ADMIN"}
+        settings.RUOLI_MFA_ACCETTA_PASSKEY = {"ADMIN"}
+        utente = Utente.objects.create(
+            username="a", email="a@campania.agesci.it", stato=StatoUtente.ATTIVO
+        )
+        Ruolo.objects.create(utente=utente, tipo=Ruolo.Tipo.ADMIN)
+        Authenticator.objects.create(user=utente, type=Authenticator.Type.WEBAUTHN, data={})
+        request = rf.get("/qualsiasi-percorso/")
+        request.user = utente
+
+        middleware = MFAEnforcementMiddleware(lambda r: HttpResponse("ok"))
+        response = middleware(request)
+
+        assert response.status_code == 200
+
+    def test_rdz_con_sola_passkey_viene_comunque_rediretto(self, rf: RequestFactory, settings):
+        from allauth.mfa.models import Authenticator
+
+        settings.RUOLI_MFA_OBBLIGATORIA = {"RDZ"}
+        settings.RUOLI_MFA_ACCETTA_PASSKEY = {"ADMIN", "SEGRETERIA"}
+        utente = Utente.objects.create(
+            username="r", email="r@campania.agesci.it", stato=StatoUtente.ATTIVO
+        )
+        Ruolo.objects.create(utente=utente, tipo=Ruolo.Tipo.RDZ)
+        Authenticator.objects.create(user=utente, type=Authenticator.Type.WEBAUTHN, data={})
+        request = rf.get("/qualsiasi-percorso/")
+        request.user = utente
+
+        middleware = MFAEnforcementMiddleware(lambda r: HttpResponse("ok"))
+        response = middleware(request)
+
+        assert response.status_code == 302
+        assert response.url == "/accounts/2fa/"
+
+    def test_admin_e_rdz_diretti_la_passkey_basta(self, rf: RequestFactory, settings):
+        """ADMIN/SEGRETERIA vincono sempre su RDZ quando coesistono (issue #10)."""
+        from allauth.mfa.models import Authenticator
+
+        settings.RUOLI_MFA_OBBLIGATORIA = {"ADMIN", "RDZ"}
+        settings.RUOLI_MFA_ACCETTA_PASSKEY = {"ADMIN", "SEGRETERIA"}
+        utente = Utente.objects.create(
+            username="ar", email="ar@campania.agesci.it", stato=StatoUtente.ATTIVO
+        )
+        Ruolo.objects.create(utente=utente, tipo=Ruolo.Tipo.ADMIN)
+        Ruolo.objects.create(utente=utente, tipo=Ruolo.Tipo.RDZ)
+        Authenticator.objects.create(user=utente, type=Authenticator.Type.WEBAUTHN, data={})
+        request = rf.get("/qualsiasi-percorso/")
+        request.user = utente
+
+        middleware = MFAEnforcementMiddleware(lambda r: HttpResponse("ok"))
+        response = middleware(request)
+
+        assert response.status_code == 200
+
+
+class TestCanDeleteAuthenticator:
+    def test_admin_non_puo_cancellare_unica_passkey(self, settings):
+        from allauth.mfa.models import Authenticator
+
+        from apps.accounts.adapters import CatelloMFAAdapter
+
+        settings.RUOLI_MFA_OBBLIGATORIA = {"ADMIN"}
+        settings.RUOLI_MFA_ACCETTA_PASSKEY = {"ADMIN"}
+        utente = Utente.objects.create(
+            username="a", email="a@campania.agesci.it", stato=StatoUtente.ATTIVO
+        )
+        Ruolo.objects.create(utente=utente, tipo=Ruolo.Tipo.ADMIN)
+        passkey = Authenticator.objects.create(
+            user=utente, type=Authenticator.Type.WEBAUTHN, data={}
+        )
+
+        assert CatelloMFAAdapter().can_delete_authenticator(passkey) is False
+
+    def test_admin_puo_cancellare_passkey_se_ha_anche_totp(self, settings):
+        from allauth.mfa.models import Authenticator
+
+        from apps.accounts.adapters import CatelloMFAAdapter
+
+        settings.RUOLI_MFA_OBBLIGATORIA = {"ADMIN"}
+        settings.RUOLI_MFA_ACCETTA_PASSKEY = {"ADMIN"}
+        utente = Utente.objects.create(
+            username="a", email="a@campania.agesci.it", stato=StatoUtente.ATTIVO
+        )
+        Ruolo.objects.create(utente=utente, tipo=Ruolo.Tipo.ADMIN)
+        passkey = Authenticator.objects.create(
+            user=utente, type=Authenticator.Type.WEBAUTHN, data={}
+        )
+        Authenticator.objects.create(user=utente, type=Authenticator.Type.TOTP, data={})
+
+        assert CatelloMFAAdapter().can_delete_authenticator(passkey) is True
+
+    def test_recovery_codes_sempre_cancellabili(self, settings):
+        from allauth.mfa.models import Authenticator
+
+        from apps.accounts.adapters import CatelloMFAAdapter
+
+        settings.RUOLI_MFA_OBBLIGATORIA = {"ADMIN"}
+        settings.RUOLI_MFA_ACCETTA_PASSKEY = {"ADMIN"}
+        utente = Utente.objects.create(
+            username="a", email="a@campania.agesci.it", stato=StatoUtente.ATTIVO
+        )
+        Ruolo.objects.create(utente=utente, tipo=Ruolo.Tipo.ADMIN)
+        Authenticator.objects.create(user=utente, type=Authenticator.Type.WEBAUTHN, data={})
+        codici = Authenticator.objects.create(
+            user=utente, type=Authenticator.Type.RECOVERY_CODES, data={}
+        )
+
+        assert CatelloMFAAdapter().can_delete_authenticator(codici) is True
+
+    def test_rdz_non_puo_cancellare_unico_totp_anche_con_passkey(self, settings):
+        """La passkey non conta per RDZ: resta vincolato al TOTP (issue #10)."""
+        from allauth.mfa.models import Authenticator
+
+        from apps.accounts.adapters import CatelloMFAAdapter
+
+        settings.RUOLI_MFA_OBBLIGATORIA = {"RDZ"}
+        settings.RUOLI_MFA_ACCETTA_PASSKEY = {"ADMIN", "SEGRETERIA"}
+        utente = Utente.objects.create(
+            username="r", email="r@campania.agesci.it", stato=StatoUtente.ATTIVO
+        )
+        Ruolo.objects.create(utente=utente, tipo=Ruolo.Tipo.RDZ)
+        totp = Authenticator.objects.create(user=utente, type=Authenticator.Type.TOTP, data={})
+        Authenticator.objects.create(user=utente, type=Authenticator.Type.WEBAUTHN, data={})
+
+        assert CatelloMFAAdapter().can_delete_authenticator(totp) is False
+
+    def test_utente_senza_ruolo_obbligato_puo_cancellare_tutto(self, settings):
+        from allauth.mfa.models import Authenticator
+
+        from apps.accounts.adapters import CatelloMFAAdapter
+
+        settings.RUOLI_MFA_OBBLIGATORIA = {"ADMIN"}
+        utente = Utente.objects.create(
+            username="u", email="u@campania.agesci.it", stato=StatoUtente.ATTIVO
+        )
+        totp = Authenticator.objects.create(user=utente, type=Authenticator.Type.TOTP, data={})
+
+        assert CatelloMFAAdapter().can_delete_authenticator(totp) is True
