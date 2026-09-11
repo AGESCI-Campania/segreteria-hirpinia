@@ -56,7 +56,6 @@ class AttivazioneView(FormView):
     def get_initial(self):
         return {
             "email": self.request.GET.get("email", ""),
-            "codice": self.request.GET.get("codice", ""),
         }
 
     def form_valid(self, form):

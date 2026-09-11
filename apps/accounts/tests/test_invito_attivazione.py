@@ -49,12 +49,16 @@ class TestCreaInvito:
         assert "contributo del tuo gruppo" in corpo_con_gruppo
         assert "contributo del tuo gruppo" not in corpo_senza_gruppo
 
-    def test_link_attivazione_contiene_email_e_codice(self, gruppo):
+    def test_link_attivazione_contiene_email_ma_non_il_codice(self, gruppo):
+        # Il codice non deve comparire nella query string del link (CWE-598):
+        # finirebbe nei log del server/proxy e nella cronologia del browser.
+        # Resta comunque leggibile in chiaro nel corpo dell'email.
         crea_invito(email="a@campania.agesci.it", creato_da=None, gruppo=gruppo)
         codice = _codice_inviato()
         corpo = mail.outbox[-1].body
-        assert f"codice={codice}" in corpo
-        assert "email=a%40campania.agesci.it" in corpo or "email=a@campania.agesci.it" in corpo
+        link = [r for r in corpo.splitlines() if "accounts/attiva" in r][0]
+        assert f"codice={codice}" not in link
+        assert "email=a%40campania.agesci.it" in link or "email=a@campania.agesci.it" in link
 
     def test_codice_mai_leggibile_in_chiaro_dal_modello(self, gruppo):
         invito = crea_invito(email="a@campania.agesci.it", creato_da=None, gruppo=gruppo)

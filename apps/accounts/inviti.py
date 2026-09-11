@@ -65,7 +65,10 @@ def crea_invito(
 def _invia_email_invito(invito: InvitoAttivazione, codice: str) -> None:
     from django.conf import settings
 
-    querystring = urlencode({"email": invito.email, "codice": codice})
+    # Il codice non va nella query string (CWE-598): finirebbe nei log del
+    # server/proxy e nella cronologia del browser. È già leggibile in chiaro
+    # nel corpo dell'email, l'utente lo incolla a mano nel form.
+    querystring = urlencode({"email": invito.email})
     link_attivazione = f"{settings.SITE_URL}{reverse('accounts:attiva')}?{querystring}"
     paragrafo_gruppo = ""
     if invito.gruppo_id:
