@@ -8,6 +8,19 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.1.18] - 2026-09-13
+
+### Aggiunto
+
+- Riepilogo gruppi per campagna: una tabella, per Amministratore/Segreteria/
+  RdZ e capigruppo, con lo stato di invio del contributo Fo.Ca. di ogni
+  gruppo (account attivato, IBAN caricato, capi inseriti, stato complessivo
+  con semaforo). Un gruppo senza capi da rimborsare può dichiararlo
+  esplicitamente ("nessun rimborso richiesto").
+- Pulizia periodica delle sessioni scadute in produzione: le sessioni ormai
+  inutilizzabili non restavano più visibili a tempo indeterminato
+  nell'elenco "Sessioni utente".
+
 ## [1.1.17] - 2026-09-11
 
 ### Aggiunto
