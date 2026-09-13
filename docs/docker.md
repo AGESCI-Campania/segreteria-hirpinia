@@ -14,7 +14,7 @@ Catello usa Docker in due modi diversi, non intercambiabili:
 | | Sviluppo | Produzione |
 | --- | --- | --- |
 | File compose | `compose.yaml` | `compose.prod.yaml` (+ `compose.prod.nginx.yaml` opzionale) |
-| Cosa gira in Docker | PostgreSQL (sempre) + Mailpit (opzionale, solo se avviato esplicitamente) | PostgreSQL + applicazione (Gunicorn) + Mailpit (opzionale, profilo `mailpit`), reverse proxy incluso solo con l'opzione `nginx-docker` |
+| Cosa gira in Docker | PostgreSQL (sempre) + Mailpit (opzionale, solo se avviato esplicitamente) | PostgreSQL + applicazione (Gunicorn) + pulizia periodica delle sessioni scadute + Mailpit (opzionale, profilo `mailpit`), reverse proxy incluso solo con l'opzione `nginx-docker` |
 | Cosa gira sull'host | Django (`manage.py runserver`), via `uv`/`mise` | Nulla, salvo eventualmente il reverse proxy (`nginx-host`/`apache-host`) |
 | Server applicativo | `runserver` (autoreload, debug toolbar) | `gunicorn` |
 | Immagine applicativa | Non costruita | Costruita da `docker/Dockerfile` |
@@ -319,6 +319,17 @@ Al primo avvio, `docker/entrypoint.sh` esegue automaticamente, in quest'ordine:
 Nessuno di questi tre passi va eseguito a mano: succede ad ogni avvio del container,
 migrazioni comprese (idempotenti per costruzione).
 
+Lo stesso comando avvia anche `pulizia-sessioni`: un servizio che riusa la stessa
+immagine di `web` (nessun build proprio) per eseguire periodicamente
+`manage.py clearsessions`, l'unico modo per rimuovere dalla tabella `django_session`
+le sessioni scadute — Django non lo fa mai da solo. A differenza di Mailpit non è
+dietro un profilo Compose: è manutenzione sempre necessaria, non una funzionalità
+opzionale. Verifica dei log:
+
+```bash
+docker compose -f compose.prod.yaml logs pulizia-sessioni
+```
+
 ### 5. Passi manuali del primo deploy
 
 Due operazioni **non** sono nell'entrypoint perché non idempotenti o perché richiedono
@@ -336,7 +347,7 @@ docker compose -f compose.prod.yaml exec web python manage.py createsuperuser
 ### 6. Verifica
 
 ```bash
-docker compose -f compose.prod.yaml ps        # entrambi i servizi "healthy"/"running"
+docker compose -f compose.prod.yaml ps        # tutti i servizi "healthy"/"running"
 docker compose -f compose.prod.yaml logs -f web
 curl -I http://127.0.0.1:8000/                # dall'host, se non c'è ancora un proxy davanti
 ```
@@ -353,10 +364,10 @@ git pull
 docker compose -f compose.prod.yaml up -d --build
 ```
 
-Non serve fermare i container prima (`up -d --build` ricrea solo l'immagine e il
-servizio `web`, `db` resta invariato) né rieseguire i passi manuali del punto 5: sono
-one-shot, non per-versione. Le migrazioni della nuova versione partono da sole
-nell'entrypoint.
+Non serve fermare i container prima (`up -d --build` ricostruisce l'immagine e
+ricrea `web` e `pulizia-sessioni`, che la riusano; `db` resta invariato) né rieseguire i
+passi manuali del punto 5: sono one-shot, non per-versione. Le migrazioni della nuova
+versione partono da sole nell'entrypoint.
 
 ### Backup e restore di PostgreSQL
 

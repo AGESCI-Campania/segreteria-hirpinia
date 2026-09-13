@@ -30,6 +30,7 @@ services:
       - "127.0.0.1:8025:8025"
 
   web:
+    image: catello-web:latest
     build:
       context: .
       dockerfile: docker/Dockerfile
@@ -53,6 +54,31 @@ services:
       - /srv/segreteriahirpinia/static:/app/staticfiles
       - /srv/segreteriahirpinia/media:/app/media
       - /srv/segreteriahirpinia/log:/app/log
+
+  # Pulizia periodica delle sessioni scadute (issue #12): Django non lo fa da
+  # solo, `manage.py clearsessions` va eseguito periodicamente. Non opzionale
+  # come Mailpit sopra (nessun `profiles:`): riusa l'immagine già buildata da
+  # "web" (nessun build/Dockerfile proprio), con entrypoint/command
+  # sovrascritti per non eseguire la sequenza fissa di docker/entrypoint.sh
+  # (migrate/collectstatic/gunicorn, pensata solo per "web").
+  pulizia-sessioni:
+    image: catello-web:latest
+    container_name: catello_pulizia_sessioni
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          uv run --no-sync python manage.py clearsessions
+          sleep 86400
+        done
 
 volumes:
   postgres_data:
