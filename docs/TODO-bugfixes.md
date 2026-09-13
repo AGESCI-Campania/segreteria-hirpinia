@@ -14,12 +14,15 @@ verificata, committata (chiude la issue).
 
 ### Da gestire
 
-_Nessuna issue in questo stato al momento._
+| # | Titolo | Urgenza | Complessità | Impatto utente | Impatto codice | Stato | Note |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| [#11](https://github.com/AGESCI-Campania/segreteria-hirpinia/issues/11) | Riepilogo contributi | Media | Medio-alta | Alto | Medio | OK | Tabella stato invio Fo.Ca. per gruppo, con semafori; nuovo flag "completato senza capi" e nuova sezione manuale capigruppo |
+| [#12](https://github.com/AGESCI-Campania/segreteria-hirpinia/issues/12) | Sessioni scadute non ripulite automaticamente | Media | Bassa | Basso | Basso | OK | Manca uno scheduling di `manage.py clearsessions`; le righe scadute restano visibili in "Sessioni utente" finché non vengono cancellate a mano |
 
 ### Gestite
 
 | # | Titolo | Urgenza | Complessità | Impatto utente | Impatto codice | Stato | Note |
-| --- | --- | --- | --- | --- | --- |-----| --- |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 | [#1](https://github.com/AGESCI-Campania/segreteria-hirpinia/issues/1) | Errore form partecipazione ai campi | Media | Bassa | Alto | Basso | DONE: a579d82 | Errori ora su `form.errors["data_inizio"]`/`"descrizione_altro"`, messaggio con date finestra — issue chiusa |
 | [#2](https://github.com/AGESCI-Campania/segreteria-hirpinia/issues/2) | Pulsanti da nascondere se non si ha permesso | Bassa-media | Bassa | Medio | Molto basso | DONE: a579d82 | 9 pulsanti in campagna_dettaglio.html ora dietro `puo_gestire_campagna`/`puo_valutare_partecipazioni` — issue chiusa |
 | [#3](https://github.com/AGESCI-Campania/segreteria-hirpinia/issues/3) | Personalizzazione errori (403/404/500 + mail admin) | Bassa (utente) / medio-alta (operativa) | Media | Medio | Medio | DONE: a579d82 | Template 403/404/500 + `ADMINS`/`AdminEmailHandler` in prod.py — issue chiusa |
@@ -35,7 +38,166 @@ _Nessuna issue in questo stato al momento._
 
 # Da gestire
 
-_Nessuna issue in questo stato al momento._
+## #11 — Riepilogo contributi
+
+**Testo della issue**: per i ruoli Admin/Segreteria/RdZ e per i capigruppo, una
+tabella riassuntiva della situazione di invio dei gruppi sul contributo Fo.Ca.:
+nome gruppo, stato attivazione (almeno un accesso), IBAN caricato, capi inseriti
+per il rimborso (con conteggio), stato complessivo (semaforo verde/giallo/rosso).
+Per il punto 4 serve anche un flag che un gruppo può impostare per dichiarare
+"caricamento completato senza capi" (nessun rimborso richiesto per la campagna).
+Dopo la chiusura campagna va mostrato anche il contributo che il gruppo riceve.
+Va aggiornato anche il manuale per capigruppo.
+
+**Origine reale (verificata nel codice, non dedotta):** nessuna delle 5 colonne
+richieste esiste oggi come vista aggregata per gruppo — vanno costruite da dati
+già presenti in modelli diversi, nessuno dei quali oggi le espone insieme:
+
+1. **Nome gruppo**: `Gruppo.nome`/`Gruppo.codice` (`apps/organizzazione/models.py:30-78`).
+2. **Almeno un accesso**: `Utente` ha già un collegamento **diretto** a `Gruppo`
+   per gli account funzionali (`Utente.gruppo`, FK valorizzata solo per
+   `tipo=TipoUtente.GRUPPO`, `apps/accounts/models.py:50`) e il campo standard
+   Django `last_login` (popolato dal segnale `user_logged_in`, già usato per lo
+   stesso scopo in #8/`AllowlistListaView`). **Non serve il match per email**
+   usato in #8/`candidati_invito_massivo()` (quello serve prima della
+   registrazione, qui l'account esiste già): basta
+   `Utente.objects.filter(tipo=GRUPPO, gruppo=g).last_login` (un gruppo può
+   avere più account, `Gruppo.account_consentiti` — va deciso se "attivato"
+   significa *almeno uno* degli account ha fatto login, coerente col fatto che
+   basta un accesso perché qualcuno possa operare per il gruppo).
+3. **IBAN caricato**: `Gruppo.iban` non vuoto (`apps/organizzazione/models.py:60`)
+   — già validato da `valida_iban()` all'inserimento (D-verificato altrove), qui
+   serve solo il controllo di presenza. **Attenzione al vincolo CLAUDE.md**: IBAN
+   "mai in log applicativi, mai in messaggi di errore, mai in export non
+   bancari, mai in viste di elenco" — la tabella richiesta è per l'appunto una
+   vista di elenco: va mostrato solo il semaforo booleano (presente/assente),
+   **mai il valore dell'IBAN**, per non violare quel vincolo.
+4. **Capi inseriti per il rimborso**: `Partecipazione` filtrate per
+   `campagna` e `gruppo` (`apps/contributi/models.py:144-150`), con conteggio
+   distinto capi (`values("capo").distinct().count()`, dato che un capo può
+   avere più partecipazioni/campi nella stessa campagna) — da definire se il
+   conteggio richiesto in issue è "partecipazioni" o "capi distinti", la issue
+   dice "capi per i quali si richiede il rimborso" quindi probabilmente capi
+   distinti, non partecipazioni. **Nuovo**: il flag "completato senza capi" non
+   esiste in nessun modello — serve un nuovo campo persistito, verosimilmente su
+   un nuovo model `DichiarazioneGruppoCampagna` (o simile) con FK a `Campagna` +
+   `Gruppo` + booleano + chi/quando ha dichiarato, dato che oggi non c'è alcuna
+   relazione diretta gruppo↔campagna a parte le `Partecipazione` stesse.
+5. **Stato complessivo**: nessun calcolo esiste — va scritto come funzione pura
+   nel service layer (semaforo verde se 2+3+4 tutti verificati, rosso se
+   nessuno, giallo altrimenti), coerente con "service layer unico" di
+   CLAUDE.md.
+6. **Contributo ricevuto dopo chiusura**: `ContributoPartecipazione` (già usato
+   da `calcola_riepilogo()` in `apps/contributi/riepilogo.py`) ha gli importi
+   congelati per partecipazione — un totale per gruppo si calcola sommando quelle
+   righe filtrate per gruppo, **mai congelato per gruppo** (vincolo CLAUDE.md
+   "non congelare i totali per gruppo": il totale si calcola alla generazione,
+   non si persiste — la nuova tabella deve rispettare lo stesso principio, non
+   introdurre un campo `totale_gruppo` persistito).
+
+**Perimetro**: la issue chiede la tabella sia per Admin/Segreteria/RdZ (tutti i
+gruppi) sia per i capigruppo (probabilmente solo il proprio gruppo, coerente col
+perimetro generale D-13/D-21 già in vigore in tutta l'app contributi — **non
+esplicitato nella issue**, da confermare in pianificazione: dichiaro qui
+l'inferenza, non è un fatto verificato nel testo della issue). Il service layer
+di riferimento più vicino è `apps/contributi/visibilita.py::partecipazioni_visibili()`
+(D-13) — probabile che la nuova funzione di riepilogo-gruppi debba seguire lo
+stesso principio di filtro per ruolo, non essere scritta da zero.
+
+**Esclusione E9001**: come già per M14 (`PartecipazioniRicercaSociAutocompleteView`,
+A-8), il Comitato di Zona non genera contributo — da valutare se escluderlo anche
+da questa tabella (probabile sì, ma non è nella issue: altra inferenza dichiarata).
+
+- **Impatto utente**: alto. È una richiesta esplicita di visibilità operativa per
+  chi segue le campagne (Admin/Segreteria/RdZ) e per i capigruppo, oggi assente:
+  non esiste alcun modo di vedere collettivamente "chi manca" prima della
+  chiusura campagna.
+- **Impatto sul codice esistente**: medio.
+  - Nuova migrazione per il flag "completato senza capi" (nuovo model o campo).
+  - Nuova funzione pura nel service layer (`apps/contributi/riepilogo.py` sembra
+    la collocazione naturale, già ha la logica di riepilogo campagna, ma questa
+    è una vista **per gruppo**, non aggregata: valutare se estendere quel file o
+    crearne uno dedicato, es. `apps/contributi/riepilogo_gruppi.py`, per non
+    mescolare due concetti — il riepilogo D-13 esistente presuppone campagna
+    CHIUSA/LIQUIDATA, mentre questa tabella deve essere utile **anche durante**
+    l'inserimento, cioè a campagna ancora APERTA).
+  - Nuova view + template, nuova voce di menu (pattern già visto per
+    Allowlist/Sessioni: `RuoloRequiredMixin` per Admin/Segreteria/RdZ, perimetro
+    ridotto per CG).
+  - Aggiornamento del manuale capigruppo (`docs-utente/capogruppo/`, introdotto
+    per #5) con la nuova pagina.
+- **Complessità**: medio-alta. Non c'è un singolo punto difficile, ma tocca
+  contemporaneamente: un nuovo model/migrazione, una nuova funzione di
+  aggregazione multi-modello (Utente, Gruppo, Partecipazione,
+  ContributoPartecipazione), due perimetri di visibilità diversi (tutti i
+  gruppi vs. proprio gruppo) e la documentazione utente.
+- **Urgenza (mia valutazione)**: media. Non blocca l'operatività attuale (le
+  informazioni sono già recuperabili singolarmente, solo non aggregate in una
+  vista), ma il valore per il follow-up delle campagne è alto e cresce a ogni
+  campagna aperta.
+
+---
+
+## #12 — Sessioni scadute non ripulite automaticamente
+
+**Origine della issue**: segnalato da Andrea (2026-09-13) osservando in
+produzione, nell'elenco "Sessioni utente" (Amministrazione, introdotto da #9),
+sessioni molto vecchie ancora presenti, dovute rimuovere a mano.
+
+**Origine reale (verificata nel codice, non dedotta):** `UserSession.purge()`
+(pacchetto `allauth.usersessions`,
+`.venv/lib/python3.14/site-packages/allauth/usersessions/models.py:111-122`,
+richiamato da `sessioni_di()`/`tutte_le_sessioni()` in
+`apps/accounts/sessioni.py:22-37`, introdotte per #9) scarta una sessione solo
+se `self.exists()` è `False` — e `exists()` (riga 108-109) fa
+`SessionStore.exists(session_key)`, cioè verifica solo che la riga esista
+ancora nella tabella `django_session`, **senza controllare `expire_date`**. Il
+backend sessioni in uso è quello di default di Django (nessun `SESSION_ENGINE`
+in `config/settings/base.py`/`prod.py`, quindi `django.contrib.sessions.backends.db`):
+la scadenza viene verificata solo quando la sessione viene effettivamente
+caricata per autenticare una richiesta (`SessionStore.load()`), non da
+`exists()`. Una riga scaduta ma mai più utilizzata resta quindi nella tabella
+`django_session` a tempo indeterminato.
+
+Django prevede per questo il comando integrato `manage.py clearsessions`
+(pulizia periodica delle sessioni scadute), da schedulare esternamente (tipicamente
+cron): **verificato che non è presente da nessuna parte nel progetto** — non in
+`docker/entrypoint.sh` (che esegue solo `migrate` → `collectstatic` →
+`gunicorn`, coerente col vincolo CLAUDE.md sui soli passi idempotenti lì
+dentro), non nei task di `mise` (`mise.toml`), nessuno scheduling nei file
+Docker Compose (`compose.yaml`/`compose.prod.yaml`). `SESSION_COOKIE_AGE` non è
+mai impostato, quindi resta il default Django di 2 settimane.
+
+- **Impatto utente**: basso. Nessun rischio di sicurezza reale (una sessione
+  scaduta non è comunque più utilizzabile per autenticarsi, il controllo di
+  validità avviene comunque al momento dell'uso) — è un problema di igiene dei
+  dati e di leggibilità della pagina "Sessioni utente", che mostra righe non
+  più significative.
+- **Impatto sul codice esistente**: basso. Non tocca il service layer né i
+  modelli applicativi: `clearsessions` è un comando Django già pronto, agisce
+  solo sulla tabella `django_session` (nessuna relazione con `UserSession` di
+  allauth, che si auto-ripulisce già correttamente non appena la riga
+  `django_session` sottostante sparisce).
+- **Complessità**: bassa. Nessuna migrazione, nessun nuovo model. Va solo
+  deciso **dove** schedularlo, coerente col vincolo CLAUDE.md "niente
+  Celery/Redis/broker" (D-17) e "niente comandi con privilegi elevati in
+  `configure-prod.sh`": le opzioni realistiche sono un cron di sistema
+  sull'host (fuori dalla portata di uno script che non deve toccare systemd) o
+  un servizio schedulato dedicato nel `compose.prod.yaml` (es. un container
+  supplementare con un semplice loop + sleep, oppure `ofelia`/`cron` nello
+  stesso container `web` — da valutare in pianificazione, nessuna delle due
+  opzioni è oggi presente nel progetto).
+- **Urgenza (mia valutazione)**: media. Non è un problema di sicurezza né di
+  correttezza funzionale, ma è destinato a peggiorare nel tempo (righe
+  accumulate senza limite in `django_session`) e il fix è a basso rischio.
+
+**Decisione di Andrea (2026-09-13)**: servizio schedulato dentro
+`compose.prod.yaml`, non cron di sistema sull'host — coerente con la scelta già
+fatta dal progetto di tenere in Compose tutto tranne il reverse proxy, così il
+comportamento resta versionato e riproducibile su un nuovo host senza passi
+manuali. Da tenere minimale: stesso image `web` già buildato, nessuna nuova
+dipendenza, un semplice loop shell con `sleep` (es. una volta al giorno) invece
+di introdurre uno scheduler dedicato (`ofelia`) per un solo comando.
 
 ---
 
