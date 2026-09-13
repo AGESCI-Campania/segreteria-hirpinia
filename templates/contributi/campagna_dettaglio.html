@@ -11,6 +11,9 @@
   </ul>
 
   <div class="mb-3">
+    <a href="{% url 'contributi:campagna_riepilogo_gruppi' campagna.pk %}" class="btn btn-outline-primary">
+      Riepilogo gruppi
+    </a>
     {% if campagna.stato == "APERTA" %}
       <a href="{% url 'contributi:partecipazione_inserisci' campagna.pk %}" class="btn btn-primary">
         Inserisci partecipazione

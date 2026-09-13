@@ -14,6 +14,9 @@ di segreteria della Zona, con l'account email del tuo gruppo (ruolo **CG**).
   necessario perché il gruppo possa ricevere il contributo Fo.Ca.
 - [**Inserire la partecipazione dei capi al contributo Fo.Ca.**](capogruppo/partecipazioni-foca.md) —
   sia una alla volta, sia caricando un file con più partecipazioni insieme.
+- [**Controllare il riepilogo dei gruppi**](capogruppo/riepilogo-contributi.md) —
+  una tabella con la situazione di invio di tutti i gruppi della Zona per la
+  campagna in corso.
 
 ## Come accedere
 

@@ -21,6 +21,7 @@ nav:
   - Capogruppo:
       - IBAN e intestazione conto: capogruppo/iban-gruppo.md
       - Partecipazione al contributo Fo.Ca.: capogruppo/partecipazioni-foca.md
+      - Riepilogo dei gruppi: capogruppo/riepilogo-contributi.md
 
 plugins:
   - search

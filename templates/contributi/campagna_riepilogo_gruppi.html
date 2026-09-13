@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block page_title %}Riepilogo gruppi — Campagna {{ campagna.anno }}{% endblock %}
+
+{% block content %}
+  <h1>Riepilogo gruppi — Campagna {{ campagna.anno }}</h1>
+  <p>
+    <a href="{% url 'contributi:campagna_dettaglio' campagna.pk %}">&larr; Torna alla campagna</a>
+  </p>
+
+  <table class="table table-sm align-middle">
+    <thead>
+      <tr>
+        <th>Gruppo</th>
+        <th>Account attivato</th>
+        <th>IBAN caricato</th>
+        <th>Capi inseriti</th>
+        <th>Stato complessivo</th>
+        {% if campagna.stato == "CHIUSA" or campagna.stato == "LIQUIDATA" %}
+          <th>Contributo</th>
+        {% endif %}
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for riga in righe %}
+        <tr>
+          <td>{{ riga.gruppo_nome }} ({{ riga.gruppo_codice }})</td>
+          <td>
+            {% if riga.account_attivato %}
+              <span class="badge text-bg-success">Sì</span>
+            {% else %}
+              <span class="badge text-bg-danger">No</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if riga.iban_caricato %}
+              <span class="badge text-bg-success">Sì</span>
+            {% else %}
+              <span class="badge text-bg-danger">No</span>
+            {% endif %}
+          </td>
+          <td>
+            {{ riga.capi_inseriti }}
+            {% if riga.nessun_rimborso_dichiarato %}
+              <span class="badge text-bg-secondary">Nessun rimborso richiesto</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if riga.stato.value == "verde" %}
+              <span class="badge text-bg-success">Completo</span>
+            {% elif riga.stato.value == "giallo" %}
+              <span class="badge text-bg-warning">Parziale</span>
+            {% else %}
+              <span class="badge text-bg-danger">Da iniziare</span>
+            {% endif %}
+          </td>
+          {% if campagna.stato == "CHIUSA" or campagna.stato == "LIQUIDATA" %}
+            <td>{{ riga.contributo_ricevuto|default_if_none:"—" }}</td>
+          {% endif %}
+          <td>
+            {% if riga.gruppo_codice in gruppi_azionabili and campagna.stato == "APERTA" %}
+              {% if riga.nessun_rimborso_dichiarato %}
+                <form method="post" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="gruppo" value="{{ riga.gruppo_codice }}">
+                  <input type="hidden" name="azione" value="revoca">
+                  <button type="submit" class="btn btn-sm btn-outline-secondary">Revoca dichiarazione</button>
+                </form>
+              {% elif riga.capi_inseriti == 0 %}
+                <form method="post" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="gruppo" value="{{ riga.gruppo_codice }}">
+                  <input type="hidden" name="azione" value="dichiara">
+                  <button type="submit" class="btn btn-sm btn-outline-secondary">Dichiara nessun rimborso</button>
+                </form>
+              {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7">Nessun gruppo attivo per questo anno.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

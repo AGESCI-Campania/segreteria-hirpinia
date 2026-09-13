@@ -43,6 +43,11 @@ urlpatterns = [
         name="campagna_riepilogo_pdf",
     ),
     path(
+        "campagne/<int:pk>/gruppi/",
+        views.CampagnaRiepilogoGruppiView.as_view(),
+        name="campagna_riepilogo_gruppi",
+    ),
+    path(
         "campagne/<int:campagna_id>/partecipazioni/inserisci/",
         views.PartecipazioneInserisciView.as_view(),
         name="partecipazione_inserisci",

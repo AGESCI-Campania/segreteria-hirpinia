@@ -24,6 +24,7 @@ from apps.accounts.permessi import gruppi_visibili
 from apps.anagrafica.models import CensimentoCapo
 from apps.core.messaggi import messaggi_per_campo, messaggio_utente
 from apps.core.models import ImpostazioniPiattaforma
+from apps.organizzazione.models import Gruppo
 
 from .bonifici import RigaBonifico, genera_righe_bonifici
 from .campagne import (
@@ -53,6 +54,11 @@ from .importazione_partecipazioni import (
 from .inserimento import RUOLI_GESTIONE_PARTECIPAZIONI, inserisci_partecipazione_manuale
 from .models import Campagna, ImportazionePartecipazioni, Partecipazione, TipologiaCampo
 from .riepilogo import calcola_riepilogo
+from .riepilogo_gruppi import (
+    dichiara_nessun_rimborso,
+    revoca_dichiarazione_nessun_rimborso,
+    riepilogo_gruppi,
+)
 from .simulazione import simula_calcolo
 from .valutazione import (
     RUOLI_VALUTAZIONE_PARTECIPAZIONI,
@@ -127,6 +133,43 @@ class CampagnaDettaglioView(RuoloRequiredMixin, View):
             contesto["riepilogo"] = calcola_riepilogo(campagna)
             contesto["totali_altri_gruppi"] = totali_altri_gruppi(request.user, campagna)
         return render(request, self.template_name, contesto)
+
+
+class CampagnaRiepilogoGruppiView(RuoloRequiredMixin, View):
+    ruoli_ammessi = RUOLI_GESTIONE_PARTECIPAZIONI
+    template_name = "contributi/campagna_riepilogo_gruppi.html"
+
+    def get(self, request, pk):
+        campagna = get_object_or_404(Campagna, pk=pk)
+        gruppi_azionabili = {g.codice for g in gruppi_visibili(request.user, campagna.anno)}
+        return render(
+            request,
+            self.template_name,
+            {
+                "campagna": campagna,
+                "righe": riepilogo_gruppi(campagna),
+                "gruppi_azionabili": gruppi_azionabili,
+            },
+        )
+
+    def post(self, request, pk):
+        campagna = get_object_or_404(Campagna, pk=pk)
+        gruppo = get_object_or_404(Gruppo, pk=request.POST.get("gruppo"))
+        azione = request.POST.get("azione")
+        try:
+            if azione == "dichiara":
+                dichiara_nessun_rimborso(utente=request.user, campagna=campagna, gruppo=gruppo)
+                messages.success(request, f"{gruppo.nome}: dichiarazione registrata.")
+            elif azione == "revoca":
+                revoca_dichiarazione_nessun_rimborso(
+                    utente=request.user, campagna=campagna, gruppo=gruppo
+                )
+                messages.success(request, f"{gruppo.nome}: dichiarazione revocata.")
+            else:
+                raise ValidationError("Azione non riconosciuta.")
+        except (PermissionDenied, ValidationError) as exc:
+            messages.error(request, messaggio_utente(exc))
+        return redirect(reverse("contributi:campagna_riepilogo_gruppi", args=[pk]))
 
 
 class PartecipazioneInserisciView(RuoloRequiredMixin, View):

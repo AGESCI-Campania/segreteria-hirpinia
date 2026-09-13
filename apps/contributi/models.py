@@ -349,6 +349,44 @@ class AllegatoPartecipazione(models.Model):
         return f"Allegato {self.partecipazione_id} ({self.tipo or 'senza tipo'})"
 
 
+class DichiarazioneNessunRimborso(models.Model):
+    """Un gruppo dichiara di non avere capi da rimborsare per la campagna
+    (nessuna Partecipazione da inserire): usata dal riepilogo per gruppo per
+    considerare "verificato" il punto 4 anche senza partecipazioni. Un
+    gruppo con partecipazioni già inserite non può dichiararla (vedi
+    apps/contributi/riepilogo_gruppi.py)."""
+
+    campagna = models.ForeignKey(
+        Campagna, on_delete=models.CASCADE, related_name="dichiarazioni_nessun_rimborso"
+    )
+    gruppo = models.ForeignKey(
+        "organizzazione.Gruppo",
+        on_delete=models.CASCADE,
+        related_name="dichiarazioni_nessun_rimborso",
+    )
+    dichiarata_da = models.ForeignKey(
+        "accounts.Utente",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="dichiarazioni_nessun_rimborso",
+    )
+    dichiarata_il = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Dichiarazione nessun rimborso"
+        verbose_name_plural = "Dichiarazioni nessun rimborso"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["campagna", "gruppo"], name="uniq_dichiarazione_nessun_rimborso"
+            )
+        ]
+        ordering = ["-dichiarata_il"]
+
+    def __str__(self) -> str:
+        return f"{self.gruppo_id}: nessun rimborso per {self.campagna}"
+
+
 __all__ = [
     "StatoCampagna",
     "Campagna",
@@ -359,4 +397,5 @@ __all__ = [
     "ImportazionePartecipazioni",
     "ContributoPartecipazione",
     "AllegatoPartecipazione",
+    "DichiarazioneNessunRimborso",
 ]
