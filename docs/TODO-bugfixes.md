@@ -14,15 +14,14 @@ verificata, committata (chiude la issue).
 
 ### Da gestire
 
-| # | Titolo | Urgenza | Complessità | Impatto utente | Impatto codice | Stato | Note |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| [#11](https://github.com/AGESCI-Campania/segreteria-hirpinia/issues/11) | Riepilogo contributi | Media | Medio-alta | Alto | Medio | OK | Tabella stato invio Fo.Ca. per gruppo, con semafori; nuovo flag "completato senza capi" e nuova sezione manuale capigruppo |
-| [#12](https://github.com/AGESCI-Campania/segreteria-hirpinia/issues/12) | Sessioni scadute non ripulite automaticamente | Media | Bassa | Basso | Basso | OK | Manca uno scheduling di `manage.py clearsessions`; le righe scadute restano visibili in "Sessioni utente" finché non vengono cancellate a mano |
+_Nessuna issue in questo stato al momento._
 
 ### Gestite
 
 | # | Titolo | Urgenza | Complessità | Impatto utente | Impatto codice | Stato | Note |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| [#11](https://github.com/AGESCI-Campania/segreteria-hirpinia/issues/11) | Riepilogo contributi | Media | Medio-alta | Alto | Medio | DONE: 1fb4bfe | Tabella stato invio Fo.Ca. per gruppo, con semafori; flag "nessun rimborso richiesto"; rilasciato in v1.1.18, deployato in produzione — issue chiusa |
+| [#12](https://github.com/AGESCI-Campania/segreteria-hirpinia/issues/12) | Sessioni scadute non ripulite automaticamente | Media | Bassa | Basso | Basso | DONE: 249fb23 | Nuovo servizio `pulizia-sessioni` in `compose.prod.yaml`; rilasciato in v1.1.18, deployato e verificato in produzione — issue chiusa |
 | [#1](https://github.com/AGESCI-Campania/segreteria-hirpinia/issues/1) | Errore form partecipazione ai campi | Media | Bassa | Alto | Basso | DONE: a579d82 | Errori ora su `form.errors["data_inizio"]`/`"descrizione_altro"`, messaggio con date finestra — issue chiusa |
 | [#2](https://github.com/AGESCI-Campania/segreteria-hirpinia/issues/2) | Pulsanti da nascondere se non si ha permesso | Bassa-media | Bassa | Medio | Molto basso | DONE: a579d82 | 9 pulsanti in campagna_dettaglio.html ora dietro `puo_gestire_campagna`/`puo_valutare_partecipazioni` — issue chiusa |
 | [#3](https://github.com/AGESCI-Campania/segreteria-hirpinia/issues/3) | Personalizzazione errori (403/404/500 + mail admin) | Bassa (utente) / medio-alta (operativa) | Media | Medio | Medio | DONE: a579d82 | Template 403/404/500 + `ADMINS`/`AdminEmailHandler` in prod.py — issue chiusa |
@@ -36,7 +35,7 @@ verificata, committata (chiude la issue).
 
 ---
 
-# Da gestire
+# Gestite
 
 ## #11 — Riepilogo contributi
 
@@ -136,6 +135,64 @@ da questa tabella (probabile sì, ma non è nella issue: altra inferenza dichiar
   vista), ma il valore per il follow-up delle campagne è alto e cresce a ogni
   campagna aperta.
 
+**Decisione di Andrea (2026-09-13)**: la tabella non contiene dati sensibili,
+quindi va mostrata **a tutti i gruppi, per chiunque acceda** — nessun
+perimetro per-gruppo in lettura come nel resto dell'app contributi. Il
+perimetro `gruppi_visibili()` resta usato solo per decidere, riga per riga, se
+l'utente può *agire* (dichiarare "nessun rimborso").
+
+**Implementazione (DONE: 1fb4bfe):**
+- Nuovo model `DichiarazioneNessunRimborso` (`apps/contributi/models.py`,
+  migrazione `0006_dichiarazionenessunrimborso`): FK `campagna`+`gruppo`
+  (unique together), `dichiarata_da`, `dichiarata_il`.
+- Nuovo service layer `apps/contributi/riepilogo_gruppi.py` (separato da
+  `riepilogo.py`, che presuppone CHIUSA/LIQUIDATA): `riepilogo_gruppi(campagna)`
+  ritorna una riga per ogni gruppo attivo (esclusa E9001), con i 4 booleani/
+  conteggio richiesti dalla issue e il semaforo (`StatoSemaforo`); il
+  contributo ricevuto è `None` prima della chiusura, mai congelato (calcolato
+  a runtime da `ContributoPartecipazione`, stesso principio di
+  `calcola_riepilogo()`). `dichiara_nessun_rimborso()`/
+  `revoca_dichiarazione_nessun_rimborso()` verificano il permesso con lo
+  stesso pattern di `risolvi_gruppo_competente()`
+  (`apps/contributi/inserimento.py`): il gruppo deve stare in
+  `gruppi_visibili(utente, anno)`, altrimenti `PermissionDenied`. La
+  dichiarazione è rifiutata se il gruppo ha già partecipazioni inserite o se
+  la campagna non è APERTA.
+- Nuova `CampagnaRiepilogoGruppiView` (`apps/contributi/views.py`), stesso
+  perimetro di accesso di `CampagnaDettaglioView`
+  (`RUOLI_GESTIONE_PARTECIPAZIONI = {ADMIN, SEGRETERIA, RDZ, CG}`), URL
+  `campagne/<int:pk>/gruppi/`. Nuovo template
+  `templates/contributi/campagna_riepilogo_gruppi.html` (badge Bootstrap
+  `text-bg-success`/`text-bg-warning`/`text-bg-danger`, stesso pattern già
+  in uso in `importazione_cruscotto.html`), pulsante "Riepilogo gruppi"
+  aggiunto a `campagna_dettaglio.html`. Il pulsante "Dichiara nessun
+  rimborso"/"Revoca dichiarazione" compare solo sulla riga del gruppo su cui
+  l'utente può agire (cosmetico, come da issue #2: il controllo reale resta
+  nel service layer).
+- Test: `apps/contributi/tests/test_riepilogo_gruppi.py` (semaforo
+  verde/giallo/rosso, esclusione E9001, conteggio capi distinti, contributo
+  `None`/valorizzato, permesso CG solo sul proprio gruppo vs.
+  ADMIN/SEGRETERIA su qualunque, dichiarazione rifiutata con partecipazioni
+  già presenti o a campagna non aperta, revoca), `test_views_riepilogo_gruppi.py`
+  (403 per ruoli non ammessi, CG vede comunque tutti i gruppi, POST
+  dichiara/revoca con perimetro rispettato). Un fixture SEGRETERIA nei test
+  della vista deve avere un TOTP configurato (`MFAEnforcementMiddleware`),
+  altrimenti la richiesta viene intercettata prima di arrivare alla view — lo
+  stesso accorgimento già presente in `test_views_riepilogo.py`.
+- Nuova pagina utente `docs-utente/capogruppo/riepilogo-contributi.md`
+  (aggiunta a `mkdocs.yml` e a `docs-utente/index.md`) — **deviazione
+  dichiarata**: a differenza della documentazione scritta per #5, questa
+  pagina non ha screenshot reali (avrebbe richiesto un giro aggiuntivo di
+  cattura in browser con dati fittizi): solo testo. Se serve, si possono
+  aggiungere in un secondo momento.
+- `mise run lint` pulito, `mise run test` verde (758 passati, nessuna
+  regressione). Build `mkdocs build` verificata (con
+  `DYLD_LIBRARY_PATH=/opt/homebrew/lib` per WeasyPrint su macOS, stesso
+  problema noto già documentato).
+- Commit `1fb4bfe`, rilasciato in v1.1.18 (tag e release GitHub creati),
+  deployato in produzione (verificato con `docker compose ps`/`logs` e una
+  richiesta HTTPS reale). Issue chiusa.
+
 ---
 
 ## #12 — Sessioni scadute non ripulite automaticamente
@@ -199,9 +256,34 @@ manuali. Da tenere minimale: stesso image `web` già buildato, nessuna nuova
 dipendenza, un semplice loop shell con `sleep` (es. una volta al giorno) invece
 di introdurre uno scheduler dedicato (`ofelia`) per un solo comando.
 
----
+**Implementazione (DONE: 249fb23):**
+- `compose.prod.yaml`: aggiunto `image: catello-web:latest` esplicito al
+  servizio `web` (così un altro servizio può riferirsi alla stessa immagine
+  senza ribuildarla) e nuovo servizio `pulizia-sessioni`, stessa immagine,
+  `env_file`/`environment` identici a `web` (necessari perché
+  `config.settings.prod` carica per intero i settings anche solo per
+  eseguire `manage.py clearsessions`). `entrypoint`/`command` sovrascritti
+  (`/bin/sh -c` + loop `while true; do clearsessions; sleep 86400; done`) per
+  non ereditare la sequenza fissa di `docker/entrypoint.sh`
+  (migrate/collectstatic/gunicorn, pensata solo per `web`). Nessun
+  `profiles:`, a differenza di Mailpit: parte con il normale
+  `docker compose -f compose.prod.yaml up -d --build`.
+- `docs/docker.md`: nuova voce nella tabella "Panoramica", paragrafo dopo la
+  descrizione della sequenza fissa dell'entrypoint con il comando per
+  vederne i log, nota nel paragrafo "Redeploy" che `up -d --build` ricrea
+  anche `pulizia-sessioni` (stessa immagine di `web`).
+- Verificato con `docker compose -f compose.prod.yaml --env-file .env.example
+  config` che il file resta sintatticamente valido e che il nuovo servizio si
+  espande correttamente (comando, entrypoint, variabili d'ambiente).
+- Verificato in produzione dopo il deploy: `docker compose ps` mostra
+  `catello_pulizia_sessioni` in esecuzione, `docker top catello_pulizia_sessioni`
+  conferma il loop attivo (`clearsessions` già eseguito una volta, `sleep 86400`
+  in corsa), il sito pubblico risponde correttamente
+  (`https://segreteria.agescihirpinia.it/` → 302 verso il login).
+- Commit `249fb23`, rilasciato in v1.1.18 (tag e release GitHub creati),
+  deployato in produzione. Issue chiusa.
 
-# Gestite
+---
 
 ## #1 — Errore form partecipazione ai campi
 
