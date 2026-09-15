@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     "apps.accounts",
     "apps.anagrafica",
     "apps.contributi",
+    "apps.note_spese",
 ]
 
 MIDDLEWARE = [
@@ -235,6 +236,17 @@ RUOLI_MFA_OBBLIGATORIA = {"ADMIN", "SEGRETERIA", "RDZ"}
 # stesso utente ha anche ADMIN/SEGRETERIA diretti: se l'utente ha uno di questi
 # due ruoli, quello vince comunque (si veda apps.accounts.mfa.tipi_mfa_accettati).
 RUOLI_MFA_ACCETTA_PASSKEY = {"ADMIN", "SEGRETERIA"}
+
+# D-35 (Nota Spese): gli RdZ sono account funzionali distinti per genere (uno
+# alla volta per casella, mai condivisi). Il genere si determina per email
+# esatta, non per prefisso, così un cambio di dominio richiede solo di
+# aggiornare queste due variabili, non il codice.
+NOTA_SPESE_RDZ_EMAIL_MASCHILE = os.environ.get(
+    "NOTA_SPESE_RDZ_EMAIL_MASCHILE", "rzm.zonahirpinia@campania.agesci.it"
+)
+NOTA_SPESE_RDZ_EMAIL_FEMMINILE = os.environ.get(
+    "NOTA_SPESE_RDZ_EMAIL_FEMMINILE", "rzf.zonahirpinia@campania.agesci.it"
+)
 
 # D-26: numero massimo di deleghe attive per uno stesso ruolo.
 MAX_DELEGHE_ATTIVE_PER_RUOLO = 3
