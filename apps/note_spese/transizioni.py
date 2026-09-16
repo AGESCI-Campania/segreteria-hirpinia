@@ -14,6 +14,7 @@ from django.utils import timezone
 
 from apps.accounts.models import Utente
 
+from .allegati import valida_allegati_obbligatori
 from .anno_associativo import calcola_anno_spesa
 from .budget import capienza_centro_costo
 from .models import (
@@ -70,6 +71,7 @@ def invia_nota(nota: NotaSpese, utente: Utente) -> NotaSpese:
     date_righe = list(nota.righe.values_list("data", flat=True))
     if not date_righe:
         raise ValidationError("Una nota senza righe di spesa non può essere inviata.")
+    valida_allegati_obbligatori(nota)
     anno_spesa = calcola_anno_spesa(date_righe)
     assert anno_spesa is not None  # date_righe non è vuoto, verificato sopra
     nota.anno_spesa = anno_spesa

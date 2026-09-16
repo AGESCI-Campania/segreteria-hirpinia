@@ -92,7 +92,7 @@ def nota_con_riga(gruppo: Gruppo, capo_persona: Capo, evento: Evento) -> NotaSpe
     nota = NotaSpese.objects.create(
         beneficiario=capo_persona, gruppo_censimento=gruppo, evento=evento, incarico_altro="Cuoco"
     )
-    categoria = CategoriaSpesa.objects.create(nome="Vitto test")
+    categoria = CategoriaSpesa.objects.create(nome="Vitto test", richiede_allegato=False)
     RigaSpesa.objects.create(
         nota=nota, categoria=categoria, data=datetime.date(2027, 7, 2), importo=Decimal("20.00")
     )
@@ -125,7 +125,9 @@ def nota_conto_terzi(
         evento=evento,
         incarico_altro="Cuoco",
     )
-    categoria = CategoriaSpesa.objects.create(nome="Vitto test conto terzi")
+    categoria = CategoriaSpesa.objects.create(
+        nome="Vitto test conto terzi", richiede_allegato=False
+    )
     RigaSpesa.objects.create(
         nota=nota, categoria=categoria, data=datetime.date(2027, 7, 2), importo=Decimal("20.00")
     )
@@ -159,6 +161,23 @@ class TestInviaNota:
         assert nota.anno_spesa == 2027
         assert nota.numero == "2027/0001"
 
+    def test_categoria_che_richiede_allegato_senza_file_blocca_invio(
+        self, gruppo: Gruppo, capo_persona: Capo, capo_utente: Utente, evento: Evento
+    ) -> None:
+        """D-58: obbligatorio per tutte le categorie tranne Auto."""
+        nota = NotaSpese.objects.create(
+            beneficiario=capo_persona,
+            gruppo_censimento=gruppo,
+            evento=evento,
+            incarico_altro="Cuoco",
+        )
+        categoria = CategoriaSpesa.objects.create(nome="Vitto con allegato obbligatorio")
+        RigaSpesa.objects.create(
+            nota=nota, categoria=categoria, data=datetime.date(2027, 7, 2), importo=Decimal("1")
+        )
+        with pytest.raises(ValidationError):
+            invia_nota(nota, capo_utente)
+
     def test_numero_progressivo_per_anno(
         self, gruppo: Gruppo, capo_persona: Capo, capo_utente: Utente, evento: Evento
     ) -> None:
@@ -169,7 +188,9 @@ class TestInviaNota:
                 evento=evento,
                 incarico_altro="Cuoco",
             )
-            categoria = CategoriaSpesa.objects.create(nome=f"Vitto {nota.pk}")
+            categoria = CategoriaSpesa.objects.create(
+                nome=f"Vitto {nota.pk}", richiede_allegato=False
+            )
             RigaSpesa.objects.create(
                 nota=nota, categoria=categoria, data=datetime.date(2027, 7, 2), importo=Decimal("1")
             )

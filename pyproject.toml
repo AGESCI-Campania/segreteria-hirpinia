@@ -24,6 +24,8 @@ dependencies = [
     "bleach[css]>=6.2",
     "pillow>=12.3",
     "openrouteservice>=2.3.3",
+    "pillow-heif>=1.7.0",
+    "django-storages>=1.14.6",
 ]
 
 [project.optional-dependencies]

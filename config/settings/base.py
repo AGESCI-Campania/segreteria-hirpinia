@@ -152,6 +152,23 @@ BS_ICONS_CACHE = BASE_DIR / ".bs-icons-cache"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
 
+# D-59 (Nota Spese): storage "primario" configurabile via django-storages —
+# oggi resta il filesystem locale (`Allegato.file` in apps/note_spese/models.py
+# usa questo alias, mai lo storage "default" del progetto), ma il backend è
+# sostituibile con una sola variabile d'ambiente, senza toccare il codice. La
+# replica su Google Drive (D-59) è un compito distinto (task Celery che copia
+# i file, non questo storage) e resta fuori scopo finché non si arriva a F9.
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    "note_spese_allegati": {
+        "BACKEND": os.environ.get(
+            "NOTA_SPESE_ALLEGATI_STORAGE_BACKEND",
+            "django.core.files.storage.FileSystemStorage",
+        )
+    },
+}
+
 # ─── Email (§ 8 del documento di progettazione) ────────────────────────────────
 EMAIL_PROVIDER = os.environ.get("EMAIL_PROVIDER", DEFAULT_PROVIDER)
 EMAIL_BACKEND = backend_path(EMAIL_PROVIDER)

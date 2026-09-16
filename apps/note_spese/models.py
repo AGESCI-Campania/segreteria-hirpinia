@@ -10,6 +10,7 @@ from __future__ import annotations
 import datetime
 
 from django.core.exceptions import ValidationError
+from django.core.files.storage import storages
 from django.db import models
 from django_fsm import FSMField, FSMModelMixin, transition
 
@@ -588,11 +589,13 @@ class RigaSpesaPasseggero(models.Model):
 class Allegato(models.Model):
     """Giustificativo (D-58): relazione molti-a-molti con le righe — un
     documento cumulativo può coprire più righe, e più allegati possono
-    coprire la stessa riga. Upload/limiti/conversione HEIC sono F5: qui solo
-    la struttura, con lo storage di default (il backend configurabile via
-    `django-storages` arriva in F5, come deciso con Andrea)."""
+    coprire la stessa riga. Storage sull'alias dedicato `note_spese_allegati`
+    (D-59, F5), non quello "default" del progetto: il backend si sostituisce
+    da `NOTA_SPESE_ALLEGATI_STORAGE_BACKEND` senza toccare questo campo."""
 
-    file = models.FileField(upload_to="allegati_note_spese/%Y/")
+    file = models.FileField(
+        upload_to="allegati_note_spese/%Y/", storage=storages["note_spese_allegati"]
+    )
     righe = models.ManyToManyField(RigaSpesa, related_name="allegati")
     caricato_da = models.ForeignKey(
         "accounts.Utente",

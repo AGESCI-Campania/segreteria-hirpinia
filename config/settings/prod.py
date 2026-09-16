@@ -2,6 +2,7 @@ from django.core.exceptions import ImproperlyConfigured
 
 from .base import *  # noqa: F403
 from .base import BASE_DIR, EMAIL_PROVIDER, _env_bool, _env_list
+from .base import STORAGES as _STORAGES_BASE
 
 DEBUG = False
 
@@ -51,6 +52,7 @@ CACHES = {
 # file non viene più riletta. Solo in produzione: in sviluppo complicherebbe
 # senza motivo l'hot-reload dei file statici.
 STORAGES = {
+    **_STORAGES_BASE,
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
