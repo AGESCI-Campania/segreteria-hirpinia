@@ -23,6 +23,7 @@ dependencies = [
     "gunicorn>=26.0",
     "bleach[css]>=6.2",
     "pillow>=12.3",
+    "openrouteservice>=2.3.3",
 ]
 
 [project.optional-dependencies]

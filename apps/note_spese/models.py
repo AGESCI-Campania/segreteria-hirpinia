@@ -7,6 +7,8 @@ solo lo scheletro FSM, come già fatto per `Campagna` in M4."""
 
 from __future__ import annotations
 
+import datetime
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django_fsm import FSMField, FSMModelMixin, transition
@@ -22,6 +24,16 @@ class TipoCalcolo(models.TextChoices):
 
     DOCUMENTALE = "DOCUMENTALE", "Documentale"
     CHILOMETRICO = "CHILOMETRICO", "Chilometrico"
+
+
+class SottotipoChilometrico(models.TextChoices):
+    """Identificativo stabile delle due sottocategorie auto con regole di
+    calcolo diverse (D-53): non distinguibili da `nome` (anagrafica
+    editabile) né da `richiede_tratta` (vero per entrambe). Vuoto per le
+    categorie non chilometriche."""
+
+    ANDATA_RITORNO = "ANDATA_RITORNO", "Auto andata e ritorno"
+    ALTRO = "ALTRO", "Auto altri spostamenti"
 
 
 class CategoriaSpesa(models.Model):
@@ -41,6 +53,12 @@ class CategoriaSpesa(models.Model):
     tipo_calcolo = models.CharField(
         max_length=20, choices=TipoCalcolo.choices, default=TipoCalcolo.DOCUMENTALE
     )
+    sottotipo_chilometrico = models.CharField(
+        max_length=20,
+        choices=SottotipoChilometrico.choices,
+        blank=True,
+        help_text="Solo per tipo_calcolo=CHILOMETRICO (D-53): distingue andata/ritorno da altri spostamenti.",
+    )
     richiede_tratta = models.BooleanField(default=False)
     richiede_descrizione = models.BooleanField(default=False)
     descrizione_obbligatoria = models.BooleanField(default=False)
@@ -58,6 +76,16 @@ class CategoriaSpesa(models.Model):
 
     def __str__(self) -> str:
         return self.nome
+
+    def clean(self) -> None:
+        if self.tipo_calcolo == TipoCalcolo.CHILOMETRICO and not self.sottotipo_chilometrico:
+            raise ValidationError(
+                {"sottotipo_chilometrico": "Obbligatorio per le categorie di tipo chilometrico."}
+            )
+        if self.tipo_calcolo != TipoCalcolo.CHILOMETRICO and self.sottotipo_chilometrico:
+            raise ValidationError(
+                {"sottotipo_chilometrico": "Va lasciato vuoto per le categorie non chilometriche."}
+            )
 
 
 class CentroCosto(models.Model):
@@ -113,6 +141,50 @@ class BudgetCentroCosto(models.Model):
 
     def __str__(self) -> str:
         return f"{self.centro_costo.nome} {self.anno_scout}: {self.importo}"
+
+
+class FasciaTariffaChilometrica(models.TextChoices):
+    """Le tre fasce di D-52, identificate da un codice stabile (non dedotto
+    da soglie hardcoded sparse nel codice)."""
+
+    TRE_O_PIU = "TRE_O_PIU", "3 o più passeggeri"
+    BREVE = "BREVE", "1 o 2 passeggeri, fino a 200 km"
+    LUNGA = "LUNGA", "1 o 2 passeggeri, oltre 200 km"
+
+
+class TariffaChilometrica(models.Model):
+    """Tariffa €/km per fascia, con validità temporale (D-52): decisione
+    presa con Andrea di tenerla in anagrafica, non costante nel codice,
+    perché il regolamento AGESCI nazionale può cambiare. La tariffa
+    applicabile a una riga è quella vigente alla **data della spesa**
+    (`RigaSpesa.data`), non alla data di liquidazione — decisione presa con
+    Andrea, 2026-09-16."""
+
+    fascia = models.CharField(max_length=20, choices=FasciaTariffaChilometrica.choices)
+    importo_km = models.DecimalField(max_digits=5, decimal_places=2)
+    valida_dal = models.DateField()
+    valida_al = models.DateField(null=True, blank=True, help_text="Vuoto se ancora in vigore.")
+
+    class Meta:
+        verbose_name = "Tariffa chilometrica"
+        verbose_name_plural = "Tariffe chilometriche"
+        ordering = ["fascia", "-valida_dal"]
+
+    def __str__(self) -> str:
+        fine = self.valida_al.isoformat() if self.valida_al else "in corso"
+        return f"{self.fascia} {self.valida_dal.isoformat()}–{fine}: {self.importo_km} €/km"
+
+    def clean(self) -> None:
+        if self.valida_al is not None and self.valida_al < self.valida_dal:
+            raise ValidationError({"valida_al": "Non può precedere la data di inizio validità."})
+        sovrapposte = TariffaChilometrica.objects.filter(fascia=self.fascia).exclude(pk=self.pk)
+        fine_propria = self.valida_al or datetime.date.max
+        for altra in sovrapposte:
+            fine_altra = altra.valida_al or datetime.date.max
+            if altra.valida_dal <= fine_propria and self.valida_dal <= fine_altra:
+                raise ValidationError(
+                    "Il periodo di validità si sovrappone a un'altra tariffa della stessa fascia."
+                )
 
 
 class Localita(models.Model):

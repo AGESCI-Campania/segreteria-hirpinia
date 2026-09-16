@@ -248,6 +248,14 @@ NOTA_SPESE_RDZ_EMAIL_FEMMINILE = os.environ.get(
     "NOTA_SPESE_RDZ_EMAIL_FEMMINILE", "rzf.zonahirpinia@campania.agesci.it"
 )
 
+# D-55 (Nota Spese): backend di routing per il calcolo del rimborso
+# chilometrico, dietro un'astrazione (apps.note_spese.routing) — non un
+# provider selezionabile allo stesso modo di EMAIL_PROVIDER perché oggi
+# esiste solo un'implementazione (confermata da Andrea), ma il nome resta
+# comunque una variabile per non legare il codice a un solo backend.
+NOTA_SPESE_ROUTING_BACKEND = os.environ.get("NOTA_SPESE_ROUTING_BACKEND", "openrouteservice")
+NOTA_SPESE_OPENROUTESERVICE_API_KEY = os.environ.get("NOTA_SPESE_OPENROUTESERVICE_API_KEY", "")
+
 # D-26: numero massimo di deleghe attive per uno stesso ruolo.
 MAX_DELEGHE_ATTIVE_PER_RUOLO = 3
 

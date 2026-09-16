@@ -12,6 +12,7 @@ from .models import (
     NotaSpese,
     RigaSpesa,
     RigaSpesaPasseggero,
+    TariffaChilometrica,
 )
 
 
@@ -30,14 +31,27 @@ def _profondita(nodo) -> int:
 
 @admin.register(CategoriaSpesa)
 class CategoriaSpesaAdmin(admin.ModelAdmin):
-    list_display = ["nome_indentato", "tipo_calcolo", "richiede_allegato", "attivo"]
-    list_filter = ["tipo_calcolo", "richiede_allegato", "attivo"]
+    list_display = [
+        "nome_indentato",
+        "tipo_calcolo",
+        "sottotipo_chilometrico",
+        "richiede_allegato",
+        "attivo",
+    ]
+    list_filter = ["tipo_calcolo", "sottotipo_chilometrico", "richiede_allegato", "attivo"]
     search_fields = ["nome"]
     autocomplete_fields = ["parent"]
 
     @admin.display(description="Nome")
     def nome_indentato(self, obj: CategoriaSpesa) -> str:
         return f"{'— ' * _profondita(obj)}{obj.nome}"
+
+
+@admin.register(TariffaChilometrica)
+class TariffaChilometricaAdmin(admin.ModelAdmin):
+    list_display = ["fascia", "importo_km", "valida_dal", "valida_al"]
+    list_filter = ["fascia"]
+    ordering = ["fascia", "-valida_dal"]
 
 
 class BudgetCentroCostoInline(admin.TabularInline):

@@ -7,6 +7,7 @@ from decimal import Decimal
 
 import pytest
 from django.apps import apps
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import ProtectedError
 
@@ -27,6 +28,26 @@ class TestAlberoCategoriaSpesa:
         CategoriaSpesa.objects.create(nome="Auto test 2", parent=viaggio)
         with pytest.raises(ProtectedError):
             viaggio.delete()
+
+    def test_chilometrico_richiede_sottotipo(self) -> None:
+        categoria = CategoriaSpesa(nome="Auto senza sottotipo", tipo_calcolo="CHILOMETRICO")
+        with pytest.raises(ValidationError):
+            categoria.clean()
+
+    def test_documentale_non_accetta_sottotipo(self) -> None:
+        categoria = CategoriaSpesa(
+            nome="Vitto con sottotipo",
+            tipo_calcolo="DOCUMENTALE",
+            sottotipo_chilometrico="ALTRO",
+        )
+        with pytest.raises(ValidationError):
+            categoria.clean()
+
+    def test_chilometrico_con_sottotipo_valido(self) -> None:
+        categoria = CategoriaSpesa(
+            nome="Auto ok", tipo_calcolo="CHILOMETRICO", sottotipo_chilometrico="ANDATA_RITORNO"
+        )
+        categoria.clean()
 
 
 class TestAlberoCentroCosto:
@@ -102,3 +123,16 @@ class TestMigrazioniDati:
         assert avellino.nome == "Avellino"
         assert avellino.estero is False
         assert avellino.latitudine == Decimal("40.913637")
+
+    def test_backfill_sottotipo_chilometrico_idempotente(self) -> None:
+        m = importlib.import_module(
+            "apps.note_spese.migrations.0008_backfill_sottotipo_chilometrico"
+        )
+        m.backfill(apps, None)
+        m.backfill(apps, None)
+        andata_ritorno = CategoriaSpesa.objects.get(
+            nome="Auto (andata e ritorno)", parent__nome="Viaggio"
+        )
+        altro = CategoriaSpesa.objects.get(nome="Auto (altri spostamenti)", parent__nome="Viaggio")
+        assert andata_ritorno.sottotipo_chilometrico == "ANDATA_RITORNO"
+        assert altro.sottotipo_chilometrico == "ALTRO"
