@@ -5,6 +5,7 @@ effetti collaterali vivono qui, mai nei metodi `@transition` del modello
 
 from __future__ import annotations
 
+import logging
 from decimal import Decimal
 
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -14,9 +15,11 @@ from django.utils import timezone
 from apps.accounts.models import Utente
 
 from .anno_associativo import calcola_anno_spesa
+from .budget import capienza_centro_costo
 from .models import (
     AutorizzazioneRdz,
     AutorizzazioneRdzConfig,
+    CentroCosto,
     GenereRdz,
     ImpostazioniNoteSpese,
     NotaSpese,
@@ -25,16 +28,24 @@ from .models import (
 )
 from .permessi import (
     e_beneficiario_della_nota,
+    e_compilatore_della_nota,
     genere_rdz,
     puo_autorizzare_rdz,
     puo_gestire_note,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def _richiedi_permesso_capo(utente: Utente, nota: NotaSpese) -> None:
-    if not e_beneficiario_della_nota(utente, nota):
+    """D-36: oltre al beneficiario, autorizzato anche il compilatore per
+    conto terzi (segreteria/RdZ/admin che ha compilato la nota per un altro
+    capo) — sta al posto del beneficiario per l'intero ciclo di vita lato
+    capo (invio, conferme, annullamento), non solo per la creazione."""
+    if not (e_beneficiario_della_nota(utente, nota) or e_compilatore_della_nota(utente, nota)):
         raise PermissionDenied(
-            "Solo il beneficiario può compiere questa azione sulla propria nota."
+            "Solo il beneficiario o chi ha compilato la nota per suo conto (D-36) può "
+            "compiere questa azione."
         )
 
 
@@ -148,6 +159,22 @@ def correggi_importo_riga(riga: RigaSpesa, nuovo_importo: Decimal, utente: Utent
 
 
 @transaction.atomic
+def imputa_centro_costo(nota: NotaSpese, utente: Utente, centro_costo: CentroCosto) -> NotaSpese:
+    """D-44: l'imputazione è riservata a segreteria/RdZ/admin, mai al
+    beneficiario o al compilatore. Non è una transizione FSM (nessun campo
+    di stato coinvolto). **Inferenza dichiarata**: i requisiti non
+    specificano un vincolo di stato esplicito; blocco solo dopo `LIQUIDATA`
+    perché a quel punto il consumo del budget (D-47/D-48) è già calcolato
+    sul nodo precedente e cambiarlo lo renderebbe incoerente col passato."""
+    _richiedi_permesso_gestione(utente)
+    if nota.stato == StatoNota.LIQUIDATA:
+        raise ValidationError("Non si può cambiare il centro di costo di una nota già liquidata.")
+    nota.centro_costo = centro_costo
+    nota.save()
+    return nota
+
+
+@transaction.atomic
 def approva(nota: NotaSpese, utente: Utente) -> NotaSpese:
     _richiedi_permesso_gestione(utente)
     nota.approva()
@@ -198,7 +225,9 @@ def autorizza_rdz(nota: NotaSpese, utente: Utente) -> NotaSpese:
 @transaction.atomic
 def liquida(nota: NotaSpese, utente: Utente, *, anno_liquidazione: int) -> NotaSpese:
     """D-40: transizione terminale. D-41: unico punto che valorizza
-    `anno_contabilizzazione` — mai altrove."""
+    `anno_contabilizzazione` — mai altrove. D-47/D-48: qui si consuma il
+    budget del centro di costo imputato (mai un errore bloccante se
+    sforato, solo un log — deciso con Andrea, 2026-09-16)."""
     _richiedi_permesso_gestione(utente)
     config = ImpostazioniNoteSpese.corrente().autorizzazione_rdz
     if config != AutorizzazioneRdzConfig.NESSUNA and nota.stato != StatoNota.AUTORIZZATA_RDZ:
@@ -208,6 +237,20 @@ def liquida(nota: NotaSpese, utente: Utente, *, anno_liquidazione: int) -> NotaS
     nota.anno_contabilizzazione = anno_liquidazione
     nota.liquida()
     nota.save()
+
+    centro_costo = nota.centro_costo
+    if centro_costo is not None:
+        capienza = capienza_centro_costo(centro_costo, anno_liquidazione)
+        if capienza.residuo < 0:
+            logger.warning(
+                "Nota %s liquidata sfora il budget del centro di costo %s per l'anno "
+                "%s: residuo %s (D-47, non bloccante).",
+                nota.numero,
+                nota.centro_costo_id,
+                anno_liquidazione,
+                capienza.residuo,
+            )
+
     return nota
 
 

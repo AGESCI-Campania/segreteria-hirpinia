@@ -11,7 +11,9 @@ from apps.accounts.models import Ruolo, TipoUtente, Utente
 from apps.anagrafica.models import Capo
 from apps.note_spese.models import (
     AutorizzazioneRdzConfig,
+    BudgetCentroCosto,
     CategoriaSpesa,
+    CentroCosto,
     Evento,
     ImpostazioniNoteSpese,
     NotaSpese,
@@ -25,6 +27,7 @@ from apps.note_spese.transizioni import (
     conferma_correzione,
     conferma_integrazione,
     correggi_importo_riga,
+    imputa_centro_costo,
     invia_nota,
     liquida,
     prendi_in_carico,
@@ -90,6 +93,39 @@ def nota_con_riga(gruppo: Gruppo, capo_persona: Capo, evento: Evento) -> NotaSpe
         beneficiario=capo_persona, gruppo_censimento=gruppo, evento=evento, incarico_altro="Cuoco"
     )
     categoria = CategoriaSpesa.objects.create(nome="Vitto test")
+    RigaSpesa.objects.create(
+        nota=nota, categoria=categoria, data=datetime.date(2027, 7, 2), importo=Decimal("20.00")
+    )
+    return nota
+
+
+@pytest.fixture
+def capo_compilatore() -> Capo:
+    return Capo.objects.create(codice_socio="999999Z", nome="Anna", cognome="Verdi")
+
+
+@pytest.fixture
+def utente_compilatore(capo_compilatore: Capo) -> Utente:
+    """D-36: segreteria che è anche un capo censito (ha un proprio
+    `codice_socio`) — deciso con Andrea che un account puramente funzionale
+    senza Capo associato non può compilare per conto terzi."""
+    utente = _persona("anna.verdi@campania.agesci.it", codice_socio=capo_compilatore.pk)
+    Ruolo.objects.create(utente=utente, tipo=Ruolo.Tipo.SEGRETERIA)
+    return utente
+
+
+@pytest.fixture
+def nota_conto_terzi(
+    gruppo: Gruppo, capo_persona: Capo, capo_compilatore: Capo, evento: Evento
+) -> NotaSpese:
+    nota = NotaSpese.objects.create(
+        beneficiario=capo_persona,
+        compilatore=capo_compilatore,
+        gruppo_censimento=gruppo,
+        evento=evento,
+        incarico_altro="Cuoco",
+    )
+    categoria = CategoriaSpesa.objects.create(nome="Vitto test conto terzi")
     RigaSpesa.objects.create(
         nota=nota, categoria=categoria, data=datetime.date(2027, 7, 2), importo=Decimal("20.00")
     )
@@ -164,6 +200,52 @@ class TestFlussoCompletoSenzaAutorizzazioneRdz:
         nota = liquida(nota, segreteria, anno_liquidazione=2027)
         with pytest.raises(TransitionNotAllowed):
             nota.liquida()
+
+    def test_sforamento_budget_non_blocca_ma_segnala(
+        self,
+        nota_con_riga: NotaSpese,
+        capo_utente: Utente,
+        segreteria: Utente,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """D-47/D-48: lo sforamento del centro di costo non impedisce la
+        liquidazione, ma viene loggato (deciso con Andrea, 2026-09-16)."""
+        centro = CentroCosto.objects.create(nome="Zona")
+        BudgetCentroCosto.objects.create(centro_costo=centro, anno_scout=2027, importo=Decimal("1"))
+        nota_con_riga.centro_costo = centro
+        nota_con_riga.save()
+
+        nota = invia_nota(nota_con_riga, capo_utente)
+        nota = prendi_in_carico(nota, segreteria)
+        nota = approva(nota, segreteria)
+        with caplog.at_level("WARNING"):
+            nota = liquida(nota, segreteria, anno_liquidazione=2027)
+
+        assert nota.stato == StatoNota.LIQUIDATA
+        assert any("sfora il budget" in messaggio for messaggio in caplog.messages)
+
+    def test_senza_sforamento_nessun_log(
+        self,
+        nota_con_riga: NotaSpese,
+        capo_utente: Utente,
+        segreteria: Utente,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        centro = CentroCosto.objects.create(nome="Zona")
+        BudgetCentroCosto.objects.create(
+            centro_costo=centro, anno_scout=2027, importo=Decimal("100")
+        )
+        nota_con_riga.centro_costo = centro
+        nota_con_riga.save()
+
+        nota = invia_nota(nota_con_riga, capo_utente)
+        nota = prendi_in_carico(nota, segreteria)
+        nota = approva(nota, segreteria)
+        with caplog.at_level("WARNING"):
+            nota = liquida(nota, segreteria, anno_liquidazione=2027)
+
+        assert nota.stato == StatoNota.LIQUIDATA
+        assert caplog.messages == []
 
 
 class TestDaIntegrareDaConfermare:
@@ -313,3 +395,73 @@ class TestAutorizzazioneRdzGenereNonRiconosciuto:
         nota = approva(nota, segreteria)
         with pytest.raises(ValidationError):
             autorizza_rdz(nota, rdz_non_riconosciuto)
+
+
+class TestCompilazionePerContoTerzi:
+    """D-36: segreteria/RdZ/admin possono agire lato capo su una nota
+    intestata a un altro beneficiario, se registrati come `compilatore`."""
+
+    def test_il_compilatore_puo_inviare_la_nota(
+        self, nota_conto_terzi: NotaSpese, utente_compilatore: Utente
+    ) -> None:
+        nota = invia_nota(nota_conto_terzi, utente_compilatore)
+        assert nota.stato == StatoNota.INVIATA
+
+    def test_il_beneficiario_puo_ancora_inviare_la_nota_compilata_per_lui(
+        self, nota_conto_terzi: NotaSpese, capo_utente: Utente
+    ) -> None:
+        nota = invia_nota(nota_conto_terzi, capo_utente)
+        assert nota.stato == StatoNota.INVIATA
+
+    def test_un_terzo_senza_relazione_con_la_nota_non_puo_inviare(
+        self, nota_conto_terzi: NotaSpese, segreteria: Utente
+    ) -> None:
+        with pytest.raises(PermissionDenied):
+            invia_nota(nota_conto_terzi, segreteria)
+
+    def test_codice_socio_coincidente_ma_senza_ruolo_di_gestione_non_basta(
+        self, nota_conto_terzi: NotaSpese, capo_compilatore: Capo
+    ) -> None:
+        """Difesa in profondità: il solo `codice_socio` coincidente col
+        `compilatore` non basta se l'account non ha (più) un ruolo di
+        gestione — coerente con la decisione presa con Andrea che il
+        compilatore per conto terzi deve sempre essere segreteria/RdZ/admin."""
+        utente_senza_ruolo = _persona(
+            "anna.verdi.senza-ruolo@example.it", codice_socio=capo_compilatore.pk
+        )
+        with pytest.raises(PermissionDenied):
+            invia_nota(nota_conto_terzi, utente_senza_ruolo)
+
+    def test_il_compilatore_puo_annullare_la_nota(
+        self, nota_conto_terzi: NotaSpese, utente_compilatore: Utente
+    ) -> None:
+        nota = annulla(nota_conto_terzi, utente_compilatore)
+        assert nota.stato == StatoNota.ANNULLATA
+
+
+class TestImputaCentroCosto:
+    def test_segreteria_puo_imputare(self, nota_con_riga: NotaSpese, segreteria: Utente) -> None:
+        centro = CentroCosto.objects.create(nome="Zona")
+        nota = imputa_centro_costo(nota_con_riga, segreteria, centro)
+        assert nota.centro_costo_id == centro.pk
+
+    def test_il_beneficiario_non_puo_imputare(
+        self, nota_con_riga: NotaSpese, capo_utente: Utente
+    ) -> None:
+        centro = CentroCosto.objects.create(nome="Zona")
+        with pytest.raises(PermissionDenied):
+            imputa_centro_costo(nota_con_riga, capo_utente, centro)
+
+    def test_non_si_puo_cambiare_dopo_la_liquidazione(
+        self, nota_con_riga: NotaSpese, capo_utente: Utente, segreteria: Utente
+    ) -> None:
+        centro = CentroCosto.objects.create(nome="Zona")
+        nota = imputa_centro_costo(nota_con_riga, segreteria, centro)
+        nota = invia_nota(nota, capo_utente)
+        nota = prendi_in_carico(nota, segreteria)
+        nota = approva(nota, segreteria)
+        nota = liquida(nota, segreteria, anno_liquidazione=2027)
+
+        altro_centro = CentroCosto.objects.create(nome="Altra zona")
+        with pytest.raises(ValidationError):
+            imputa_centro_costo(nota, segreteria, altro_centro)

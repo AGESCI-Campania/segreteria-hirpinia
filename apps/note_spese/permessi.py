@@ -41,6 +41,18 @@ def e_beneficiario_della_nota(utente: Utente, nota: NotaSpese) -> bool:
     return utente.codice_socio is not None and utente.codice_socio == nota.beneficiario_id
 
 
+def e_compilatore_della_nota(utente: Utente, nota: NotaSpese) -> bool:
+    """D-36: chi compila per conto terzi deve essere sia il `compilatore`
+    registrato sulla nota sia titolare di un ruolo di gestione — un capo
+    qualsiasi non diventa compilatore solo perché il campo lo indica."""
+    return (
+        utente.codice_socio is not None
+        and nota.compilatore_id is not None
+        and utente.codice_socio == nota.compilatore_id
+        and puo_gestire_note(utente)
+    )
+
+
 def genere_rdz(utente: Utente) -> str | None:
     """D-35: il genere si legge dall'email dell'account funzionale RdZ
     (`settings.NOTA_SPESE_RDZ_EMAIL_MASCHILE`/`_FEMMINILE`), mai da
