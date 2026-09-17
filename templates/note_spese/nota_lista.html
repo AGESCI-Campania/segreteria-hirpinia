@@ -3,7 +3,10 @@
 {% block page_title %}Note spese{% endblock %}
 
 {% block content %}
-  <h1>Note spese</h1>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">Note spese</h1>
+    <a href="{% url 'note_spese:nota_crea' %}" class="btn btn-primary">Nuova nota</a>
+  </div>
   <table class="table table-sm">
     <thead>
       <tr>

@@ -43,6 +43,9 @@
   {% endif %}
 
   <h2>Righe</h2>
+  {% if puo_modificare %}
+    <a href="{% url 'note_spese:riga_crea' nota.pk %}" class="btn btn-sm btn-primary mb-2">Aggiungi riga</a>
+  {% endif %}
   <table class="table table-sm">
     <thead>
       <tr>
@@ -72,6 +75,11 @@
             {% for allegato in riga.allegati.all %}
               <a href="{% url 'note_spese:allegato_scarica' allegato.pk %}">{% bs_icon "paperclip" %}</a>
             {% endfor %}
+            {% if puo_modificare %}
+              <a href="{% url 'note_spese:allegato_carica' nota.pk riga.pk %}" class="btn btn-sm btn-outline-secondary">
+                Carica
+              </a>
+            {% endif %}
           </td>
         </tr>
       {% empty %}

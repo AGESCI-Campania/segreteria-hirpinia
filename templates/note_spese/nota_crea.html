@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block page_title %}Nuova nota spese{% endblock %}
+
+{% block content %}
+  <h1>Nuova nota spese</h1>
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+
+    {% for field in form %}
+      {% if field.name != "beneficiario_codice_socio" or puo_gestire_note %}
+        <div class="mb-3">
+          {{ field.label_tag }}
+          {{ field }}
+          {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+          {{ field.errors }}
+        </div>
+      {% endif %}
+      {% if field.name == "evento" %}
+        <p class="form-text">
+          Non trovi l'evento? <a href="{% url 'note_spese:evento_crea' %}">Creane uno nuovo</a>.
+        </p>
+      {% endif %}
+    {% endfor %}
+
+    <button type="submit" class="btn btn-primary">Crea bozza</button>
+  </form>
+{% endblock %}
