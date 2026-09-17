@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block page_title %}Note spese{% endblock %}
+
+{% block content %}
+  <h1>Note spese</h1>
+  <table class="table table-sm">
+    <thead>
+      <tr>
+        <th>Numero</th>
+        <th>Beneficiario</th>
+        <th>Evento</th>
+        <th>Gruppo di censimento</th>
+        <th>Stato</th>
+        <th>Centro di costo</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for nota in note %}
+        <tr>
+          <td><a href="{% url 'note_spese:nota_dettaglio' nota.pk %}">{{ nota.numero|default:"(bozza)" }}</a></td>
+          <td>{{ nota.beneficiario }}</td>
+          <td>{{ nota.evento }}</td>
+          <td>{{ nota.gruppo_censimento }}</td>
+          <td>{{ nota.get_stato_display }}</td>
+          <td>{{ nota.centro_costo|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6">Nessuna nota spese.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

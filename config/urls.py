@@ -8,6 +8,7 @@ urlpatterns: list[URLPattern | URLResolver] = [
     path("accounts/", include("apps.accounts.urls")),
     path("anagrafica/", include("apps.anagrafica.urls")),
     path("contributi/", include("apps.contributi.urls")),
+    path("note-spese/", include("apps.note_spese.urls")),
     path("gruppi/", include("apps.organizzazione.urls")),
     path("hijack/", include("hijack.urls")),
     path("", include("apps.core.urls")),

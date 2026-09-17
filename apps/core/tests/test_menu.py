@@ -119,6 +119,34 @@ class TestIlMioGruppo:
         assert "Il mio gruppo — AVELLINO 2" in etichette
 
 
+class TestNoteSpeseInMenu:
+    """D-65: la voce compare per un capo qualsiasi, non solo per chi ha un
+    ruolo di gestione — a differenza di tutte le altre voci di questa
+    sezione, non passa da `consentito()`."""
+
+    def test_capo_qualsiasi_vede_la_voce(self):
+        utente = _persona("mario.rossi@example.it", codice_socio="123456A")
+
+        sezioni = sezioni_menu(utente)
+
+        assert "Note spese" in _etichette(sezioni, "Moduli")
+
+    def test_account_di_gruppo_senza_ruoli_non_vede_la_voce(self):
+        utente = _persona("account.gruppo@example.it")
+
+        sezioni = sezioni_menu(utente)
+
+        assert "Note spese" not in _etichette(sezioni, "Moduli")
+
+    def test_segreteria_vede_la_voce_anche_senza_codice_socio(self):
+        utente = _persona("segreteria@campania.agesci.it")
+        Ruolo.objects.create(utente=utente, tipo=Ruolo.Tipo.SEGRETERIA)
+
+        sezioni = sezioni_menu(utente)
+
+        assert "Note spese" in _etichette(sezioni, "Moduli")
+
+
 class TestAssegnaIncaricoNonPiuInMenu:
     def test_cg_non_vede_piu_assegna_incarico(self):
         from apps.organizzazione.models import Gruppo

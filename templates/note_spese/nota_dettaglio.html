@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load bootstrap_icons %}
+
+{% block page_title %}Nota spese {{ nota.numero|default:"(bozza)" }}{% endblock %}
+
+{% block content %}
+  <h1>Nota spese {{ nota.numero|default:"(bozza)" }} — {{ nota.get_stato_display }}</h1>
+
+  <ul>
+    <li>Beneficiario: {{ nota.beneficiario }}</li>
+    {% if nota.compilatore %}<li>Compilata da: {{ nota.compilatore }}</li>{% endif %}
+    <li>Gruppo di censimento: {{ nota.gruppo_censimento }}</li>
+    <li>Evento: {{ nota.evento }}</li>
+    <li>Incarico: {{ nota.incarico|default:nota.incarico_altro }}</li>
+    <li>Centro di costo: {{ nota.centro_costo|default:"non ancora imputato" }}</li>
+    <li>
+      Pagamento: {{ nota.get_modalita_pagamento_display|default:"non ancora definito" }}
+      {% if nota.iban %} — IBAN {{ iban_mascherato }}{% endif %}
+    </li>
+    {% if nota.stato == "LIQUIDATA" %}
+      <li>Liquidata il {{ nota.data_pagamento }} — riferimento: {{ nota.riferimento_tracciabilita }}</li>
+    {% endif %}
+    {% if nota.causale_respinta %}
+      <li>Motivo del respingimento: {{ nota.causale_respinta }}</li>
+    {% endif %}
+    {% if nota.rilievo_nota %}
+      <li>Rilievo su "{{ nota.rilievo_riga }}": {{ nota.rilievo_nota }}</li>
+    {% endif %}
+  </ul>
+
+  {% if autorizzazioni_rdz %}
+    <h2>Autorizzazioni RdZ</h2>
+    <ul>
+      {% for autorizzazione in autorizzazioni_rdz %}
+        <li>{{ autorizzazione.get_genere_display }} — {{ autorizzazione.utente }} il {{ autorizzazione.creata_il|date:"d/m/Y" }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <h2>Righe</h2>
+  <table class="table table-sm">
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Categoria</th>
+        <th>Descrizione / tratta</th>
+        <th>Importo richiesto</th>
+        <th>Importo riconosciuto</th>
+        <th>Giustificativi</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for riga in righe %}
+        <tr>
+          <td>{{ riga.data }}</td>
+          <td>{{ riga.categoria }}</td>
+          <td>
+            {% if riga.localita_partenza %}
+              {{ riga.localita_partenza }} → {{ riga.localita_arrivo }}
+            {% else %}
+              {{ riga.tratta_testo|default:riga.descrizione }}
+            {% endif %}
+          </td>
+          <td>{{ riga.importo_originale|default:riga.importo }}</td>
+          <td>{{ riga.importo }}</td>
+          <td>
+            {% for allegato in riga.allegati.all %}
+              <a href="{% url 'note_spese:allegato_scarica' allegato.pk %}">{% bs_icon "paperclip" %}</a>
+            {% endfor %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6">Nessuna riga.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

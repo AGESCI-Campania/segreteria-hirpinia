@@ -20,7 +20,7 @@ from django.db.models import QuerySet
 
 from apps.accounts.models import Utente
 
-from .models import NotaSpese
+from .models import Allegato, NotaSpese
 from .permessi import puo_gestire_note
 
 
@@ -31,3 +31,16 @@ def note_visibili(utente: Utente) -> QuerySet[NotaSpese]:
     if utente.codice_socio is None:
         return base.none()
     return base.filter(beneficiario_id=utente.codice_socio)
+
+
+def allegato_visibile(utente: Utente, allegato: Allegato) -> bool:
+    """Un giustificativo è scaricabile solo se **tutte** le note a cui è
+    collegato (un allegato cumulativo può coprire più righe, D-58) rientrano
+    nel perimetro di `note_visibili()` — mai un controllo diretto su
+    `Allegato.caricato_da`, che identifica solo chi l'ha caricato, non chi
+    può vederlo (potrebbe averlo caricato la segreteria per conto del capo)."""
+    note_id = set(allegato.righe.values_list("nota_id", flat=True))
+    if not note_id:
+        return False
+    visibili = set(note_visibili(utente).filter(pk__in=note_id).values_list("pk", flat=True))
+    return note_id <= visibili

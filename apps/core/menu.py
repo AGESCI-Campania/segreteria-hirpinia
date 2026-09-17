@@ -20,6 +20,7 @@ from apps.anagrafica.importazione import RUOLI_IMPORT_ANAGRAFICA
 from apps.anagrafica.incarichi import RUOLI_RICERCA_CAPO
 from apps.contributi.inserimento import RUOLI_GESTIONE_PARTECIPAZIONI
 from apps.core.views import RUOLI_GESTIONE_IMPOSTAZIONI
+from apps.note_spese.permessi import accede_note_spese
 from apps.organizzazione.gruppi import RUOLI_GESTIONE_GRUPPI
 
 RUOLI_GESTIONE_DELEGHE_ZONA = frozenset({Ruolo.Tipo.ADMIN, Ruolo.Tipo.SEGRETERIA})
@@ -109,6 +110,11 @@ def sezioni_menu(utente: Utente | AnonymousUser) -> list[SezioneMenu]:
         voci_contributi.append(
             _voce("Contributo Fo.Ca.", "contributi:campagna_lista", "calendar2-check")
         )
+    if accede_note_spese(utente):
+        # Non un ruolo (D-65): un capo qualsiasi accede alle proprie note
+        # senza bisogno di alcun ruolo di gestione, per questo non passa da
+        # `consentito()` come le altre voci di questa sezione.
+        voci_contributi.append(_voce("Note spese", "note_spese:nota_lista", "receipt"))
     if voci_contributi:
         sezioni.append(SezioneMenu("Moduli", "cash-coin", voci_contributi))
 

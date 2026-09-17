@@ -20,6 +20,16 @@ def _tipi_ruolo(utente: Utente) -> set[str]:
     return {r.tipo for r in ruoli_effettivi(utente)}
 
 
+def accede_note_spese(utente: Utente) -> bool:
+    """Condizione d'ingresso al modulo (menu e viste di elenco/dettaglio,
+    F6): un capo qualsiasi (`codice_socio` valorizzato) può vedere le
+    proprie note anche senza alcun ruolo; chi gestisce vede tutto. Non è un
+    controllo di perimetro sui dati — quello resta `note_visibili()`
+    (D-66) — solo la condizione per mostrare la voce di menu/consentire
+    l'accesso alle viste di elenco."""
+    return utente.codice_socio is not None or puo_gestire_note(utente)
+
+
 def puo_gestire_note(utente: Utente) -> bool:
     """Segreteria/RdZ/Admin (§2): verifica, edita, approva, respinge,
     registra il pagamento. Operativamente equivalenti (§2), nessuna
