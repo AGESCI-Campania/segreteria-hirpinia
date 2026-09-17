@@ -1,6 +1,7 @@
 """F6c: viste di creazione nota/evento/riga/allegato."""
 
 import datetime
+from decimal import Decimal
 
 import pytest
 from allauth.mfa.models import Authenticator
@@ -16,9 +17,11 @@ from apps.anagrafica.models import (
     IncaricoUnita,
     OrigineIncarico,
 )
+from apps.note_spese import calcolo_riga_auto
 from apps.note_spese.anno_associativo import anno_associativo_per_data
-from apps.note_spese.creazione import crea_nota_bozza
-from apps.note_spese.models import CategoriaSpesa, Evento, NotaSpese
+from apps.note_spese.creazione import aggiungi_riga_auto, crea_nota_bozza
+from apps.note_spese.models import CategoriaSpesa, Evento, Localita, NotaSpese, TariffaChilometrica
+from apps.note_spese.routing import BackendRoutingNonDisponibile
 from apps.organizzazione.models import Gruppo
 
 pytestmark = pytest.mark.django_db
@@ -246,3 +249,207 @@ class TestAllegatoCaricaView:
         )
         assert response.status_code == 302
         assert riga.allegati.count() == 1
+
+
+@pytest.fixture(autouse=True)
+def _tariffe():
+    TariffaChilometrica.objects.create(
+        fascia="TRE_O_PIU", importo_km=Decimal("0.30"), valida_dal=datetime.date(2020, 1, 1)
+    )
+    TariffaChilometrica.objects.create(
+        fascia="BREVE", importo_km=Decimal("0.20"), valida_dal=datetime.date(2020, 1, 1)
+    )
+    TariffaChilometrica.objects.create(
+        fascia="LUNGA", importo_km=Decimal("0.15"), valida_dal=datetime.date(2020, 1, 1)
+    )
+
+
+@pytest.fixture(autouse=True)
+def _niente_rete(monkeypatch):
+    def _boom(partenza, arrivo):
+        raise AssertionError("Test che chiama la rete reale: mancava un monkeypatch.")
+
+    monkeypatch.setattr(calcolo_riga_auto, "distanza_km_tra_localita", _boom)
+
+
+@pytest.fixture
+def avellino() -> Localita:
+    return Localita.objects.create(
+        nome="Avellino", latitudine=Decimal("40.913637"), longitudine=Decimal("14.790168")
+    )
+
+
+@pytest.fixture
+def napoli() -> Localita:
+    return Localita.objects.create(
+        nome="Napoli", latitudine=Decimal("40.851775"), longitudine=Decimal("14.268121")
+    )
+
+
+@pytest.fixture
+def categoria_altro_spostamento() -> CategoriaSpesa:
+    return CategoriaSpesa.objects.create(
+        nome="Auto altri spostamenti test",
+        tipo_calcolo="CHILOMETRICO",
+        sottotipo_chilometrico="ALTRO",
+    )
+
+
+@pytest.fixture
+def categoria_andata_ritorno() -> CategoriaSpesa:
+    return CategoriaSpesa.objects.create(
+        nome="Auto andata ritorno test",
+        tipo_calcolo="CHILOMETRICO",
+        sottotipo_chilometrico="ANDATA_RITORNO",
+    )
+
+
+class TestLocalitaRicercaAutocompleteView:
+    def test_richiede_almeno_due_caratteri(self, client, capo_utente, avellino) -> None:
+        client.force_login(capo_utente)
+        response = client.get("/note-spese/localita/ricerca-autocomplete/?q=A")
+        assert response.json() == {"risultati": []}
+
+    def test_trova_una_localita_esistente(self, client, capo_utente) -> None:
+        """`Localita` contiene già i comuni italiani reali (data migration
+        F1, presente anche nel database di test): non si può assumere una
+        tabella vuota, quindi si cerca un nome inventato creato ad hoc."""
+        localita = Localita.objects.create(
+            nome="Zzztest Cittadina",
+            latitudine=Decimal("40.0"),
+            longitudine=Decimal("14.0"),
+        )
+        client.force_login(capo_utente)
+        response = client.get("/note-spese/localita/ricerca-autocomplete/?q=zzztest")
+        assert response.json()["risultati"] == [
+            {"id": localita.pk, "nome": "Zzztest Cittadina", "dettaglio": ""}
+        ]
+
+
+class TestRigaAutoCreaView:
+    def test_aggiunge_una_riga_auto(
+        self, monkeypatch, client, capo_utente, nota, categoria_altro_spostamento, avellino, napoli
+    ) -> None:
+        monkeypatch.setattr(
+            calcolo_riga_auto, "distanza_km_tra_localita", lambda p, a: (Decimal("50"), "test")
+        )
+        client.force_login(capo_utente)
+        response = client.post(
+            f"/note-spese/{nota.pk}/righe/aggiungi-auto/",
+            {
+                "categoria": categoria_altro_spostamento.pk,
+                "data_spesa": "2027-07-02",
+                "localita_partenza": avellino.pk,
+                "localita_arrivo": napoli.pk,
+                "targa": "AB123CD",
+                "passeggeri_codici_socio": "",
+                "passeggeri_nomi_liberi": "",
+            },
+        )
+        assert response.status_code == 302
+        riga = nota.righe.get()
+        assert riga.importo == Decimal("10.00")
+
+    def test_partenza_uguale_arrivo_mostra_errore(
+        self, client, capo_utente, nota, categoria_altro_spostamento, avellino
+    ) -> None:
+        client.force_login(capo_utente)
+        response = client.post(
+            f"/note-spese/{nota.pk}/righe/aggiungi-auto/",
+            {
+                "categoria": categoria_altro_spostamento.pk,
+                "data_spesa": "2027-07-02",
+                "localita_partenza": avellino.pk,
+                "localita_arrivo": avellino.pk,
+                "targa": "",
+                "passeggeri_codici_socio": "",
+                "passeggeri_nomi_liberi": "",
+            },
+        )
+        assert response.status_code == 200
+        assert nota.righe.count() == 0
+
+    def test_dopo_un_errore_i_campi_di_ricerca_restano_valorizzati(
+        self, client, capo_utente, nota, categoria_altro_spostamento, avellino
+    ) -> None:
+        """Trovato verificando a schermo con Andrea: i campi di ricerca
+        partenza/arrivo sono `<input>` non collegati al form, quindi senza
+        `etichette_localita` sparirebbero visivamente dopo un errore pur
+        restando selezionati nel campo nascosto."""
+        client.force_login(capo_utente)
+        response = client.post(
+            f"/note-spese/{nota.pk}/righe/aggiungi-auto/",
+            {
+                "categoria": categoria_altro_spostamento.pk,
+                "data_spesa": "2027-07-02",
+                "localita_partenza": avellino.pk,
+                "localita_arrivo": avellino.pk,
+                "targa": "",
+                "passeggeri_codici_socio": "",
+                "passeggeri_nomi_liberi": "",
+            },
+        )
+        assert response.status_code == 200
+        assert response.context["etichette_localita"]["localita_partenza"] == str(avellino)
+        assert str(avellino).encode() in response.content
+
+    def test_backend_routing_non_disponibile_mostra_errore_non_500(
+        self, monkeypatch, client, capo_utente, nota, categoria_altro_spostamento, avellino, napoli
+    ) -> None:
+        """Bug trovato verificando a schermo con Andrea: senza
+        `NOTA_SPESE_OPENROUTESERVICE_API_KEY` configurata la vista dava 500
+        invece di un errore leggibile — `BackendRoutingNonDisponibile` non è
+        una `ValidationError` e non veniva intercettata."""
+
+        def _non_disponibile(partenza, arrivo):
+            raise BackendRoutingNonDisponibile("chiave API non configurata")
+
+        monkeypatch.setattr(calcolo_riga_auto, "distanza_km_tra_localita", _non_disponibile)
+        client.force_login(capo_utente)
+        response = client.post(
+            f"/note-spese/{nota.pk}/righe/aggiungi-auto/",
+            {
+                "categoria": categoria_altro_spostamento.pk,
+                "data_spesa": "2027-07-02",
+                "localita_partenza": avellino.pk,
+                "localita_arrivo": napoli.pk,
+                "targa": "",
+                "passeggeri_codici_socio": "",
+                "passeggeri_nomi_liberi": "",
+            },
+        )
+        assert response.status_code == 200
+        assert nota.righe.count() == 0
+
+
+class TestRigaDuplicaView:
+    @pytest.fixture
+    def riga_andata(
+        self, monkeypatch, nota, capo_utente, categoria_andata_ritorno, avellino, napoli
+    ):
+        monkeypatch.setattr(
+            calcolo_riga_auto, "distanza_km_tra_localita", lambda p, a: (Decimal("50"), "test")
+        )
+        return aggiungi_riga_auto(
+            nota=nota,
+            utente=capo_utente,
+            categoria=categoria_andata_ritorno,
+            data=datetime.date(2027, 7, 2),
+            localita_partenza=avellino,
+            localita_arrivo=napoli,
+            targa="AB123CD",
+        )
+
+    def test_duplica_crea_il_viaggio_di_ritorno(
+        self, monkeypatch, client, capo_utente, nota, riga_andata
+    ) -> None:
+        monkeypatch.setattr(
+            calcolo_riga_auto, "distanza_km_tra_localita", lambda p, a: (Decimal("50"), "test")
+        )
+        client.force_login(capo_utente)
+        response = client.post(
+            f"/note-spese/{nota.pk}/righe/{riga_andata.pk}/duplica/",
+            {"data_spesa": "2027-07-05"},
+        )
+        assert response.status_code == 302
+        assert nota.righe.count() == 2

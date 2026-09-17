@@ -9,9 +9,9 @@ from decimal import Decimal
 
 from django import forms
 
-from apps.anagrafica.models import IncaricoUnita
+from apps.anagrafica.models import Capo, IncaricoUnita
 
-from .models import CategoriaSpesa, Evento, TipoCalcolo
+from .models import CategoriaSpesa, Evento, Localita, TipoCalcolo
 
 
 class NotaCreaForm(forms.Form):
@@ -69,4 +69,65 @@ class RigaSpesaDocumentaleForm(forms.Form):
     tratta_testo = forms.CharField(required=False, label="Tratta (da/a)")
     importo = forms.DecimalField(
         max_digits=8, decimal_places=2, min_value=Decimal("0.01"), label="Importo"
+    )
+
+
+def _lista_valori(grezzo: str) -> list[str]:
+    return [pezzo.strip() for pezzo in grezzo.split(",") if pezzo.strip()]
+
+
+class RigaSpesaAutoForm(forms.Form):
+    """D-52/D-53: partenza/arrivo sono `Localita` esistenti, scelte tramite
+    l'autocompletamento in `LocalitaRicercaAutocompleteView` (campo
+    nascosto, valorizzato via JS) — niente ricerca/creazione di una nuova
+    località estera da qui: quel percorso (D-56, geocoding al primo uso)
+    resta un passo successivo, non necessario per il primo giro di
+    compilazione con le sole città già in anagrafica."""
+
+    categoria = forms.ModelChoiceField(
+        queryset=CategoriaSpesa.objects.filter(tipo_calcolo=TipoCalcolo.CHILOMETRICO, attivo=True),
+        label="Categoria",
+    )
+    data_spesa = forms.DateField(label="Data", widget=forms.DateInput(attrs={"type": "date"}))
+    localita_partenza = forms.ModelChoiceField(
+        queryset=Localita.objects.all(), widget=forms.HiddenInput, label="Partenza"
+    )
+    localita_arrivo = forms.ModelChoiceField(
+        queryset=Localita.objects.all(), widget=forms.HiddenInput, label="Arrivo"
+    )
+    targa = forms.CharField(required=False, label="Targa")
+    passeggeri_codici_socio = forms.CharField(
+        required=False,
+        label="Altri passeggeri censiti",
+        help_text="Codici socio separati da virgola. Non includere te stesso: il conducente non ha una riga propria (D-52).",
+    )
+    passeggeri_nomi_liberi = forms.CharField(
+        required=False,
+        label="Altri passeggeri non censiti",
+        help_text="Nomi separati da virgola.",
+    )
+
+    def clean_localita_arrivo(self):
+        partenza = self.cleaned_data.get("localita_partenza")
+        arrivo = self.cleaned_data.get("localita_arrivo")
+        if partenza is not None and arrivo is not None and partenza.pk == arrivo.pk:
+            raise forms.ValidationError("Partenza e arrivo non possono coincidere.")
+        return arrivo
+
+    def clean_passeggeri_codici_socio(self) -> list[Capo]:
+        capi = []
+        for codice in _lista_valori(self.cleaned_data["passeggeri_codici_socio"]):
+            capo = Capo.objects.filter(pk=codice).first()
+            if capo is None:
+                raise forms.ValidationError(f"Nessun capo con codice socio {codice}.")
+            capi.append(capo)
+        return capi
+
+    def clean_passeggeri_nomi_liberi(self) -> list[str]:
+        return _lista_valori(self.cleaned_data["passeggeri_nomi_liberi"])
+
+
+class RigaDuplicaForm(forms.Form):
+    data_spesa = forms.DateField(
+        label="Data del ritorno", widget=forms.DateInput(attrs={"type": "date"})
     )

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block page_title %}Aggiungi riga auto{% endblock %}
+
+{% block content %}
+  <h1>Aggiungi riga auto</h1>
+  <p class="text-muted">
+    Per le altre spese (treno, alloggio, vitto, …) torna al
+    <a href="{% url 'note_spese:nota_dettaglio' nota.pk %}">dettaglio della nota</a>.
+  </p>
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+
+    {% for field in form %}
+      {% if field.name == "localita_partenza" %}
+        <div class="mb-3 position-relative">
+          <label class="form-label" for="ricerca-localita-partenza">Partenza</label>
+          <input type="text" id="ricerca-localita-partenza" class="form-control" autocomplete="off"
+                 value="{{ etichette_localita.localita_partenza }}"
+                 placeholder="Digita almeno 2 caratteri…">
+          <ul class="list-group position-absolute w-100" id="ricerca-localita-partenza-risultati"
+              style="z-index: 1000; display: none;"></ul>
+          {{ field.errors }}
+        </div>
+        {{ field }}
+      {% elif field.name == "localita_arrivo" %}
+        <div class="mb-3 position-relative">
+          <label class="form-label" for="ricerca-localita-arrivo">Arrivo</label>
+          <input type="text" id="ricerca-localita-arrivo" class="form-control" autocomplete="off"
+                 value="{{ etichette_localita.localita_arrivo }}"
+                 placeholder="Digita almeno 2 caratteri…">
+          <ul class="list-group position-absolute w-100" id="ricerca-localita-arrivo-risultati"
+              style="z-index: 1000; display: none;"></ul>
+          {{ field.errors }}
+        </div>
+        {{ field }}
+      {% else %}
+        <div class="mb-3">
+          {{ field.label_tag }}
+          {{ field }}
+          {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+          {{ field.errors }}
+        </div>
+      {% endif %}
+    {% endfor %}
+
+    <button type="submit" class="btn btn-primary">Aggiungi</button>
+    <a href="{% url 'note_spese:nota_dettaglio' nota.pk %}" class="btn btn-outline-secondary">Annulla</a>
+  </form>
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script data-url-autocomplete="{% url 'note_spese:localita_ricerca_autocomplete' %}"
+          data-prefisso="partenza"></script>
+  <script data-url-autocomplete="{% url 'note_spese:localita_ricerca_autocomplete' %}"
+          data-prefisso="arrivo"></script>
+  <script src="{% static 'js/localita-autocomplete.js' %}" defer></script>
+{% endblock %}

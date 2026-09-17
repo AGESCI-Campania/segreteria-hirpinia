@@ -1,8 +1,7 @@
-"""Creazione della nota e delle sue righe documentali (F6c). Le righe di
-categoria chilometrica (D-52/D-53, con ricerca località e duplicazione
-andata/ritorno) restano fuori da questo modulo: interfaccia distinta,
-rimandata a un passo successivo — qui c'è solo la nota in `BOZZA` e le
-righe a importo inserito (D-45)."""
+"""Creazione della nota e delle sue righe (F6c): righe documentali (D-45,
+importo inserito) e righe auto (D-52/D-53, importo calcolato). Il calcolo
+vero e proprio resta in `calcolo_riga_auto.py` (F4): qui solo costruzione
+della riga/dei passeggeri e chiamata al punto d'ingresso unico."""
 
 from __future__ import annotations
 
@@ -17,7 +16,18 @@ from apps.accounts.models import Utente
 from apps.anagrafica.models import Capo, CensimentoCapo, IncaricoUnita
 
 from .anno_associativo import anno_associativo_per_data
-from .models import CategoriaSpesa, Evento, NotaSpese, RigaSpesa, StatoNota, TipoCalcolo
+from .calcolo_riga_auto import calcola_importo_riga_auto
+from .models import (
+    CategoriaSpesa,
+    Evento,
+    Localita,
+    NotaSpese,
+    RigaSpesa,
+    RigaSpesaPasseggero,
+    SottotipoChilometrico,
+    StatoNota,
+    TipoCalcolo,
+)
 from .permessi import e_beneficiario_della_nota, e_compilatore_della_nota, puo_gestire_note
 
 
@@ -134,3 +144,83 @@ def aggiungi_riga_documentale(
     riga.full_clean()
     riga.save()
     return riga
+
+
+@transaction.atomic
+def aggiungi_riga_auto(
+    *,
+    nota: NotaSpese,
+    utente: Utente,
+    categoria: CategoriaSpesa,
+    data: datetime.date,
+    localita_partenza: Localita,
+    localita_arrivo: Localita,
+    targa: str = "",
+    passeggeri_capi: list[Capo] | None = None,
+    passeggeri_nomi_liberi: list[str] | None = None,
+) -> RigaSpesa:
+    """D-52/D-53: solo per categorie `CHILOMETRICO`. L'importo non si passa
+    qui: lo calcola e lo persiste `calcola_importo_riga_auto()` (F4), unico
+    punto d'ingresso per non bypassare l'aggregazione andata/ritorno."""
+    verifica_nota_modificabile(nota, utente)
+    if not categoria.attivo:
+        raise ValidationError({"categoria": "Categoria non più attiva."})
+    if categoria.tipo_calcolo != TipoCalcolo.CHILOMETRICO:
+        raise ValidationError(
+            {"categoria": "Categoria documentale: l'importo si inserisce, non si calcola (D-45)."}
+        )
+    if localita_partenza.pk == localita_arrivo.pk:
+        raise ValidationError({"localita_arrivo": "Partenza e arrivo non possono coincidere."})
+
+    riga = RigaSpesa(
+        nota=nota,
+        categoria=categoria,
+        data=data,
+        localita_partenza=localita_partenza,
+        localita_arrivo=localita_arrivo,
+        targa=targa,
+    )
+    riga.full_clean()
+    riga.save()
+
+    for capo in passeggeri_capi or []:
+        RigaSpesaPasseggero.objects.create(riga=riga, capo=capo)
+    for nome in passeggeri_nomi_liberi or []:
+        RigaSpesaPasseggero.objects.create(riga=riga, nome_libero=nome)
+
+    calcola_importo_riga_auto(riga)
+    return riga
+
+
+@transaction.atomic
+def duplica_riga_andata_ritorno(
+    *, riga: RigaSpesa, utente: Utente, nuova_data: datetime.date
+) -> RigaSpesa:
+    """D-53: crea il viaggio di ritorno da uno già inserito, invertendo
+    partenza/arrivo e riportando stessa targa e stessi passeggeri — l'utente
+    cambia solo la data. Solo per la sottocategoria 'Auto andata e ritorno':
+    'Altri spostamenti' non ha un concetto di viaggio simmetrico da duplicare."""
+    verifica_nota_modificabile(riga.nota, utente)
+    if riga.categoria.sottotipo_chilometrico != SottotipoChilometrico.ANDATA_RITORNO:
+        raise ValidationError("Si può duplicare solo una riga 'Auto (andata e ritorno)'.")
+    if riga.localita_partenza_id is None or riga.localita_arrivo_id is None:
+        raise ValidationError("La riga non ha ancora partenza e arrivo definiti.")
+
+    nuova = RigaSpesa(
+        nota=riga.nota,
+        categoria=riga.categoria,
+        data=nuova_data,
+        localita_partenza=riga.localita_arrivo,
+        localita_arrivo=riga.localita_partenza,
+        targa=riga.targa,
+    )
+    nuova.full_clean()
+    nuova.save()
+
+    for passeggero in riga.passeggeri.all():
+        RigaSpesaPasseggero.objects.create(
+            riga=nuova, capo_id=passeggero.capo_id, nome_libero=passeggero.nome_libero
+        )
+
+    calcola_importo_riga_auto(nuova)
+    return nuova

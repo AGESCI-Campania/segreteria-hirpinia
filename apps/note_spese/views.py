@@ -9,7 +9,7 @@ from __future__ import annotations
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.http import FileResponse
+from django.http import FileResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -21,11 +21,24 @@ from apps.core.messaggi import messaggi_per_campo, messaggio_utente
 
 from .allegati import carica_allegato
 from .anno_associativo import anno_associativo_per_data
-from .creazione import aggiungi_riga_documentale, crea_nota_bozza, verifica_nota_modificabile
-from .forms import EventoForm, NotaCreaForm, RigaSpesaDocumentaleForm
+from .creazione import (
+    aggiungi_riga_auto,
+    aggiungi_riga_documentale,
+    crea_nota_bozza,
+    duplica_riga_andata_ritorno,
+    verifica_nota_modificabile,
+)
+from .forms import (
+    EventoForm,
+    NotaCreaForm,
+    RigaDuplicaForm,
+    RigaSpesaAutoForm,
+    RigaSpesaDocumentaleForm,
+)
 from .iban import maschera_iban
-from .models import Allegato, StatoNota
+from .models import Allegato, Localita, StatoNota
 from .permessi import e_beneficiario_della_nota, e_compilatore_della_nota, puo_gestire_note
+from .routing import BackendRoutingNonDisponibile
 from .visibilita import allegato_visibile, note_visibili
 
 
@@ -84,7 +97,7 @@ class AllegatoScaricaView(LoginRequiredMixin, View):
         return FileResponse(allegato.file.open("rb"), filename=nome_file)
 
 
-def _applica_errori(form, exc: PermissionDenied | ValidationError) -> None:
+def _applica_errori(form, exc: Exception) -> None:
     campi = messaggi_per_campo(exc) if isinstance(exc, ValidationError) else None
     if campi:
         for campo, testo in campi.items():
@@ -269,4 +282,123 @@ class AllegatoCaricaView(LoginRequiredMixin, View):
             return render(request, self.template_name, contesto)
 
         messages.success(request, "Allegato caricato.")
+        return redirect(reverse("note_spese:nota_dettaglio", args=[nota.pk]))
+
+
+LIMITE_RISULTATI_LOCALITA = 15
+MINIMO_CARATTERI_LOCALITA = 2
+
+
+class LocalitaRicercaAutocompleteView(LoginRequiredMixin, View):
+    """Cerca solo fra le località già in anagrafica (comuni italiani
+    precaricati, F1, più le estere già geocodificate, F4): nessuna chiamata
+    di rete da qui. La creazione di una nuova località estera al primo uso
+    (D-56) resta un passo successivo — vedi `RigaSpesaAutoForm`."""
+
+    def get(self, request):
+        query = request.GET.get("q", "").strip()
+        if len(query) < MINIMO_CARATTERI_LOCALITA:
+            return JsonResponse({"risultati": []})
+        localita = Localita.objects.filter(nome__icontains=query).order_by("nome")[
+            :LIMITE_RISULTATI_LOCALITA
+        ]
+        risultati = [
+            {"id": loc.pk, "nome": loc.nome, "dettaglio": loc.provincia or loc.stato}
+            for loc in localita
+        ]
+        return JsonResponse({"risultati": risultati})
+
+
+def _etichette_localita(dati_post) -> dict[str, str]:
+    """Ripresenta il form dopo un errore (D-53): i campi di ricerca
+    partenza/arrivo sono normali `<input>` non collegati al valore del form
+    (solo il campo nascosto lo è), quindi senza questo il testo digitato
+    sparirebbe pur restando selezionato l'id giusto — trovato verificando a
+    schermo con Andrea."""
+    etichette = {}
+    for campo in ("localita_partenza", "localita_arrivo"):
+        pk = dati_post.get(campo)
+        localita = Localita.objects.filter(pk=pk).first() if pk else None
+        etichette[campo] = str(localita) if localita else ""
+    return etichette
+
+
+class RigaAutoCreaView(LoginRequiredMixin, View):
+    """F6c, continuazione: righe di categoria chilometrica (D-52/D-53)."""
+
+    template_name = "note_spese/riga_auto_crea.html"
+
+    def get(self, request, pk):
+        nota = get_object_or_404(note_visibili(request.user), pk=pk)
+        try:
+            verifica_nota_modificabile(nota, request.user)
+        except ValidationError as exc:
+            messages.error(request, messaggio_utente(exc))
+            return redirect(reverse("note_spese:nota_dettaglio", args=[nota.pk]))
+        form = RigaSpesaAutoForm()
+        return render(request, self.template_name, {"form": form, "nota": nota})
+
+    def post(self, request, pk):
+        nota = get_object_or_404(note_visibili(request.user), pk=pk)
+        form = RigaSpesaAutoForm(request.POST)
+        contesto = {
+            "form": form,
+            "nota": nota,
+            "etichette_localita": _etichette_localita(request.POST),
+        }
+        if not form.is_valid():
+            return render(request, self.template_name, contesto)
+
+        try:
+            aggiungi_riga_auto(
+                nota=nota,
+                utente=request.user,
+                categoria=form.cleaned_data["categoria"],
+                data=form.cleaned_data["data_spesa"],
+                localita_partenza=form.cleaned_data["localita_partenza"],
+                localita_arrivo=form.cleaned_data["localita_arrivo"],
+                targa=form.cleaned_data["targa"],
+                passeggeri_capi=form.cleaned_data["passeggeri_codici_socio"],
+                passeggeri_nomi_liberi=form.cleaned_data["passeggeri_nomi_liberi"],
+            )
+        except (ValidationError, BackendRoutingNonDisponibile) as exc:
+            _applica_errori(form, exc)
+            return render(request, self.template_name, contesto)
+
+        messages.success(request, "Riga aggiunta.")
+        return redirect(reverse("note_spese:nota_dettaglio", args=[nota.pk]))
+
+
+class RigaDuplicaView(LoginRequiredMixin, View):
+    """D-53: crea il viaggio di ritorno da una riga 'Auto andata e ritorno'
+    già inserita."""
+
+    template_name = "note_spese/riga_duplica.html"
+
+    def _riga(self, request, nota_pk, riga_pk):
+        nota = get_object_or_404(note_visibili(request.user), pk=nota_pk)
+        riga = get_object_or_404(nota.righe, pk=riga_pk)
+        return nota, riga
+
+    def get(self, request, nota_pk, riga_pk):
+        nota, riga = self._riga(request, nota_pk, riga_pk)
+        form = RigaDuplicaForm()
+        return render(request, self.template_name, {"form": form, "nota": nota, "riga": riga})
+
+    def post(self, request, nota_pk, riga_pk):
+        nota, riga = self._riga(request, nota_pk, riga_pk)
+        form = RigaDuplicaForm(request.POST)
+        contesto = {"form": form, "nota": nota, "riga": riga}
+        if not form.is_valid():
+            return render(request, self.template_name, contesto)
+
+        try:
+            duplica_riga_andata_ritorno(
+                riga=riga, utente=request.user, nuova_data=form.cleaned_data["data_spesa"]
+            )
+        except (ValidationError, BackendRoutingNonDisponibile) as exc:
+            _applica_errori(form, exc)
+            return render(request, self.template_name, contesto)
+
+        messages.success(request, "Viaggio di ritorno aggiunto.")
         return redirect(reverse("note_spese:nota_dettaglio", args=[nota.pk]))

@@ -16,9 +16,23 @@ from apps.anagrafica.models import (
     IncaricoUnita,
     OrigineIncarico,
 )
+from apps.note_spese import calcolo_riga_auto
 from apps.note_spese.anno_associativo import anno_associativo_per_data
-from apps.note_spese.creazione import aggiungi_riga_documentale, crea_nota_bozza
-from apps.note_spese.models import CategoriaSpesa, Evento, NotaSpese, StatoNota, TipoCalcolo
+from apps.note_spese.creazione import (
+    aggiungi_riga_auto,
+    aggiungi_riga_documentale,
+    crea_nota_bozza,
+    duplica_riga_andata_ritorno,
+)
+from apps.note_spese.models import (
+    CategoriaSpesa,
+    Evento,
+    Localita,
+    NotaSpese,
+    StatoNota,
+    TariffaChilometrica,
+    TipoCalcolo,
+)
 from apps.organizzazione.models import Gruppo
 
 pytestmark = pytest.mark.django_db
@@ -271,4 +285,212 @@ class TestAggiungiRigaDocumentale:
                 categoria=categoria_documentale,
                 data=datetime.date(2027, 7, 2),
                 importo=Decimal("10"),
+            )
+
+
+@pytest.fixture(autouse=True)
+def _tariffe():
+    TariffaChilometrica.objects.create(
+        fascia="TRE_O_PIU", importo_km=Decimal("0.30"), valida_dal=datetime.date(2020, 1, 1)
+    )
+    TariffaChilometrica.objects.create(
+        fascia="BREVE", importo_km=Decimal("0.20"), valida_dal=datetime.date(2020, 1, 1)
+    )
+    TariffaChilometrica.objects.create(
+        fascia="LUNGA", importo_km=Decimal("0.15"), valida_dal=datetime.date(2020, 1, 1)
+    )
+
+
+@pytest.fixture(autouse=True)
+def _niente_rete(monkeypatch):
+    def _boom(partenza, arrivo):
+        raise AssertionError("Test che chiama la rete reale: mancava un monkeypatch.")
+
+    monkeypatch.setattr(calcolo_riga_auto, "distanza_km_tra_localita", _boom)
+
+
+@pytest.fixture
+def avellino() -> Localita:
+    return Localita.objects.create(
+        nome="Avellino", latitudine=Decimal("40.913637"), longitudine=Decimal("14.790168")
+    )
+
+
+@pytest.fixture
+def napoli() -> Localita:
+    return Localita.objects.create(
+        nome="Napoli", latitudine=Decimal("40.851775"), longitudine=Decimal("14.268121")
+    )
+
+
+@pytest.fixture
+def categoria_andata_ritorno() -> CategoriaSpesa:
+    return CategoriaSpesa.objects.create(
+        nome="Auto andata ritorno test",
+        tipo_calcolo=TipoCalcolo.CHILOMETRICO,
+        sottotipo_chilometrico="ANDATA_RITORNO",
+    )
+
+
+@pytest.fixture
+def categoria_altro_spostamento() -> CategoriaSpesa:
+    return CategoriaSpesa.objects.create(
+        nome="Auto altri spostamenti test",
+        tipo_calcolo=TipoCalcolo.CHILOMETRICO,
+        sottotipo_chilometrico="ALTRO",
+    )
+
+
+class TestAggiungiRigaAuto:
+    @pytest.fixture
+    def nota(self, capo, capo_utente, evento, incarico) -> NotaSpese:
+        return crea_nota_bozza(
+            utente=capo_utente,
+            beneficiario=capo,
+            evento=evento,
+            incarico=incarico,
+            incarico_altro="",
+        )
+
+    def test_aggiunge_una_riga_e_calcola_importo(
+        self, monkeypatch, nota, capo_utente, categoria_altro_spostamento, avellino, napoli
+    ) -> None:
+        monkeypatch.setattr(
+            calcolo_riga_auto, "distanza_km_tra_localita", lambda p, a: (Decimal("50"), "test")
+        )
+        riga = aggiungi_riga_auto(
+            nota=nota,
+            utente=capo_utente,
+            categoria=categoria_altro_spostamento,
+            data=datetime.date(2027, 7, 2),
+            localita_partenza=avellino,
+            localita_arrivo=napoli,
+            targa="AB123CD",
+        )
+        assert riga.distanza_km == Decimal("50")
+        assert riga.importo == Decimal("10.00")  # 50 km * 0.20 (BREVE)
+
+    def test_partenza_uguale_arrivo_e_rifiutata(
+        self, nota, capo_utente, categoria_altro_spostamento, avellino
+    ) -> None:
+        with pytest.raises(ValidationError):
+            aggiungi_riga_auto(
+                nota=nota,
+                utente=capo_utente,
+                categoria=categoria_altro_spostamento,
+                data=datetime.date(2027, 7, 2),
+                localita_partenza=avellino,
+                localita_arrivo=avellino,
+            )
+
+    def test_categoria_documentale_e_rifiutata(
+        self, nota, capo_utente, categoria_documentale, avellino, napoli
+    ) -> None:
+        with pytest.raises(ValidationError):
+            aggiungi_riga_auto(
+                nota=nota,
+                utente=capo_utente,
+                categoria=categoria_documentale,
+                data=datetime.date(2027, 7, 2),
+                localita_partenza=avellino,
+                localita_arrivo=napoli,
+            )
+
+    def test_passeggeri_censiti_e_liberi_vengono_creati(
+        self, monkeypatch, nota, capo_utente, categoria_altro_spostamento, avellino, napoli, gruppo
+    ) -> None:
+        monkeypatch.setattr(
+            calcolo_riga_auto, "distanza_km_tra_localita", lambda p, a: (Decimal("50"), "test")
+        )
+        altro_capo = Capo.objects.create(codice_socio="444444D", nome="Sara", cognome="Blu")
+        riga = aggiungi_riga_auto(
+            nota=nota,
+            utente=capo_utente,
+            categoria=categoria_altro_spostamento,
+            data=datetime.date(2027, 7, 2),
+            localita_partenza=avellino,
+            localita_arrivo=napoli,
+            passeggeri_capi=[altro_capo],
+            passeggeri_nomi_liberi=["Ospite esterno"],
+        )
+        assert riga.passeggeri.count() == 2
+        assert riga.passeggeri.filter(capo=altro_capo).exists()
+        assert riga.passeggeri.filter(nome_libero="Ospite esterno").exists()
+
+
+class TestDuplicaRigaAndataRitorno:
+    @pytest.fixture
+    def nota(self, capo, capo_utente, evento, incarico) -> NotaSpese:
+        return crea_nota_bozza(
+            utente=capo_utente,
+            beneficiario=capo,
+            evento=evento,
+            incarico=incarico,
+            incarico_altro="",
+        )
+
+    @pytest.fixture
+    def riga_andata(
+        self, monkeypatch, nota, capo_utente, categoria_andata_ritorno, avellino, napoli
+    ):
+        monkeypatch.setattr(
+            calcolo_riga_auto, "distanza_km_tra_localita", lambda p, a: (Decimal("50"), "test")
+        )
+        return aggiungi_riga_auto(
+            nota=nota,
+            utente=capo_utente,
+            categoria=categoria_andata_ritorno,
+            data=datetime.date(2027, 7, 2),
+            localita_partenza=avellino,
+            localita_arrivo=napoli,
+            targa="AB123CD",
+        )
+
+    def test_duplica_inverte_partenza_e_arrivo(self, monkeypatch, riga_andata, capo_utente) -> None:
+        monkeypatch.setattr(
+            calcolo_riga_auto, "distanza_km_tra_localita", lambda p, a: (Decimal("50"), "test")
+        )
+        ritorno = duplica_riga_andata_ritorno(
+            riga=riga_andata, utente=capo_utente, nuova_data=datetime.date(2027, 7, 5)
+        )
+        assert ritorno.localita_partenza_id == riga_andata.localita_arrivo_id
+        assert ritorno.localita_arrivo_id == riga_andata.localita_partenza_id
+        assert ritorno.targa == riga_andata.targa
+        assert ritorno.data == datetime.date(2027, 7, 5)
+
+    def test_duplica_riporta_i_passeggeri(self, monkeypatch, riga_andata, capo_utente) -> None:
+        altro_capo = Capo.objects.create(codice_socio="444444D", nome="Sara", cognome="Blu")
+        riga_andata.passeggeri.create(capo=altro_capo)
+        monkeypatch.setattr(
+            calcolo_riga_auto, "distanza_km_tra_localita", lambda p, a: (Decimal("50"), "test")
+        )
+        ritorno = duplica_riga_andata_ritorno(
+            riga=riga_andata, utente=capo_utente, nuova_data=datetime.date(2027, 7, 5)
+        )
+        assert ritorno.passeggeri.filter(capo=altro_capo).exists()
+
+    def test_categoria_altro_non_duplicabile(
+        self, monkeypatch, nota, capo_utente, categoria_altro_spostamento, avellino, napoli
+    ) -> None:
+        monkeypatch.setattr(
+            calcolo_riga_auto, "distanza_km_tra_localita", lambda p, a: (Decimal("50"), "test")
+        )
+        riga = aggiungi_riga_auto(
+            nota=nota,
+            utente=capo_utente,
+            categoria=categoria_altro_spostamento,
+            data=datetime.date(2027, 7, 2),
+            localita_partenza=avellino,
+            localita_arrivo=napoli,
+        )
+        with pytest.raises(ValidationError):
+            duplica_riga_andata_ritorno(
+                riga=riga, utente=capo_utente, nuova_data=datetime.date(2027, 7, 5)
+            )
+
+    def test_altro_capo_non_puo_duplicare(self, riga_andata) -> None:
+        altro = _persona("altro@example.it", codice_socio="555555X")
+        with pytest.raises(PermissionDenied):
+            duplica_riga_andata_ritorno(
+                riga=riga_andata, utente=altro, nuova_data=datetime.date(2027, 7, 5)
             )
