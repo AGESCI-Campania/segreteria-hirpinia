@@ -1,10 +1,15 @@
 {% extends "base.html" %}
 {% load bootstrap_icons %}
 
-{% block page_title %}Nota spese {{ nota.numero|default:"(bozza)" }}{% endblock %}
+{% block page_title %}
+  {% if nota.numero %}Nota spese {{ nota.numero }}{% else %}Nota spese #{{ nota.pk }}{% endif %}
+{% endblock %}
 
 {% block content %}
-  <h1>Nota spese {{ nota.numero|default:"(bozza)" }} — {{ nota.get_stato_display }}</h1>
+  <h1>
+    {% if nota.numero %}Nota spese {{ nota.numero }}{% else %}Nota spese #{{ nota.pk }}{% endif %}
+    — {{ nota.get_stato_display }}
+  </h1>
 
   <ul>
     <li>Beneficiario: {{ nota.beneficiario }}</li>
