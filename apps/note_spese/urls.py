@@ -8,6 +8,7 @@ urlpatterns = [
     path("", views.NotaListaView.as_view(), name="nota_lista"),
     path("verifica/", views.NotaVerificaListaView.as_view(), name="nota_verifica_lista"),
     path("impostazioni/", views.ImpostazioniNoteSpeseView.as_view(), name="impostazioni"),
+    path("esporta/", views.NotaEsportaView.as_view(), name="nota_esporta"),
     path("nuova/", views.NotaCreaView.as_view(), name="nota_crea"),
     path("eventi/nuovo/", views.EventoCreaView.as_view(), name="evento_crea"),
     path("eventi/", views.EventoListaView.as_view(), name="evento_lista"),

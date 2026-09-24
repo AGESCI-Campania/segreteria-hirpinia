@@ -1,27 +1,32 @@
 """Viste di F6b (sola lettura: elenco, dettaglio, download giustificativi),
 F6c (creazione nota/evento/riga documentale), F6d (transizioni FSM da
-interfaccia), F6e (vista di verifica con eccezioni per segreteria/RdZ) e F6f
-(validazione/fusione eventi). Il perimetro è sempre quello di
-`note_visibili()`/`allegato_visibile()` (D-66) o delle funzioni di
-`creazione.py`/`transizioni.py`/`eventi.py`, mai un controllo di ruolo
-diretto qui: un capo qualsiasi deve poter accedere alle proprie note, i
-permessi di ogni transizione restano `transizioni.py::_richiedi_permesso_*`.
-`NotaVerificaListaView` e le viste sugli eventi sono l'eccezione dichiarata:
-sono riservate a chi gestisce le note, quindi il controllo di ruolo è nella
-view stessa (nessuna funzione di dominio da riusare, non sono un'azione sui
-dati di una singola nota)."""
+interfaccia), F6e (vista di verifica con eccezioni per segreteria/RdZ), F6f
+(validazione/fusione eventi) e F8 (esportazione, D-68). Il perimetro è
+sempre quello di `note_visibili()`/`allegato_visibile()` (D-66) o delle
+funzioni di `creazione.py`/`transizioni.py`/`eventi.py`/`esportazione.py`,
+mai un controllo di ruolo diretto qui: un capo qualsiasi deve poter
+accedere alle proprie note, i permessi di ogni transizione restano
+`transizioni.py::_richiedi_permesso_*`. `NotaVerificaListaView`, le viste
+sugli eventi e `NotaEsportaView` sono l'eccezione dichiarata: sono
+riservate a chi gestisce le note, quindi il controllo di ruolo è nella view
+stessa (nessuna funzione di dominio da riusare, non sono un'azione sui dati
+di una singola nota)."""
 
 from __future__ import annotations
+
+import csv
+import io
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.http import FileResponse, HttpRequest, JsonResponse
+from django.http import FileResponse, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views import View
 from django.views.generic import ListView
+from openpyxl import Workbook
 
 from apps.accounts.models import Utente
 from apps.anagrafica.models import Capo, IncaricoUnita
@@ -36,8 +41,10 @@ from .creazione import (
     duplica_riga_andata_ritorno,
     verifica_nota_modificabile,
 )
+from .esportazione import genera_esportazione
 from .eventi import fondi_eventi, valida_evento
 from .forms import (
+    EsportazioneNoteForm,
     EventoFondiForm,
     EventoForm,
     ImpostazioniNoteSpeseForm,
@@ -742,3 +749,56 @@ class ImpostazioniNoteSpeseView(RichiedeModificaImpostazioniMixin, View):
         form.save()
         messages.success(request, "Impostazioni aggiornate.")
         return redirect(reverse("note_spese:impostazioni"))
+
+
+def _esportazione_csv(risultato, nome_file: str) -> HttpResponse:
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="{nome_file}.csv"'
+    writer = csv.writer(response, delimiter=";")
+    writer.writerow(risultato.intestazioni)
+    writer.writerows(risultato.righe)
+    return response
+
+
+def _esportazione_xlsx(risultato, nome_file: str) -> HttpResponse:
+    cartella = Workbook()
+    foglio = cartella.active
+    foglio.append(risultato.intestazioni)
+    for riga in risultato.righe:
+        foglio.append(riga)
+    buffer = io.BytesIO()
+    cartella.save(buffer)
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = f'attachment; filename="{nome_file}.xlsx"'
+    return response
+
+
+class NotaEsportaView(RichiedeGestioneNoteMixin, View):
+    """F8/D-68: unico servizio di esportazione, raggruppamento selezionabile
+    — `esportazione.py::genera_esportazione()` è l'unica fonte della
+    logica, qui solo il form e la scelta fra csv/xlsx."""
+
+    template_name = "note_spese/nota_esporta.html"
+
+    def get(self, request):
+        form = EsportazioneNoteForm(initial={"anno_liquidazione": timezone.now().year})
+        return render(request, self.template_name, {"form": form})
+
+    def post(self, request):
+        form = EsportazioneNoteForm(request.POST)
+        if not form.is_valid():
+            return render(request, self.template_name, {"form": form})
+
+        dati = form.cleaned_data
+        risultato = genera_esportazione(
+            request.user,
+            anno_liquidazione=dati["anno_liquidazione"],
+            raggruppamento=dati["raggruppamento"],
+        )
+        nome_file = f"note_spese_{dati['raggruppamento'].lower()}_{dati['anno_liquidazione']}"
+        if dati["formato"] == "xlsx":
+            return _esportazione_xlsx(risultato, nome_file)
+        return _esportazione_csv(risultato, nome_file)

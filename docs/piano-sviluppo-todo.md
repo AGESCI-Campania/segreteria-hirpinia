@@ -69,7 +69,8 @@ sintesi, per tenerlo visibile da chi guarda solo questo file.
 | F7 (D-62) | Notifiche puntuali al capo | ✅ completata |
 | F7 (D-63) | Promemoria al capo | ✅ completata |
 | F7 (D-64) | Report periodico ai gestori | ✅ completata |
-| F8 | PDF ed export | ⬜ da fare |
+| F8 (D-68) | Servizio unico di esportazione | ✅ completata |
+| F8 (D-67) | PDF della nota | ⬜ bloccata — mancano asset/testi reali (logo Zona 1630×1630 trasparente, loghi WOSM/WAGGGS, testo intestazione, riga RUNTS) |
 | F9 | Replica giustificativi su Drive | ⬜ da fare |
 
 Gap aperto non legato a una fase specifica: `NotaSpese.modalita_pagamento`/

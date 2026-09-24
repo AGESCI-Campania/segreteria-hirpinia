@@ -16,6 +16,7 @@ from django import forms
 from apps.anagrafica.forms import ChoiceFieldMultiploOpzionale
 from apps.anagrafica.models import Capo, IncaricoUnita
 
+from .esportazione import RaggruppamentoEsportazione
 from .models import (
     CategoriaSpesa,
     Evento,
@@ -220,3 +221,16 @@ class ImpostazioniNoteSpeseForm(forms.ModelForm):
         # ChoiceFieldMultiploOpzionale restituisce stringhe (submit HTML):
         # GiornoSettimana/report_giorni_settimana (JSONField) vogliono int.
         return [int(valore) for valore in self.cleaned_data["report_giorni_settimana"]]
+
+
+class EsportazioneNoteForm(forms.Form):
+    """F8/D-68: un solo form per i quattro raggruppamenti, la scelta del
+    formato riusa lo stesso schema di `apps.contributi.forms.BonificiGeneraForm`."""
+
+    FORMATO_CHOICES = [("csv", "CSV"), ("xlsx", "XLSX")]
+
+    anno_liquidazione = forms.IntegerField(label="Anno di liquidazione", min_value=2000)
+    raggruppamento = forms.ChoiceField(
+        label="Raggruppamento", choices=RaggruppamentoEsportazione.choices
+    )
+    formato = forms.ChoiceField(label="Formato", choices=FORMATO_CHOICES, initial="csv")

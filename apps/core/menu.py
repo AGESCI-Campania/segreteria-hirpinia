@@ -123,6 +123,9 @@ def sezioni_menu(utente: Utente | AnonymousUser) -> list[SezioneMenu]:
             _voce("Verifica note spese", "note_spese:nota_verifica_lista", "clipboard2-check")
         )
         voci_contributi.append(_voce("Eventi", "note_spese:evento_lista", "calendar-event"))
+        voci_contributi.append(
+            _voce("Esporta note spese", "note_spese:nota_esporta", "file-earmark-spreadsheet")
+        )
     if voci_contributi:
         sezioni.append(SezioneMenu("Moduli", "cash-coin", voci_contributi))
 

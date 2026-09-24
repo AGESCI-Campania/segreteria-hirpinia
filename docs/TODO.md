@@ -84,6 +84,9 @@ progettazione, non dati personali).
   - [x] D-64 — Report periodico ai gestori (giorni/orario configurabili da interfaccia,
         prima pagina Impostazioni del modulo — prima solo Django admin)
 - [ ] F8 — PDF ed export
+  - [x] D-68 — Servizio unico di esportazione (4 raggruppamenti, csv/xlsx)
+  - [ ] D-67 — PDF della nota (bloccata: mancano logo Zona 1630×1630 trasparente,
+        loghi WOSM/WAGGGS, testo esatto di intestazione e riga RUNTS)
 - [ ] F9 — Replica dei giustificativi su Google Drive
 
 ## Gap noti (scoperti in verifica, non da una milestone)
