@@ -1,0 +1,9 @@
+Ciao,
+
+hai delle note spese che richiedono un'azione da parte tua:
+
+{{ elenco }}
+
+Puoi visualizzarle qui: {{ link }}
+
+— Catello, AGESCI Zona Hirpinia

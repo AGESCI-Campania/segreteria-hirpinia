@@ -330,6 +330,16 @@ opzionale. Verifica dei log:
 docker compose -f compose.prod.yaml logs pulizia-sessioni
 ```
 
+Stesso comando avvia anche `note-spese-promemoria` (D-63, F7): stesso pattern di
+`pulizia-sessioni`, esegue una volta al giorno `manage.py note_spese_promemoria`, che
+decide da solo se oggi è un giorno di promemoria (settimanale di norma, giornaliero
+negli ultimi 15 giorni prima della chiusura dell'anno associativo) — mai Celery/Redis,
+decisione confermata il 2026-09-24 (D-17 in CLAUDE.md resta valido). Verifica dei log:
+
+```bash
+docker compose -f compose.prod.yaml logs note-spese-promemoria
+```
+
 ### 5. Passi manuali del primo deploy
 
 Due operazioni **non** sono nell'entrypoint perché non idempotenti o perché richiedono

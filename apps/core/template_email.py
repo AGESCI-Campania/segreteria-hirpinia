@@ -55,6 +55,7 @@ VARIABILI_PER_CODICE: dict[str, list[str]] = {
     CodiceTemplateEmail.NOTA_SPESE_APPROVATA: ["numero", "evento", "link"],
     CodiceTemplateEmail.NOTA_SPESE_RESPINTA: ["numero", "evento", "causale", "link"],
     CodiceTemplateEmail.NOTA_SPESE_LIQUIDATA: ["numero", "evento", "link"],
+    CodiceTemplateEmail.NOTA_SPESE_PROMEMORIA: ["elenco", "elenco_html", "link"],
 }
 
 
@@ -128,6 +129,16 @@ _CONTESTO_ESEMPIO_STATICO: dict[str, dict[str, str]] = {
         "numero": "2027/0012",
         "evento": "Campo estivo 2027",
     },
+    CodiceTemplateEmail.NOTA_SPESE_PROMEMORIA: {
+        "elenco": (
+            "- (bozza) (Campo estivo 2027) — Bozza\n"
+            "- 2027/0009 (Uscita di reparto) — Da integrare"
+        ),
+        "elenco_html": (
+            "<ul><li>(bozza) (Campo estivo 2027) — Bozza</li>"
+            "<li>2027/0009 (Uscita di reparto) — Da integrare</li></ul>"
+        ),
+    },
 }
 
 # Codici la cui variabile "link" punta a una nota spese reale (pk fittizio
@@ -135,7 +146,7 @@ _CONTESTO_ESEMPIO_STATICO: dict[str, dict[str, str]] = {
 # sopra, per non eseguire reverse() a import del modulo (stesso motivo per
 # cui INVITO_ATTIVAZIONE ha una funzione dedicata invece di un valore
 # statico).
-_CODICI_CON_LINK_NOTA_SPESE = frozenset(
+_CODICI_CON_LINK_NOTA_SPESE_DETTAGLIO = frozenset(
     {
         CodiceTemplateEmail.NOTA_SPESE_RILIEVO,
         CodiceTemplateEmail.NOTA_SPESE_APPROVATA,
@@ -149,8 +160,10 @@ def contesto_esempio(codice: str) -> dict[str, str]:
     if codice == CodiceTemplateEmail.INVITO_ATTIVAZIONE:
         return _contesto_esempio_invito_attivazione()
     contesto = dict(_CONTESTO_ESEMPIO_STATICO.get(codice, {}))
-    if codice in _CODICI_CON_LINK_NOTA_SPESE:
+    if codice in _CODICI_CON_LINK_NOTA_SPESE_DETTAGLIO:
         contesto["link"] = f"{settings.SITE_URL}{reverse('note_spese:nota_dettaglio', args=[1])}"
+    elif codice == CodiceTemplateEmail.NOTA_SPESE_PROMEMORIA:
+        contesto["link"] = f"{settings.SITE_URL}{reverse('note_spese:nota_lista')}"
     return contesto
 
 

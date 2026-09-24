@@ -80,5 +80,29 @@ services:
           sleep 86400
         done
 
+  # Promemoria giornaliero/settimanale al capo (D-63, F7): stesso pattern di
+  # pulizia-sessioni sopra, deciso con Andrea il 2026-09-24 al posto di
+  # Celery/Redis (D-17 resta valido così com'è). Il comando stesso decide
+  # se oggi è un giorno di promemoria (note_spese/promemoria.py), qui gira
+  # una volta al giorno e basta.
+  note-spese-promemoria:
+    image: catello-web:latest
+    container_name: catello_note_spese_promemoria
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          uv run --no-sync python manage.py note_spese_promemoria
+          sleep 86400
+        done
+
 volumes:
   postgres_data:

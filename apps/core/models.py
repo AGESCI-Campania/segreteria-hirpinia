@@ -16,11 +16,12 @@ from .tema import SCELTE_BRANCA_TEMA
 
 class CodiceTemplateEmail(models.TextChoices):
     """Chiave stabile per ciascuno dei flussi di invio esistenti (M8, F7 per
-    i quattro codici `NOTA_SPESE_*`): corrisponde 1:1 ai punti di invio in
+    i codici `NOTA_SPESE_*`): corrisponde 1:1 ai punti di invio in
     `apps/accounts/inviti.py`, `apps/accounts/deleghe.py`,
     `apps/accounts/signals.py`, `apps/anagrafica/incarichi.py`,
-    `apps/note_spese/transizioni.py`. Vocabolario chiuso: nessun valore va
-    aggiunto senza collegarlo a un vero punto di invio."""
+    `apps/note_spese/transizioni.py`, `apps/note_spese/promemoria.py`.
+    Vocabolario chiuso: nessun valore va aggiunto senza collegarlo a un vero
+    punto di invio."""
 
     INVITO_ATTIVAZIONE = "invito_attivazione", "Invito di attivazione"
     FINE_IMPERSONIFICAZIONE = "fine_impersonificazione", "Fine impersonificazione"
@@ -32,6 +33,7 @@ class CodiceTemplateEmail(models.TextChoices):
     NOTA_SPESE_APPROVATA = "nota_spese_approvata", "Nota spese — approvata"
     NOTA_SPESE_RESPINTA = "nota_spese_respinta", "Nota spese — respinta"
     NOTA_SPESE_LIQUIDATA = "nota_spese_liquidata", "Nota spese — liquidata"
+    NOTA_SPESE_PROMEMORIA = "nota_spese_promemoria", "Nota spese — promemoria"
 
 
 class TemplateEmail(models.Model):

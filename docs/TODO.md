@@ -79,7 +79,8 @@ progettazione, non dati personali).
       resta valido così com'è)
   - [x] D-62 — Notifiche puntuali al capo sugli eventi di stato (rilievo, approvata,
         respinta, liquidata)
-  - [ ] D-63 — Promemoria al capo (settimanale/giornaliero)
+  - [x] D-63 — Promemoria al capo (settimanale il lunedì, giornaliero dal 16 al 30
+        settembre)
   - [ ] D-64 — Report periodico ai gestori (giorni/orario configurabili)
 - [ ] F8 — PDF ed export
 - [ ] F9 — Replica dei giustificativi su Google Drive
