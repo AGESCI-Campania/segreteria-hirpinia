@@ -1,23 +1,27 @@
 """Viste di F6b (sola lettura: elenco, dettaglio, download giustificativi),
-F6c (creazione nota/evento/riga documentale) e F6d (transizioni FSM da
-interfaccia). Il perimetro è sempre quello di
-`note_visibili()`/`allegato_visibile()` (D-66) o delle funzioni di
-`creazione.py`/`transizioni.py`, mai un controllo di ruolo diretto qui: un
-capo qualsiasi deve poter accedere alle proprie note, i permessi di ogni
-transizione restano `transizioni.py::_richiedi_permesso_*`."""
+F6c (creazione nota/evento/riga documentale), F6d (transizioni FSM da
+interfaccia) e F6e (vista di verifica con eccezioni per segreteria/RdZ). Il
+perimetro è sempre quello di `note_visibili()`/`allegato_visibile()` (D-66) o
+delle funzioni di `creazione.py`/`transizioni.py`, mai un controllo di ruolo
+diretto qui: un capo qualsiasi deve poter accedere alle proprie note, i
+permessi di ogni transizione restano `transizioni.py::_richiedi_permesso_*`.
+`NotaVerificaListaView` è l'eccezione dichiarata: è riservata a chi gestisce
+le note, quindi il controllo di ruolo è nella view stessa (nessuna funzione
+di dominio da riusare, non è un'azione sui dati di una singola nota)."""
 
 from __future__ import annotations
 
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.http import FileResponse, JsonResponse
+from django.http import FileResponse, HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views import View
 from django.views.generic import ListView
 
+from apps.accounts.models import Utente
 from apps.anagrafica.models import Capo, IncaricoUnita
 from apps.core.messaggi import messaggi_per_campo, messaggio_utente
 
@@ -62,7 +66,22 @@ from .transizioni import (
     richiedi_conferma,
     richiedi_integrazione,
 )
+from .verifica import eccezioni_nota, note_in_verifica
 from .visibilita import allegato_visibile, note_visibili
+
+
+class RichiedeGestioneNoteMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """F6e: a differenza delle altre viste del modulo, qui il controllo di
+    ruolo sta nella view stessa — `note_in_verifica()` non ha un perimetro
+    "capo vs gestione" come `note_visibili()`, è pensata solo per chi
+    verifica."""
+
+    request: HttpRequest
+
+    def test_func(self) -> bool:
+        # LoginRequiredMixin garantisce l'autenticazione prima di test_func().
+        assert isinstance(self.request.user, Utente)
+        return puo_gestire_note(self.request.user)
 
 
 class NotaListaView(LoginRequiredMixin, ListView):
@@ -589,3 +608,21 @@ class NotaLiquidaView(LoginRequiredMixin, View):
 
         messages.success(request, "Nota liquidata.")
         return redirect(reverse("note_spese:nota_dettaglio", args=[nota.pk]))
+
+
+class NotaVerificaListaView(RichiedeGestioneNoteMixin, View):
+    """F6e: elenco delle note in lavorazione con evidenza delle eccezioni
+    (incarico non strutturato D-50, doppioni D-57, capienza indicativa
+    D-48). Nessuna di queste blocca l'operatore: sono solo segnalazioni,
+    l'approvazione/liquidazione restano possibili anche in loro presenza —
+    `verifica.py` è l'unica fonte di queste regole, qui solo instradamento."""
+
+    template_name = "note_spese/nota_verifica_lista.html"
+
+    def get(self, request):
+        solo_eccezioni = request.GET.get("solo_eccezioni") == "1"
+        righe = [eccezioni_nota(nota) for nota in note_in_verifica(request.user)]
+        if solo_eccezioni:
+            righe = [riga for riga in righe if riga.ha_eccezioni]
+        contesto = {"righe": righe, "solo_eccezioni": solo_eccezioni}
+        return render(request, self.template_name, contesto)

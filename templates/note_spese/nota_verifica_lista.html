@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block page_title %}Verifica note spese{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">Verifica note spese</h1>
+    {% if solo_eccezioni %}
+      <a href="{% url 'note_spese:nota_verifica_lista' %}" class="btn btn-outline-secondary">
+        Mostra tutte
+      </a>
+    {% else %}
+      <a href="?solo_eccezioni=1" class="btn btn-outline-secondary">Solo con eccezioni</a>
+    {% endif %}
+  </div>
+
+  <p class="text-muted">
+    Le eccezioni sono segnalazioni, non blocchi: approvazione e liquidazione restano
+    possibili anche in loro presenza.
+  </p>
+
+  <table class="table table-sm">
+    <thead>
+      <tr>
+        <th>Numero</th>
+        <th>Beneficiario</th>
+        <th>Evento</th>
+        <th>Stato</th>
+        <th>Eccezioni</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for riga in righe %}
+        <tr>
+          <td>
+            <a href="{% url 'note_spese:nota_dettaglio' riga.nota.pk %}">
+              {{ riga.nota.numero|default:"(bozza)" }}
+            </a>
+          </td>
+          <td>{{ riga.nota.beneficiario }}</td>
+          <td>{{ riga.nota.evento }}</td>
+          <td>{{ riga.nota.get_stato_display }}</td>
+          <td>
+            {% if riga.incarico_non_strutturato %}
+              <span class="badge bg-warning text-dark">Incarico "Altro"</span>
+            {% endif %}
+            {% if riga.doppioni_targa or riga.doppioni_passeggero %}
+              <span class="badge bg-warning text-dark">Possibile doppione</span>
+            {% endif %}
+            {% if riga.capienza_sforata %}
+              <span class="badge bg-danger">
+                Capienza sforata (residuo indicativo {{ riga.capienza.residuo_indicativo }})
+              </span>
+            {% endif %}
+            {% if not riga.ha_eccezioni %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">Nessuna nota in lavorazione{% if solo_eccezioni %} con eccezioni{% endif %}.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

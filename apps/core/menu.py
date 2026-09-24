@@ -20,7 +20,7 @@ from apps.anagrafica.importazione import RUOLI_IMPORT_ANAGRAFICA
 from apps.anagrafica.incarichi import RUOLI_RICERCA_CAPO
 from apps.contributi.inserimento import RUOLI_GESTIONE_PARTECIPAZIONI
 from apps.core.views import RUOLI_GESTIONE_IMPOSTAZIONI
-from apps.note_spese.permessi import accede_note_spese
+from apps.note_spese.permessi import accede_note_spese, puo_gestire_note
 from apps.organizzazione.gruppi import RUOLI_GESTIONE_GRUPPI
 
 RUOLI_GESTIONE_DELEGHE_ZONA = frozenset({Ruolo.Tipo.ADMIN, Ruolo.Tipo.SEGRETERIA})
@@ -115,6 +115,10 @@ def sezioni_menu(utente: Utente | AnonymousUser) -> list[SezioneMenu]:
         # senza bisogno di alcun ruolo di gestione, per questo non passa da
         # `consentito()` come le altre voci di questa sezione.
         voci_contributi.append(_voce("Note spese", "note_spese:nota_lista", "receipt"))
+    if puo_gestire_note(utente):
+        voci_contributi.append(
+            _voce("Verifica note spese", "note_spese:nota_verifica_lista", "clipboard2-check")
+        )
     if voci_contributi:
         sezioni.append(SezioneMenu("Moduli", "cash-coin", voci_contributi))
 
