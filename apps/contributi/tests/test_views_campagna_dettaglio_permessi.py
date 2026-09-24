@@ -123,6 +123,7 @@ class TestPulsantiGestioneCampagna:
         content = response.content.decode()
         assert "Simula calcolo" not in content
         assert "Chiudi campagna" not in content
+        assert "Riapri campagna" not in content
 
     def test_cg_forza_url_riceve_comunque_403(self, client, campagna_aperta, cg_gruppo):
         # Il pulsante è nascosto, ma il controllo reale resta nel service
@@ -130,6 +131,20 @@ class TestPulsantiGestioneCampagna:
         client.force_login(cg_gruppo)
         response = client.post(f"/contributi/campagne/{campagna_aperta.pk}/avvia-valutazione/")
         assert response.status_code == 403
+
+    def test_cg_forza_url_riapri_riceve_comunque_403(
+        self, client, campagna_in_valutazione, cg_gruppo
+    ):
+        client.force_login(cg_gruppo)
+        response = client.post(f"/contributi/campagne/{campagna_in_valutazione.pk}/riapri/")
+        assert response.status_code == 403
+
+    def test_segreteria_riapre_campagna(self, client, campagna_in_valutazione, segreteria):
+        client.force_login(segreteria)
+        response = client.post(f"/contributi/campagne/{campagna_in_valutazione.pk}/riapri/")
+        assert response.status_code == 302
+        campagna_in_valutazione.refresh_from_db()
+        assert campagna_in_valutazione.stato == StatoCampagna.APERTA
 
 
 class TestPulsantiValutazionePartecipazioni:

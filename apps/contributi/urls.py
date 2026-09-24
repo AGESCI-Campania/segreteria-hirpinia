@@ -28,6 +28,11 @@ urlpatterns = [
         name="campagna_chiudi",
     ),
     path(
+        "campagne/<int:pk>/riapri/",
+        views.CampagnaRiapriView.as_view(),
+        name="campagna_riapri",
+    ),
+    path(
         "campagne/<int:pk>/bonifici/",
         views.BonificiGeneraView.as_view(),
         name="campagna_bonifici",

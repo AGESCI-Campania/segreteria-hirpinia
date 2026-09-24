@@ -12,7 +12,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 
 from apps.accounts.models import Ruolo, TipoUtente, Utente
 from apps.anagrafica.models import Capo
-from apps.contributi.campagne import avvia_valutazione, chiudi_campagna
+from apps.contributi.campagne import avvia_valutazione, chiudi_campagna, riapri_campagna
 from apps.contributi.models import (
     Campagna,
     ContributoPartecipazione,
@@ -203,3 +203,40 @@ class TestChiudiCampagna:
             "timestamp"
         )
         assert log.changes["stato"] == [StatoCampagna.IN_VALUTAZIONE, StatoCampagna.CHIUSA]
+
+
+class TestRiapriCampagna:
+    def test_richiede_ruolo(self, campagna):
+        Campagna.objects.filter(pk=campagna.pk).update(stato=StatoCampagna.IN_VALUTAZIONE)
+        campagna.refresh_from_db()
+        utente = _persona("senza-ruolo@campania.agesci.it")
+        with pytest.raises(PermissionDenied):
+            riapri_campagna(utente=utente, campagna=campagna)
+
+    def test_richiede_stato_in_valutazione(self, segreteria, campagna):
+        with pytest.raises(ValidationError):
+            riapri_campagna(utente=segreteria, campagna=campagna)
+
+    def test_riapre_e_ripulisce_simulazioni_stale(self, segreteria, campagna, gruppo, cfm):
+        Campagna.objects.filter(pk=campagna.pk).update(stato=StatoCampagna.IN_VALUTAZIONE)
+        campagna.refresh_from_db()
+        p = _partecipazione(campagna, gruppo, cfm, _capo(0), stato=StatoPartecipazione.APPROVATA)
+        ContributoPartecipazione.objects.create(
+            partecipazione=p, importo=Decimal("999.00"), is_simulazione=True
+        )
+
+        riapri_campagna(utente=segreteria, campagna=campagna)
+
+        campagna.refresh_from_db()
+        assert campagna.stato == StatoCampagna.APERTA
+        assert not ContributoPartecipazione.objects.filter(is_simulazione=True).exists()
+
+    def test_valutazioni_esistenti_non_toccate(self, segreteria, campagna, gruppo, cfm):
+        Campagna.objects.filter(pk=campagna.pk).update(stato=StatoCampagna.IN_VALUTAZIONE)
+        campagna.refresh_from_db()
+        p = _partecipazione(campagna, gruppo, cfm, _capo(0), stato=StatoPartecipazione.APPROVATA)
+
+        riapri_campagna(utente=segreteria, campagna=campagna)
+
+        p.refresh_from_db()
+        assert p.stato == StatoPartecipazione.APPROVATA

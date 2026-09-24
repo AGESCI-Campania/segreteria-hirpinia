@@ -120,6 +120,29 @@ def avvia_valutazione(*, utente: Utente, campagna: Campagna) -> Campagna:
     return campagna
 
 
+@transaction.atomic
+def riapri_campagna(*, utente: Utente, campagna: Campagna) -> Campagna:
+    """IN_VALUTAZIONE → APERTA (issue #18). Le valutazioni già fatte
+    (`Partecipazione.stato`) non sono toccate per costruzione: nessuna
+    transizione le referenzia. Le simulazioni (`is_simulazione=True`)
+    diventano stale con la riapertura e vanno ripulite — stesso pattern già
+    in uso in `chiudi_campagna`/`simula_calcolo`. Nessun
+    `@vieta_in_impersonificazione`: a differenza di chiudere/liquidare, non è
+    un'operazione economicamente sensibile."""
+    verifica_ruolo_gestione_campagna(utente)
+    if campagna.stato != StatoCampagna.IN_VALUTAZIONE:
+        raise ValidationError("La campagna non è IN_VALUTAZIONE: impossibile riaprirla.")
+
+    ContributoPartecipazione.objects.filter(
+        partecipazione__campagna=campagna, is_simulazione=True
+    ).delete()
+
+    campagna.riapri()
+    campagna.full_clean(exclude=["stato"])
+    campagna.save()
+    return campagna
+
+
 @vieta_in_impersonificazione("campagna_chiudi")
 @transaction.atomic
 def chiudi_campagna(request, *, utente: Utente, campagna: Campagna) -> Campagna:

@@ -20,10 +20,12 @@ from django.views.generic import ListView
 from openpyxl import Workbook
 
 from apps.accounts.mixins import RuoloRequiredMixin
-from apps.accounts.permessi import gruppi_visibili
+from apps.accounts.permessi import gruppi_visibili, ruoli_effettivi
 from apps.anagrafica.models import CensimentoCapo
 from apps.core.messaggi import messaggi_per_campo, messaggio_utente
+from apps.core.mixins import BreadcrumbExtraMixin
 from apps.core.models import ImpostazioniPiattaforma
+from apps.core.views import RUOLI_GESTIONE_IMPOSTAZIONI
 from apps.organizzazione.models import Gruppo
 
 from .bonifici import RigaBonifico, genera_righe_bonifici
@@ -34,6 +36,7 @@ from .campagne import (
     chiudi_campagna,
     liquida_campagna,
     puo_gestire_campagna,
+    riapri_campagna,
 )
 from .forms import (
     AllegatoPartecipazioneForm,
@@ -79,6 +82,16 @@ _SESSION_NOME_FILE = "contributi_import_nome_file"
 _SESSION_CAMPAGNA_ID = "contributi_import_campagna_id"
 _SESSION_UTENTE_ID = "contributi_import_utente_id"
 
+_ETICHETTA_SEZIONE = "Contributo Fo.Ca."
+
+
+def _etichetta_campagna(pk) -> str:
+    # Issue #13: stesso schema difensivo di GruppoGestioneView.breadcrumb_extra
+    # (apps/organizzazione/views.py) — fallback al pk grezzo se la campagna
+    # non viene trovata, mai un breadcrumb che solleva un'eccezione.
+    anno = Campagna.objects.filter(pk=pk).values_list("anno", flat=True).first()
+    return f"Campagna {anno}" if anno else str(pk)
+
 
 class CampagnaListaView(RuoloRequiredMixin, ListView):
     ruoli_ammessi = RUOLI_GESTIONE_PARTECIPAZIONI
@@ -88,11 +101,32 @@ class CampagnaListaView(RuoloRequiredMixin, ListView):
     def get_queryset(self):
         return Campagna.objects.all()
 
+    def get_context_data(self, **kwargs):
+        contesto = super().get_context_data(**kwargs)
+        # Issue #14: stesso controllo "solo diretti" già usato da
+        # `CampagnaCreaView`/`core:impostazioni` (RuoloRequiredMixin con
+        # ruoli_ammessi_solo_diretti=True) — non riusare puo_gestire_campagna()
+        # così com'è, non esclude i delegati e mostrerebbe il pulsante a chi
+        # otterrebbe comunque 403.
+        tipi_diretti = {r.tipo for r in ruoli_effettivi(self.request.user) if not r.is_delega}
+        contesto["puo_gestire_campagna"] = bool(tipi_diretti & RUOLI_GESTIONE_CAMPAGNA)
+        contesto["puo_gestire_impostazioni"] = bool(tipi_diretti & RUOLI_GESTIONE_IMPOSTAZIONI)
+        # Issue #15: Campagna.Meta.ordering = ["-anno"], quindi il primo
+        # elemento del queryset già ordinato è l'ultima campagna — nessuna
+        # query aggiuntiva. Resta comunque in tabella (nessuna esclusione).
+        campagne = contesto[self.context_object_name]
+        contesto["ultima_campagna"] = campagne[0] if campagne else None
+        return contesto
 
-class CampagnaCreaView(RuoloRequiredMixin, View):
+
+class CampagnaCreaView(RuoloRequiredMixin, BreadcrumbExtraMixin, View):
     ruoli_ammessi = RUOLI_GESTIONE_CAMPAGNA
     ruoli_ammessi_solo_diretti = True
     template_name = "contributi/campagna_crea.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return [{"label": _ETICHETTA_SEZIONE}, {"label": "Nuova campagna"}]
 
     def get(self, request):
         return render(request, self.template_name, {"form": CampagnaForm()})
@@ -112,9 +146,14 @@ class CampagnaCreaView(RuoloRequiredMixin, View):
         return redirect(reverse("contributi:campagna_dettaglio", args=[campagna.pk]))
 
 
-class CampagnaDettaglioView(RuoloRequiredMixin, View):
+class CampagnaDettaglioView(RuoloRequiredMixin, BreadcrumbExtraMixin, View):
     ruoli_ammessi = RUOLI_GESTIONE_PARTECIPAZIONI
     template_name = "contributi/campagna_dettaglio.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        pk = request.resolver_match.kwargs.get("pk")
+        return [{"label": _ETICHETTA_SEZIONE}, {"label": _etichetta_campagna(pk)}]
 
     def get(self, request, pk):
         campagna = get_object_or_404(Campagna, pk=pk)
@@ -135,9 +174,18 @@ class CampagnaDettaglioView(RuoloRequiredMixin, View):
         return render(request, self.template_name, contesto)
 
 
-class CampagnaRiepilogoGruppiView(RuoloRequiredMixin, View):
+class CampagnaRiepilogoGruppiView(RuoloRequiredMixin, BreadcrumbExtraMixin, View):
     ruoli_ammessi = RUOLI_GESTIONE_PARTECIPAZIONI
     template_name = "contributi/campagna_riepilogo_gruppi.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        pk = request.resolver_match.kwargs.get("pk")
+        return [
+            {"label": _ETICHETTA_SEZIONE},
+            {"label": _etichetta_campagna(pk)},
+            {"label": "Riepilogo gruppi"},
+        ]
 
     def get(self, request, pk):
         campagna = get_object_or_404(Campagna, pk=pk)
@@ -172,9 +220,18 @@ class CampagnaRiepilogoGruppiView(RuoloRequiredMixin, View):
         return redirect(reverse("contributi:campagna_riepilogo_gruppi", args=[pk]))
 
 
-class PartecipazioneInserisciView(RuoloRequiredMixin, View):
+class PartecipazioneInserisciView(RuoloRequiredMixin, BreadcrumbExtraMixin, View):
     ruoli_ammessi = RUOLI_GESTIONE_PARTECIPAZIONI
     template_name = "contributi/partecipazione_inserisci.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        campagna_id = request.resolver_match.kwargs.get("campagna_id")
+        return [
+            {"label": _ETICHETTA_SEZIONE},
+            {"label": _etichetta_campagna(campagna_id)},
+            {"label": "Inserisci partecipazione"},
+        ]
 
     def _contesto(self, campagna, form):
         # ID della tipologia "Altro" (M15): serve al JS per mostrare il
@@ -295,13 +352,22 @@ class PartecipazioniRicercaSociAutocompleteView(RuoloRequiredMixin, View):
         return JsonResponse({"risultati": risultati})
 
 
-class PartecipazioniImportAnteprimaView(RuoloRequiredMixin, View):
+class PartecipazioniImportAnteprimaView(RuoloRequiredMixin, BreadcrumbExtraMixin, View):
     """L'anteprima non scrive nulla: il file caricato si legge solo in
     memoria e i bytes originali si tengono in sessione (DB-backed, base64)
     per la conferma, mai su disco (D-17)."""
 
     ruoli_ammessi = RUOLI_GESTIONE_PARTECIPAZIONI
     template_name = "contributi/partecipazioni_import_anteprima.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        campagna_id = request.resolver_match.kwargs.get("campagna_id")
+        return [
+            {"label": _ETICHETTA_SEZIONE},
+            {"label": _etichetta_campagna(campagna_id)},
+            {"label": "Carica da xlsx/CSV"},
+        ]
 
     def get(self, request, campagna_id):
         campagna = get_object_or_404(Campagna, pk=campagna_id)
@@ -380,9 +446,23 @@ class PartecipazioniImportConfermaView(RuoloRequiredMixin, View):
         )
 
 
-class ImportazionePartecipazioniDettaglioView(RuoloRequiredMixin, View):
+class ImportazionePartecipazioniDettaglioView(RuoloRequiredMixin, BreadcrumbExtraMixin, View):
     ruoli_ammessi = RUOLI_GESTIONE_PARTECIPAZIONI
     template_name = "contributi/importazione_partecipazioni_dettaglio.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        pk = request.resolver_match.kwargs.get("pk")
+        campagna_id = (
+            ImportazionePartecipazioni.objects.filter(pk=pk)
+            .values_list("campagna_id", flat=True)
+            .first()
+        )
+        return [
+            {"label": _ETICHETTA_SEZIONE},
+            {"label": _etichetta_campagna(campagna_id)},
+            {"label": "Registro importazioni"},
+        ]
 
     def get(self, request, pk):
         importazione = get_object_or_404(
@@ -463,9 +543,34 @@ class CampagnaChiudiView(RuoloRequiredMixin, View):
         return redirect(reverse("contributi:campagna_dettaglio", args=[campagna.pk]))
 
 
-class BonificiGeneraView(RuoloRequiredMixin, View):
+class CampagnaRiapriView(RuoloRequiredMixin, View):
+    ruoli_ammessi = RUOLI_GESTIONE_CAMPAGNA
+
+    def post(self, request, pk):
+        campagna = get_object_or_404(Campagna, pk=pk)
+        try:
+            riapri_campagna(utente=request.user, campagna=campagna)
+        except (PermissionDenied, ValidationError) as exc:
+            messages.error(request, messaggio_utente(exc))
+        else:
+            messages.success(
+                request, "Campagna riaperta: è di nuovo possibile inserire partecipazioni."
+            )
+        return redirect(reverse("contributi:campagna_dettaglio", args=[campagna.pk]))
+
+
+class BonificiGeneraView(RuoloRequiredMixin, BreadcrumbExtraMixin, View):
     ruoli_ammessi = RUOLI_GESTIONE_CAMPAGNA
     template_name = "contributi/bonifici_genera.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        pk = request.resolver_match.kwargs.get("pk")
+        return [
+            {"label": _ETICHETTA_SEZIONE},
+            {"label": _etichetta_campagna(pk)},
+            {"label": "Genera bonifici"},
+        ]
 
     def get(self, request, pk):
         campagna = get_object_or_404(Campagna, pk=pk)
@@ -492,9 +597,18 @@ class BonificiGeneraView(RuoloRequiredMixin, View):
         return _bonifici_csv(righe, campagna)
 
 
-class CampagnaLiquidaView(RuoloRequiredMixin, View):
+class CampagnaLiquidaView(RuoloRequiredMixin, BreadcrumbExtraMixin, View):
     ruoli_ammessi = RUOLI_GESTIONE_CAMPAGNA
     template_name = "contributi/campagna_liquida.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        pk = request.resolver_match.kwargs.get("pk")
+        return [
+            {"label": _ETICHETTA_SEZIONE},
+            {"label": _etichetta_campagna(pk)},
+            {"label": "Liquida campagna"},
+        ]
 
     def get(self, request, pk):
         campagna = get_object_or_404(Campagna, pk=pk)
@@ -567,9 +681,18 @@ class PartecipazioneApprovaView(RuoloRequiredMixin, View):
         return redirect(reverse("contributi:campagna_dettaglio", args=[campagna_id]))
 
 
-class PartecipazioneRespingiView(RuoloRequiredMixin, View):
+class PartecipazioneRespingiView(RuoloRequiredMixin, BreadcrumbExtraMixin, View):
     ruoli_ammessi = RUOLI_VALUTAZIONE_PARTECIPAZIONI
     template_name = "contributi/partecipazione_respingi.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        campagna_id = request.resolver_match.kwargs.get("campagna_id")
+        return [
+            {"label": _ETICHETTA_SEZIONE},
+            {"label": _etichetta_campagna(campagna_id)},
+            {"label": "Respingi partecipazione"},
+        ]
 
     def get(self, request, campagna_id, pk):
         partecipazione = get_object_or_404(Partecipazione, pk=pk, campagna_id=campagna_id)
@@ -615,9 +738,18 @@ class PartecipazioneRichiediDocumentiView(RuoloRequiredMixin, View):
         return redirect(reverse("contributi:campagna_dettaglio", args=[campagna_id]))
 
 
-class AllegatoPartecipazioneCaricaView(RuoloRequiredMixin, View):
+class AllegatoPartecipazioneCaricaView(RuoloRequiredMixin, BreadcrumbExtraMixin, View):
     ruoli_ammessi = RUOLI_GESTIONE_PARTECIPAZIONI
     template_name = "contributi/allegato_carica.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        campagna_id = request.resolver_match.kwargs.get("campagna_id")
+        return [
+            {"label": _ETICHETTA_SEZIONE},
+            {"label": _etichetta_campagna(campagna_id)},
+            {"label": "Carica allegato"},
+        ]
 
     def get(self, request, campagna_id, pk):
         partecipazione = get_object_or_404(Partecipazione, pk=pk, campagna_id=campagna_id)

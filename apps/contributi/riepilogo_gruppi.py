@@ -47,10 +47,19 @@ class RiepilogoGruppo:
     contributo_ricevuto: Decimal | None
 
 
-def _stato_semaforo(condizioni: list[bool]) -> StatoSemaforo:
-    if all(condizioni):
+def _stato_semaforo(
+    *, iban_caricato: bool, capi_inseriti: int, nessun_rimborso_dichiarato: bool
+) -> StatoSemaforo:
+    """Issue #16: `account_attivato` non entra nel calcolo (mostrata in
+    tabella, ma non usata nel computo, per esplicita richiesta della issue) e
+    la dichiarazione "nessun rimborso" prevale incondizionatamente sull'IBAN
+    mancante — se il gruppo non riceve soldi, l'IBAN è irrilevante."""
+    if nessun_rimborso_dichiarato:
         return StatoSemaforo.VERDE
-    if not any(condizioni):
+    capi_ok = capi_inseriti > 0
+    if iban_caricato and capi_ok:
+        return StatoSemaforo.VERDE
+    if not iban_caricato and not capi_ok:
         return StatoSemaforo.ROSSO
     return StatoSemaforo.GIALLO
 
@@ -96,7 +105,9 @@ def riepilogo_gruppi(campagna: Campagna) -> list[RiepilogoGruppo]:
         capi_inseriti = capi_per_gruppo.get(gruppo.codice, 0)
         nessun_rimborso_dichiarato = gruppo.codice in dichiarazioni
         stato = _stato_semaforo(
-            [account_attivato, iban_caricato, capi_inseriti > 0 or nessun_rimborso_dichiarato]
+            iban_caricato=iban_caricato,
+            capi_inseriti=capi_inseriti,
+            nessun_rimborso_dichiarato=nessun_rimborso_dichiarato,
         )
         righe.append(
             RiepilogoGruppo(

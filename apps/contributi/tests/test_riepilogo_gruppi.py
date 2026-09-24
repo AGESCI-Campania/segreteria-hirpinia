@@ -143,6 +143,29 @@ class TestRiepilogoGruppi:
         assert riga.capi_inseriti == 1
         assert riga.stato == StatoSemaforo.VERDE
 
+    def test_account_non_attivato_non_pesa_sul_semaforo(self, campagna_aperta, cfm):
+        # Issue #16, regola 1: "Account attivato" è mostrata ma non entra nel
+        # computo — IBAN + capi inseriti bastano per VERDE anche senza
+        # account mai attivato.
+        gruppo = Gruppo.objects.create(
+            codice="E0133", nome="AVELLINO 1", iban="IT60X0542811101000000123456"
+        )
+        _partecipazione(campagna_aperta, gruppo, cfm, "10001")
+        riga = riepilogo_gruppi(campagna_aperta)[0]
+        assert riga.account_attivato is False
+        assert riga.stato == StatoSemaforo.VERDE
+
+    def test_nessun_rimborso_prevale_su_iban_mancante(self, campagna_aperta):
+        # Issue #16, regola 2: la dichiarazione "nessun rimborso" vince
+        # incondizionatamente, IBAN mancante incluso.
+        gruppo = Gruppo.objects.create(codice="E0133", nome="AVELLINO 1")
+        DichiarazioneNessunRimborso.objects.create(
+            campagna=campagna_aperta, gruppo=gruppo, dichiarata_da=_persona("cg@x.it")
+        )
+        riga = riepilogo_gruppi(campagna_aperta)[0]
+        assert riga.iban_caricato is False
+        assert riga.stato == StatoSemaforo.VERDE
+
     def test_capi_inseriti_conta_capi_distinti(self, campagna_aperta, cfm):
         gruppo = Gruppo.objects.create(codice="E0133", nome="AVELLINO 1")
         capo = Capo.objects.create(codice_socio="10001", nome="MARIO", cognome="ROSSI")

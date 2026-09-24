@@ -6,10 +6,25 @@
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1>Campagne contributo formazione capi</h1>
     <div>
-      <a href="{% url 'core:impostazioni' %}" class="btn btn-outline-secondary">Impostazioni</a>
-      <a href="{% url 'contributi:campagna_crea' %}" class="btn btn-primary">Nuova campagna</a>
+      {% if puo_gestire_impostazioni %}
+        <a href="{% url 'core:impostazioni' %}" class="btn btn-outline-secondary">Impostazioni</a>
+      {% endif %}
+      {% if puo_gestire_campagna %}
+        <a href="{% url 'contributi:campagna_crea' %}" class="btn btn-primary">Nuova campagna</a>
+      {% endif %}
     </div>
   </div>
+  {% if ultima_campagna %}
+    <div class="p-4 mb-4 rounded bg-ag-viola d-flex justify-content-between align-items-center">
+      <div>
+        <h2 class="h4 mb-1">Campagna {{ ultima_campagna.anno }}</h2>
+        <p class="mb-0">Stato: {{ ultima_campagna.get_stato_display }}</p>
+      </div>
+      <a href="{% url 'contributi:campagna_dettaglio' ultima_campagna.pk %}" class="btn btn-light">
+        Vai alla campagna
+      </a>
+    </div>
+  {% endif %}
   <table class="table">
     <thead>
       <tr>
