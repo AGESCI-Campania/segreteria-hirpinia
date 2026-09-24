@@ -11,6 +11,79 @@
     — {{ nota.get_stato_display }}
   </h1>
 
+  <div class="mb-3">
+    {% if nota.stato == "BOZZA" and agisce_come_capo %}
+      <form method="post" action="{% url 'note_spese:nota_invia' nota.pk %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-primary">Invia</button>
+      </form>
+      <form method="post" action="{% url 'note_spese:nota_annulla' nota.pk %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-outline-danger">Annulla</button>
+      </form>
+    {% endif %}
+
+    {% if nota.stato == "INVIATA" %}
+      {% if puo_gestire_note %}
+        <form method="post" action="{% url 'note_spese:nota_prendi_in_carico' nota.pk %}" class="d-inline">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-primary">Prendi in carico</button>
+        </form>
+      {% endif %}
+      {% if agisce_come_capo %}
+        <form method="post" action="{% url 'note_spese:nota_annulla' nota.pk %}" class="d-inline">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-outline-danger">Annulla</button>
+        </form>
+      {% endif %}
+    {% endif %}
+
+    {% if nota.stato == "IN_VERIFICA" and puo_gestire_note %}
+      <form method="post" action="{% url 'note_spese:nota_approva' nota.pk %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-success">Approva</button>
+      </form>
+      <a href="{% url 'note_spese:nota_richiedi_integrazione' nota.pk %}" class="btn btn-sm btn-outline-warning">
+        Richiedi integrazione
+      </a>
+      <a href="{% url 'note_spese:nota_richiedi_conferma' nota.pk %}" class="btn btn-sm btn-outline-warning">
+        Richiedi conferma
+      </a>
+      <a href="{% url 'note_spese:nota_respingi' nota.pk %}" class="btn btn-sm btn-danger">Respingi</a>
+    {% endif %}
+
+    {% if nota.stato == "DA_INTEGRARE" and agisce_come_capo %}
+      <form method="post" action="{% url 'note_spese:nota_conferma_integrazione' nota.pk %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-primary">
+          Ho caricato il nuovo giustificativo
+        </button>
+      </form>
+    {% endif %}
+
+    {% if nota.stato == "DA_CONFERMARE" and agisce_come_capo %}
+      <form method="post" action="{% url 'note_spese:nota_conferma_correzione' nota.pk %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-primary">Confermo la correzione</button>
+      </form>
+    {% endif %}
+
+    {% if nota.stato == "APPROVATA" %}
+      {% if richiede_autorizzazione_rdz and puo_autorizzare_rdz %}
+        <form method="post" action="{% url 'note_spese:nota_autorizza_rdz' nota.pk %}" class="d-inline">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-primary">Autorizza (RdZ)</button>
+        </form>
+      {% elif not richiede_autorizzazione_rdz and puo_gestire_note %}
+        <a href="{% url 'note_spese:nota_liquida' nota.pk %}" class="btn btn-sm btn-success">Liquida</a>
+      {% endif %}
+    {% endif %}
+
+    {% if nota.stato == "AUTORIZZATA_RDZ" and puo_gestire_note %}
+      <a href="{% url 'note_spese:nota_liquida' nota.pk %}" class="btn btn-sm btn-success">Liquida</a>
+    {% endif %}
+  </div>
+
   <ul>
     <li>Beneficiario: {{ nota.beneficiario }}</li>
     {% if nota.compilatore %}<li>Compilata da: {{ nota.compilatore }}</li>{% endif %}

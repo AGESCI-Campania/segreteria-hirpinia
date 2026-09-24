@@ -1,8 +1,10 @@
-"""Viste di F6b (sola lettura: elenco, dettaglio, download giustificativi) e
-F6c (creazione nota/evento/riga documentale). Le transizioni FSM restano
-F6d. Il perimetro è sempre quello di `note_visibili()`/`allegato_visibile()`
-(D-66) o delle funzioni di `creazione.py`, mai un controllo di ruolo diretto
-qui: un capo qualsiasi deve poter accedere alle proprie note."""
+"""Viste di F6b (sola lettura: elenco, dettaglio, download giustificativi),
+F6c (creazione nota/evento/riga documentale) e F6d (transizioni FSM da
+interfaccia). Il perimetro è sempre quello di
+`note_visibili()`/`allegato_visibile()` (D-66) o delle funzioni di
+`creazione.py`/`transizioni.py`, mai un controllo di ruolo diretto qui: un
+capo qualsiasi deve poter accedere alle proprie note, i permessi di ogni
+transizione restano `transizioni.py::_richiedi_permesso_*`."""
 
 from __future__ import annotations
 
@@ -30,15 +32,36 @@ from .creazione import (
 )
 from .forms import (
     EventoForm,
+    LiquidaNotaForm,
     NotaCreaForm,
+    RespingiNotaForm,
     RigaDuplicaForm,
     RigaSpesaAutoForm,
     RigaSpesaDocumentaleForm,
+    RilievoNotaForm,
 )
 from .iban import maschera_iban
-from .models import Allegato, Localita, StatoNota
-from .permessi import e_beneficiario_della_nota, e_compilatore_della_nota, puo_gestire_note
+from .models import Allegato, AutorizzazioneRdzConfig, ImpostazioniNoteSpese, Localita, StatoNota
+from .permessi import (
+    e_beneficiario_della_nota,
+    e_compilatore_della_nota,
+    puo_autorizzare_rdz,
+    puo_gestire_note,
+)
 from .routing import BackendRoutingNonDisponibile
+from .transizioni import (
+    annulla,
+    approva,
+    autorizza_rdz,
+    conferma_correzione,
+    conferma_integrazione,
+    invia_nota,
+    liquida,
+    prendi_in_carico,
+    respingi,
+    richiedi_conferma,
+    richiedi_integrazione,
+)
 from .visibilita import allegato_visibile, note_visibili
 
 
@@ -71,17 +94,23 @@ class NotaDettaglioView(LoginRequiredMixin, View):
         righe = nota.righe.select_related(
             "categoria", "localita_partenza", "localita_arrivo"
         ).prefetch_related("allegati", "passeggeri")
-        puo_modificare = nota.stato == StatoNota.BOZZA and (
-            e_beneficiario_della_nota(request.user, nota)
-            or e_compilatore_della_nota(request.user, nota)
-        )
+        agisce_come_capo = e_beneficiario_della_nota(
+            request.user, nota
+        ) or e_compilatore_della_nota(request.user, nota)
+        puo_modificare = nota.stato == StatoNota.BOZZA and agisce_come_capo
         contesto = {
             "nota": nota,
             "righe": righe,
             "iban_mascherato": maschera_iban(nota.iban),
             "autorizzazioni_rdz": nota.autorizzazioni_rdz.select_related("utente"),
             "puo_gestire_note": puo_gestire_note(request.user),
+            "puo_autorizzare_rdz": puo_autorizzare_rdz(request.user),
+            "agisce_come_capo": agisce_come_capo,
             "puo_modificare": puo_modificare,
+            "richiede_autorizzazione_rdz": (
+                ImpostazioniNoteSpese.corrente().autorizzazione_rdz
+                != AutorizzazioneRdzConfig.NESSUNA
+            ),
         }
         return render(request, self.template_name, contesto)
 
@@ -401,4 +430,162 @@ class RigaDuplicaView(LoginRequiredMixin, View):
             return render(request, self.template_name, contesto)
 
         messages.success(request, "Viaggio di ritorno aggiunto.")
+        return redirect(reverse("note_spese:nota_dettaglio", args=[nota.pk]))
+
+
+class _TransizioneSemplicePostView(LoginRequiredMixin, View):
+    """F6d: base per le transizioni FSM senza input aggiuntivo (invio,
+    presa in carico, conferme, approvazione, autorizzazione RdZ,
+    annullamento). Permessi ed effetti collaterali restano interamente in
+    `transizioni.py` — qui solo instradamento e messaggio."""
+
+    funzione: staticmethod
+    messaggio_successo = ""
+
+    def post(self, request, pk):
+        nota = get_object_or_404(note_visibili(request.user), pk=pk)
+        try:
+            type(self).funzione(nota, request.user)
+        except (PermissionDenied, ValidationError) as exc:
+            messages.error(request, messaggio_utente(exc))
+        else:
+            messages.success(request, self.messaggio_successo)
+        return redirect(reverse("note_spese:nota_dettaglio", args=[nota.pk]))
+
+
+class NotaInviaView(_TransizioneSemplicePostView):
+    funzione = staticmethod(invia_nota)
+    messaggio_successo = "Nota inviata."
+
+
+class NotaPrendiInCaricoView(_TransizioneSemplicePostView):
+    funzione = staticmethod(prendi_in_carico)
+    messaggio_successo = "Nota presa in carico."
+
+
+class NotaConfermaIntegrazioneView(_TransizioneSemplicePostView):
+    funzione = staticmethod(conferma_integrazione)
+    messaggio_successo = "Integrazione confermata."
+
+
+class NotaConfermaCorrezioneView(_TransizioneSemplicePostView):
+    funzione = staticmethod(conferma_correzione)
+    messaggio_successo = "Correzione confermata."
+
+
+class NotaApprovaView(_TransizioneSemplicePostView):
+    funzione = staticmethod(approva)
+    messaggio_successo = "Nota approvata."
+
+
+class NotaAutorizzaRdzView(_TransizioneSemplicePostView):
+    funzione = staticmethod(autorizza_rdz)
+    messaggio_successo = "Autorizzazione RdZ registrata."
+
+
+class NotaAnnullaView(_TransizioneSemplicePostView):
+    funzione = staticmethod(annulla)
+    messaggio_successo = "Nota annullata."
+
+
+class NotaRespingiView(LoginRequiredMixin, View):
+    """F6d: causale sempre obbligatoria (D-24), nessun percorso automatico
+    che la aggiri."""
+
+    template_name = "note_spese/nota_respingi.html"
+
+    def get(self, request, pk):
+        nota = get_object_or_404(note_visibili(request.user), pk=pk)
+        return render(request, self.template_name, {"nota": nota, "form": RespingiNotaForm()})
+
+    def post(self, request, pk):
+        nota = get_object_or_404(note_visibili(request.user), pk=pk)
+        form = RespingiNotaForm(request.POST)
+        contesto = {"nota": nota, "form": form}
+        if not form.is_valid():
+            return render(request, self.template_name, contesto)
+
+        try:
+            respingi(nota, request.user, form.cleaned_data["causale"])
+        except (PermissionDenied, ValidationError) as exc:
+            _applica_errori(form, exc)
+            return render(request, self.template_name, contesto)
+
+        messages.success(request, "Nota respinta.")
+        return redirect(reverse("note_spese:nota_dettaglio", args=[nota.pk]))
+
+
+class _RilievoView(LoginRequiredMixin, View):
+    """F6d: base comune a `richiedi_integrazione` e `richiedi_conferma`
+    (D-38) — stessa forma di input (riga + testo), la funzione di
+    `transizioni.py` chiamata determina la condizione di sblocco."""
+
+    template_name = "note_spese/nota_rilievo.html"
+    funzione: staticmethod
+    messaggio_successo = ""
+    titolo = ""
+
+    def get(self, request, pk):
+        nota = get_object_or_404(note_visibili(request.user), pk=pk)
+        form = RilievoNotaForm(righe=nota.righe.all())
+        return render(
+            request, self.template_name, {"nota": nota, "form": form, "titolo": self.titolo}
+        )
+
+    def post(self, request, pk):
+        nota = get_object_or_404(note_visibili(request.user), pk=pk)
+        form = RilievoNotaForm(request.POST, righe=nota.righe.all())
+        contesto = {"nota": nota, "form": form, "titolo": self.titolo}
+        if not form.is_valid():
+            return render(request, self.template_name, contesto)
+
+        try:
+            type(self).funzione(
+                nota, request.user, form.cleaned_data["riga"], form.cleaned_data["testo"]
+            )
+        except (PermissionDenied, ValidationError) as exc:
+            _applica_errori(form, exc)
+            return render(request, self.template_name, contesto)
+
+        messages.success(request, self.messaggio_successo)
+        return redirect(reverse("note_spese:nota_dettaglio", args=[nota.pk]))
+
+
+class NotaRichiediIntegrazioneView(_RilievoView):
+    funzione = staticmethod(richiedi_integrazione)
+    messaggio_successo = "Richiesta di integrazione inviata."
+    titolo = "Richiedi integrazione"
+
+
+class NotaRichiediConfermaView(_RilievoView):
+    funzione = staticmethod(richiedi_conferma)
+    messaggio_successo = "Richiesta di conferma inviata."
+    titolo = "Richiedi conferma"
+
+
+class NotaLiquidaView(LoginRequiredMixin, View):
+    """F6d: unico punto che valorizza `anno_contabilizzazione` (D-41),
+    transizione terminale (D-40)."""
+
+    template_name = "note_spese/nota_liquida.html"
+
+    def get(self, request, pk):
+        nota = get_object_or_404(note_visibili(request.user), pk=pk)
+        form = LiquidaNotaForm(initial={"anno_liquidazione": timezone.now().year})
+        return render(request, self.template_name, {"nota": nota, "form": form})
+
+    def post(self, request, pk):
+        nota = get_object_or_404(note_visibili(request.user), pk=pk)
+        form = LiquidaNotaForm(request.POST)
+        contesto = {"nota": nota, "form": form}
+        if not form.is_valid():
+            return render(request, self.template_name, contesto)
+
+        try:
+            liquida(nota, request.user, anno_liquidazione=form.cleaned_data["anno_liquidazione"])
+        except (PermissionDenied, ValidationError) as exc:
+            _applica_errori(form, exc)
+            return render(request, self.template_name, contesto)
+
+        messages.success(request, "Nota liquidata.")
         return redirect(reverse("note_spese:nota_dettaglio", args=[nota.pk]))

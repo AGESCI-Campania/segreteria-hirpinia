@@ -44,9 +44,12 @@ def _richiedi_permesso_capo(utente: Utente, nota: NotaSpese) -> None:
     capo) — sta al posto del beneficiario per l'intero ciclo di vita lato
     capo (invio, conferme, annullamento), non solo per la creazione."""
     if not (e_beneficiario_della_nota(utente, nota) or e_compilatore_della_nota(utente, nota)):
+        # Codice di decisione in coda al messaggio (non a metà frase): è
+        # l'unica posizione da cui `messaggi.py::messaggio_utente()` lo
+        # ripulisce prima che il testo arrivi a schermo.
         raise PermissionDenied(
-            "Solo il beneficiario o chi ha compilato la nota per suo conto (D-36) può "
-            "compiere questa azione."
+            "Solo il beneficiario o chi ha compilato la nota per suo conto può "
+            "compiere questa azione (D-36)."
         )
 
 

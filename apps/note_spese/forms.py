@@ -1,7 +1,9 @@
-"""Form di F6c: creazione nota, evento, riga documentale. Le regole di
-dominio vere e proprie (perimetro D-36, D-45, D-50) restano nel service
-layer (`creazione.py`): questi form validano solo forma e presenza dei
-campi, mai una seconda copia della logica."""
+"""Form di F6c (creazione nota, evento, riga documentale) e F6d (transizioni
+che richiedono un input: respingimento, rilievo, liquidazione). Le regole di
+dominio vere e proprie (perimetro D-36, D-45, D-50, permessi delle
+transizioni) restano nel service layer (`creazione.py`/`transizioni.py`):
+questi form validano solo forma e presenza dei campi, mai una seconda copia
+della logica."""
 
 from __future__ import annotations
 
@@ -11,7 +13,7 @@ from django import forms
 
 from apps.anagrafica.models import Capo, IncaricoUnita
 
-from .models import CategoriaSpesa, Evento, Localita, TipoCalcolo
+from .models import CategoriaSpesa, Evento, Localita, RigaSpesa, TipoCalcolo
 
 
 class NotaCreaForm(forms.Form):
@@ -131,3 +133,32 @@ class RigaDuplicaForm(forms.Form):
     data_spesa = forms.DateField(
         label="Data del ritorno", widget=forms.DateInput(attrs={"type": "date"})
     )
+
+
+class RespingiNotaForm(forms.Form):
+    causale = forms.CharField(
+        label="Causale del respingimento",
+        widget=forms.Textarea(attrs={"rows": 3}),
+        help_text="Obbligatoria in ogni caso: un respingimento senza causale non è possibile (D-24).",
+    )
+
+
+class RilievoNotaForm(forms.Form):
+    """F6d: base comune a `richiedi_integrazione` (D-38, si sblocca solo con
+    un nuovo allegato) e `richiedi_conferma` (si sblocca con un semplice
+    assenso) — la view sceglie quale funzione di `transizioni.py` chiamare,
+    il form valida solo riga e testo."""
+
+    riga = forms.ModelChoiceField(
+        queryset=RigaSpesa.objects.none(), label="Riga oggetto del rilievo"
+    )
+    testo = forms.CharField(label="Motivo del rilievo", widget=forms.Textarea(attrs={"rows": 3}))
+
+    def __init__(self, *args, righe=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if righe is not None:
+            self.fields["riga"].queryset = righe
+
+
+class LiquidaNotaForm(forms.Form):
+    anno_liquidazione = forms.IntegerField(label="Anno di liquidazione", min_value=2000)

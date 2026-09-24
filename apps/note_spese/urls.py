@@ -29,4 +29,38 @@ urlpatterns = [
         views.LocalitaRicercaAutocompleteView.as_view(),
         name="localita_ricerca_autocomplete",
     ),
+    # F6d — transizioni di stato
+    path("<int:pk>/invia/", views.NotaInviaView.as_view(), name="nota_invia"),
+    path(
+        "<int:pk>/prendi-in-carico/",
+        views.NotaPrendiInCaricoView.as_view(),
+        name="nota_prendi_in_carico",
+    ),
+    path(
+        "<int:pk>/richiedi-integrazione/",
+        views.NotaRichiediIntegrazioneView.as_view(),
+        name="nota_richiedi_integrazione",
+    ),
+    path(
+        "<int:pk>/richiedi-conferma/",
+        views.NotaRichiediConfermaView.as_view(),
+        name="nota_richiedi_conferma",
+    ),
+    path(
+        "<int:pk>/conferma-integrazione/",
+        views.NotaConfermaIntegrazioneView.as_view(),
+        name="nota_conferma_integrazione",
+    ),
+    path(
+        "<int:pk>/conferma-correzione/",
+        views.NotaConfermaCorrezioneView.as_view(),
+        name="nota_conferma_correzione",
+    ),
+    path("<int:pk>/approva/", views.NotaApprovaView.as_view(), name="nota_approva"),
+    path(
+        "<int:pk>/autorizza-rdz/", views.NotaAutorizzaRdzView.as_view(), name="nota_autorizza_rdz"
+    ),
+    path("<int:pk>/liquida/", views.NotaLiquidaView.as_view(), name="nota_liquida"),
+    path("<int:pk>/respingi/", views.NotaRespingiView.as_view(), name="nota_respingi"),
+    path("<int:pk>/annulla/", views.NotaAnnullaView.as_view(), name="nota_annulla"),
 ]
