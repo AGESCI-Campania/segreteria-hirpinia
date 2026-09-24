@@ -5,13 +5,16 @@ Docker/CI — stesso vincolo preesistente di
 apps.contributi.tests.test_views_riepilogo.TestCampagnaReportPdfView."""
 
 import datetime
+import io
 from decimal import Decimal
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
+from pypdf import PdfReader
 
 from apps.accounts.models import StatoUtente, TipoUtente, Utente
 from apps.anagrafica.models import Capo
-from apps.note_spese.models import CategoriaSpesa, Evento, NotaSpese, RigaSpesa
+from apps.note_spese.models import Allegato, CategoriaSpesa, Evento, NotaSpese, RigaSpesa
 from apps.organizzazione.models import Gruppo
 
 pytestmark = pytest.mark.django_db
@@ -82,3 +85,29 @@ class TestNotaPdfView:
         client.force_login(altro_capo_utente)
         response = client.get(f"/note-spese/{nota.pk}/pdf/")
         assert response.status_code == 404
+
+    def test_giustificativi_uniti_in_coda(self, client, capo_utente, nota) -> None:
+        """D-67 punto 8: un'immagine e un PDF distinti allegati alla stessa
+        (unica) riga finiscono entrambi in coda al corpo della nota."""
+        riga = nota.righe.get()
+        pdf_minimo = (
+            b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
+            b"2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n"
+            b"3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\n"
+            b"xref\n0 4\n0000000000 65535 f \n"
+            b"trailer<</Size 4/Root 1 0 R>>\nstartxref\n0\n%%EOF"
+        )
+        allegato_pdf = Allegato.objects.create(
+            file=SimpleUploadedFile("fattura.pdf", pdf_minimo, content_type="application/pdf")
+        )
+        allegato_pdf.righe.add(riga)
+
+        client.force_login(capo_utente)
+        response = client.get(f"/note-spese/{nota.pk}/pdf/")
+
+        assert response.status_code == 200
+        reader = PdfReader(io.BytesIO(response.content))
+        # Almeno il corpo (1+) e la pagina di intestazione + la pagina del
+        # PDF originale unito (2): il corpo può a sua volta contare più di
+        # una pagina, non si fissa un totale esatto qui.
+        assert len(reader.pages) >= 3

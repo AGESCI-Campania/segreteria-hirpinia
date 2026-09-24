@@ -26,6 +26,7 @@ dependencies = [
     "openrouteservice>=2.3.3",
     "pillow-heif>=1.7.0",
     "django-storages>=1.14.6",
+    "pypdf>=6.19.0",
 ]
 
 [project.optional-dependencies]

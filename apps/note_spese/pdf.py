@@ -1,14 +1,15 @@
 """PDF della nota (D-67, F8). WeasyPrint importato in modo lazy dentro
-`genera_pdf_nota()` (stesso motivo di
+`genera_pdf_nota()`/`_pdf_pagina_giustificativo()` (stesso motivo di
 `apps.contributi.views.CampagnaReportPdfView`): le librerie native
 (Pango/Cairo) non sono sempre disponibili nell'ambiente di import.
 
-**Ambito di questa prima versione**: solo il corpo della nota (intestazione,
-riquadri, tabella righe, totali, riquadro liquidazione, spazio firma).
-I giustificativi in coda (punto 8 di D-67) restano un passo successivo: per
-"uno per pagina" servirebbe unire PDF/immagini esistenti al documento
-generato qui, cioè una vera libreria di merge PDF (nessuna già in
-`pyproject.toml`) — dichiarato, non implementato per supposizione.
+**Giustificativi in coda (punto 8 di D-67)**: un'immagine (sempre JPEG dopo
+F5) è incorporata come `data:` URI in una pagina con intestazione "Riga N";
+un PDF (A-11: "resta intatto, possibile valore fiscale") è preceduto dalla
+stessa pagina di intestazione ma **mai riscritto/timbrato** — le sue pagine
+originali sono unite così come sono con `pypdf`. Entrambi i casi leggono i
+byte con `Allegato.file.read()`, mai un percorso di filesystem: lo storage
+è configurabile (D-59) e potrebbe non essere locale.
 
 **Deviazioni dichiarate rispetto al testo di D-67** (dati che il modello
 non ha o non valorizza ancora, verificato con `rg`, non assunto):
@@ -22,14 +23,17 @@ non ha o non valorizza ancora, verificato con `rg`, non assunto):
 
 from __future__ import annotations
 
+import base64
+import io
 from decimal import Decimal
 
 from django.contrib.staticfiles import finders
 from django.template.loader import render_to_string
+from pypdf import PdfReader, PdfWriter
 
 from .categorie import mappa_categoria_principale
 from .iban import maschera_iban
-from .models import AutorizzazioneRdzConfig, ImpostazioniNoteSpese, NotaSpese
+from .models import Allegato, AutorizzazioneRdzConfig, ImpostazioniNoteSpese, NotaSpese, RigaSpesa
 
 
 def _totali_per_categoria(righe) -> list[tuple[str, Decimal]]:
@@ -47,7 +51,7 @@ def _totali_per_categoria(righe) -> list[tuple[str, Decimal]]:
 def contesto_pdf_nota(nota: NotaSpese) -> dict:
     righe = list(
         nota.righe.select_related("categoria", "localita_partenza", "localita_arrivo")
-        .prefetch_related("passeggeri")
+        .prefetch_related("passeggeri", "allegati")
         .all()
     )
     totale_richiesto = sum(
@@ -70,8 +74,61 @@ def contesto_pdf_nota(nota: NotaSpese) -> dict:
     }
 
 
+def _e_pdf(contenuto: bytes) -> bool:
+    return contenuto[:5] == b"%PDF-"
+
+
+def _pdf_pagina_giustificativo(
+    numero_riga: int, riga: RigaSpesa, immagine_base64: str | None
+) -> bytes:
+    from weasyprint import HTML
+
+    html = render_to_string(
+        "note_spese/nota_pdf_giustificativo.html",
+        {"numero_riga": numero_riga, "riga": riga, "immagine_base64": immagine_base64},
+    )
+    return HTML(string=html).write_pdf()
+
+
+def _pagine_giustificativi(righe: list[RigaSpesa]) -> list[bytes]:
+    """Una voce per pagina generata (immagine) o gruppo di pagine originali
+    (PDF), nell'ordine delle righe della tabella — coerente con la
+    numerazione "N." aggiunta lì (D-67, "riferimento al numero di riga")."""
+    parti: list[bytes] = []
+    for numero_riga, riga in enumerate(righe, start=1):
+        allegato: Allegato
+        for allegato in riga.allegati.all():
+            allegato.file.open("rb")
+            try:
+                contenuto = allegato.file.read()
+            finally:
+                allegato.file.close()
+            if _e_pdf(contenuto):
+                parti.append(_pdf_pagina_giustificativo(numero_riga, riga, None))
+                parti.append(contenuto)
+            else:
+                immagine_base64 = base64.b64encode(contenuto).decode("ascii")
+                parti.append(_pdf_pagina_giustificativo(numero_riga, riga, immagine_base64))
+    return parti
+
+
+def _unisci_pdf(corpo: bytes, parti: list[bytes]) -> bytes:
+    writer = PdfWriter()
+    writer.append(PdfReader(io.BytesIO(corpo)))
+    for parte in parti:
+        writer.append(PdfReader(io.BytesIO(parte)))
+    buffer = io.BytesIO()
+    writer.write(buffer)
+    return buffer.getvalue()
+
+
 def genera_pdf_nota(nota: NotaSpese) -> bytes:
     from weasyprint import HTML
 
-    html = render_to_string("note_spese/nota_pdf.html", contesto_pdf_nota(nota))
-    return HTML(string=html).write_pdf()
+    contesto = contesto_pdf_nota(nota)
+    corpo = HTML(string=render_to_string("note_spese/nota_pdf.html", contesto)).write_pdf()
+
+    parti_giustificativi = _pagine_giustificativi(contesto["righe"])
+    if not parti_giustificativi:
+        return corpo
+    return _unisci_pdf(corpo, parti_giustificativi)

@@ -83,11 +83,10 @@ progettazione, non dati personali).
         settembre)
   - [x] D-64 — Report periodico ai gestori (giorni/orario configurabili da interfaccia,
         prima pagina Impostazioni del modulo — prima solo Django admin)
-- [ ] F8 — PDF ed export
+- [x] F8 — PDF ed export
   - [x] D-68 — Servizio unico di esportazione (4 raggruppamenti, csv/xlsx)
-  - [x] D-67 — PDF della nota (corpo, intestazione/piede, totali, firme). Manca ancora
-        il punto 8 (giustificativi in coda uno per pagina: richiede una nuova
-        dipendenza per unire PDF/immagini, da confermare)
+  - [x] D-67 — PDF della nota, corpo + giustificativi in coda uno per pagina (nuova
+        dipendenza `pypdf` per unire PDF/immagini al documento generato)
 - [ ] F9 — Replica dei giustificativi su Google Drive
 
 ## Gap noti (scoperti in verifica, non da una milestone)

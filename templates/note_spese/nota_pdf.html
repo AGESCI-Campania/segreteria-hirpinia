@@ -184,6 +184,7 @@
   <table class="righe">
     <thead>
       <tr>
+        <th>N.</th>
         <th>Data</th>
         <th>Categoria</th>
         <th>Descrizione / tratta / viaggio</th>
@@ -194,6 +195,7 @@
     <tbody>
       {% for riga in righe %}
         <tr>
+          <td>{{ forloop.counter }}</td>
           <td>{{ riga.data|date:"d/m/Y" }}</td>
           <td>{{ riga.categoria.nome }}</td>
           <td>

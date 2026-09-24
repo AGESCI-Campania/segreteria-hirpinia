@@ -17,7 +17,7 @@ from apps.note_spese.models import (
     NotaSpese,
     RigaSpesa,
 )
-from apps.note_spese.pdf import contesto_pdf_nota
+from apps.note_spese.pdf import _e_pdf, contesto_pdf_nota
 from apps.organizzazione.models import Gruppo
 
 pytestmark = pytest.mark.django_db
@@ -116,3 +116,17 @@ class TestContestoPdfNota:
         contesto = contesto_pdf_nota(nota)
         assert contesto["logo_zona_path"] is not None
         assert contesto["loghi_piede_path"] is not None
+
+    def test_righe_includono_gli_allegati_prefetched(self, nota) -> None:
+        # Non genera una query per riga quando pdf.py itera riga.allegati.all():
+        # verifica solo che l'attributo sia raggiungibile senza sollevare errori.
+        contesto = contesto_pdf_nota(nota)
+        assert list(contesto["righe"][0].allegati.all()) == []
+
+
+class TestEPdf:
+    def test_intestazione_pdf_riconosciuta(self) -> None:
+        assert _e_pdf(b"%PDF-1.4\n...") is True
+
+    def test_intestazione_immagine_non_riconosciuta_come_pdf(self) -> None:
+        assert _e_pdf(b"\xff\xd8\xff\xe0JFIF") is False
