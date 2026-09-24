@@ -8,6 +8,37 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.1.19] - 2026-09-24
+
+### Aggiunto
+
+- Nuovo modulo "Nota Spese": i capi possono compilare e inviare note spese
+  digitali per il rimborso di spese sostenute per conto del gruppo/zona,
+  documentali o chilometriche (calcolo automatico su tariffa e distanza, con
+  segnalazione di eventuali doppioni). Le note passano da bozza a verifica e
+  approvazione dei gestori, fino alla liquidazione; ogni nota può avere fino a
+  10 giustificativi allegati per riga. Notifiche puntuali e promemoria al
+  capo, report periodico ai gestori, esportazione PDF della nota e replica
+  automatica dei documenti su Google Drive.
+- Possibilità di riaprire una campagna Contributo Fo.Ca. già in valutazione,
+  per correggere un errore scoperto durante la valutazione senza dover
+  ricreare la campagna.
+- Breadcrumb di navigazione su tutte le pagine del modulo Contributo Fo.Ca.
+- Nell'elenco campagne Fo.Ca., l'ultima campagna è ora messa in evidenza in
+  cima alla pagina.
+- Nella tabella di valutazione delle partecipazioni Fo.Ca., ora sono visibili
+  anche la descrizione libera per la tipologia "Altro" e il motivo di un
+  eventuale respingimento.
+
+### Corretto
+
+- I pulsanti "Impostazioni" e "Nuova campagna" nell'elenco campagne Fo.Ca. non
+  compaiono più a chi non ha il permesso per usarli.
+- Lo stato "semaforo" del riepilogo gruppi per campagna ora segue
+  correttamente le regole previste: l'attivazione dell'account non incide più
+  sullo stato, e la dichiarazione "nessun rimborso richiesto" da parte di un
+  gruppo prevale sempre, anche senza IBAN caricato.
+
 ## [1.1.18] - 2026-09-13
 
 ### Aggiunto
