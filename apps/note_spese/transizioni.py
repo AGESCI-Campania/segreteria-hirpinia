@@ -101,9 +101,11 @@ def _notifica_capo(
 
 @transaction.atomic
 def invia_nota(nota: NotaSpese, utente: Utente) -> NotaSpese:
-    """BOZZA -> INVIATA. Assegna `numero`/`anno_spesa` qui, non alla
-    creazione (vedi trappola documentata su `NotaSpese`, dedotta perché
-    `anno_spesa` non è derivabile da una nota ancora senza righe)."""
+    """BOZZA -> INVIATA. Assegna `numero`/`anno_spesa`/`inviata_il` qui, non
+    alla creazione (vedi trappola documentata su `NotaSpese`, dedotta perché
+    `anno_spesa` non è derivabile da una nota ancora senza righe).
+    `inviata_il` è la "data di presentazione" richiesta in stampa dal PDF
+    della nota (D-67, F8)."""
     _richiedi_permesso_capo(utente, nota)
     date_righe = list(nota.righe.values_list("data", flat=True))
     if not date_righe:
@@ -113,6 +115,7 @@ def invia_nota(nota: NotaSpese, utente: Utente) -> NotaSpese:
     assert anno_spesa is not None  # date_righe non è vuoto, verificato sopra
     nota.anno_spesa = anno_spesa
     nota.numero = _genera_numero(anno_spesa)
+    nota.inviata_il = timezone.now()
     nota.invia()
     nota.save()
     return nota

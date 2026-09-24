@@ -16,6 +16,7 @@ urlpatterns = [
     path("eventi/<int:pk>/modifica/", views.EventoModificaView.as_view(), name="evento_modifica"),
     path("eventi/<int:pk>/fondi/", views.EventoFondiView.as_view(), name="evento_fondi"),
     path("<int:pk>/", views.NotaDettaglioView.as_view(), name="nota_dettaglio"),
+    path("<int:pk>/pdf/", views.NotaPdfView.as_view(), name="nota_pdf"),
     path("<int:pk>/righe/aggiungi/", views.RigaCreaView.as_view(), name="riga_crea"),
     path("<int:pk>/righe/aggiungi-auto/", views.RigaAutoCreaView.as_view(), name="riga_auto_crea"),
     path(

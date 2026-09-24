@@ -802,3 +802,25 @@ class NotaEsportaView(RichiedeGestioneNoteMixin, View):
         if dati["formato"] == "xlsx":
             return _esportazione_xlsx(risultato, nome_file)
         return _esportazione_csv(risultato, nome_file)
+
+
+class NotaPdfView(LoginRequiredMixin, View):
+    """F8/D-67: stesso perimetro di `NotaDettaglioView` (`note_visibili()`,
+    D-66) — chi può vedere la nota a schermo può scaricarne il PDF, non solo
+    chi gestisce le note. `pdf.py::genera_pdf_nota()` è l'unica fonte del
+    contenuto, qui solo instradamento."""
+
+    def get(self, request, pk):
+        from .pdf import genera_pdf_nota
+
+        nota = get_object_or_404(
+            note_visibili(request.user).select_related(
+                "beneficiario", "evento", "gruppo_censimento", "centro_costo", "incarico"
+            ),
+            pk=pk,
+        )
+        pdf = genera_pdf_nota(nota)
+        response = HttpResponse(pdf, content_type="application/pdf")
+        nome_file = nota.numero.replace("/", "-") if nota.numero else f"bozza-{nota.pk}"
+        response["Content-Disposition"] = f'inline; filename="nota_spese_{nome_file}.pdf"'
+        return response

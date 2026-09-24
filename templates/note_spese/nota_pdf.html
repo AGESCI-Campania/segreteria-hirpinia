@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Nota spese {{ nota.numero|default:nota.pk }}</title>
+<style>
+  @page {
+    size: A4;
+    margin-top: 5cm;
+    margin-left: 3cm;
+    margin-right: 2cm;
+    margin-bottom: 3cm;
+    @top-center { content: element(intestazione); }
+    @bottom-center { content: element(piede); }
+  }
+
+  body {
+    font-family: sans-serif;
+    font-size: 10.5pt;
+    color: #222;
+  }
+
+  /* Intestazione ripetuta su ogni pagina (D-67): banda viola ricostruita
+     come gradiente CSS, non il JPEG originale (sgrana in stampa), con
+     segmento giallo. */
+  .intestazione {
+    position: running(intestazione);
+    width: 100%;
+  }
+  .intestazione .banda {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(90deg, #5C5291 0%, #746BA4 100%);
+    color: #fff;
+    padding: 0.3cm 0.5cm;
+    box-sizing: border-box;
+  }
+  .intestazione .segmento-giallo {
+    height: 0.25cm;
+    background: #EBC43B;
+  }
+  .intestazione .logo {
+    height: 2.2cm;
+    width: 2.2cm;
+    margin-right: 0.5cm;
+  }
+  .intestazione .testo {
+    font-size: 8.5pt;
+    line-height: 1.35;
+  }
+  .intestazione .testo strong {
+    font-size: 10pt;
+  }
+  .intestazione .testo a {
+    color: #fff;
+  }
+
+  /* Piè di pagina ripetuto (D-67): loghi WOSM/WAGGGS + iscrizione RUNTS. */
+  .piede {
+    position: running(piede);
+    width: 100%;
+    text-align: center;
+    font-size: 7.5pt;
+    color: #555;
+    border-top: 1px solid #ccc;
+    padding-top: 0.2cm;
+  }
+  .piede .loghi {
+    height: 0.9cm;
+    margin-bottom: 0.15cm;
+  }
+
+  h1 { font-size: 14pt; margin-bottom: 0.2cm; }
+  .stato-data { color: #555; margin-bottom: 0.6cm; }
+
+  .riquadro {
+    border: 1px solid #999;
+    border-radius: 3px;
+    padding: 0.3cm 0.5cm;
+    margin-bottom: 0.5cm;
+  }
+  .riquadro h2 {
+    font-size: 11pt;
+    margin: 0 0 0.2cm 0;
+    color: #5C5291;
+  }
+  .riquadro .altro {
+    background: #EBC43B;
+    padding: 0 0.15cm;
+    border-radius: 2px;
+    font-weight: bold;
+  }
+
+  table.righe { width: 100%; border-collapse: collapse; margin-bottom: 0.4cm; }
+  table.righe th, table.righe td {
+    border: 1px solid #999;
+    padding: 0.15cm 0.25cm;
+    text-align: left;
+    font-size: 9.5pt;
+  }
+  table.righe th { background: #f0f0f5; }
+  table.righe td.importo { text-align: right; white-space: nowrap; }
+
+  table.totali { width: 60%; border-collapse: collapse; margin-bottom: 0.6cm; }
+  table.totali td { padding: 0.1cm 0.25cm; }
+  table.totali td.importo { text-align: right; }
+  table.totali tr.generale td { font-weight: bold; border-top: 1px solid #999; }
+
+  .firme { margin-top: 1.2cm; }
+  .firme .riquadro-firma {
+    display: inline-block;
+    width: 45%;
+    vertical-align: top;
+    margin-right: 4%;
+  }
+  .firme .riga-firma {
+    margin-top: 1.4cm;
+    border-top: 1px solid #333;
+    padding-top: 0.1cm;
+    font-size: 9pt;
+    color: #555;
+  }
+</style>
+</head>
+<body>
+
+  <div class="intestazione">
+    <div class="banda">
+      {% if logo_zona_path %}
+        <img class="logo" src="file://{{ logo_zona_path }}" alt="Zona Hirpinia">
+      {% endif %}
+      <div class="testo">
+        <strong>Zona Hirpinia - Regione Campania</strong><br>
+        Associazione Guide e Scouts Cattolici Italiani<br>
+        Via Episcopio SNC, 83100 Avellino<br>
+        Codice Fiscale: 92048600644<br>
+        Mail: zonahirpinia@campania.agesci.it — Pec: zonahirpinia@pec.agesci.it
+      </div>
+    </div>
+    <div class="segmento-giallo"></div>
+  </div>
+
+  <div class="piede">
+    {% if loghi_piede_path %}
+      <img class="loghi" src="file://{{ loghi_piede_path }}" alt="WOSM / WAGGGS">
+    {% endif %}
+    <p>Iscritta al Registro Unico Nazionale del Terzo Settore – repertorio n. 66955 del 07/11/2022</p>
+  </div>
+
+  <h1>Nota spese n. {{ nota.numero|default:"(bozza)" }}</h1>
+  <p class="stato-data">
+    Stato: {{ nota.get_stato_display }}
+    {% if nota.inviata_il %} — Presentata il {{ nota.inviata_il|date:"d/m/Y" }}{% endif %}
+  </p>
+
+  <div class="riquadro">
+    <h2>Richiedente</h2>
+    <p>
+      Capo: {{ nota.beneficiario }}<br>
+      Gruppo di censimento: {{ nota.gruppo_censimento }}<br>
+      Incarico:
+      {% if nota.incarico %}{{ nota.incarico }}{% else %}
+        <span class="altro">Altro</span> — {{ nota.incarico_altro }}
+      {% endif %}
+      <br>
+      {% if nota.iban %}
+        IBAN: {{ iban_mascherato }}{% if nota.intestatario_iban %} (intestato a {{ nota.intestatario_iban }}){% endif %}
+      {% else %}
+        Modalità di pagamento: {{ nota.get_modalita_pagamento_display|default:"non ancora definita" }}
+      {% endif %}
+    </p>
+  </div>
+
+  <div class="riquadro">
+    <h2>Evento</h2>
+    <p>
+      {{ nota.evento.nome }}<br>
+      Dal {{ nota.evento.data_inizio|date:"d/m/Y" }}
+      {% if nota.evento.data_fine %}al {{ nota.evento.data_fine|date:"d/m/Y" }}{% endif %}<br>
+      Centro di costo: {{ nota.centro_costo|default:"non ancora imputato" }}
+    </p>
+  </div>
+
+  <table class="righe">
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Categoria</th>
+        <th>Descrizione / tratta / viaggio</th>
+        <th>Importo richiesto</th>
+        <th>Importo riconosciuto</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for riga in righe %}
+        <tr>
+          <td>{{ riga.data|date:"d/m/Y" }}</td>
+          <td>{{ riga.categoria.nome }}</td>
+          <td>
+            {% if riga.localita_partenza %}
+              {{ riga.localita_partenza }} → {{ riga.localita_arrivo }}
+              {% with km=riga.distanza_corretta_km|default:riga.distanza_km %}
+                {% if km %} — {{ km }} km{% endif %}
+              {% endwith %}
+              {% if riga.targa %} — targa {{ riga.targa }}{% endif %}
+              {% if riga.passeggeri.all %}
+                — passeggeri:
+                {% for p in riga.passeggeri.all %}{{ p.capo|default:p.nome_libero }}{% if not forloop.last %}, {% endif %}{% endfor %}
+              {% endif %}
+            {% else %}
+              {{ riga.tratta_testo|default:riga.descrizione }}
+            {% endif %}
+          </td>
+          <td class="importo">{{ riga.importo_originale|default:riga.importo }}</td>
+          <td class="importo">{{ riga.importo }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <table class="totali">
+    {% for nome, importo in totali_categoria %}
+      <tr><td>Totale {{ nome }}</td><td class="importo">{{ importo }}</td></tr>
+    {% endfor %}
+    <tr class="generale"><td>Totale generale</td><td class="importo">{{ totale_riconosciuto }}</td></tr>
+  </table>
+
+  {% if nota.stato == "LIQUIDATA" %}
+    <div class="riquadro">
+      <h2>Liquidazione</h2>
+      <p>
+        Modalità: {{ nota.get_modalita_pagamento_display|default:"—" }}<br>
+        Data: {{ nota.data_pagamento|date:"d/m/Y"|default:"—" }}<br>
+        Riferimento di tracciabilità: {{ nota.riferimento_tracciabilita|default:"—" }}
+      </p>
+    </div>
+  {% endif %}
+
+  {% if nota.causale_respinta %}
+    <div class="riquadro">
+      <h2>Respingimento</h2>
+      <p>{{ nota.causale_respinta }}</p>
+    </div>
+  {% endif %}
+
+  <div class="firme">
+    <div class="riquadro-firma">
+      <div class="riga-firma">Firma del richiedente</div>
+    </div>
+    <div class="riquadro-firma">
+      <div class="riga-firma">Firma dell'autorizzante</div>
+      {% if doppia_firma_rdz %}
+        <div class="riga-firma">Firma RdZ maschile</div>
+        <div class="riga-firma">Firma RdZ femminile</div>
+      {% endif %}
+    </div>
+  </div>
+
+</body>
+</html>

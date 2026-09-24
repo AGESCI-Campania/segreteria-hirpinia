@@ -85,8 +85,9 @@ progettazione, non dati personali).
         prima pagina Impostazioni del modulo — prima solo Django admin)
 - [ ] F8 — PDF ed export
   - [x] D-68 — Servizio unico di esportazione (4 raggruppamenti, csv/xlsx)
-  - [ ] D-67 — PDF della nota (bloccata: mancano logo Zona 1630×1630 trasparente,
-        loghi WOSM/WAGGGS, testo esatto di intestazione e riga RUNTS)
+  - [x] D-67 — PDF della nota (corpo, intestazione/piede, totali, firme). Manca ancora
+        il punto 8 (giustificativi in coda uno per pagina: richiede una nuova
+        dipendenza per unire PDF/immagini, da confermare)
 - [ ] F9 — Replica dei giustificativi su Google Drive
 
 ## Gap noti (scoperti in verifica, non da una milestone)

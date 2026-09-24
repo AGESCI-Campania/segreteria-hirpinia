@@ -290,6 +290,12 @@ class NotaSpese(FSMModelMixin, models.Model):
     ancora vuota in BOZZA — scostamento dichiarato, non deciso in silenzio."""
 
     numero = models.CharField(max_length=20, unique=True, null=True, blank=True)
+    inviata_il = models.DateTimeField(
+        null=True,
+        blank=True,
+        editable=False,
+        help_text="Data di presentazione (D-67), valorizzata da invia_nota() insieme a numero/anno_spesa.",
+    )
 
     beneficiario = models.ForeignKey(
         "anagrafica.Capo", on_delete=models.PROTECT, related_name="note_spese_beneficiario"

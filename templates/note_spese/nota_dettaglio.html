@@ -11,6 +11,10 @@
     — {{ nota.get_stato_display }}
   </h1>
 
+  <a href="{% url 'note_spese:nota_pdf' nota.pk %}" class="btn btn-sm btn-outline-secondary mb-3" target="_blank">
+    {% bs_icon "file-earmark-pdf" %} Scarica PDF
+  </a>
+
   <div class="mb-3">
     {% if nota.stato == "BOZZA" and agisce_come_capo %}
       <form method="post" action="{% url 'note_spese:nota_invia' nota.pk %}" class="d-inline">

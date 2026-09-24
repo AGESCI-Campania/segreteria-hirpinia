@@ -17,6 +17,7 @@ from django.db.models import QuerySet, Sum
 
 from apps.accounts.models import Utente
 
+from .categorie import mappa_categoria_principale
 from .models import CategoriaSpesa, NotaSpese, StatoNota
 from .visibilita import note_visibili
 
@@ -91,20 +92,6 @@ def _per_capo(note: QuerySet[NotaSpese]) -> RisultatoEsportazione:
     return RisultatoEsportazione(intestazioni=["Capo", "Totale"], righe=righe)
 
 
-def _mappa_categoria_principale() -> dict[int, CategoriaSpesa]:
-    """Per ogni categoria (a qualunque profondità), il suo nodo di primo
-    livello (D-68: colonne dinamiche dell'albero) — una sola query, poi
-    solo lookup in memoria, non una query per riga."""
-    tutte = {c.pk: c for c in CategoriaSpesa.objects.all()}
-    mappa: dict[int, CategoriaSpesa] = {}
-    for pk, categoria in tutte.items():
-        nodo = categoria
-        while nodo.parent_id is not None:
-            nodo = tutte[nodo.parent_id]
-        mappa[pk] = nodo
-    return mappa
-
-
 def _bilancio(note: QuerySet[NotaSpese]) -> RisultatoEsportazione:
     """Una riga per nota (D-68). Le colonne di categoria si generano dalle
     categorie principali **realmente presenti** in questo lotto di note, non
@@ -120,7 +107,7 @@ def _bilancio(note: QuerySet[NotaSpese]) -> RisultatoEsportazione:
     elenco_note = list(
         note.select_related("beneficiario", "evento").prefetch_related("righe__categoria")
     )
-    mappa_categoria = _mappa_categoria_principale()
+    mappa_categoria = mappa_categoria_principale()
 
     principali_usate: dict[int, CategoriaSpesa] = {}
     per_nota: list[tuple[NotaSpese, dict[int, Decimal], Decimal]] = []
