@@ -1,18 +1,28 @@
 """Transizioni della macchina a stati (D-37/D-38/D-39/D-40). Permessi ed
 effetti collaterali vivono qui, mai nei metodi `@transition` del modello
 (D-69, service layer condiviso — pattern già in uso in
-`apps/contributi/campagne.py` per `Campagna`)."""
+`apps/contributi/campagne.py` per `Campagna`).
+
+Le notifiche puntuali (D-62, F7) seguono lo stesso pattern già in uso in
+`apps/anagrafica/incarichi.py::_notifica_incarico`: chiamata sincrona dentro
+la stessa `@transaction.atomic` della transizione, `fail_silently=True` di
+`invia_email_template()` (default) a proteggere la transizione da un SMTP
+irraggiungibile."""
 
 from __future__ import annotations
 
 import logging
 from decimal import Decimal
 
+from django.conf import settings
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
+from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.models import Utente
+from apps.core.invio_email import invia_email_template
+from apps.core.models import CodiceTemplateEmail
 
 from .allegati import valida_allegati_obbligatori
 from .anno_associativo import calcola_anno_spesa
@@ -65,6 +75,30 @@ def _genera_numero(anno_spesa: int) -> str:
     return f"{prefisso}{progressivo:04d}"
 
 
+def _notifica_capo(
+    nota: NotaSpese, *, codice_template: str, extra_contesto: dict[str, str] | None = None
+) -> None:
+    """D-62: email immediata al **beneficiario**, mai al compilatore per
+    conto terzi (D-36) — è una comunicazione personale sull'esito della
+    propria nota, non un'azione di servizio. Usa `Capo.email` (anagrafica),
+    non l'account `Utente` di servizio, che potrebbe essere condiviso.
+    Nessun destinatario se l'email non è censita: non blocca la transizione
+    (`invia_email_template` con `destinatari=[]` è già un no-op)."""
+    email = nota.beneficiario.email
+    contesto = {
+        "numero": nota.numero or f"#{nota.pk}",
+        "evento": str(nota.evento),
+        "link": f"{settings.SITE_URL}{reverse('note_spese:nota_dettaglio', args=[nota.pk])}",
+    }
+    if extra_contesto:
+        contesto.update(extra_contesto)
+    invia_email_template(
+        codice_template=codice_template,
+        destinatari=[email] if email else [],
+        contesto=contesto,
+    )
+
+
 @transaction.atomic
 def invia_nota(nota: NotaSpese, utente: Utente) -> NotaSpese:
     """BOZZA -> INVIATA. Assegna `numero`/`anno_spesa` qui, non alla
@@ -105,6 +139,11 @@ def richiedi_integrazione(
     nota.rilievo_il = timezone.now()
     nota.richiedi_integrazione()
     nota.save()
+    _notifica_capo(
+        nota,
+        codice_template=CodiceTemplateEmail.NOTA_SPESE_RILIEVO,
+        extra_contesto={"motivo": testo},
+    )
     return nota
 
 
@@ -119,6 +158,11 @@ def richiedi_conferma(nota: NotaSpese, utente: Utente, riga: RigaSpesa, testo: s
     nota.rilievo_il = timezone.now()
     nota.richiedi_conferma()
     nota.save()
+    _notifica_capo(
+        nota,
+        codice_template=CodiceTemplateEmail.NOTA_SPESE_RILIEVO,
+        extra_contesto={"motivo": testo},
+    )
     return nota
 
 
@@ -184,6 +228,7 @@ def approva(nota: NotaSpese, utente: Utente) -> NotaSpese:
     _richiedi_permesso_gestione(utente)
     nota.approva()
     nota.save()
+    _notifica_capo(nota, codice_template=CodiceTemplateEmail.NOTA_SPESE_APPROVATA)
     return nota
 
 
@@ -256,6 +301,7 @@ def liquida(nota: NotaSpese, utente: Utente, *, anno_liquidazione: int) -> NotaS
                 capienza.residuo,
             )
 
+    _notifica_capo(nota, codice_template=CodiceTemplateEmail.NOTA_SPESE_LIQUIDATA)
     return nota
 
 
@@ -267,6 +313,11 @@ def respingi(nota: NotaSpese, utente: Utente, causale: str) -> NotaSpese:
     nota.causale_respinta = causale
     nota.respingi()
     nota.save()
+    _notifica_capo(
+        nota,
+        codice_template=CodiceTemplateEmail.NOTA_SPESE_RESPINTA,
+        extra_contesto={"causale": causale},
+    )
     return nota
 
 

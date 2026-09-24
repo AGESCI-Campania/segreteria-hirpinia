@@ -1,0 +1,9 @@
+Ciao,
+
+la tua nota spese {{ numero }} ({{ evento }}) è stata respinta.
+
+Motivo: {{ causale }}
+
+Dettagli: {{ link }}
+
+— Catello, AGESCI Zona Hirpinia

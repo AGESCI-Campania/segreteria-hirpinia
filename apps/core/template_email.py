@@ -29,7 +29,8 @@ VARIABILI_GLOBALI: list[str] = [VARIABILE_PREFISSO_OGGETTO]
 # legenda (M8.2). Deve restare sincronizzato a mano con il contesto
 # effettivamente costruito in ogni punto di invio (apps/accounts/inviti.py,
 # apps/accounts/deleghe.py, apps/accounts/signals.py,
-# apps/anagrafica/incarichi.py) — nessun meccanismo automatico lo verifica.
+# apps/anagrafica/incarichi.py, apps/note_spese/transizioni.py) — nessun
+# meccanismo automatico lo verifica.
 VARIABILI_PER_CODICE: dict[str, list[str]] = {
     CodiceTemplateEmail.INVITO_ATTIVAZIONE: [
         "codice",
@@ -50,6 +51,10 @@ VARIABILI_PER_CODICE: dict[str, list[str]] = {
         "assegnato_da",
     ],
     CodiceTemplateEmail.INCARICO_CESSATO: ["capo", "gruppo_servizio", "unita", "funzione"],
+    CodiceTemplateEmail.NOTA_SPESE_RILIEVO: ["numero", "evento", "motivo", "link"],
+    CodiceTemplateEmail.NOTA_SPESE_APPROVATA: ["numero", "evento", "link"],
+    CodiceTemplateEmail.NOTA_SPESE_RESPINTA: ["numero", "evento", "causale", "link"],
+    CodiceTemplateEmail.NOTA_SPESE_LIQUIDATA: ["numero", "evento", "link"],
 }
 
 
@@ -105,13 +110,48 @@ _CONTESTO_ESEMPIO_STATICO: dict[str, dict[str, str]] = {
         "unita": "H1 BRANCO MISTO",
         "funzione": "Capo unità",
     },
+    CodiceTemplateEmail.NOTA_SPESE_RILIEVO: {
+        "numero": "2027/0012",
+        "evento": "Campo estivo 2027",
+        "motivo": "Manca lo scontrino del pernottamento",
+    },
+    CodiceTemplateEmail.NOTA_SPESE_APPROVATA: {
+        "numero": "2027/0012",
+        "evento": "Campo estivo 2027",
+    },
+    CodiceTemplateEmail.NOTA_SPESE_RESPINTA: {
+        "numero": "2027/0012",
+        "evento": "Campo estivo 2027",
+        "causale": "Documentazione insufficiente",
+    },
+    CodiceTemplateEmail.NOTA_SPESE_LIQUIDATA: {
+        "numero": "2027/0012",
+        "evento": "Campo estivo 2027",
+    },
 }
+
+# Codici la cui variabile "link" punta a una nota spese reale (pk fittizio
+# per l'anteprima): calcolato con reverse() a chiamata, mai nel dict statico
+# sopra, per non eseguire reverse() a import del modulo (stesso motivo per
+# cui INVITO_ATTIVAZIONE ha una funzione dedicata invece di un valore
+# statico).
+_CODICI_CON_LINK_NOTA_SPESE = frozenset(
+    {
+        CodiceTemplateEmail.NOTA_SPESE_RILIEVO,
+        CodiceTemplateEmail.NOTA_SPESE_APPROVATA,
+        CodiceTemplateEmail.NOTA_SPESE_RESPINTA,
+        CodiceTemplateEmail.NOTA_SPESE_LIQUIDATA,
+    }
+)
 
 
 def contesto_esempio(codice: str) -> dict[str, str]:
     if codice == CodiceTemplateEmail.INVITO_ATTIVAZIONE:
         return _contesto_esempio_invito_attivazione()
-    return _CONTESTO_ESEMPIO_STATICO.get(codice, {})
+    contesto = dict(_CONTESTO_ESEMPIO_STATICO.get(codice, {}))
+    if codice in _CODICI_CON_LINK_NOTA_SPESE:
+        contesto["link"] = f"{settings.SITE_URL}{reverse('note_spese:nota_dettaglio', args=[1])}"
+    return contesto
 
 
 def sostituisci_placeholder(testo: str, contesto: dict[str, str]) -> str:

@@ -74,10 +74,15 @@ progettazione, non dati personali).
   - [x] F6e — Vista di verifica con eccezioni (incarico non strutturato, doppioni,
         capienza indicativa) per segreteria/RdZ
   - [x] F6f — Validazione e fusione eventi
-- [ ] F7 — Notifiche e task periodici (richiede la revisione esplicita del vincolo
-      "niente Celery/Redis" in CLAUDE.md prima di iniziare)
+- [ ] F7 — Notifiche e task periodici (deciso di **non** introdurre Celery/Redis: D-63/
+      D-64 useranno lo stesso pattern a loop già in uso per `pulizia-sessioni`, D-17
+      resta valido così com'è)
+  - [x] D-62 — Notifiche puntuali al capo sugli eventi di stato (rilievo, approvata,
+        respinta, liquidata)
+  - [ ] D-63 — Promemoria al capo (settimanale/giornaliero)
+  - [ ] D-64 — Report periodico ai gestori (giorni/orario configurabili)
 - [ ] F8 — PDF ed export
-- [ ] F9 — Replica dei giustificativi su Google Drive (stessa revisione di F7)
+- [ ] F9 — Replica dei giustificativi su Google Drive
 
 ## Gap noti (scoperti in verifica, non da una milestone)
 - [ ] `apps/core/email/microsoft.py` (provider `microsoft_graph`) non è implementato:

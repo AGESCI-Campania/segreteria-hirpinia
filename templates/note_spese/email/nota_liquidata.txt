@@ -1,0 +1,7 @@
+Ciao,
+
+la tua nota spese {{ numero }} ({{ evento }}) è stata liquidata.
+
+Dettagli: {{ link }}
+
+— Catello, AGESCI Zona Hirpinia

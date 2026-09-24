@@ -66,9 +66,11 @@ sintesi, per tenerlo visibile da chi guarda solo questo file.
 | F6d | Transizioni di stato da interfaccia | ✅ completata |
 | F6e | Vista di verifica con eccezioni | ✅ completata |
 | F6f | Validazione e fusione eventi | ✅ completata |
-| F7 | Notifiche e task periodici | ⬜ da fare — richiede revisione esplicita di D-17 (Celery/Redis) |
+| F7 (D-62) | Notifiche puntuali al capo | ✅ completata |
+| F7 (D-63) | Promemoria al capo | ⬜ da fare — pattern a loop, niente Celery/Redis (D-17 confermato) |
+| F7 (D-64) | Report periodico ai gestori | ⬜ da fare — stesso pattern di D-63 |
 | F8 | PDF ed export | ⬜ da fare |
-| F9 | Replica giustificativi su Drive | ⬜ da fare — stessa revisione di F7 |
+| F9 | Replica giustificativi su Drive | ⬜ da fare |
 
 Gap aperto non legato a una fase specifica: `NotaSpese.modalita_pagamento`/
 `data_pagamento`/`riferimento_tracciabilita` (modello da F2) non sono valorizzati da

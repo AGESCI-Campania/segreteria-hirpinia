@@ -15,11 +15,12 @@ from .tema import SCELTE_BRANCA_TEMA
 
 
 class CodiceTemplateEmail(models.TextChoices):
-    """Chiave stabile per ciascuno dei 6 flussi di invio esistenti (M8):
-    corrisponde 1:1 ai punti di invio in `apps/accounts/inviti.py`,
-    `apps/accounts/deleghe.py`, `apps/accounts/signals.py`,
-    `apps/anagrafica/incarichi.py`. Vocabolario chiuso: nessun sesto/settimo
-    valore va aggiunto senza collegarlo a un vero punto di invio."""
+    """Chiave stabile per ciascuno dei flussi di invio esistenti (M8, F7 per
+    i quattro codici `NOTA_SPESE_*`): corrisponde 1:1 ai punti di invio in
+    `apps/accounts/inviti.py`, `apps/accounts/deleghe.py`,
+    `apps/accounts/signals.py`, `apps/anagrafica/incarichi.py`,
+    `apps/note_spese/transizioni.py`. Vocabolario chiuso: nessun valore va
+    aggiunto senza collegarlo a un vero punto di invio."""
 
     INVITO_ATTIVAZIONE = "invito_attivazione", "Invito di attivazione"
     FINE_IMPERSONIFICAZIONE = "fine_impersonificazione", "Fine impersonificazione"
@@ -27,6 +28,10 @@ class CodiceTemplateEmail(models.TextChoices):
     DELEGA_REVOCATA = "delega_revocata", "Delega revocata"
     INCARICO_ASSEGNATO = "incarico_assegnato", "Incarico assegnato"
     INCARICO_CESSATO = "incarico_cessato", "Incarico cessato"
+    NOTA_SPESE_RILIEVO = "nota_spese_rilievo", "Nota spese — rilievo"
+    NOTA_SPESE_APPROVATA = "nota_spese_approvata", "Nota spese — approvata"
+    NOTA_SPESE_RESPINTA = "nota_spese_respinta", "Nota spese — respinta"
+    NOTA_SPESE_LIQUIDATA = "nota_spese_liquidata", "Nota spese — liquidata"
 
 
 class TemplateEmail(models.Model):

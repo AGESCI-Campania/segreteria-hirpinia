@@ -1,10 +1,10 @@
 """Renderer unico degli invii email basati su `TemplateEmail` (M8.3). Punto
 unico da cui i service layer coinvolti (`apps/accounts/inviti.py`,
 `apps/accounts/deleghe.py`, `apps/accounts/signals.py`,
-`apps/anagrafica/incarichi.py`) devono passare invece di chiamare
-`render_to_string`/`send_mail` direttamente. Non sceglie mai il trasporto:
-`EMAIL_PROVIDER` resta l'unico selettore (CLAUDE.md), qui si costruisce solo
-il messaggio."""
+`apps/anagrafica/incarichi.py`, `apps/note_spese/transizioni.py`) devono
+passare invece di chiamare `render_to_string`/`send_mail` direttamente. Non
+sceglie mai il trasporto: `EMAIL_PROVIDER` resta l'unico selettore
+(CLAUDE.md), qui si costruisce solo il messaggio."""
 
 from __future__ import annotations
 
@@ -98,6 +98,22 @@ _FALLBACK: dict[str, tuple[str, str]] = {
     CodiceTemplateEmail.INCARICO_CESSATO: (
         "Segreteria — incarico cessato",
         "anagrafica/email/incarico_cessato.txt",
+    ),
+    CodiceTemplateEmail.NOTA_SPESE_RILIEVO: (
+        "Catello — la tua nota spese ha un rilievo",
+        "note_spese/email/nota_rilievo.txt",
+    ),
+    CodiceTemplateEmail.NOTA_SPESE_APPROVATA: (
+        "Catello — nota spese approvata",
+        "note_spese/email/nota_approvata.txt",
+    ),
+    CodiceTemplateEmail.NOTA_SPESE_RESPINTA: (
+        "Catello — nota spese respinta",
+        "note_spese/email/nota_respinta.txt",
+    ),
+    CodiceTemplateEmail.NOTA_SPESE_LIQUIDATA: (
+        "Catello — nota spese liquidata",
+        "note_spese/email/nota_liquidata.txt",
     ),
 }
 

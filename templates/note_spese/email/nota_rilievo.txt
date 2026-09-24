@@ -1,0 +1,9 @@
+Ciao,
+
+la tua nota spese {{ numero }} ({{ evento }}) ha ricevuto un rilievo:
+
+{{ motivo }}
+
+Per i dettagli e per proseguire: {{ link }}
+
+— Catello, AGESCI Zona Hirpinia
