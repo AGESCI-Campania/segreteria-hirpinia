@@ -93,8 +93,8 @@ M12 ✅ Elenco degli utenti impersonabili + voce di menu                        
 M13 ✅ Rifiniture breadcrumb: icona Home + Template email completo               — indipendente
 M14 ✅ Autocomplete codice socio in "Inserisci partecipazione" (perimetro per ruolo) — indipendente
 M15 ✅ Tipologia partecipazione "Altro (specificare)"                            — indipendente
-M16 ⬜ Validazioni e campi minori (data_fine ≥ data_inizio, luogo opzionale, note) — indipendente
-M17 ⬜ Quota versata obbligatoria con default 51,50€ per CCG/CFM/CFA              — dipende da M15 (stesso form)
+M16 ✅ Validazioni e campi minori (data_fine ≥ data_inizio, luogo opzionale, note) — indipendente
+M17 ✅ Quota versata obbligatoria con default 51,50€ per CCG/CFM/CFA              — dipende da M15 (stesso form)
 ```
 
 M14-M17 nascono dall'unica sezione ancora aperta di `docs/TODO.md`, "Modulo contributo
