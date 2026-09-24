@@ -1,9 +1,10 @@
-"""Form di F6c (creazione nota, evento, riga documentale) e F6d (transizioni
-che richiedono un input: respingimento, rilievo, liquidazione). Le regole di
-dominio vere e proprie (perimetro D-36, D-45, D-50, permessi delle
-transizioni) restano nel service layer (`creazione.py`/`transizioni.py`):
-questi form validano solo forma e presenza dei campi, mai una seconda copia
-della logica."""
+"""Form di F6c (creazione nota, evento, riga documentale), F6d (transizioni
+che richiedono un input: respingimento, rilievo, liquidazione) e F6f
+(fusione eventi). Le regole di dominio vere e proprie (perimetro D-36, D-45,
+D-50, permessi delle transizioni, permessi di fusione D-49) restano nel
+service layer (`creazione.py`/`transizioni.py`/`eventi.py`): questi form
+validano solo forma e presenza dei campi, mai una seconda copia della
+logica."""
 
 from __future__ import annotations
 
@@ -162,3 +163,18 @@ class RilievoNotaForm(forms.Form):
 
 class LiquidaNotaForm(forms.Form):
     anno_liquidazione = forms.IntegerField(label="Anno di liquidazione", min_value=2000)
+
+
+class EventoFondiForm(forms.Form):
+    """F6f: la queryset esclude sempre l'evento di origine — `fondi_eventi()`
+    blocca comunque origine==destinazione, ma non ha senso proporlo come
+    opzione selezionabile."""
+
+    destinazione = forms.ModelChoiceField(queryset=Evento.objects.none(), label="Fondi in")
+
+    def __init__(self, *args, origine=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        queryset = Evento.objects.all().order_by("-data_inizio")
+        if origine is not None:
+            queryset = queryset.exclude(pk=origine.pk)
+        self.fields["destinazione"].queryset = queryset

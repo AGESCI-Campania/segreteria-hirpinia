@@ -1,6 +1,6 @@
-"""Fusione degli eventi (D-49): operazione transazionale nel service layer,
+"""Validazione e fusione degli eventi (D-49): operazioni nel service layer,
 mai una sequenza di update da view — un'eventuale API futura deve chiamare
-questa stessa funzione (D-69).
+queste stesse funzioni (D-69).
 
 Il tracciamento in auditlog di "evento di origine e destinazione" non
 richiede una scrittura manuale di `LogEntry`: `NotaSpese` è già registrata
@@ -20,6 +20,18 @@ from apps.accounts.models import Utente
 
 from .models import Evento, NotaSpese
 from .permessi import puo_gestire_note
+
+
+def valida_evento(evento: Evento, utente: Utente) -> Evento:
+    """D-49: chi gestisce le note valida un evento creato da un capo. Non è
+    una macchina a stati (niente `@transition`, `validato` è un semplice
+    booleano) — idempotente, rivalidare un evento già validato non è un
+    errore."""
+    if not puo_gestire_note(utente):
+        raise PermissionDenied("Solo chi gestisce le note può validare un evento (D-49).")
+    evento.validato = True
+    evento.save(update_fields=["validato"])
+    return evento
 
 
 def fondi_eventi(origine: Evento, destinazione: Evento, utente: Utente) -> list[NotaSpese]:

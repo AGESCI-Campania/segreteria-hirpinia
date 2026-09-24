@@ -1,13 +1,15 @@
 """Viste di F6b (sola lettura: elenco, dettaglio, download giustificativi),
 F6c (creazione nota/evento/riga documentale), F6d (transizioni FSM da
-interfaccia) e F6e (vista di verifica con eccezioni per segreteria/RdZ). Il
-perimetro è sempre quello di `note_visibili()`/`allegato_visibile()` (D-66) o
-delle funzioni di `creazione.py`/`transizioni.py`, mai un controllo di ruolo
+interfaccia), F6e (vista di verifica con eccezioni per segreteria/RdZ) e F6f
+(validazione/fusione eventi). Il perimetro è sempre quello di
+`note_visibili()`/`allegato_visibile()` (D-66) o delle funzioni di
+`creazione.py`/`transizioni.py`/`eventi.py`, mai un controllo di ruolo
 diretto qui: un capo qualsiasi deve poter accedere alle proprie note, i
 permessi di ogni transizione restano `transizioni.py::_richiedi_permesso_*`.
-`NotaVerificaListaView` è l'eccezione dichiarata: è riservata a chi gestisce
-le note, quindi il controllo di ruolo è nella view stessa (nessuna funzione
-di dominio da riusare, non è un'azione sui dati di una singola nota)."""
+`NotaVerificaListaView` e le viste sugli eventi sono l'eccezione dichiarata:
+sono riservate a chi gestisce le note, quindi il controllo di ruolo è nella
+view stessa (nessuna funzione di dominio da riusare, non sono un'azione sui
+dati di una singola nota)."""
 
 from __future__ import annotations
 
@@ -34,7 +36,9 @@ from .creazione import (
     duplica_riga_andata_ritorno,
     verifica_nota_modificabile,
 )
+from .eventi import fondi_eventi, valida_evento
 from .forms import (
+    EventoFondiForm,
     EventoForm,
     LiquidaNotaForm,
     NotaCreaForm,
@@ -45,7 +49,14 @@ from .forms import (
     RilievoNotaForm,
 )
 from .iban import maschera_iban
-from .models import Allegato, AutorizzazioneRdzConfig, ImpostazioniNoteSpese, Localita, StatoNota
+from .models import (
+    Allegato,
+    AutorizzazioneRdzConfig,
+    Evento,
+    ImpostazioniNoteSpese,
+    Localita,
+    StatoNota,
+)
 from .permessi import (
     e_beneficiario_della_nota,
     e_compilatore_della_nota,
@@ -71,10 +82,9 @@ from .visibilita import allegato_visibile, note_visibili
 
 
 class RichiedeGestioneNoteMixin(LoginRequiredMixin, UserPassesTestMixin):
-    """F6e: a differenza delle altre viste del modulo, qui il controllo di
-    ruolo sta nella view stessa — `note_in_verifica()` non ha un perimetro
-    "capo vs gestione" come `note_visibili()`, è pensata solo per chi
-    verifica."""
+    """F6e/F6f: a differenza delle altre viste del modulo, qui il controllo
+    di ruolo sta nella view stessa — non ha un perimetro "capo vs gestione"
+    come `note_visibili()`, sono pensate solo per chi gestisce le note."""
 
     request: HttpRequest
 
@@ -251,6 +261,78 @@ class EventoCreaView(LoginRequiredMixin, View):
         evento.save()
         messages.success(request, "Evento creato, in attesa di validazione.")
         return redirect(reverse("note_spese:nota_crea"))
+
+
+class EventoListaView(RichiedeGestioneNoteMixin, ListView):
+    """F6f: elenco di tutti gli eventi per chi gestisce le note, con badge
+    "non validato" e i comandi di validazione/modifica/fusione (D-49)."""
+
+    template_name = "note_spese/evento_lista.html"
+    context_object_name = "eventi"
+
+    def get_queryset(self):
+        return Evento.objects.all()
+
+
+class EventoValidaView(RichiedeGestioneNoteMixin, View):
+    def post(self, request, pk):
+        evento = get_object_or_404(Evento, pk=pk)
+        valida_evento(evento, request.user)
+        messages.success(request, "Evento validato.")
+        return redirect(reverse("note_spese:evento_lista"))
+
+
+class EventoModificaView(RichiedeGestioneNoteMixin, View):
+    """D-49: correzione di un evento (nome/date), non una transizione FSM —
+    stesso `EventoForm` già usato in creazione."""
+
+    template_name = "note_spese/evento_modifica.html"
+
+    def get(self, request, pk):
+        evento = get_object_or_404(Evento, pk=pk)
+        form = EventoForm(instance=evento)
+        return render(request, self.template_name, {"form": form, "evento": evento})
+
+    def post(self, request, pk):
+        evento = get_object_or_404(Evento, pk=pk)
+        form = EventoForm(request.POST, instance=evento)
+        if not form.is_valid():
+            return render(request, self.template_name, {"form": form, "evento": evento})
+        form.save()
+        messages.success(request, "Evento aggiornato.")
+        return redirect(reverse("note_spese:evento_lista"))
+
+
+class EventoFondiView(RichiedeGestioneNoteMixin, View):
+    """D-49: fonde `pk` (origine) in un altro evento a scelta — tutte le
+    note di origine passano alla destinazione, origine viene eliminato."""
+
+    template_name = "note_spese/evento_fondi.html"
+
+    def get(self, request, pk):
+        origine = get_object_or_404(Evento, pk=pk)
+        form = EventoFondiForm(origine=origine)
+        return render(
+            request,
+            self.template_name,
+            {"form": form, "origine": origine, "n_note": origine.note_spese.count()},
+        )
+
+    def post(self, request, pk):
+        origine = get_object_or_404(Evento, pk=pk)
+        form = EventoFondiForm(request.POST, origine=origine)
+        contesto = {"form": form, "origine": origine, "n_note": origine.note_spese.count()}
+        if not form.is_valid():
+            return render(request, self.template_name, contesto)
+
+        try:
+            note_spostate = fondi_eventi(origine, form.cleaned_data["destinazione"], request.user)
+        except (PermissionDenied, ValidationError) as exc:
+            _applica_errori(form, exc)
+            return render(request, self.template_name, contesto)
+
+        messages.success(request, f"Eventi fusi: {len(note_spostate)} nota/e spostata/e.")
+        return redirect(reverse("note_spese:evento_lista"))
 
 
 class RigaCreaView(LoginRequiredMixin, View):
