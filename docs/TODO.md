@@ -51,9 +51,42 @@ Questo è un elenco di modifiche da fare aggiornato man mano che vanno avanti i 
   - [x] "Quota versata" è obbligatorio, ma con le tipologie CCG, CFM e CFA viene inzializzato a 51,50€ → M17
   - [x] Serve un campo "Note" dove inserire note libere → M16
 
+## Modulo Nota Spese
+
+Sviluppato sul branch `nota-spese`, fuori dal ciclo di beta test che ha generato le
+sezioni sopra: pianificato in `docs/piano-sviluppo-todo.md`, dettaglio completo per
+sottofase in `docs/ignored/PLAN-nota-spese.md` (non versionato: contiene decisioni di
+progettazione, non dati personali).
+
+- [x] F1 — Anagrafiche di base (categorie di spesa, centri di costo, impostazioni)
+- [x] F2 — Modello della nota e delle righe di spesa
+- [x] F3 — Macchina a stati (bozza → invio → verifica → approvazione → autorizzazione
+      RdZ → liquidazione, con rilievi/integrazioni/correzioni e respingimento)
+- [x] F4 — Calcolo del rimborso chilometrico (routing, geocoding, anti-doppione)
+- [x] F5 — Giustificativi (upload con limiti/formati, conversione HEIC, cancellazione
+      soft/reale)
+- [x] F6 — Interfaccia:
+  - [x] F6a — Fondamenta (visibilità, eventi)
+  - [x] F6b — Elenco, dettaglio, download giustificativi
+  - [x] F6c — Creazione nota e righe (documentali, chilometriche, duplicazione
+        andata/ritorno)
+  - [x] F6d — Transizioni di stato da interfaccia
+  - [x] F6e — Vista di verifica con eccezioni (incarico non strutturato, doppioni,
+        capienza indicativa) per segreteria/RdZ
+  - [x] F6f — Validazione e fusione eventi
+- [ ] F7 — Notifiche e task periodici (richiede la revisione esplicita del vincolo
+      "niente Celery/Redis" in CLAUDE.md prima di iniziare)
+- [ ] F8 — PDF ed export
+- [ ] F9 — Replica dei giustificativi su Google Drive (stessa revisione di F7)
+
 ## Gap noti (scoperti in verifica, non da una milestone)
 - [ ] `apps/core/email/microsoft.py` (provider `microsoft_graph`) non è implementato:
   `apps/core/email/gmail.py` esiste ed è testato (implementato durante il deploy di
   produzione del 2026-09-05, sbloccando un 500 al login dovuto proprio a questo gap),
   ma il backend Microsoft Graph resta solo documentato in `docs/email/microsoft-graph.md`
   — selezionare `EMAIL_PROVIDER=microsoft_graph` oggi fa fallire l'app all'avvio.
+- [ ] Modulo Nota Spese: `NotaSpese.modalita_pagamento`/`data_pagamento`/
+  `riferimento_tracciabilita` esistono sul modello da F2 ma nessun percorso li
+  valorizza ancora — scoperto verificando F6d a schermo (il dettaglio di una nota
+  liquidata mostrava "Liquidata il None"). Da chiarire con Andrea se è scopo v1 prima
+  di scriverci codice.

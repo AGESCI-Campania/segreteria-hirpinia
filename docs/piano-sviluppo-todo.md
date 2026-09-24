@@ -46,6 +46,34 @@ Ogni milestone è mergeable e verificabile da sola.
 Legenda: ✅ completata — 🔄 in corso — ⬜ da fare. Dettaglio per milestone nella
 tabella "Riepilogo difficoltà" in fondo al documento.
 
+## Modulo Nota Spese (fuori dallo schema M1-M18)
+
+Sviluppato sul branch `nota-spese`, non derivato da una richiesta di `docs/TODO.md`:
+numerazione propria F1-F9, dettaglio per sottofase in `docs/ignored/PLAN-nota-spese.md`
+(non versionato, decisioni di progettazione senza dati personali). Qui solo lo stato di
+sintesi, per tenerlo visibile da chi guarda solo questo file.
+
+| Fase | Contenuto | Stato |
+| --- | --- | --- |
+| F1 | Anagrafiche di base | ✅ completata |
+| F2 | Modello della nota e delle righe | ✅ completata |
+| F3 | Macchina a stati | ✅ completata |
+| F4 | Calcolo del rimborso chilometrico | ✅ completata |
+| F5 | Giustificativi | ✅ completata |
+| F6a | Fondamenta (visibilità, eventi) | ✅ completata |
+| F6b | Elenco, dettaglio, download | ✅ completata |
+| F6c | Creazione nota e righe | ✅ completata |
+| F6d | Transizioni di stato da interfaccia | ✅ completata |
+| F6e | Vista di verifica con eccezioni | ✅ completata |
+| F6f | Validazione e fusione eventi | ✅ completata |
+| F7 | Notifiche e task periodici | ⬜ da fare — richiede revisione esplicita di D-17 (Celery/Redis) |
+| F8 | PDF ed export | ⬜ da fare |
+| F9 | Replica giustificativi su Drive | ⬜ da fare — stessa revisione di F7 |
+
+Gap aperto non legato a una fase specifica: `NotaSpese.modalita_pagamento`/
+`data_pagamento`/`riferimento_tracciabilita` (modello da F2) non sono valorizzati da
+nessun percorso — vedi `docs/TODO.md`, sezione "Gap noti".
+
 ## Mappa di dipendenza fra le milestone
 
 ```
