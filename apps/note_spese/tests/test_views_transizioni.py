@@ -196,11 +196,45 @@ class TestFlussoCompleto:
         assert nota_bozza.stato == StatoNota.AUTORIZZATA_RDZ
 
         client.force_login(segreteria)
-        response = client.post(_url("liquida", nota_bozza.pk), {"anno_liquidazione": 2027})
+        response = client.post(
+            _url("liquida", nota_bozza.pk),
+            {
+                "anno_liquidazione": 2027,
+                "modalita_pagamento": "CONTANTI",
+                "data_pagamento": "2027-10-01",
+            },
+        )
         assert response.status_code == 302
         nota_bozza.refresh_from_db()
         assert nota_bozza.stato == StatoNota.LIQUIDATA
         assert nota_bozza.anno_contabilizzazione == 2027
+        assert nota_bozza.modalita_pagamento == "CONTANTI"
+        assert nota_bozza.data_pagamento == datetime.date(2027, 10, 1)
+
+    def test_liquida_bonifico_senza_riferimento_e_bloccante(
+        self, client, capo_utente, segreteria, rdz, nota_bozza
+    ) -> None:
+        client.force_login(capo_utente)
+        client.post(_url("invia", nota_bozza.pk))
+        client.force_login(segreteria)
+        client.post(_url("prendi-in-carico", nota_bozza.pk))
+        client.post(_url("approva", nota_bozza.pk))
+        client.force_login(rdz)
+        client.post(_url("autorizza-rdz", nota_bozza.pk))
+
+        client.force_login(segreteria)
+        response = client.post(
+            _url("liquida", nota_bozza.pk),
+            {
+                "anno_liquidazione": 2027,
+                "modalita_pagamento": "BONIFICO",
+                "data_pagamento": "2027-10-01",
+            },
+        )
+        assert response.status_code == 200
+        assert "riferimento_tracciabilita" in response.context["form"].errors
+        nota_bozza.refresh_from_db()
+        assert nota_bozza.stato == StatoNota.AUTORIZZATA_RDZ
 
     def test_capo_non_puo_approvare(self, client, capo_utente, segreteria, nota_bozza) -> None:
         client.force_login(capo_utente)

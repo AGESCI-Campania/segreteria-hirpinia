@@ -693,7 +693,12 @@ class NotaLiquidaView(LoginRequiredMixin, View):
 
     def get(self, request, pk):
         nota = get_object_or_404(note_visibili(request.user), pk=pk)
-        form = LiquidaNotaForm(initial={"anno_liquidazione": timezone.now().year})
+        form = LiquidaNotaForm(
+            initial={
+                "anno_liquidazione": timezone.now().year,
+                "data_pagamento": timezone.now().date(),
+            }
+        )
         return render(request, self.template_name, {"nota": nota, "form": form})
 
     def post(self, request, pk):
@@ -704,7 +709,14 @@ class NotaLiquidaView(LoginRequiredMixin, View):
             return render(request, self.template_name, contesto)
 
         try:
-            liquida(nota, request.user, anno_liquidazione=form.cleaned_data["anno_liquidazione"])
+            liquida(
+                nota,
+                request.user,
+                anno_liquidazione=form.cleaned_data["anno_liquidazione"],
+                modalita_pagamento=form.cleaned_data["modalita_pagamento"],
+                data_pagamento=form.cleaned_data["data_pagamento"],
+                riferimento_tracciabilita=form.cleaned_data["riferimento_tracciabilita"],
+            )
         except (PermissionDenied, ValidationError) as exc:
             _applica_errori(form, exc)
             return render(request, self.template_name, contesto)

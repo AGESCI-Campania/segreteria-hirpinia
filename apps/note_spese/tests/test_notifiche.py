@@ -8,7 +8,13 @@ from django.core import mail
 
 from apps.accounts.models import Ruolo, TipoUtente, Utente
 from apps.anagrafica.models import Capo
-from apps.note_spese.models import CategoriaSpesa, Evento, NotaSpese, RigaSpesa
+from apps.note_spese.models import (
+    CategoriaSpesa,
+    Evento,
+    ModalitaPagamento,
+    NotaSpese,
+    RigaSpesa,
+)
 from apps.note_spese.transizioni import (
     approva,
     invia_nota,
@@ -163,7 +169,13 @@ class TestNotificaLiquidazione:
         nota = approva(nota, segreteria)
         mail.outbox.clear()
 
-        liquida(nota, segreteria, anno_liquidazione=2027)
+        liquida(
+            nota,
+            segreteria,
+            anno_liquidazione=2027,
+            modalita_pagamento=ModalitaPagamento.CONTANTI,
+            data_pagamento=datetime.date(2027, 10, 1),
+        )
 
         assert len(mail.outbox) == 1
         assert str(nota.numero) in mail.outbox[0].body

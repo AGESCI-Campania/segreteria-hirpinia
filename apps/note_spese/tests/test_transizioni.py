@@ -17,6 +17,7 @@ from apps.note_spese.models import (
     CopiaDrive,
     Evento,
     ImpostazioniNoteSpese,
+    ModalitaPagamento,
     NotaSpese,
     RigaSpesa,
     StatoNota,
@@ -209,7 +210,13 @@ class TestFlussoCompletoSenzaAutorizzazioneRdz:
         assert nota.stato == StatoNota.IN_VERIFICA
         nota = approva(nota, segreteria)
         assert nota.stato == StatoNota.APPROVATA
-        nota = liquida(nota, segreteria, anno_liquidazione=2027)
+        nota = liquida(
+            nota,
+            segreteria,
+            anno_liquidazione=2027,
+            modalita_pagamento=ModalitaPagamento.CONTANTI,
+            data_pagamento=datetime.date(2027, 10, 1),
+        )
         assert nota.stato == StatoNota.LIQUIDATA
         assert nota.anno_contabilizzazione == 2027
 
@@ -219,7 +226,13 @@ class TestFlussoCompletoSenzaAutorizzazioneRdz:
         nota = invia_nota(nota_con_riga, capo_utente)
         nota = prendi_in_carico(nota, segreteria)
         nota = approva(nota, segreteria)
-        nota = liquida(nota, segreteria, anno_liquidazione=2027)
+        nota = liquida(
+            nota,
+            segreteria,
+            anno_liquidazione=2027,
+            modalita_pagamento=ModalitaPagamento.CONTANTI,
+            data_pagamento=datetime.date(2027, 10, 1),
+        )
         with pytest.raises(TransitionNotAllowed):
             nota.liquida()
 
@@ -236,7 +249,13 @@ class TestFlussoCompletoSenzaAutorizzazioneRdz:
         nota = prendi_in_carico(nota, segreteria)
         nota = approva(nota, segreteria)
 
-        nota = liquida(nota, segreteria, anno_liquidazione=2027)
+        nota = liquida(
+            nota,
+            segreteria,
+            anno_liquidazione=2027,
+            modalita_pagamento=ModalitaPagamento.CONTANTI,
+            data_pagamento=datetime.date(2027, 10, 1),
+        )
 
         assert CopiaDrive.objects.filter(nota=nota).exists()
 
@@ -249,7 +268,13 @@ class TestFlussoCompletoSenzaAutorizzazioneRdz:
         nota = prendi_in_carico(nota, segreteria)
         nota = approva(nota, segreteria)
 
-        nota = liquida(nota, segreteria, anno_liquidazione=2027)
+        nota = liquida(
+            nota,
+            segreteria,
+            anno_liquidazione=2027,
+            modalita_pagamento=ModalitaPagamento.CONTANTI,
+            data_pagamento=datetime.date(2027, 10, 1),
+        )
 
         assert not CopiaDrive.objects.filter(nota=nota).exists()
 
@@ -271,7 +296,13 @@ class TestFlussoCompletoSenzaAutorizzazioneRdz:
         nota = prendi_in_carico(nota, segreteria)
         nota = approva(nota, segreteria)
         with caplog.at_level("WARNING"):
-            nota = liquida(nota, segreteria, anno_liquidazione=2027)
+            nota = liquida(
+                nota,
+                segreteria,
+                anno_liquidazione=2027,
+                modalita_pagamento=ModalitaPagamento.CONTANTI,
+                data_pagamento=datetime.date(2027, 10, 1),
+            )
 
         assert nota.stato == StatoNota.LIQUIDATA
         assert any("sfora il budget" in messaggio for messaggio in caplog.messages)
@@ -294,7 +325,13 @@ class TestFlussoCompletoSenzaAutorizzazioneRdz:
         nota = prendi_in_carico(nota, segreteria)
         nota = approva(nota, segreteria)
         with caplog.at_level("WARNING"):
-            nota = liquida(nota, segreteria, anno_liquidazione=2027)
+            nota = liquida(
+                nota,
+                segreteria,
+                anno_liquidazione=2027,
+                modalita_pagamento=ModalitaPagamento.CONTANTI,
+                data_pagamento=datetime.date(2027, 10, 1),
+            )
 
         assert nota.stato == StatoNota.LIQUIDATA
         assert caplog.messages == []
@@ -430,7 +467,13 @@ class TestAutorizzazioneRdzDoppia:
         nota = prendi_in_carico(nota, segreteria)
         nota = approva(nota, segreteria)
         with pytest.raises(ValidationError):
-            liquida(nota, segreteria, anno_liquidazione=2027)
+            liquida(
+                nota,
+                segreteria,
+                anno_liquidazione=2027,
+                modalita_pagamento=ModalitaPagamento.CONTANTI,
+                data_pagamento=datetime.date(2027, 10, 1),
+            )
 
 
 class TestAutorizzazioneRdzGenereNonRiconosciuto:
@@ -512,7 +555,13 @@ class TestImputaCentroCosto:
         nota = invia_nota(nota, capo_utente)
         nota = prendi_in_carico(nota, segreteria)
         nota = approva(nota, segreteria)
-        nota = liquida(nota, segreteria, anno_liquidazione=2027)
+        nota = liquida(
+            nota,
+            segreteria,
+            anno_liquidazione=2027,
+            modalita_pagamento=ModalitaPagamento.CONTANTI,
+            data_pagamento=datetime.date(2027, 10, 1),
+        )
 
         altro_centro = CentroCosto.objects.create(nome="Altra zona")
         with pytest.raises(ValidationError):

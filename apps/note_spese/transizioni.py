@@ -12,6 +12,7 @@ irraggiungibile."""
 from __future__ import annotations
 
 import logging
+from datetime import date
 from decimal import Decimal
 
 from django.conf import settings
@@ -277,14 +278,25 @@ def autorizza_rdz(nota: NotaSpese, utente: Utente) -> NotaSpese:
 
 
 @transaction.atomic
-def liquida(nota: NotaSpese, utente: Utente, *, anno_liquidazione: int) -> NotaSpese:
+def liquida(
+    nota: NotaSpese,
+    utente: Utente,
+    *,
+    anno_liquidazione: int,
+    modalita_pagamento: str,
+    data_pagamento: date,
+    riferimento_tracciabilita: str = "",
+) -> NotaSpese:
     """D-40: transizione terminale. D-41: unico punto che valorizza
     `anno_contabilizzazione` — mai altrove. D-47/D-48: qui si consuma il
     budget del centro di costo imputato (mai un errore bloccante se
     sforato, solo un log — deciso con Andrea, 2026-09-16). D-59: mette in
     coda la replica su Drive (`enqueue_copie_drive()`, F9) — solo scrittura
     su database, nessuna chiamata di rete qui: un Drive lento o
-    irraggiungibile non deve mai bloccare questa transizione."""
+    irraggiungibile non deve mai bloccare questa transizione. Unico punto
+    che valorizza modalità/data/riferimento di pagamento (§ riquadro
+    liquidazione del PDF, D-67): chi liquida li fornisce qui, nessun altro
+    percorso li scrive."""
     _richiedi_permesso_gestione(utente)
     config = ImpostazioniNoteSpese.corrente().autorizzazione_rdz
     if config != AutorizzazioneRdzConfig.NESSUNA and nota.stato != StatoNota.AUTORIZZATA_RDZ:
@@ -292,6 +304,9 @@ def liquida(nota: NotaSpese, utente: Utente, *, anno_liquidazione: int) -> NotaS
             "La nota deve prima ricevere l'autorizzazione RdZ configurata (D-35)."
         )
     nota.anno_contabilizzazione = anno_liquidazione
+    nota.modalita_pagamento = modalita_pagamento
+    nota.data_pagamento = data_pagamento
+    nota.riferimento_tracciabilita = riferimento_tracciabilita
     nota.liquida()
     nota.save()
 

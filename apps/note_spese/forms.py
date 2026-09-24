@@ -23,6 +23,7 @@ from .models import (
     GiornoSettimana,
     ImpostazioniNoteSpese,
     Localita,
+    ModalitaPagamento,
     RigaSpesa,
     TipoCalcolo,
 )
@@ -173,7 +174,33 @@ class RilievoNotaForm(forms.Form):
 
 
 class LiquidaNotaForm(forms.Form):
+    """D-67 (§ riquadro liquidazione): modalità/data/estremi di tracciabilità
+    sono valorizzati qui, da chi liquida (segreteria/RdZ/admin) — nessun
+    percorso li valorizzava prima, il PDF li mostrava vuoti."""
+
     anno_liquidazione = forms.IntegerField(label="Anno di liquidazione", min_value=2000)
+    modalita_pagamento = forms.ChoiceField(
+        label="Modalità di pagamento", choices=ModalitaPagamento.choices
+    )
+    data_pagamento = forms.DateField(
+        label="Data di pagamento", widget=forms.DateInput(attrs={"type": "date"})
+    )
+    riferimento_tracciabilita = forms.CharField(
+        label="Riferimento di tracciabilità",
+        required=False,
+        help_text="Es. CRO del bonifico. Obbligatorio se la modalità è bonifico.",
+    )
+
+    def clean(self):
+        dati = super().clean()
+        if dati.get("modalita_pagamento") == ModalitaPagamento.BONIFICO and not dati.get(
+            "riferimento_tracciabilita"
+        ):
+            self.add_error(
+                "riferimento_tracciabilita",
+                "Obbligatorio per la modalità di pagamento bonifico.",
+            )
+        return dati
 
 
 class EventoFondiForm(forms.Form):

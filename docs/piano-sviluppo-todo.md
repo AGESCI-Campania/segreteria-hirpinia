@@ -71,7 +71,7 @@ sintesi, per tenerlo visibile da chi guarda solo questo file.
 | F7 (D-64) | Report periodico ai gestori | ✅ completata |
 | F8 (D-68) | Servizio unico di esportazione | ✅ completata |
 | F8 (D-67) | PDF della nota (corpo + giustificativi in coda) | ✅ completata |
-| F9 | Replica giustificativi su Drive | 🔄 codice completo, verifica con Drive reale in sospeso (serve il Drive condiviso configurato, V-8) |
+| F9 | Replica giustificativi su Drive | ✅ verificato con Drive condiviso reale (V-8 configurato) |
 
 Gap aperto non legato a una fase specifica: `NotaSpese.modalita_pagamento`/
 `data_pagamento`/`riferimento_tracciabilita` (modello da F2) non sono valorizzati da

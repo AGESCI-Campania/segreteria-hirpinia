@@ -88,8 +88,8 @@ progettazione, non dati personali).
   - [x] D-67 — PDF della nota, corpo + giustificativi in coda uno per pagina (nuova
         dipendenza `pypdf` per unire PDF/immagini al documento generato)
 - [x] F9 — Replica dei giustificativi su Google Drive (codice completo, tracciamento
-      per-file, riconciliazione periodica; **verifica con Drive reale in sospeso**
-      finché il Drive condiviso non è configurato — vedi `docs/drive/service-account.md`)
+      per-file, riconciliazione periodica; verificato con Drive condiviso reale — V-8
+      configurato, vedi `docs/drive/service-account.md`)
 
 ## Gap noti (scoperti in verifica, non da una milestone)
 - [ ] `apps/core/email/microsoft.py` (provider `microsoft_graph`) non è implementato:
@@ -97,8 +97,9 @@ progettazione, non dati personali).
   produzione del 2026-09-05, sbloccando un 500 al login dovuto proprio a questo gap),
   ma il backend Microsoft Graph resta solo documentato in `docs/email/microsoft-graph.md`
   — selezionare `EMAIL_PROVIDER=microsoft_graph` oggi fa fallire l'app all'avvio.
-- [ ] Modulo Nota Spese: `NotaSpese.modalita_pagamento`/`data_pagamento`/
-  `riferimento_tracciabilita` esistono sul modello da F2 ma nessun percorso li
-  valorizza ancora — scoperto verificando F6d a schermo (il dettaglio di una nota
-  liquidata mostrava "Liquidata il None"). Da chiarire con Andrea se è scopo v1 prima
-  di scriverci codice.
+- [x] Modulo Nota Spese: `NotaSpese.modalita_pagamento`/`data_pagamento`/
+  `riferimento_tracciabilita` — scoperto verificando F6d a schermo (il dettaglio di una
+  nota liquidata mostrava "Liquidata il None"). Risolto: chi liquida
+  (segreteria/RdZ/admin) li compila nel modulo di liquidazione
+  (`LiquidaNotaForm`/`transizioni.py::liquida()`); `riferimento_tracciabilita` è
+  obbligatorio solo per la modalità bonifico.
