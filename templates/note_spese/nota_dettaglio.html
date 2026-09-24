@@ -96,7 +96,11 @@
       {% if nota.iban %} — IBAN {{ iban_mascherato }}{% endif %}
     </li>
     {% if nota.stato == "LIQUIDATA" %}
-      <li>Liquidata il {{ nota.data_pagamento }} — riferimento: {{ nota.riferimento_tracciabilita }}</li>
+      <li>
+        Liquidata
+        {% if nota.data_pagamento %}il {{ nota.data_pagamento }}{% endif %}
+        {% if nota.riferimento_tracciabilita %}— riferimento: {{ nota.riferimento_tracciabilita }}{% endif %}
+      </li>
     {% endif %}
     {% if nota.causale_respinta %}
       <li>Motivo del respingimento: {{ nota.causale_respinta }}</li>
