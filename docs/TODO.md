@@ -74,14 +74,15 @@ progettazione, non dati personali).
   - [x] F6e — Vista di verifica con eccezioni (incarico non strutturato, doppioni,
         capienza indicativa) per segreteria/RdZ
   - [x] F6f — Validazione e fusione eventi
-- [ ] F7 — Notifiche e task periodici (deciso di **non** introdurre Celery/Redis: D-63/
-      D-64 useranno lo stesso pattern a loop già in uso per `pulizia-sessioni`, D-17
-      resta valido così com'è)
+- [x] F7 — Notifiche e task periodici (deciso di **non** introdurre Celery/Redis: D-63/
+      D-64 usano lo stesso pattern a loop già in uso per `pulizia-sessioni`, D-17 resta
+      valido così com'è)
   - [x] D-62 — Notifiche puntuali al capo sugli eventi di stato (rilievo, approvata,
         respinta, liquidata)
   - [x] D-63 — Promemoria al capo (settimanale il lunedì, giornaliero dal 16 al 30
         settembre)
-  - [ ] D-64 — Report periodico ai gestori (giorni/orario configurabili)
+  - [x] D-64 — Report periodico ai gestori (giorni/orario configurabili da interfaccia,
+        prima pagina Impostazioni del modulo — prima solo Django admin)
 - [ ] F8 — PDF ed export
 - [ ] F9 — Replica dei giustificativi su Google Drive
 

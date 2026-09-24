@@ -2,8 +2,9 @@
 unico da cui i service layer coinvolti (`apps/accounts/inviti.py`,
 `apps/accounts/deleghe.py`, `apps/accounts/signals.py`,
 `apps/anagrafica/incarichi.py`, `apps/note_spese/transizioni.py`,
-`apps/note_spese/promemoria.py`) devono passare invece di chiamare
-`render_to_string`/`send_mail` direttamente. Non
+`apps/note_spese/promemoria.py`, `apps/note_spese/report_gestori.py`)
+devono passare invece di chiamare `render_to_string`/`send_mail`
+direttamente. Non
 sceglie mai il trasporto: `EMAIL_PROVIDER` resta l'unico selettore
 (CLAUDE.md), qui si costruisce solo il messaggio."""
 
@@ -119,6 +120,10 @@ _FALLBACK: dict[str, tuple[str, str]] = {
     CodiceTemplateEmail.NOTA_SPESE_PROMEMORIA: (
         "Catello — hai note spese in sospeso",
         "note_spese/email/nota_promemoria.txt",
+    ),
+    CodiceTemplateEmail.NOTA_SPESE_REPORT_GESTORI: (
+        "Catello — report note spese in sospeso",
+        "note_spese/email/nota_report_gestori.txt",
     ),
 }
 

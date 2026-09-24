@@ -235,12 +235,12 @@ class TestAuditlog:
 
 class TestLista:
     def test_lista_mostra_tutti_i_template(self, client, segreteria):
-        """6 dei flussi originali di M8 + 5 introdotti da F7 per il modulo
-        Nota Spese (D-62/D-63)."""
+        """6 dei flussi originali di M8 + 6 introdotti da F7 per il modulo
+        Nota Spese (D-62/D-63/D-64)."""
         client.force_login(segreteria)
         response = client.get("/impostazioni/template-email/")
         assert response.status_code == 200
-        assert len(response.context["template_email"]) == 11
+        assert len(response.context["template_email"]) == 12
 
     def test_lista_ha_link_di_ritorno_a_impostazioni(self, client, segreteria):
         client.force_login(segreteria)

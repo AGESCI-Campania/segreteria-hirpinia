@@ -56,6 +56,12 @@ VARIABILI_PER_CODICE: dict[str, list[str]] = {
     CodiceTemplateEmail.NOTA_SPESE_RESPINTA: ["numero", "evento", "causale", "link"],
     CodiceTemplateEmail.NOTA_SPESE_LIQUIDATA: ["numero", "evento", "link"],
     CodiceTemplateEmail.NOTA_SPESE_PROMEMORIA: ["elenco", "elenco_html", "link"],
+    CodiceTemplateEmail.NOTA_SPESE_REPORT_GESTORI: [
+        "numero_note",
+        "elenco",
+        "elenco_html",
+        "link",
+    ],
 }
 
 
@@ -139,6 +145,21 @@ _CONTESTO_ESEMPIO_STATICO: dict[str, dict[str, str]] = {
             "<li>2027/0009 (Uscita di reparto) — Da integrare</li></ul>"
         ),
     },
+    CodiceTemplateEmail.NOTA_SPESE_REPORT_GESTORI: {
+        "numero_note": "3",
+        "elenco": (
+            "- (bozza) (Campo estivo 2027) — Mario Rossi — Bozza\n"
+            "- 2027/0009 (Uscita di reparto) — Luigi Bianchi — Da integrare\n"
+            "- 2027/0011 (Campo invernale) — Anna Verdi — In verifica"
+        ),
+        "elenco_html": (
+            "<ul>"
+            "<li>(bozza) (Campo estivo 2027) — Mario Rossi — Bozza</li>"
+            "<li>2027/0009 (Uscita di reparto) — Luigi Bianchi — Da integrare</li>"
+            "<li>2027/0011 (Campo invernale) — Anna Verdi — In verifica</li>"
+            "</ul>"
+        ),
+    },
 }
 
 # Codici la cui variabile "link" punta a una nota spese reale (pk fittizio
@@ -164,6 +185,8 @@ def contesto_esempio(codice: str) -> dict[str, str]:
         contesto["link"] = f"{settings.SITE_URL}{reverse('note_spese:nota_dettaglio', args=[1])}"
     elif codice == CodiceTemplateEmail.NOTA_SPESE_PROMEMORIA:
         contesto["link"] = f"{settings.SITE_URL}{reverse('note_spese:nota_lista')}"
+    elif codice == CodiceTemplateEmail.NOTA_SPESE_REPORT_GESTORI:
+        contesto["link"] = f"{settings.SITE_URL}{reverse('note_spese:nota_verifica_lista')}"
     return contesto
 
 

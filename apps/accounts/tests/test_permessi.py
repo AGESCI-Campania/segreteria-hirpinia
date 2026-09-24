@@ -3,7 +3,7 @@ import datetime
 import pytest
 
 from apps.accounts.models import Delega, Ruolo, TipoUtente, Utente
-from apps.accounts.permessi import gruppi_visibili, ruoli_effettivi
+from apps.accounts.permessi import gruppi_visibili, ruoli_effettivi, utenti_con_ruoli
 from apps.organizzazione.models import Gruppo
 
 pytestmark = pytest.mark.django_db
@@ -115,3 +115,50 @@ class TestGruppiVisibili:
     def test_utente_senza_ruoli_non_vede_nulla(self, gruppo_a):
         u = _persona()
         assert gruppi_visibili(u, 2026).count() == 0
+
+
+class TestUtentiConRuoli:
+    def test_ruolo_diretto_incluso(self):
+        u = _persona(email="segreteria@campania.agesci.it")
+        Ruolo.objects.create(utente=u, tipo=Ruolo.Tipo.SEGRETERIA)
+        assert set(utenti_con_ruoli([Ruolo.Tipo.SEGRETERIA])) == {u}
+
+    def test_ruolo_per_delega_incluso(self):
+        delegante = _persona(email="d1@campania.agesci.it")
+        delegato = _persona(email="d2@campania.agesci.it")
+        ruolo = Ruolo.objects.create(utente=delegante, tipo=Ruolo.Tipo.RDZ)
+        Delega.objects.create(delegante=delegante, delegato=delegato, ruolo=ruolo, data_fine=DOMANI)
+
+        risultato = set(utenti_con_ruoli([Ruolo.Tipo.RDZ]))
+
+        assert delegante in risultato
+        assert delegato in risultato
+
+    def test_ruolo_scaduto_escluso(self):
+        u = _persona(email="scaduto@campania.agesci.it")
+        Ruolo.objects.create(utente=u, tipo=Ruolo.Tipo.ADMIN, data_fine=IERI)
+        assert set(utenti_con_ruoli([Ruolo.Tipo.ADMIN])) == set()
+
+    def test_delega_scaduta_esclusa(self):
+        delegante = _persona(email="d3@campania.agesci.it")
+        delegato = _persona(email="d4@campania.agesci.it")
+        ruolo = Ruolo.objects.create(utente=delegante, tipo=Ruolo.Tipo.RDZ)
+        Delega.objects.create(delegante=delegante, delegato=delegato, ruolo=ruolo, data_fine=IERI)
+
+        risultato = set(utenti_con_ruoli([Ruolo.Tipo.RDZ]))
+
+        assert delegato not in risultato
+        assert delegante in risultato
+
+    def test_tipo_non_richiesto_escluso(self):
+        u = _persona(email="cg@campania.agesci.it")
+        gruppo = Gruppo.objects.create(codice="E0199", nome="TEST")
+        Ruolo.objects.create(utente=u, tipo=Ruolo.Tipo.CG, gruppo=gruppo)
+        assert set(utenti_con_ruoli([Ruolo.Tipo.SEGRETERIA])) == set()
+
+    def test_nessun_duplicato_con_piu_ruoli(self):
+        u = _persona(email="doppio@campania.agesci.it")
+        Ruolo.objects.create(utente=u, tipo=Ruolo.Tipo.SEGRETERIA)
+        Ruolo.objects.create(utente=u, tipo=Ruolo.Tipo.RDZ)
+        risultato = list(utenti_con_ruoli([Ruolo.Tipo.SEGRETERIA, Ruolo.Tipo.RDZ]))
+        assert risultato == [u]

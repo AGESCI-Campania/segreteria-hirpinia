@@ -659,11 +659,27 @@ class AutorizzazioneRdzConfig(models.TextChoices):
     DOPPIA = "DOPPIA", "Doppia (un RdZ maschile e uno femminile)"
 
 
+class GiornoSettimana(models.IntegerChoices):
+    """D-64: stessa convenzione di `promemoria.py` (`date.weekday()`,
+    0=lunedì) — non i valori ISO (dove lunedì è 1), per restare coerenti
+    con l'unico altro punto del modulo che ragiona per giorno della
+    settimana."""
+
+    LUNEDI = 0, "Lunedì"
+    MARTEDI = 1, "Martedì"
+    MERCOLEDI = 2, "Mercoledì"
+    GIOVEDI = 3, "Giovedì"
+    VENERDI = 4, "Venerdì"
+    SABATO = 5, "Sabato"
+    DOMENICA = 6, "Domenica"
+
+
 class ImpostazioniNoteSpese(models.Model):
-    """Impostazioni di sistema del modulo (D-35), singleton — stesso pattern
-    di `ImpostazioniPiattaforma` in `apps.core`, ma dedicato a questo modulo
-    invece di allargare quello generico. Modificabile da admin e RdZ: il
-    controllo di accesso è nella view (F6), non qui."""
+    """Impostazioni di sistema del modulo (D-35/D-64), singleton — stesso
+    pattern di `ImpostazioniPiattaforma` in `apps.core`, ma dedicato a
+    questo modulo invece di allargare quello generico. Modificabile da
+    admin e RdZ (`permessi.py::puo_modificare_impostazioni`): il controllo
+    di accesso è nella view (F6/F7), non qui."""
 
     id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
     autorizzazione_rdz = models.CharField(
@@ -671,6 +687,27 @@ class ImpostazioniNoteSpese(models.Model):
         choices=AutorizzazioneRdzConfig.choices,
         default=AutorizzazioneRdzConfig.NESSUNA,
     )
+
+    # D-64: report periodico ai gestori. Vuoto/nullo = disattivato — nessun
+    # flag "attivo" a parte, sarebbe uno stato incoerente esprimibile in più
+    # modi (attivo=True ma giorni vuoti?).
+    report_giorni_settimana = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Giorni della settimana in cui inviare il report ai gestori. Vuoto: report disattivato.",
+    )
+    report_orario = models.TimeField(
+        null=True,
+        blank=True,
+        help_text="Orario di invio nei giorni selezionati sopra.",
+    )
+    report_destinatari_segreteria = models.BooleanField(default=False, verbose_name="Segreteria")
+    report_destinatari_rdz = models.BooleanField(default=False, verbose_name="RdZ")
+    report_destinatari_admin = models.BooleanField(default=False, verbose_name="Admin")
+    # Non esposto in form (D-64 non lo richiede, è uno stato interno):
+    # evita un secondo invio nello stesso giorno se il loop esterno
+    # controlla più volte prima e dopo l'orario configurato.
+    report_ultimo_invio = models.DateField(null=True, blank=True, editable=False)
 
     class Meta:
         verbose_name = "Impostazioni Nota Spese"
@@ -682,6 +719,12 @@ class ImpostazioniNoteSpese(models.Model):
     def save(self, *args, **kwargs) -> None:
         self.id = 1
         super().save(*args, **kwargs)
+
+    def clean(self) -> None:
+        if self.report_giorni_settimana and self.report_orario is None:
+            raise ValidationError(
+                {"report_orario": "Obbligatorio se sono selezionati giorni per il report (D-64)."}
+            )
 
     @classmethod
     def corrente(cls) -> ImpostazioniNoteSpese:

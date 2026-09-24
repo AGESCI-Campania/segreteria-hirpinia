@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block page_title %}Impostazioni Nota spese{% endblock %}
+
+{% block content %}
+  <h1>Impostazioni Nota spese</h1>
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    <h2 class="h5">Autorizzazione RdZ</h2>
+    <div class="mb-3">
+      {{ form.autorizzazione_rdz.label_tag }}
+      {{ form.autorizzazione_rdz }}
+      {{ form.autorizzazione_rdz.errors }}
+    </div>
+
+    <h2 class="h5 mt-4">Report periodico ai gestori</h2>
+    <p class="text-muted">
+      Un'email riepilogativa con tutte le note non ancora liquidate, nei giorni e
+      all'orario scelti qui sotto. Nessun giorno selezionato: il report resta
+      disattivato.
+    </p>
+    <div class="mb-3">
+      {{ form.report_giorni_settimana.label_tag }}
+      {{ form.report_giorni_settimana }}
+      {{ form.report_giorni_settimana.errors }}
+    </div>
+    <div class="mb-3">
+      {{ form.report_orario.label_tag }}
+      {{ form.report_orario }}
+      {{ form.report_orario.errors }}
+    </div>
+    <div class="mb-3">
+      <label class="form-label d-block">Destinatari</label>
+      <div class="form-check">
+        {{ form.report_destinatari_segreteria }}
+        {{ form.report_destinatari_segreteria.label_tag }}
+      </div>
+      <div class="form-check">
+        {{ form.report_destinatari_rdz }}
+        {{ form.report_destinatari_rdz.label_tag }}
+      </div>
+      <div class="form-check">
+        {{ form.report_destinatari_admin }}
+        {{ form.report_destinatari_admin.label_tag }}
+      </div>
+      {{ form.report_destinatari_segreteria.errors }}
+    </div>
+
+    <button type="submit" class="btn btn-primary">Salva</button>
+  </form>
+{% endblock %}

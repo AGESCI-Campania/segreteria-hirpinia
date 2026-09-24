@@ -68,7 +68,7 @@ sintesi, per tenerlo visibile da chi guarda solo questo file.
 | F6f | Validazione e fusione eventi | ✅ completata |
 | F7 (D-62) | Notifiche puntuali al capo | ✅ completata |
 | F7 (D-63) | Promemoria al capo | ✅ completata |
-| F7 (D-64) | Report periodico ai gestori | ⬜ da fare — stesso pattern di D-63 |
+| F7 (D-64) | Report periodico ai gestori | ✅ completata |
 | F8 | PDF ed export | ⬜ da fare |
 | F9 | Replica giustificativi su Drive | ⬜ da fare |
 

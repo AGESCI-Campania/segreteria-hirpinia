@@ -104,5 +104,29 @@ services:
           sleep 86400
         done
 
+  # Report periodico ai gestori (D-64, F7): stesso pattern, ma un loop più
+  # fitto (ogni 5 minuti, non una volta al giorno) perché qui va rispettato
+  # un orario configurato da interfaccia, non solo "una volta al giorno
+  # basta" come per note-spese-promemoria sopra. Il comando si protegge da
+  # solo contro i doppi invii nello stesso giorno (report_ultimo_invio).
+  note-spese-report-gestori:
+    image: catello-web:latest
+    container_name: catello_note_spese_report_gestori
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          uv run --no-sync python manage.py note_spese_report_gestori
+          sleep 300
+        done
+
 volumes:
   postgres_data:

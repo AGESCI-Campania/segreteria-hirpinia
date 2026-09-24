@@ -340,6 +340,16 @@ decisione confermata il 2026-09-24 (D-17 in CLAUDE.md resta valido). Verifica de
 docker compose -f compose.prod.yaml logs note-spese-promemoria
 ```
 
+Stesso comando avvia anche `note-spese-report-gestori` (D-64, F7): stesso pattern, ma
+un loop ogni 5 minuti invece che una volta al giorno, perché va rispettato un orario di
+invio configurato da interfaccia (Impostazioni → Nota spese) — `manage.py
+note_spese_report_gestori` si protegge da solo contro i doppi invii nello stesso giorno.
+Verifica dei log:
+
+```bash
+docker compose -f compose.prod.yaml logs note-spese-report-gestori
+```
+
 ### 5. Passi manuali del primo deploy
 
 Due operazioni **non** sono nell'entrypoint perché non idempotenti o perché richiedono

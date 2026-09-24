@@ -1,0 +1,9 @@
+Ciao,
+
+report periodico delle note spese non ancora liquidate ({{ numero_note }}):
+
+{{ elenco }}
+
+Elenco completo con evidenza delle eccezioni: {{ link }}
+
+— Catello, AGESCI Zona Hirpinia

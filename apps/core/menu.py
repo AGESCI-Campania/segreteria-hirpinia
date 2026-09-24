@@ -21,6 +21,9 @@ from apps.anagrafica.incarichi import RUOLI_RICERCA_CAPO
 from apps.contributi.inserimento import RUOLI_GESTIONE_PARTECIPAZIONI
 from apps.core.views import RUOLI_GESTIONE_IMPOSTAZIONI
 from apps.note_spese.permessi import accede_note_spese, puo_gestire_note
+from apps.note_spese.permessi import (
+    puo_modificare_impostazioni as puo_modificare_impostazioni_note_spese,
+)
 from apps.organizzazione.gruppi import RUOLI_GESTIONE_GRUPPI
 
 RUOLI_GESTIONE_DELEGHE_ZONA = frozenset({Ruolo.Tipo.ADMIN, Ruolo.Tipo.SEGRETERIA})
@@ -141,6 +144,10 @@ def sezioni_menu(utente: Utente | AnonymousUser) -> list[SezioneMenu]:
         voci_amministrazione.append(_voce("Ruoli", "accounts:ruolo_lista", "person-badge"))
     if consentito(RUOLI_GESTIONE_IMPOSTAZIONI, solo_diretti=True):
         voci_amministrazione.append(_voce("Impostazioni", "core:impostazioni", "sliders"))
+    if puo_modificare_impostazioni_note_spese(utente):
+        voci_amministrazione.append(
+            _voce("Impostazioni Nota spese", "note_spese:impostazioni", "sliders")
+        )
     if consentito(RUOLI_GESTIONE_SESSIONI, solo_diretti=True):
         voci_amministrazione.append(
             _voce("Sessioni utente", "accounts:sessioni_tutte_lista", "hdd-stack")

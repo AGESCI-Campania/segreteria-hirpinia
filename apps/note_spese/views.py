@@ -40,6 +40,7 @@ from .eventi import fondi_eventi, valida_evento
 from .forms import (
     EventoFondiForm,
     EventoForm,
+    ImpostazioniNoteSpeseForm,
     LiquidaNotaForm,
     NotaCreaForm,
     RespingiNotaForm,
@@ -62,6 +63,7 @@ from .permessi import (
     e_compilatore_della_nota,
     puo_autorizzare_rdz,
     puo_gestire_note,
+    puo_modificare_impostazioni,
 )
 from .routing import BackendRoutingNonDisponibile
 from .transizioni import (
@@ -92,6 +94,18 @@ class RichiedeGestioneNoteMixin(LoginRequiredMixin, UserPassesTestMixin):
         # LoginRequiredMixin garantisce l'autenticazione prima di test_func().
         assert isinstance(self.request.user, Utente)
         return puo_gestire_note(self.request.user)
+
+
+class RichiedeModificaImpostazioniMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """D-35: le impostazioni di sistema del modulo (compreso il report D-64)
+    sono modificabili solo da admin e RdZ, non da segreteria — perimetro più
+    stretto di `RichiedeGestioneNoteMixin` sopra."""
+
+    request: HttpRequest
+
+    def test_func(self) -> bool:
+        assert isinstance(self.request.user, Utente)
+        return puo_modificare_impostazioni(self.request.user)
 
 
 class NotaListaView(LoginRequiredMixin, ListView):
@@ -708,3 +722,23 @@ class NotaVerificaListaView(RichiedeGestioneNoteMixin, View):
             righe = [riga for riga in righe if riga.ha_eccezioni]
         contesto = {"righe": righe, "solo_eccezioni": solo_eccezioni}
         return render(request, self.template_name, contesto)
+
+
+class ImpostazioniNoteSpeseView(RichiedeModificaImpostazioniMixin, View):
+    """D-35/D-64: unica pagina per l'autorizzazione RdZ e per la
+    schedulazione del report ai gestori — nessuna delle due aveva finora
+    un'interfaccia dedicata (solo Django admin)."""
+
+    template_name = "note_spese/impostazioni.html"
+
+    def get(self, request):
+        form = ImpostazioniNoteSpeseForm(instance=ImpostazioniNoteSpese.corrente())
+        return render(request, self.template_name, {"form": form})
+
+    def post(self, request):
+        form = ImpostazioniNoteSpeseForm(request.POST, instance=ImpostazioniNoteSpese.corrente())
+        if not form.is_valid():
+            return render(request, self.template_name, {"form": form})
+        form.save()
+        messages.success(request, "Impostazioni aggiornate.")
+        return redirect(reverse("note_spese:impostazioni"))

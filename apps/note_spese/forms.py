@@ -1,20 +1,30 @@
 """Form di F6c (creazione nota, evento, riga documentale), F6d (transizioni
-che richiedono un input: respingimento, rilievo, liquidazione) e F6f
-(fusione eventi). Le regole di dominio vere e proprie (perimetro D-36, D-45,
-D-50, permessi delle transizioni, permessi di fusione D-49) restano nel
-service layer (`creazione.py`/`transizioni.py`/`eventi.py`): questi form
-validano solo forma e presenza dei campi, mai una seconda copia della
-logica."""
+che richiedono un input: respingimento, rilievo, liquidazione), F6f
+(fusione eventi) e F7 (impostazioni del report periodico ai gestori,
+D-64). Le regole di dominio vere e proprie (perimetro D-36, D-45, D-50,
+permessi delle transizioni, permessi di fusione D-49) restano nel service
+layer (`creazione.py`/`transizioni.py`/`eventi.py`): questi form validano
+solo forma e presenza dei campi, mai una seconda copia della logica."""
 
 from __future__ import annotations
 
 from decimal import Decimal
 
+from agesci_theme.forms import SelectMultiploADiscesa
 from django import forms
 
+from apps.anagrafica.forms import ChoiceFieldMultiploOpzionale
 from apps.anagrafica.models import Capo, IncaricoUnita
 
-from .models import CategoriaSpesa, Evento, Localita, RigaSpesa, TipoCalcolo
+from .models import (
+    CategoriaSpesa,
+    Evento,
+    GiornoSettimana,
+    ImpostazioniNoteSpese,
+    Localita,
+    RigaSpesa,
+    TipoCalcolo,
+)
 
 
 class NotaCreaForm(forms.Form):
@@ -178,3 +188,35 @@ class EventoFondiForm(forms.Form):
         if origine is not None:
             queryset = queryset.exclude(pk=origine.pk)
         self.fields["destinazione"].queryset = queryset
+
+
+class ImpostazioniNoteSpeseForm(forms.ModelForm):
+    """F7/D-64: `report_giorni_settimana` è dichiarato qui invece di
+    lasciarlo al widget di default per un `JSONField` (una `Textarea`
+    illeggibile) — stesso widget/pattern già in uso per i filtri multipli
+    di D-23 (`apps.anagrafica.forms.ChoiceFieldMultiploOpzionale` +
+    `SelectMultiploADiscesa`, dal tema)."""
+
+    report_giorni_settimana = ChoiceFieldMultiploOpzionale(
+        label="Giorni di invio",
+        choices=GiornoSettimana.choices,
+        required=False,
+        widget=SelectMultiploADiscesa(placeholder="Nessun giorno selezionato (report disattivato)"),
+    )
+
+    class Meta:
+        model = ImpostazioniNoteSpese
+        fields = [
+            "autorizzazione_rdz",
+            "report_giorni_settimana",
+            "report_orario",
+            "report_destinatari_segreteria",
+            "report_destinatari_rdz",
+            "report_destinatari_admin",
+        ]
+        widgets = {"report_orario": forms.TimeInput(attrs={"type": "time"})}
+
+    def clean_report_giorni_settimana(self):
+        # ChoiceFieldMultiploOpzionale restituisce stringhe (submit HTML):
+        # GiornoSettimana/report_giorni_settimana (JSONField) vogliono int.
+        return [int(valore) for valore in self.cleaned_data["report_giorni_settimana"]]

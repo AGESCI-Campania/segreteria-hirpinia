@@ -111,3 +111,25 @@ def puo_impersonare_qualcuno(utente: Utente) -> bool:
     bersaglio resta `puo_impersonare()`, invocata da HIJACK_PERMISSION_CHECK
     ad ogni richiesta di hijack — questa funzione non la sostituisce."""
     return _e_admin_diretto(utente)
+
+
+def utenti_con_ruoli(tipi, *, alla_data: date | None = None) -> QuerySet[Utente]:
+    """Direzione inversa di `ruoli_effettivi()` (D-28): dato un insieme di
+    tipi di ruolo, tutti gli utenti che li detengono in modo effettivo —
+    diretto o per delega, entrambi attivi e non scaduti, stessa logica di
+    `ruoli_effettivi()` applicata alla relazione inversa invece che iterando
+    utente per utente. Usata da `apps/note_spese/report_gestori.py` (D-64)
+    per i destinatari selezionati per categoria di ruolo."""
+    alla_data = alla_data or timezone.localdate()
+    diretti = Q(ruoli__tipo__in=tipi, ruoli__attivo=True) & _non_scaduto(
+        "ruoli__data_fine", alla_data
+    )
+    per_delega = (
+        Q(
+            deleghe_ricevute__ruolo__tipo__in=tipi,
+            deleghe_ricevute__attiva=True,
+            deleghe_ricevute__data_fine__gte=alla_data,
+            deleghe_ricevute__ruolo__attivo=True,
+        )
+    ) & _non_scaduto("deleghe_ricevute__ruolo__data_fine", alla_data)
+    return Utente.objects.filter(diretti | per_delega).distinct()
