@@ -32,6 +32,12 @@ _Nessuna issue in questo stato al momento._
 | [#8](https://github.com/AGESCI-Campania/segreteria-hirpinia/issues/8) | Allowlist: data ultimo accesso | Bassa | Bassa | Basso-medio | Basso | DONE: 4aa8519 | Colonna "Stato accesso" mostra ora anche `Utente.last_login`; rilasciato in v1.1.11, deployato in produzione — issue chiusa |
 | [#9](https://github.com/AGESCI-Campania/segreteria-hirpinia/issues/9) | Sessione utente (proprie + tutte per Admin/Segreteria) | Media | Bassa (p.1) / Media (p.2) | Medio | Basso (p.1) / Medio (p.2) | DONE: 3620150 | `allauth.usersessions` attivato per il model, viste/template/menu propri; rilasciato in v1.1.11, deployato in produzione — issue chiusa |
 | [#10](https://github.com/AGESCI-Campania/segreteria-hirpinia/issues/10) | Passkey ruoli amministrativi | Bassa | Media | Medio | Medio | DONE: 9826e6e | Rilasciato in v1.1.17, deployato in produzione, verificato da Andrea — issue chiusa |
+| [#13](https://github.com/AGESCI-Campania/segreteria-hirpinia/issues/13) | Manca breadcrumb (Contributo Fo.Ca.) | Bassa | Bassa | Basso | Basso | DONE: 9458232 | `BreadcrumbExtraMixin` sulle 10 view figlie di una campagna in `apps/contributi/views.py`, stesso pattern di `GruppoGestioneView`; verificato da Andrea, in attesa di merge/deploy — vedi dettaglio sotto |
+| [#14](https://github.com/AGESCI-Campania/segreteria-hirpinia/issues/14) | Tasto da nascondere senza permessi (Impostazioni/Nuova campagna) | Bassa-media | Bassa | Medio | Molto basso | DONE: 9458232 | Stesso schema di #2 (già chiuso), esteso a `campagna_lista.html`; verificato da Andrea, in attesa di merge/deploy — vedi dettaglio sotto |
+| [#15](https://github.com/AGESCI-Campania/segreteria-hirpinia/issues/15) | Visibilità ultime campagne Contributo Fo.Ca. | Bassa | Bassa | Medio | Basso | DONE: 9458232 | Jumbotron con CTA per l'ultima campagna sopra la tabella esistente; verificato da Andrea, in attesa di merge/deploy — vedi dettaglio sotto |
+| [#16](https://github.com/AGESCI-Campania/segreteria-hirpinia/issues/16) | Errore tabella riepilogo gruppi | Media | Bassa | Medio-alto | Basso | DONE: 9458232 | `_stato_semaforo()` riscritta secondo le 4 regole della issue; verificato da Andrea, in attesa di merge/deploy — vedi dettaglio sotto |
+| [#17](https://github.com/AGESCI-Campania/segreteria-hirpinia/issues/17) | Colonna descrizione altro per tipologia campo | Media | Bassa | Alto | Molto basso | DONE: 9458232 | `Partecipazione.descrizione_altro` ora mostrata in `campagna_dettaglio.html`; verificato da Andrea, in attesa di merge/deploy — vedi dettaglio sotto |
+| [#18](https://github.com/AGESCI-Campania/segreteria-hirpinia/issues/18) | Possibilità di riaprire campagna in valutazione | Media | Media | Alto | Medio | DONE: 9458232 | Nuova transizione FSM IN_VALUTAZIONE → APERTA (`riapri_campagna`); motivo del respingimento ora mostrato in tabella; verificato da Andrea, in attesa di merge/deploy — vedi dettaglio sotto |
 
 ---
 
@@ -1063,3 +1069,480 @@ lo stesso enforcement).
   deployato in produzione (verificato con `docker compose ps`/`logs` e una
   richiesta HTTP reale) e verificato end-to-end da Andrea con un dispositivo
   reale. Issue chiusa.
+
+## #13 — Manca breadcrumb (Contributo Fo.Ca.)
+
+**Origine reale (verificata):** `apps/core/context_processors.py::breadcrumb()`
+genera automaticamente Home › Sezione › Voce solo quando `request.path` coincide
+esattamente con una voce di `sezioni_menu()` — e l'unica voce di menu di questo
+modulo è "Contributo Fo.Ca." → `contributi:campagna_lista`
+(`apps/core/menu.py:113-114`). Ogni pagina "figlia" (`campagna_dettaglio`,
+`campagna_riepilogo_gruppi`, `partecipazione_inserisci`, ecc.) mostra quindi solo
+"Home", a meno che la view implementi `BreadcrumbExtraMixin`
+(`apps/core/mixins.py`) — meccanismo già usato altrove nel repo (es.
+`GruppoGestioneView` in `apps/organizzazione/views.py:148`, `GruppoIncarichiView`
+in `apps/anagrafica/views.py:528`) ma **mai adottato in `apps/contributi/views.py`**:
+nessuna delle sue view lo eredita.
+
+Le tre URL riportate nella issue sono solo un campione: verificato che il problema
+è sistemico su **tutte** le 10 view di `contributi` che renderizzano un template
+(`template_name` impostato, vedi elenco sotto) tranne quella già in menu.
+
+- **Impatto utente**: basso — non è un blocco funzionale, solo un vuoto di
+  orientamento (l'utente non vede "dove si trova" navigando dentro una campagna).
+- **Impatto sul codice esistente**: basso. Nessuna migrazione, nessuna modifica a
+  service layer. Solo `BreadcrumbExtraMixin` + un metodo `breadcrumb_extra()` per
+  vista, sul modello già in uso.
+- **Complessità**: bassa, ma ampia in numero di view (10) — mai una modifica di
+  logica, solo aggiunta meccanica dello stesso pattern.
+
+**Soluzione proposta:**
+
+Aggiungere `BreadcrumbExtraMixin` e `breadcrumb_extra()` a ciascuna view, con la
+stessa etichetta di sezione "Contributo Fo.Ca." e la campagna come primo livello
+(`Campagna {{ anno }}`), poi l'etichetta della sotto-pagina:
+
+| View | Catena dopo Home |
+| --- | --- |
+| `CampagnaCreaView` | Contributo Fo.Ca. › Nuova campagna |
+| `CampagnaDettaglioView` | Contributo Fo.Ca. › Campagna {anno} |
+| `CampagnaRiepilogoGruppiView` | Contributo Fo.Ca. › Campagna {anno} › Riepilogo gruppi |
+| `PartecipazioneInserisciView` | Contributo Fo.Ca. › Campagna {anno} › Inserisci partecipazione |
+| `PartecipazioniImportAnteprimaView` | Contributo Fo.Ca. › Campagna {anno} › Carica da xlsx/CSV |
+| `ImportazionePartecipazioniDettaglioView` | Contributo Fo.Ca. › Campagna {anno} › Registro importazioni |
+| `BonificiGeneraView` | Contributo Fo.Ca. › Campagna {anno} › Genera bonifici |
+| `CampagnaLiquidaView` | Contributo Fo.Ca. › Campagna {anno} › Liquida campagna |
+| `PartecipazioneRespingiView` | Contributo Fo.Ca. › Campagna {anno} › Respingi partecipazione |
+| `AllegatoPartecipazioneCaricaView` | Contributo Fo.Ca. › Campagna {anno} › Carica allegato |
+
+`breadcrumb_extra()` legge `campagna_id`/`pk` da `request.resolver_match.kwargs` e
+risolve `Campagna.objects.filter(pk=...).first()` per l'etichetta dell'anno (con
+fallback al pk grezzo se non trovata, stesso schema difensivo di
+`GruppoGestioneView.breadcrumb_extra`). Per le view annidate sotto una
+partecipazione (`PartecipazioneRespingiView`, `AllegatoPartecipazioneCaricaView`)
+serve risalire da `partecipazione_id` a `partecipazione.campagna` per l'anno.
+
+Nessun test dedicato al breadcrumb esiste altrove nel repo (verificato con `rg
+breadcrumb apps/*/tests`): non introdurne uno nuovo solo per questo modulo
+romperebbe la coerenza — una verifica manuale a schermo (come già fatto per F6d)
+resta sufficiente, coerente con la prassi già in uso.
+
+**Implementazione (DONE: 9458232, verificato da Andrea):**
+- `apps/contributi/views.py`: `BreadcrumbExtraMixin` aggiunto a tutte le 10 view
+  della tabella sopra, ciascuna con il proprio `breadcrumb_extra()` classmethod.
+  Nuova funzione privata `_etichetta_campagna(pk)` (stesso schema difensivo di
+  `GruppoGestioneView.breadcrumb_extra`: fallback al pk grezzo se la campagna
+  non viene trovata), riusata dalle 7 view che hanno una campagna in kwargs —
+  evita di duplicare la stessa query 7 volte.
+- `ImportazionePartecipazioniDettaglioView` risolve `campagna_id` da
+  `ImportazionePartecipazioni.objects.filter(pk=pk)` (l'unica delle 10 che non
+  ha `campagna_id`/`pk`-campagna direttamente nei kwargs).
+- `CampagnaCreaView` non risolve alcuna campagna (non ancora creata): solo
+  "Contributo Fo.Ca. › Nuova campagna", come da tabella.
+- Nessun test nuovo (coerente con l'assenza di test dedicati al breadcrumb nel
+  resto del repo, verificato sopra). `mise run lint` pulito (ruff+black+mypy),
+  `mise run test` verde (1078 passati, nessuna regressione; i 3 fallimenti
+  osservati alla prima esecuzione erano solo il DB di sviluppo non avviato —
+  risolti con `mise run db-up`, non collegati a questa modifica).
+- Verificato da Andrea, commit `9458232` — in attesa di merge su `main` e deploy.
+
+---
+
+## #14 — Tasto da nascondere senza permessi (Impostazioni/Nuova campagna)
+
+**Origine reale (verificata):** `templates/contributi/campagna_lista.html:8-9`
+mostra sempre i pulsanti "Impostazioni" (→ `core:impostazioni`) e "Nuova campagna"
+(→ `contributi:campagna_crea`), senza alcun controllo di permesso — stesso tipo di
+problema già risolto per issue #2 (chiusa, DONE: a579d82), ma lì il giro di
+verifica sistematico si era fermato ai pulsanti di `campagna_dettaglio.html`,
+lasciando fuori `campagna_lista.html`.
+
+`CampagnaListaView` è protetta da `RuoloRequiredMixin` con
+`ruoli_ammessi = RUOLI_GESTIONE_PARTECIPAZIONI` (`apps/contributi/views.py:83`), un
+perimetro **più ampio** di quanto serva per i due pulsanti:
+- "Nuova campagna" porta a `CampagnaCreaView`, che richiede
+  `RUOLI_GESTIONE_CAMPAGNA` con `ruoli_ammessi_solo_diretti = True`
+  (`apps/contributi/views.py:92-93`) — SEGRETERIA/ADMIN/RDZ, **esclusi i delegati**
+  (D-11).
+- "Impostazioni" porta a `core:impostazioni`, che richiede
+  `RUOLI_GESTIONE_IMPOSTAZIONI` con `ruoli_ammessi_solo_diretti = True`
+  (`apps/core/views.py:23,40-41`) — stesso insieme di ruoli
+  (`{ADMIN, SEGRETERIA, RDZ}`), stessa esclusione dei delegati.
+
+Un utente con solo ruolo di gestione-partecipazioni (es. CG, che accede
+legittimamente alla lista campagne) vede quindi due pulsanti che portano
+entrambi a un 403 già gestito correttamente lato view (nessun buco di sicurezza,
+solo UX).
+
+- **Impatto utente**: medio — stesso tipo di confusione già descritto per #2.
+- **Impatto sul codice esistente**: molto basso. Nessun nuovo service layer:
+  `apps/core/menu.py` calcola già la stessa condizione per la voce di menu
+  "Impostazioni" (`consentito(RUOLI_GESTIONE_IMPOSTAZIONI, solo_diretti=True)`,
+  `apps/core/menu.py:148`) — va solo esposta al contesto di `CampagnaListaView`,
+  non reinventata.
+- **Complessità**: bassa.
+
+**Soluzione proposta:** in `CampagnaListaView.get_context_data()` (da introdurre,
+oggi la view usa solo `get_queryset()` implicito di `ListView`), calcolare due
+booleani con `ruoli_effettivi(request.user)` filtrati `not r.is_delega`:
+`puo_gestire_campagna` (`RUOLI_GESTIONE_CAMPAGNA`, già esiste come funzione
+non-raising in `apps/contributi/campagne.py:54` — **attenzione**: quella funzione
+non esclude i delegati, mentre `CampagnaCreaView` sì; serve quindi il controllo
+esplicito `solo_diretti`, non riusare `puo_gestire_campagna()` così com'è, o
+riesporrebbe il pulsante a un delegato che poi otterrebbe comunque 403) e
+`puo_gestire_impostazioni` (stesso controllo su `RUOLI_GESTIONE_IMPOSTAZIONI`).
+Condizionare i due `<a>` nel template con questi flag.
+
+**Implementazione (DONE: 9458232, verificato da Andrea):**
+- `CampagnaListaView.get_context_data()` (`apps/contributi/views.py`): calcola
+  `tipi_diretti = {r.tipo for r in ruoli_effettivi(request.user) if not
+  r.is_delega}`, poi `puo_gestire_campagna`/`puo_gestire_impostazioni` per
+  intersezione con `RUOLI_GESTIONE_CAMPAGNA`/`RUOLI_GESTIONE_IMPOSTAZIONI` —
+  esattamente il controllo "solo diretti" proposto, non la versione non-raising
+  esistente che non esclude i delegati.
+- Template (`campagna_lista.html`): i due `<a>` "Impostazioni"/"Nuova campagna"
+  condizionati dai due flag.
+- Test in `apps/contributi/tests/test_views_campagna_lista.py`
+  (`TestPulsantiCampagnaLista`): CG non vede nessuno dei due pulsanti,
+  SEGRETERIA li vede entrambi.
+- `mise run lint` pulito, `mise run test` verde (vedi riepilogo cumulativo a
+  fondo pagina per #13-#18).
+
+---
+
+## #15 — Visibilità ultime campagne Contributo Fo.Ca.
+
+**Origine reale (verificata):** `templates/contributi/campagna_lista.html` mostra
+solo una tabella (tutte le campagne appiattite, nessuna gerarchia visiva).
+`Campagna.Meta.ordering = ["-anno"]` (`apps/contributi/models.py:57`), quindi
+`Campagna.objects.all()` (già usato da `CampagnaListaView.get_queryset()`) ha già
+l'ultima campagna come primo elemento — non serve una query aggiuntiva.
+
+- **Impatto utente**: medio — è la pagina di ingresso al modulo più usato, l'ultima
+  campagna (quella su cui c'è lavoro attivo) si perde nella tabella tra le
+  precedenti.
+- **Impatto sul codice esistente**: basso. Solo template + un valore di contesto
+  in più, nessun cambiamento alla query esistente né al service layer.
+- **Complessità**: bassa.
+
+**Soluzione proposta:** `CampagnaListaView` passa anche `ultima_campagna =
+campagne.first() if campagne else None` al contesto. Nel template, un blocco
+jumbotron (`bg-ag-viola`/utility del tema, non CSS custom — vincolo di CLAUDE.md)
+sopra la tabella esistente con anno, stato, e un pulsante call-to-action verso
+`contributi:campagna_dettaglio` dell'ultima campagna. La issue chiarisce
+esplicitamente che l'ultima campagna **resta anche in tabella** (nessuna
+esclusione, la duplicazione visiva è accettata): la tabella non cambia.
+
+**Implementazione (DONE: 9458232, verificato da Andrea):**
+- `CampagnaListaView.get_context_data()`: `ultima_campagna = campagne[0] if
+  campagne else None` (stesso `get_context_data` introdotto per #14, unica
+  query già ordinata da `Campagna.Meta.ordering`, nessuna query aggiuntiva).
+- Template: blocco `bg-ag-viola` sopra la tabella con anno/stato e pulsante
+  "Vai alla campagna" verso `campagna_dettaglio`; la tabella sotto resta
+  invariata (l'ultima campagna vi compare comunque, come da issue).
+  Nessuna nuova voce CSS: solo utility del tema.
+- Test in `test_views_campagna_lista.py` (`TestJumbotronUltimaCampagna`):
+  ultima campagna è la più recente per anno, resta comunque nel queryset
+  `campagne`, `None` quando non ci sono campagne.
+- `mise run lint` pulito, `mise run test` verde.
+
+---
+
+## #16 — Errore tabella riepilogo gruppi
+
+**Origine reale (verificata):** `apps/contributi/riepilogo_gruppi.py:50-55`,
+`_stato_semaforo()`:
+
+```python
+def _stato_semaforo(condizioni: list[bool]) -> StatoSemaforo:
+    if all(condizioni):
+        return StatoSemaforo.VERDE
+    if not any(condizioni):
+        return StatoSemaforo.ROSSO
+    return StatoSemaforo.GIALLO
+```
+
+chiamata con **tre** condizioni (`apps/contributi/riepilogo_gruppi.py:98-100`):
+`account_attivato`, `iban_caricato`, `capi_inseriti > 0 or
+nessun_rimborso_dichiarato`. Due problemi, entrambi confermati leggendo il codice
+contro le 4 regole della issue:
+
+1. **`account_attivato` pesa nel calcolo**, ma la issue è esplicita: "La colonna
+   'Account attivato' viene visualizzata, ma non utilizzata nel computo". Oggi
+   invece un gruppo con IBAN caricato e capi inseriti ma senza account mai
+   attivato risulta GIALLO (parziale) invece di VERDE (completo).
+2. **La dichiarazione "nessun rimborso" non prevale su IBAN mancante**: con
+   `account_attivato=True` (per isolare l'effetto), `iban_caricato=False`,
+   `nessun_rimborso_dichiarato=True` → condizioni `[True, False, True]` → non
+   tutte vere, non tutte false → GIALLO. La regola 1 della issue vuole invece
+   "Completo" incondizionatamente quando è dichiarato nessun rimborso, IBAN
+   incluso — logico: se il gruppo non riceve soldi, l'IBAN è irrilevante.
+
+- **Impatto utente**: medio-alto — è un indicatore di stato mostrato a chi segue
+  l'andamento della campagna (probabilmente RdZ/segreteria): uno stato sbagliato
+  può far perdere di vista gruppi realmente in ritardo o segnalarne come in
+  ritardo gruppi già a posto.
+- **Impatto sul codice esistente**: basso. Isolato in una funzione pura già
+  testata (verificare `apps/contributi/tests/` per i test esistenti su
+  `_stato_semaforo`/`riepilogo_gruppi` prima di modificare, da aggiornare in
+  base alle nuove regole).
+- **Complessità**: bassa — pura riscrittura della funzione di calcolo, nessuna
+  migrazione, nessun cambiamento al modello.
+
+**Soluzione proposta:** riscrivere `_stato_semaforo` seguendo letteralmente le 4
+regole della issue, senza più il pattern generico "conta quante condizioni sono
+vere":
+
+```python
+def _stato_semaforo(*, iban_caricato: bool, capi_inseriti: int, nessun_rimborso_dichiarato: bool) -> StatoSemaforo:
+    if nessun_rimborso_dichiarato:
+        return StatoSemaforo.VERDE
+    capi_ok = capi_inseriti > 0
+    if iban_caricato and capi_ok:
+        return StatoSemaforo.VERDE
+    if not iban_caricato and not capi_ok:
+        return StatoSemaforo.ROSSO
+    return StatoSemaforo.GIALLO
+```
+
+`account_attivato` resta calcolato e passato a `RiepilogoGruppo` (la colonna
+continua a essere mostrata, la issue lo chiede esplicitamente), solo non entra
+più nella chiamata alla funzione di stato. Aggiornare la chiamata a
+`riepilogo_gruppi()` di conseguenza (`apps/contributi/riepilogo_gruppi.py:98-100`)
+e i test esistenti sulle 4 combinazioni esplicite della issue.
+
+**Implementazione (DONE: 9458232, verificato da Andrea):**
+- `_stato_semaforo()` (`apps/contributi/riepilogo_gruppi.py`) riscritta con
+  firma a parole chiave (`iban_caricato`, `capi_inseriti`,
+  `nessun_rimborso_dichiarato`), esattamente le regole proposte:
+  dichiarazione "nessun rimborso" → VERDE incondizionato; altrimenti IBAN+capi
+  entrambi presenti → VERDE; nessuno dei due → ROSSO; solo uno → GIALLO.
+  `account_attivato` resta calcolato per `RiepilogoGruppo` (colonna mostrata),
+  non più passato alla funzione di stato.
+- I 3 test esistenti (`test_stato_rosso_senza_nulla`,
+  `test_stato_giallo_parziale`, `test_stato_verde_completo`) restano validi
+  invariati (stesso esito con le nuove regole, verificato non a caso ma
+  ricalcolando a mano le combinazioni). Aggiunti 2 nuovi test mirati alle due
+  regole corrette dal bug: `test_account_non_attivato_non_pesa_sul_semaforo`
+  (IBAN+capi bastano per VERDE anche senza account mai attivato) e
+  `test_nessun_rimborso_prevale_su_iban_mancante` (dichiarazione vince anche
+  con IBAN assente).
+- `mise run lint` pulito, `mise run test` verde.
+
+---
+
+## #17 — Colonna descrizione altro per tipologia campo
+
+**Origine reale (verificata):** `apps/contributi/models.py:154`,
+`Partecipazione.descrizione_altro` — obbligatorio quando `tipologia.codice ==
+"ALTRO"` (validato in `clean()`, `apps/contributi/models.py:215-218`) e raccolto
+correttamente all'inserimento (`templates/contributi/partecipazione_inserisci.html:39`,
+con toggle JS sul campo). Ma **non è mai mostrato in nessuna vista di lettura**:
+verificato con `rg descrizione_altro templates/` che l'unica occorrenza nei
+template è quella del form di inserimento — `campagna_dettaglio.html` (la tabella
+usata da segreteria/RdZ per valutare le partecipazioni) mostra solo la colonna
+"Tipologia" con `{{ p.tipologia }}` (`templates/contributi/campagna_dettaglio.html:108,120`),
+mai la descrizione libera.
+
+Chi valuta una partecipazione con tipologia "Altro" non ha quindi modo di sapere
+*cosa* sia stato dichiarato, senza uscire dall'interfaccia (es. Django admin) —
+esattamente il problema descritto nella issue ("altrimenti non è possibile una
+corretta valutazione").
+
+- **Impatto utente**: alto — blocca concretamente una valutazione informata per
+  ogni partecipazione con tipologia "Altro", non è solo un difetto estetico.
+- **Impatto sul codice esistente**: molto basso — nessuna query nuova
+  (`descrizione_altro` è già sul modello e già nella queryset di
+  `CampagnaDettaglioView`, che seleziona l'intera `Partecipazione`), solo
+  template.
+- **Complessità**: molto bassa.
+
+**Soluzione proposta:** in `templates/contributi/campagna_dettaglio.html`, cella
+"Tipologia" (riga 120), mostrare la descrizione quando presente:
+
+```html
+<td>
+  {{ p.tipologia }}
+  {% if p.descrizione_altro %}<br><small class="text-muted">{{ p.descrizione_altro }}</small>{% endif %}
+</td>
+```
+
+Verificare se lo stesso problema si ripete nelle altre viste che elencano
+partecipazioni con tipologia (es. export/riepilogo, se esistenti) prima di
+considerarla chiusa — stessa cautela già applicata a #2 per non dover riaprire la
+issue con un secondo giro.
+
+**Implementazione (DONE: 9458232, verificato da Andrea):**
+- `campagna_dettaglio.html`, cella "Tipologia": mostra `descrizione_altro`
+  quando presente, esattamente come proposto.
+- Verificato con `rg "\.tipologia }}" templates/` che `campagna_dettaglio.html`
+  è l'**unica** vista che elenca la tipologia per partecipazione (nessun'altra
+  vista/export da toccare, incluso il PDF riepilogo che è aggregato, non per
+  singola partecipazione).
+- Test in `apps/contributi/tests/test_views_campagna_dettaglio_display.py`
+  (`TestDescrizioneAltroVisibile`): descrizione mostrata quando presente,
+  nessuna riga extra quando assente.
+- `mise run lint` pulito, `mise run test` verde.
+
+## #18 — Possibilità di riaprire campagna in valutazione
+
+**Origine reale (verificata):** la issue ha due parti distinte, entrambe
+confermate nel codice.
+
+**Parte 1 — nessuna transizione all'indietro.** Le transizioni FSM di
+`Campagna` (`apps/contributi/models.py:84-99`) sono solo in avanti: `APERTA →
+IN_VALUTAZIONE` (`avvia_valutazione`), `IN_VALUTAZIONE → CHIUSA` (`chiudi`),
+`CHIUSA → LIQUIDATA` (`liquida`). Non esiste alcuna transizione
+`IN_VALUTAZIONE → APERTA`: una volta avviata la valutazione, l'unico modo per
+inserire ulteriori partecipazioni sarebbe creare una nuova campagna, perdendo il
+contesto di quella in corso.
+
+Le valutazioni già fatte (`Partecipazione.stato` in `APPROVATA`/`RESPINTA`, con
+`valutata_da`/`data_valutazione`/`motivazione_respingimento` già valorizzati) **non
+sono a rischio per costruzione**: sono sullo stato della singola partecipazione,
+non della campagna, e nessuna transizione esistente le tocca. L'unico stato
+collaterale della campagna da ripulire alla riapertura sono le simulazioni
+(`ContributoPartecipazione.is_simulazione=True`, scritte da "Simula calcolo",
+`apps/contributi/simulazione.py`): diventerebbero stale se, dopo la riapertura,
+si inseriscono nuove partecipazioni o si valuta diversamente, e verrebbero
+comunque mostrate nella tabella (`campagna_dettaglio.html:135-138`, tag
+"(simulato)"). Lo stesso pattern di pulizia esiste già sia in `chiudi_campagna`
+sia in `simula_calcolo` (`ContributoPartecipazione.objects.filter(...,
+is_simulazione=True).delete()` prima di scrivere il nuovo risultato): va
+riapplicato qui per coerenza, non inventato da zero.
+
+**Parte 2 — motivo del respingimento mai mostrato.**
+`Partecipazione.motivazione_respingimento` (`apps/contributi/models.py:163`) è
+obbligatorio ad ogni respingimento (validato in `clean()`, righe 197-202 — D-24:
+"un respingimento senza causale non è possibile, in nessun percorso") ma non
+compare in nessun template: verificato con `rg motivazione_respingimento
+templates/` — zero risultati. Chi guarda la tabella delle partecipazioni durante
+la valutazione (`campagna_dettaglio.html`, colonna "Valutazione" visibile solo a
+`campagna.stato == "IN_VALUTAZIONE"`) non vede perché una riga è stata respinta
+senza uscire dall'interfaccia — stesso tipo di gap già pianificato per #17 sulla
+colonna "Tipologia", stesso file.
+
+- **Impatto utente**: alto — senza la riapertura, un errore scoperto durante la
+  valutazione (partecipazione dimenticata, dato da correggere) costringe a
+  ricreare la campagna da capo; senza il motivo visibile, chi rivede le
+  valutazioni non ha modo di capire un respingimento senza uscire
+  dall'interfaccia.
+- **Impatto sul codice esistente**: medio per la parte 1 (nuova transizione FSM
+  + service layer + vista + pulsante, migrazione per il nuovo stato nella
+  `choices` non serve perché `IN_VALUTAZIONE`/`APERTA` esistono già), molto
+  basso per la parte 2 (solo template, stesso schema di #17).
+- **Complessità**: media — la parte FSM richiede di ragionare sugli effetti
+  collaterali (simulazioni stale), non è solo un `@transition` vuoto.
+
+**Soluzione proposta (parte 1):**
+
+Nuova transizione in `apps/contributi/models.py`:
+
+```python
+@transition(field=stato, source=StatoCampagna.IN_VALUTAZIONE, target=StatoCampagna.APERTA)
+def riapri(self) -> None:
+    """Corpo intenzionalmente vuoto: la pulizia delle simulazioni stale vive
+    nel service layer (apps/contributi/campagne.py::riapri_campagna), non qui
+    — stesso schema delle altre transizioni di Campagna."""
+```
+
+Nuova funzione in `apps/contributi/campagne.py`, accanto a `chiudi_campagna`
+(stessa firma/pattern, **senza** `@vieta_in_impersonificazione` — non è
+un'operazione economicamente sensibile come chiudere/liquidare, ma valutare se
+Andrea la vuole comunque per coerenza con le altre azioni di gestione campagna):
+
+```python
+@transaction.atomic
+def riapri_campagna(*, utente: Utente, campagna: Campagna) -> Campagna:
+    verifica_ruolo_gestione_campagna(utente)
+    if campagna.stato != StatoCampagna.IN_VALUTAZIONE:
+        raise ValidationError("La campagna non è IN_VALUTAZIONE: impossibile riaprirla.")
+
+    ContributoPartecipazione.objects.filter(
+        partecipazione__campagna=campagna, is_simulazione=True
+    ).delete()
+    campagna.riapri()
+    campagna.full_clean(exclude=["stato"])
+    campagna.save()
+    return campagna
+```
+
+Nessun tocco a `Partecipazione`: le valutazioni restano esattamente come sono,
+per costruzione (nessuna transizione le referenzia). `avvia_valutazione()`
+(`apps/contributi/campagne.py:90-114`) è già sicura da richiamare una seconda
+volta dopo una riapertura: auto-approva solo le partecipazioni ancora
+`INSERITA` con tipologia ad approvazione automatica, non tocca quelle già
+`APPROVATA`/`RESPINTA`.
+
+Nuova view `CampagnaRiapriView` (stesso schema minimale di
+`CampagnaAvviaValutazioneView`/`CampagnaChiudiView`, solo POST + redirect), nuovo
+pulsante in `campagna_dettaglio.html` nel blocco `IN_VALUTAZIONE` (accanto a
+"Simula calcolo"/"Chiudi campagna", dietro lo stesso `puo_gestire_campagna`).
+Da chiedere ad Andrea se serve una conferma esplicita (modale/pagina intermedia,
+come "Liquida campagna") o basta il pulsante diretto come "Avvia
+valutazione"/"Simula calcolo" — la issue non lo specifica, e l'azione, pur non
+distruttiva sui dati, riapre un flusso che l'utente potrebbe considerare
+"chiuso".
+
+**Soluzione proposta (parte 2):** in `campagna_dettaglio.html`, riga della
+tabella partecipazioni, colonna "Stato" (o "Valutazione"), mostrare la
+motivazione quando `p.stato == "RESPINTA"`:
+
+```html
+<td>
+  {{ p.get_stato_display }}
+  {% if p.stato == "RESPINTA" and p.motivazione_respingimento %}
+    <br><small class="text-muted">{{ p.motivazione_respingimento }}</small>
+  {% endif %}
+</td>
+```
+
+Da valutare insieme a #17 (stessa tabella, stesso giro di modifica al
+template) per non toccare `campagna_dettaglio.html` due volte in due commit
+separati.
+
+**Implementazione (DONE: 9458232, verificato da Andrea):**
+- **Parte 1**: nuova transizione `Campagna.riapri()` (`apps/contributi/models.py`,
+  `@transition(source=IN_VALUTAZIONE, target=APERTA)`, corpo vuoto come le
+  altre). Nuova `riapri_campagna()` (`apps/contributi/campagne.py`, accanto a
+  `chiudi_campagna`): verifica ruolo con `verifica_ruolo_gestione_campagna`
+  (non esclude i delegati, come `chiudi`/`simula`, a differenza di
+  `apri_campagna`), richiede stato `IN_VALUTAZIONE`, ripulisce le simulazioni
+  stale (`ContributoPartecipazione.objects.filter(is_simulazione=True).delete()`,
+  stesso pattern di `chiudi_campagna`/`simula_calcolo`), poi `campagna.riapri()`
+  + `full_clean(exclude=["stato"])` + `save()`. **Nessun**
+  `@vieta_in_impersonificazione`, come proposto (non è un'operazione
+  economicamente sensibile). Nessuna migrazione (il campo `stato` non cambia,
+  verificato con `manage.py makemigrations --check --dry-run`).
+- Nuova `CampagnaRiapriView` (`apps/contributi/views.py`, POST-only, stesso
+  schema minimale di `CampagnaChiudiView`), URL
+  `campagne/<int:pk>/riapri/` → `contributi:campagna_riapri`. Nuovo pulsante
+  "Riapri campagna" in `campagna_dettaglio.html`, nel blocco
+  `IN_VALUTAZIONE` dietro `puo_gestire_campagna`, accanto a "Chiudi campagna"
+  — **deviazione dichiarata**: nessuna conferma intermedia (modale/pagina),
+  stesso pattern diretto di "Avvia valutazione"/"Simula calcolo", non quello di
+  "Liquida campagna" (che ha una pagina di conferma con form). La issue non
+  specificava quale dei due schemi, scelto quello più semplice essendo
+  un'azione reversibile e non distruttiva sui dati.
+- **Parte 2**: cella "Stato" in `campagna_dettaglio.html` mostra
+  `motivazione_respingimento` quando `p.stato == "RESPINTA"`, stessa modifica
+  (via #17) alla stessa tabella.
+- Test: `apps/contributi/tests/test_transizioni_campagna.py`
+  (`TestRiapriCampagna`): richiede ruolo, richiede stato `IN_VALUTAZIONE`,
+  riapre e ripulisce le simulazioni stale, le valutazioni già fatte
+  (`Partecipazione.stato`) non vengono toccate.
+  `apps/contributi/tests/test_views_campagna_dettaglio_permessi.py`: CG non
+  vede il pulsante "Riapri campagna" (esteso il test esistente su
+  simula/chiudi), CG forza l'URL e riceve comunque 403, SEGRETERIA riapre con
+  successo (302 + stato `APERTA`).
+  `apps/contributi/tests/test_views_campagna_dettaglio_display.py`
+  (`TestMotivazioneRespingimentoVisibile`): motivazione mostrata per una
+  partecipazione respinta.
+- `mise run lint` pulito, `mise run test` verde: 1094 test totali passati
+  (partendo da 1078 prima di #13, +16 nuovi test fra #16/#18/nuovi file di
+  test per #14/#15/#17), nessuna regressione, nessun fallimento residuo oltre
+  a WeasyPrint su macOS locale (risolto con `DYLD_LIBRARY_PATH`, pre-esistente
+  e non collegato a queste modifiche).
+- Verificato da Andrea, incluso lo schema "pulsante diretto senza conferma"
+  per la parte 1 (deviazione dichiarata sopra). Commit `9458232` — in attesa
+  di merge su `main` e deploy.
