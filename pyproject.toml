@@ -40,6 +40,13 @@ microsoft = [
     "msal>=1.31",
     "requests>=2.32",
 ]
+# Replica giustificativi/PDF su Google Drive (D-59, F9): --extra drive.
+# Indipendente da EMAIL_PROVIDER — stesse librerie di "gmail" ma un deploy
+# SMTP che vuole la replica non deve installare l'extra email.
+drive = [
+    "google-auth>=2.38",
+    "requests>=2.32",
+]
 
 [dependency-groups]
 dev = [

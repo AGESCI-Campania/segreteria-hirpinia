@@ -228,6 +228,10 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+drive = [
+    { name = "google-auth" },
+    { name = "requests" },
+]
 gmail = [
     { name = "google-auth" },
     { name = "requests" },
@@ -266,6 +270,7 @@ requires-dist = [
     { name = "django-fsm-2", specifier = ">=4.0" },
     { name = "django-hijack", specifier = ">=3.7" },
     { name = "django-storages", specifier = ">=1.14.6" },
+    { name = "google-auth", marker = "extra == 'drive'", specifier = ">=2.38" },
     { name = "google-auth", marker = "extra == 'gmail'", specifier = ">=2.38" },
     { name = "gunicorn", specifier = ">=26.0" },
     { name = "msal", marker = "extra == 'microsoft'", specifier = ">=1.31" },
@@ -277,11 +282,12 @@ requires-dist = [
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3" },
     { name = "pypdf", specifier = ">=6.19.0" },
     { name = "python-dotenv", specifier = ">=1.2" },
+    { name = "requests", marker = "extra == 'drive'", specifier = ">=2.32" },
     { name = "requests", marker = "extra == 'gmail'", specifier = ">=2.32" },
     { name = "requests", marker = "extra == 'microsoft'", specifier = ">=2.32" },
     { name = "weasyprint", specifier = ">=68" },
 ]
-provides-extras = ["gmail", "microsoft"]
+provides-extras = ["gmail", "microsoft", "drive"]
 
 [package.metadata.requires-dev]
 dev = [

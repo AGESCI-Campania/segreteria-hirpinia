@@ -6,6 +6,7 @@ from .models import (
     BudgetCentroCosto,
     CategoriaSpesa,
     CentroCosto,
+    CopiaDrive,
     Evento,
     ImpostazioniNoteSpese,
     Localita,
@@ -139,6 +140,9 @@ class NotaSpeseAdmin(admin.ModelAdmin):
 class AllegatoAdmin(admin.ModelAdmin):
     list_display = ["file", "caricato_da", "caricato_il"]
     autocomplete_fields = ["righe"]
+    # search_fields necessario perché CopiaDriveAdmin lo usa come target di
+    # autocomplete_fields (admin.E040 altrimenti).
+    search_fields = ["file"]
 
 
 @admin.register(AutorizzazioneRdz)
@@ -163,4 +167,32 @@ class ImpostazioniNoteSpeseAdmin(admin.ModelAdmin):
         return not ImpostazioniNoteSpese.objects.exists()
 
     def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(CopiaDrive)
+class CopiaDriveAdmin(admin.ModelAdmin):
+    # D-59: tracciamento per-file della replica, sola lettura — una copia si
+    # crea solo da enqueue_copie_drive() alla liquidazione, si aggiorna solo
+    # da riconcilia_copie_drive() (apps/note_spese/drive_replica.py), mai a
+    # mano da qui.
+    list_display = ["nota", "allegato", "stato", "tentativi", "aggiornata_il"]
+    list_filter = ["stato"]
+    search_fields = ["nota__numero"]
+    autocomplete_fields = ["nota", "allegato"]
+    readonly_fields = [
+        "nota",
+        "allegato",
+        "stato",
+        "tentativi",
+        "ultimo_errore",
+        "drive_file_id",
+        "creata_il",
+        "aggiornata_il",
+    ]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
         return False

@@ -39,6 +39,10 @@ services:
         # google-auth/msal. Impostare EMAIL_EXTRA=gmail o =microsoft in .env
         # in base a EMAIL_PROVIDER.
         EMAIL_EXTRA: ${EMAIL_EXTRA:-}
+        # Vuoto di default: chi non configura la replica su Drive (D-59, F9)
+        # non installa google-auth. Impostare DRIVE_EXTRA=drive in .env solo
+        # se DRIVE_SHARED_DRIVE_ID/DRIVE_FOLDER_ID sono configurati.
+        DRIVE_EXTRA: ${DRIVE_EXTRA:-}
     container_name: catello_web
     restart: unless-stopped
     env_file: .env
@@ -126,6 +130,29 @@ services:
         while true; do
           uv run --no-sync python manage.py note_spese_report_gestori
           sleep 300
+        done
+
+  # Replica su Google Drive (D-59, F9): stesso pattern, ogni 10 minuti. Se
+  # DRIVE_SHARED_DRIVE_ID/DRIVE_FOLDER_ID non sono configurati (V-8 non
+  # ancora pronto) il comando è un no-op silenzioso — il container gira lo
+  # stesso, senza fare nulla, finché non viene configurato.
+  note-spese-drive-riconcilia:
+    image: catello-web:latest
+    container_name: catello_note_spese_drive_riconcilia
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          uv run --no-sync python manage.py note_spese_drive_riconcilia
+          sleep 600
         done
 
 volumes:

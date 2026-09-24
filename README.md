@@ -170,6 +170,11 @@ uv sync --extra microsoft    # msal
 
 Dettagli e configurazione lato Google/Microsoft: § 8 del documento di progettazione.
 
+Il modulo Nota Spese può replicare giustificativi/PDF su un Drive condiviso alla
+liquidazione (D-59): `uv sync --extra drive` (stesse librerie di `gmail`, extra
+indipendente) e configurazione in [`docs/drive/service-account.md`](docs/drive/service-account.md).
+Senza quella configurazione la replica resta disattivata, nessun errore.
+
 In sviluppo, `smtp` puntato su Mailpit locale (`mise run mailpit-up`) è un'alternativa a
 `console` con interfaccia web su `http://localhost:8025` — vedi
 [`docs/email/sviluppo-e-test.md`](docs/email/sviluppo-e-test.md). In produzione, un

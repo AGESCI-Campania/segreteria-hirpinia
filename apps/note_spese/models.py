@@ -621,6 +621,60 @@ class Allegato(models.Model):
         return self.file.name or f"Allegato #{self.pk}"
 
 
+class StatoCopiaDrive(models.TextChoices):
+    IN_ATTESA = "IN_ATTESA", "In attesa"
+    COPIATO = "COPIATO", "Copiato"
+    FALLITO = "FALLITO", "Fallito"
+
+
+class CopiaDrive(models.Model):
+    """Tracciamento per-file della replica su Google Drive (D-59, F9): un
+    record per ogni file da copiare alla liquidazione — il PDF della nota
+    (`allegato` nullo) o un allegato delle sue righe. Due FK invece di un
+    content-type generico: solo due casi possibili, più esplicito da
+    leggere. `apps.note_spese.drive_replica` è l'unica fonte che scrive
+    questo modello (D-69)."""
+
+    nota = models.ForeignKey(NotaSpese, on_delete=models.CASCADE, related_name="copie_drive")
+    allegato = models.ForeignKey(
+        Allegato,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="copie_drive",
+        help_text="Nullo: il file da copiare è il PDF della nota stessa, generato al volo.",
+    )
+    stato = models.CharField(
+        max_length=10, choices=StatoCopiaDrive.choices, default=StatoCopiaDrive.IN_ATTESA
+    )
+    tentativi = models.PositiveSmallIntegerField(default=0)
+    ultimo_errore = models.TextField(blank=True)
+    drive_file_id = models.CharField(max_length=100, blank=True)
+    creata_il = models.DateTimeField(auto_now_add=True)
+    aggiornata_il = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Copia su Drive"
+        verbose_name_plural = "Copie su Drive"
+        ordering = ["-creata_il"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["allegato"],
+                condition=models.Q(allegato__isnull=False),
+                name="una_copia_drive_per_allegato",
+            ),
+            models.UniqueConstraint(
+                fields=["nota"],
+                condition=models.Q(allegato__isnull=True),
+                name="una_copia_drive_del_pdf_per_nota",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        oggetto = f"allegato #{self.allegato_id}" if self.allegato_id else "PDF"
+        return f"Copia Drive {oggetto} — nota {self.nota_id} — {self.get_stato_display()}"
+
+
 class GenereRdz(models.TextChoices):
     MASCHILE = "M", "Maschile"
     FEMMINILE = "F", "Femminile"

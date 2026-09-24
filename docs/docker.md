@@ -350,6 +350,19 @@ Verifica dei log:
 docker compose -f compose.prod.yaml logs note-spese-report-gestori
 ```
 
+Stesso comando avvia anche `note-spese-drive-riconcilia` (D-59, F9): loop ogni 10
+minuti, esegue `manage.py note_spese_drive_riconcilia` — mette in coda e ritenta le
+copie su Google Drive dei giustificativi/PDF alla liquidazione. **No-op finché
+`DRIVE_SHARED_DRIVE_ID`/`DRIVE_FOLDER_ID` non sono configurati** (il Drive condiviso
+va creato a mano, vedi [`docs/drive/service-account.md`](drive/service-account.md)):
+il container gira comunque, senza fare nulla. Con la replica attiva serve anche
+l'extra `drive` nell'immagine (`DRIVE_EXTRA=drive` in `.env`, stesso meccanismo di
+`EMAIL_EXTRA`). Verifica dei log:
+
+```bash
+docker compose -f compose.prod.yaml logs note-spese-drive-riconcilia
+```
+
 ### 5. Passi manuali del primo deploy
 
 Due operazioni **non** sono nell'entrypoint perché non idempotenti o perché richiedono

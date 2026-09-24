@@ -27,6 +27,7 @@ from apps.core.models import CodiceTemplateEmail
 from .allegati import valida_allegati_obbligatori
 from .anno_associativo import calcola_anno_spesa
 from .budget import capienza_centro_costo
+from .drive_replica import enqueue_copie_drive
 from .models import (
     AutorizzazioneRdz,
     AutorizzazioneRdzConfig,
@@ -280,7 +281,10 @@ def liquida(nota: NotaSpese, utente: Utente, *, anno_liquidazione: int) -> NotaS
     """D-40: transizione terminale. D-41: unico punto che valorizza
     `anno_contabilizzazione` — mai altrove. D-47/D-48: qui si consuma il
     budget del centro di costo imputato (mai un errore bloccante se
-    sforato, solo un log — deciso con Andrea, 2026-09-16)."""
+    sforato, solo un log — deciso con Andrea, 2026-09-16). D-59: mette in
+    coda la replica su Drive (`enqueue_copie_drive()`, F9) — solo scrittura
+    su database, nessuna chiamata di rete qui: un Drive lento o
+    irraggiungibile non deve mai bloccare questa transizione."""
     _richiedi_permesso_gestione(utente)
     config = ImpostazioniNoteSpese.corrente().autorizzazione_rdz
     if config != AutorizzazioneRdzConfig.NESSUNA and nota.stato != StatoNota.AUTORIZZATA_RDZ:
@@ -304,6 +308,7 @@ def liquida(nota: NotaSpese, utente: Utente, *, anno_liquidazione: int) -> NotaS
                 capienza.residuo,
             )
 
+    enqueue_copie_drive(nota)
     _notifica_capo(nota, codice_template=CodiceTemplateEmail.NOTA_SPESE_LIQUIDATA)
     return nota
 

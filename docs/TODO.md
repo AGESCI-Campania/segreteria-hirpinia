@@ -87,7 +87,9 @@ progettazione, non dati personali).
   - [x] D-68 — Servizio unico di esportazione (4 raggruppamenti, csv/xlsx)
   - [x] D-67 — PDF della nota, corpo + giustificativi in coda uno per pagina (nuova
         dipendenza `pypdf` per unire PDF/immagini al documento generato)
-- [ ] F9 — Replica dei giustificativi su Google Drive
+- [x] F9 — Replica dei giustificativi su Google Drive (codice completo, tracciamento
+      per-file, riconciliazione periodica; **verifica con Drive reale in sospeso**
+      finché il Drive condiviso non è configurato — vedi `docs/drive/service-account.md`)
 
 ## Gap noti (scoperti in verifica, non da una milestone)
 - [ ] `apps/core/email/microsoft.py` (provider `microsoft_graph`) non è implementato:

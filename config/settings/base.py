@@ -202,6 +202,16 @@ GMAIL_CLIENT_ID = os.environ.get("GMAIL_CLIENT_ID", "")
 GMAIL_CLIENT_SECRET = os.environ.get("GMAIL_CLIENT_SECRET", "")
 GMAIL_REFRESH_TOKEN = os.environ.get("GMAIL_REFRESH_TOKEN", "")
 
+# --- Replica su Google Drive dei giustificativi/PDF (D-59, F9) --------------
+# Vedi docs/drive/service-account.md. Stesso pattern del service account
+# Gmail sopra, ma con lo scope Drive. DRIVE_SHARED_DRIVE_ID/DRIVE_FOLDER_ID
+# vuoti = replica disattivata (apps.note_spese.drive::replica_configurata()):
+# condizione attesa finché il Drive condiviso non è configurato (V-8).
+DRIVE_SERVICE_ACCOUNT_JSON = os.environ.get("DRIVE_SERVICE_ACCOUNT_JSON", "")
+DRIVE_SERVICE_ACCOUNT_FILE = os.environ.get("DRIVE_SERVICE_ACCOUNT_FILE", "")
+DRIVE_SHARED_DRIVE_ID = os.environ.get("DRIVE_SHARED_DRIVE_ID", "")
+DRIVE_FOLDER_ID = os.environ.get("DRIVE_FOLDER_ID", "")
+
 # ─── Parametri applicativi, usati a partire da M1+ ─────────────────────────────
 DOMINI_RUOLI_EFFETTIVI = _env_list("DOMINI_RUOLI_EFFETTIVI")
 EMAIL_SEGRETERIA = os.environ.get("EMAIL_SEGRETERIA", "")

@@ -14,6 +14,7 @@ from apps.note_spese.models import (
     BudgetCentroCosto,
     CategoriaSpesa,
     CentroCosto,
+    CopiaDrive,
     Evento,
     ImpostazioniNoteSpese,
     NotaSpese,
@@ -221,6 +222,36 @@ class TestFlussoCompletoSenzaAutorizzazioneRdz:
         nota = liquida(nota, segreteria, anno_liquidazione=2027)
         with pytest.raises(TransitionNotAllowed):
             nota.liquida()
+
+    def test_liquida_mette_in_coda_la_replica_drive_se_configurata(
+        self, nota_con_riga: NotaSpese, capo_utente: Utente, segreteria: Utente, settings
+    ) -> None:
+        """D-59/F9: enqueue_copie_drive() crea solo record CopiaDrive, mai
+        una chiamata di rete — verificato qui che liquida() la richiami
+        davvero, il comportamento di enqueue_copie_drive() stesso è coperto
+        da test_drive_replica.py."""
+        settings.DRIVE_SHARED_DRIVE_ID = "drive-id"
+        settings.DRIVE_FOLDER_ID = "folder-id"
+        nota = invia_nota(nota_con_riga, capo_utente)
+        nota = prendi_in_carico(nota, segreteria)
+        nota = approva(nota, segreteria)
+
+        nota = liquida(nota, segreteria, anno_liquidazione=2027)
+
+        assert CopiaDrive.objects.filter(nota=nota).exists()
+
+    def test_liquida_non_mette_in_coda_se_replica_non_configurata(
+        self, nota_con_riga: NotaSpese, capo_utente: Utente, segreteria: Utente, settings
+    ) -> None:
+        settings.DRIVE_SHARED_DRIVE_ID = ""
+        settings.DRIVE_FOLDER_ID = ""
+        nota = invia_nota(nota_con_riga, capo_utente)
+        nota = prendi_in_carico(nota, segreteria)
+        nota = approva(nota, segreteria)
+
+        nota = liquida(nota, segreteria, anno_liquidazione=2027)
+
+        assert not CopiaDrive.objects.filter(nota=nota).exists()
 
     def test_sforamento_budget_non_blocca_ma_segnala(
         self,
