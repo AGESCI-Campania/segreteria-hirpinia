@@ -40,6 +40,74 @@ Fonti consultate (verificate leggendo il codice sorgente, non a memoria):
 - Commit automatico a fine fase sul branch dedicato, mai push/merge su `main` senza
   richiesta esplicita.
 
+## Valutazione complessità e impatto
+
+**Sintesi**: impatto poco disruptive sul resto del codice, complessità medio-bassa
+concentrata in poche aree. La migrazione non tocca mai il layer dati (nessuna
+migrazione, nessun model, nessuna logica di business/service layer) — è un intervento
+confinato a template, `INSTALLED_APPS`/settings del tema e dipendenze, che non
+richiede di riaprire o ripensare codice applicativo esistente al di fuori dell'area di
+layout. Ogni modifica è reversibile con `git revert`/`git checkout` finché resta sul
+branch dedicato.
+
+**Perché l'impatto è contenuto** (fatti verificati con grep sul repo):
+
+- **Un solo punto di aggancio reale**: `templates/base.html` è l'unico file che estende
+  il tema (`{% extends "agesci_theme/base.html" %}` → `agesci_coreui/base.html`). Tutti
+  gli altri **74 template applicativi** estendono `"base.html"` locale, mai il tema
+  direttamente: restano quasi tutti invariati.
+- **`data-bs-*` confinato**: gli unici attributi Bootstrap-JS-specifici da riscrivere in
+  `data-coreui-*` sono dentro `templates/base.html` (4 usi: offcanvas, dismiss,
+  collapse, dropdown). Nessun template applicativo ne usa altri (verificato via grep).
+- **Un solo test fragile**: su 110 file di test nel repo, solo
+  `apps/core/tests/test_breadcrumb.py` fa un assert su una classe CSS del markup del
+  tema (`breadcrumb-agesci`) e va aggiornato. Tutti gli altri test di dominio/logica non
+  dipendono dal markup del tema.
+- **3 override locali da rilavorare**, non da inventare da zero: breadcrumb (diventa
+  superfluo, si elimina), footer (si riporta il contenuto nel nuovo blocco `footer`),
+  cookie banner (resta identico, cambia solo il punto di `{% include %}`).
+- **Componenti del tema quasi inutilizzati lato applicazione**: solo `emblema_zona` è
+  usato in un punto (`core/home.html`); nessun tag `ag_*`/`branca_bg` del tema base è
+  usato nei template applicativi, quindi non c'è nulla da disimparare lì.
+- Le sostituzioni badge→`ag_chip` (Fase 3) sono **additive e isolate**: 7 file, ognuno
+  con 1-3 righe toccate, nessuna dipendenza tra loro — se una causasse un problema
+  visivo, il rollback è locale a quel file.
+
+**Dove si concentra davvero il lavoro/rischio**:
+
+- **Riscrittura manuale della sidebar** (`templates/base.html`, blocco `sidebar_items`):
+  è l'area con più codice da riscrivere ex novo (markup CoreUI nativo con
+  `.nav-group`/`.nav-group-items` per i sottomenu) e quella con maggiore probabilità di
+  introdurre bug di markup/attributi `data-coreui-*` non visibili a `mise run test`
+  (nessun test HTML-level sulla sidebar oggi) — richiede verifica visiva manuale
+  puntuale (Fase 2), non solo lint/test automatici.
+- **Pacchetto pre-1.0**: `django-agesci-campania-coreui-theme` è alla versione 0.1.0,
+  primo rilascio — possibile instabilità di API/nomi di blocchi nelle versioni
+  successive (mitigato: si può restare pinnati a `0.1.0` finché non si decide un
+  aggiornamento deliberato, stesso approccio già in uso per il tema base).
+  `agesci_coreui/base.html` carica CoreUI 5.9.0 CSS/JS da CDN
+  (`cdn.jsdelivr.net/npm/@coreui/coreui@...`): stesso pattern già in uso oggi per
+  Bootstrap dal tema base, non introduce un nuovo tipo di dipendenza esterna.
+- **`sidebar_user` e `header_actions`**: i link applicativi oggi nel dropdown utente
+  (cambia password, preferenze, impersona, esci) non hanno un default nel layout
+  CoreUI — se dimenticati nella riscrittura si perdono silenziosamente funzionalità
+  esistenti (nessun test li copre a livello HTML); vanno verificati esplicitamente in
+  Fase 2, non solo assunti presenti.
+- **Assenza di test di rendering**: la superficie di regressione visiva
+  (impaginazione, contrasto colori per branca, responsive) non è coperta da test
+  automatici nel progetto — la Fase 2 (verifica manuale nel browser) è l'unico
+  presidio, va eseguita con attenzione e non saltata.
+
+**Stima qualitativa per fase** (S=piccola, M=media, L=grande):
+
+| Fase | Complessità | Rischio di regressione |
+| --- | --- | --- |
+| 0 — Setup branch/dipendenza | S | Nullo (solo settings/dipendenze) |
+| 1 — Layout base | L | Medio (sidebar riscritta a mano, nessun test HTML) |
+| 2 — Verifica visiva | M (tempo, non codice) | — (è il presidio, non il rischio) |
+| 3 — Adozione componenti | S/M | Basso (modifiche additive, isolate per file) |
+| 4 — Pulizia e checklist | S | Basso |
+
 ## Cosa cambia strutturalmente (fatti verificati)
 
 - **Nuovo layout**: `templates/agesci_coreui/base.html` sostituisce
