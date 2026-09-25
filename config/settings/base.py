@@ -61,6 +61,10 @@ INSTALLED_APPS = [
     # sono trovati via APP_DIRS in ordine di INSTALLED_APPS, e vincono solo
     # se il tema è elencato prima delle app allauth (altrimenti i template
     # di default, non stilizzati, di allauth vengono trovati per primi).
+    # agesci_coreui estende agesci_theme (obbligatoria, system check
+    # agesci_coreui.E001) con il layout CoreUI: stesso motivo, va elencata
+    # prima delle app allauth.
+    "agesci_coreui",
     "agesci_theme",
     "django_bootstrap_icons",
     "allauth",
