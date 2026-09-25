@@ -162,14 +162,15 @@ branch dedicato.
 
 Legenda: ✅ completata — 🔄 in corso — ⬜ da fare.
 
-### Fase 0 — Setup branch e dipendenza ⬜
+### Fase 0 — Setup branch e dipendenza ✅
 
-- [ ] Branch dedicato `migrazione-coreui-theme` da `main`
-- [ ] `uv add "django-agesci-campania-coreui-theme"`, bump del vincolo su
+- [x] Branch dedicato `migrazione-coreui-theme` da `main`
+- [x] `uv add "django-agesci-campania-coreui-theme"`, bump del vincolo su
       `django-agesci-campania-theme` a `>=2.7.0` in `pyproject.toml`
-- [ ] `"agesci_coreui"` aggiunta a `INSTALLED_APPS` (`config/settings/base.py`)
-- [ ] `manage.py check` senza errori (`agesci_coreui.E001`)
-- [ ] Valutare aggiornamento `docs/docker.md`/`README.md`
+- [x] `"agesci_coreui"` aggiunta a `INSTALLED_APPS` (`config/settings/base.py`)
+- [x] `manage.py check` senza errori (`agesci_coreui.E001`)
+- [ ] Valutare aggiornamento `docs/docker.md`/`README.md` (nessun comando/dipendenza
+      di setup è cambiato: `uv sync` resta invariato, nessun aggiornamento necessario)
 
 ### Fase 1 — Layout base ⬜
 
