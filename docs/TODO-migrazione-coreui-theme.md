@@ -199,7 +199,22 @@ fallimenti PDF preesistenti su `main`, non correlati) e smoke test manuale via
 Django test client su home e una pagina con voce di menu a sottovoci (Nota Spese) —
 sidebar, `nav-group`, footer e breadcrumb renderizzano senza errori di template.
 
-### Fase 2 — Verifica visiva end-to-end ⬜
+### Fase 2 — Verifica visiva end-to-end 🔄
+
+**Problemi trovati e corretti**:
+
+- [x] Logo nel footer (`templates/base.html`, blocco `footer`) renderizzato a
+      dimensione naturale enorme, sovrapposto al contenuto: avevo riportato la classe
+      `ag-footer__logo` dal vecchio tema (definita solo in
+      `agesci_theme/static/agesci_theme/css/agesci.min.css`, `height:48px`) senza
+      verificare che il nuovo `agesci_coreui/static/agesci_coreui/css/
+      agesci-coreui.min.css` **non** la includa (il namespace `.ag-footer*` non è stato
+      portato nel tema CoreUI). Corretto con `style="height: 48px; width: auto;"`
+      esplicito, indipendente dal CSS del tema. **Lezione**: ogni classe `ag-*`
+      riportata da markup del vecchio tema va verificata contro il CSS del nuovo prima
+      di assumerla esistente.
+
+
 
 - [ ] `mise run dev`: home, lista con tabella filtrabile, form con
       `AgesciFormRenderer`, flusso impersonificazione, mobile (sidebar overlay sotto

@@ -68,20 +68,20 @@
     <div class="row g-4 py-4">
       <div class="col-12 col-md-3">
         <a href="{% url 'core:home' %}" class="d-inline-block mb-2">
-          <img src="{% static agesci_theme_logo_navbar %}" alt="{{ agesci_theme_nome }}" class="ag-footer__logo">
+          <img src="{% static agesci_theme_logo_navbar %}" alt="{{ agesci_theme_nome }}" style="height: 48px; width: auto;">
         </a>
         <p class="small">{{ agesci_theme_nome }}</p>
       </div>
       <div class="col-6 col-md-2">
         <h5>Informazioni</h5>
-        <ul class="ag-footer__nav list-unstyled">
+        <ul class="list-unstyled">
           <li><a href="{% url 'core:privacy' %}">{% bs_icon "shield-lock" %} Privacy Policy</a></li>
           <li><a href="https://segreteria-hirpinia.readthedocs.io" target="_blank" rel="noopener">{% bs_icon "book" %} Manuale d'uso</a></li>
         </ul>
       </div>
       <div class="col-6 col-md-2">
         <h5>Contatti</h5>
-        <ul class="ag-footer__nav list-unstyled">
+        <ul class="list-unstyled">
           <li><a href="mailto:zonahirpinia@campania.agesci.it">{% bs_icon "envelope" %} Responsabili di Zona</a></li>
           <li><a href="https://www.instagram.com/agesci.zonahirpinia" target="_blank" rel="noopener">{% bs_icon "instagram" %} Instagram</a></li>
         </ul>
