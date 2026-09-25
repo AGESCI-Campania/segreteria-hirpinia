@@ -66,6 +66,7 @@ from .models import (
     StatoNota,
 )
 from .permessi import (
+    accede_note_spese,
     e_beneficiario_della_nota,
     e_compilatore_della_nota,
     puo_autorizzare_rdz,
@@ -113,6 +114,24 @@ class RichiedeModificaImpostazioniMixin(LoginRequiredMixin, UserPassesTestMixin)
     def test_func(self) -> bool:
         assert isinstance(self.request.user, Utente)
         return puo_modificare_impostazioni(self.request.user)
+
+
+class PanoramicaView(LoginRequiredMixin, View):
+    """Landing page del modulo (voce unica "Nota Spese" in "Moduli"): un
+    cruscotto con un pulsante per ciascuna funzione a cui l'utente ha
+    accesso, stessa condizione di `apps.core.menu.sezioni_menu()` — non va
+    duplicata la regola di perimetro, solo il rendering cambia da voci di
+    menu a pulsanti."""
+
+    template_name = "note_spese/panoramica.html"
+
+    def get(self, request):
+        assert isinstance(request.user, Utente)
+        contesto = {
+            "accede_note_spese": accede_note_spese(request.user),
+            "puo_gestire_note": puo_gestire_note(request.user),
+        }
+        return render(request, self.template_name, contesto)
 
 
 class NotaListaView(LoginRequiredMixin, ListView):

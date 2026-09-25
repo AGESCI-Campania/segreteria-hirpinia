@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load bootstrap_icons %}
+
+{% block page_title %}Nota Spese{% endblock %}
+
+{% block content %}
+  <h1 class="mb-3">Nota Spese</h1>
+
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% if accede_note_spese %}
+      <div class="col">
+        <div class="card h-100">
+          <div class="card-body d-flex flex-column">
+            <h2 class="fs-5">{% bs_icon "receipt" %} Note spese</h2>
+            <p class="text-body-secondary flex-grow-1">
+              Elenco delle note spese: le proprie per un capo, tutte per chi gestisce il modulo.
+            </p>
+            <a href="{% url 'note_spese:nota_lista' %}" class="btn btn-primary align-self-start">
+              Vai all'elenco
+            </a>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if puo_gestire_note %}
+      <div class="col">
+        <div class="card h-100">
+          <div class="card-body d-flex flex-column">
+            <h2 class="fs-5">{% bs_icon "clipboard2-check" %} Verifica note spese</h2>
+            <p class="text-body-secondary flex-grow-1">
+              Le note in attesa di verifica, approvazione o liquidazione.
+            </p>
+            <a href="{% url 'note_spese:nota_verifica_lista' %}" class="btn btn-primary align-self-start">
+              Vai alla verifica
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card h-100">
+          <div class="card-body d-flex flex-column">
+            <h2 class="fs-5">{% bs_icon "calendar-event" %} Eventi</h2>
+            <p class="text-body-secondary flex-grow-1">
+              Gli eventi a cui le note spese possono essere collegate.
+            </p>
+            <a href="{% url 'note_spese:evento_lista' %}" class="btn btn-primary align-self-start">
+              Vai agli eventi
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card h-100">
+          <div class="card-body d-flex flex-column">
+            <h2 class="fs-5">{% bs_icon "file-earmark-spreadsheet" %} Esporta note spese</h2>
+            <p class="text-body-secondary flex-grow-1">
+              Esportazione delle note spese per la liquidazione.
+            </p>
+            <a href="{% url 'note_spese:nota_esporta' %}" class="btn btn-primary align-self-start">
+              Vai all'esportazione
+            </a>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}

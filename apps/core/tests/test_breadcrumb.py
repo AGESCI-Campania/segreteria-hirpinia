@@ -56,6 +56,28 @@ def test_pagina_non_di_menu_ha_solo_home(client, segreteria):
     assert response.context["breadcrumb_items"] == [{"label": "Home", "url": "/"}]
 
 
+def test_landing_di_modulo_ha_sezione_e_voce(client, segreteria):
+    """La landing page di un modulo con sottovoci (Nota Spese) è l'URL della
+    voce stessa: nessun terzo livello, il breadcrumb resta a 2 livelli come
+    una voce semplice."""
+    client.force_login(segreteria)
+    response = client.get("/note-spese/")
+    items = response.context["breadcrumb_items"]
+    assert items[0] == {"label": "Home", "url": "/"}
+    assert items[1] == {"label": "Moduli"}
+    assert items[2] == {"label": "Nota Spese"}
+
+
+def test_sottovoce_di_modulo_ha_sezione_voce_e_sottovoce(client, segreteria):
+    client.force_login(segreteria)
+    response = client.get("/note-spese/elenco/")
+    items = response.context["breadcrumb_items"]
+    assert items[0] == {"label": "Home", "url": "/"}
+    assert items[1] == {"label": "Moduli"}
+    assert items[2] == {"label": "Nota Spese", "url": "/note-spese/"}
+    assert items[3] == {"label": "Note spese"}
+
+
 class TestIconaHome:
     """M13: override locale di agesci_theme/partials/breadcrumb.html.
     bs_icon renderizza un <svg> (django_bootstrap_icons): verifichiamo che

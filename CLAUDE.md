@@ -274,6 +274,18 @@ nelle fixture di test.
   un vincolo distinto, non rimuoverlo né spostarlo in `base.py` (dev/test lo usano
   legittimamente). Test in `apps/core/tests/test_settings_prod.py`.
 
+### Menu: un modulo con più funzioni è una voce sola
+
+Un modulo con più funzioni (es. Nota Spese: elenco, verifica, eventi, esportazione)
+compare in "Moduli" come **una sola voce di primo livello**, mai una per funzione: le
+singole funzioni sono sottovoci (`VoceMenu.sottovoci` in `apps/core/menu.py`), raggiungibili
+anche da una landing page del modulo (cruscotto con un pulsante per funzione, stesso schema
+di `templates/note_spese/panoramica.html`) puntata dall'`url` della voce stessa. Il
+breadcrumb (`apps/core/context_processors.py::breadcrumb()`) segue automaticamente la
+struttura a 3 livelli Sezione › Voce › Sottovoce: non serve `BreadcrumbExtraMixin` per le
+pagine già presenti come sottovoce. Riusare questo schema per ogni futuro modulo con più di
+una funzione, non affiancare le funzioni come voci separate di "Moduli".
+
 ### Tema
 
 Usa `django-agesci-campania-theme`. **Non scrivere CSS custom** per i colori: usa le

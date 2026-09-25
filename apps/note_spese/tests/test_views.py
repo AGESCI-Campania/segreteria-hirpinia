@@ -91,30 +91,30 @@ def nota(gruppo, capo, evento, categoria) -> NotaSpese:
 
 class TestNotaListaView:
     def test_richiede_login(self, client) -> None:
-        response = client.get("/note-spese/")
+        response = client.get("/note-spese/elenco/")
         assert response.status_code == 302
 
     def test_capo_vede_solo_le_proprie(self, client, capo_utente, nota) -> None:
         client.force_login(capo_utente)
-        response = client.get("/note-spese/")
+        response = client.get("/note-spese/elenco/")
         assert response.status_code == 200
         assert list(response.context["note"]) == [nota]
 
     def test_altro_capo_non_vede_nota_altrui(self, client, altro_capo_utente, nota) -> None:
         client.force_login(altro_capo_utente)
-        response = client.get("/note-spese/")
+        response = client.get("/note-spese/elenco/")
         assert response.status_code == 200
         assert list(response.context["note"]) == []
 
     def test_segreteria_vede_tutte(self, client, segreteria, nota) -> None:
         client.force_login(segreteria)
-        response = client.get("/note-spese/")
+        response = client.get("/note-spese/elenco/")
         assert response.status_code == 200
         assert list(response.context["note"]) == [nota]
 
     def test_account_senza_capo_vede_elenco_vuoto(self, client, utente_senza_capo, nota) -> None:
         client.force_login(utente_senza_capo)
-        response = client.get("/note-spese/")
+        response = client.get("/note-spese/elenco/")
         assert response.status_code == 200
         assert list(response.context["note"]) == []
 

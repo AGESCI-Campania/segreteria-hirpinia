@@ -34,10 +34,21 @@ class VoceMenu:
     etichetta: str
     url: str
     icona: str
+    # Un modulo con più funzioni (es. Nota Spese) è una sola voce in
+    # `SezioneMenu.voci`, non tante voci affiancate: le funzioni vivono qui,
+    # raggiungibili anche dalla landing page a cui punta `url` sopra. Vuoto
+    # per una voce semplice (nessun sottomenu).
+    sottovoci: tuple[VoceMenu, ...] = ()
 
 
-def _voce(etichetta: str, url_name: str, icona: str, args: list | None = None) -> VoceMenu:
-    return VoceMenu(etichetta, reverse(url_name, args=args), icona)
+def _voce(
+    etichetta: str,
+    url_name: str,
+    icona: str,
+    args: list | None = None,
+    sottovoci: tuple[VoceMenu, ...] = (),
+) -> VoceMenu:
+    return VoceMenu(etichetta, reverse(url_name, args=args), icona, sottovoci)
 
 
 @dataclass(frozen=True)
@@ -113,18 +124,33 @@ def sezioni_menu(utente: Utente | AnonymousUser) -> list[SezioneMenu]:
         voci_contributi.append(
             _voce("Contributo Fo.Ca.", "contributi:campagna_lista", "calendar2-check")
         )
+    # Nota Spese è un unico modulo agli occhi dell'utente: una sola voce
+    # "Nota Spese" in "Moduli", con le singole funzioni come sottovoci —
+    # stesso pattern da riusare per ogni futuro modulo con più funzioni,
+    # invece di affiancare le funzioni come voci separate di primo livello.
+    sottovoci_note_spese = []
     if accede_note_spese(utente):
         # Non un ruolo (D-65): un capo qualsiasi accede alle proprie note
         # senza bisogno di alcun ruolo di gestione, per questo non passa da
         # `consentito()` come le altre voci di questa sezione.
-        voci_contributi.append(_voce("Note spese", "note_spese:nota_lista", "receipt"))
+        sottovoci_note_spese.append(_voce("Note spese", "note_spese:nota_lista", "receipt"))
     if puo_gestire_note(utente):
-        voci_contributi.append(
+        sottovoci_note_spese.append(
             _voce("Verifica note spese", "note_spese:nota_verifica_lista", "clipboard2-check")
         )
-        voci_contributi.append(_voce("Eventi", "note_spese:evento_lista", "calendar-event"))
-        voci_contributi.append(
+        sottovoci_note_spese.append(_voce("Eventi", "note_spese:evento_lista", "calendar-event"))
+        sottovoci_note_spese.append(
             _voce("Esporta note spese", "note_spese:nota_esporta", "file-earmark-spreadsheet")
+        )
+    if sottovoci_note_spese:
+        sottovoci_note_spese.insert(0, _voce("Panoramica", "note_spese:panoramica", "grid-3x3-gap"))
+        voci_contributi.append(
+            _voce(
+                "Nota Spese",
+                "note_spese:panoramica",
+                "receipt-cutoff",
+                sottovoci=tuple(sottovoci_note_spese),
+            )
         )
     if voci_contributi:
         sezioni.append(SezioneMenu("Moduli", "cash-coin", voci_contributi))

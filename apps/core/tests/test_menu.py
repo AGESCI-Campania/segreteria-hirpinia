@@ -26,6 +26,16 @@ def _etichette(sezioni, nome_sezione: str) -> list[str]:
     return []
 
 
+def _sottoetichette(sezioni, nome_sezione: str, nome_voce: str) -> list[str]:
+    for sezione in sezioni:
+        if sezione.etichetta != nome_sezione:
+            continue
+        for voce in sezione.voci:
+            if voce.etichetta == nome_voce:
+                return [sotto.etichetta for sotto in voce.sottovoci]
+    return []
+
+
 class TestAllowlistSottoAmministrazione:
     def test_segreteria_diretta_vede_allowlist_in_amministrazione(self):
         utente = _persona("segreteria@campania.agesci.it")
@@ -122,21 +132,25 @@ class TestIlMioGruppo:
 class TestNoteSpeseInMenu:
     """D-65: la voce compare per un capo qualsiasi, non solo per chi ha un
     ruolo di gestione — a differenza di tutte le altre voci di questa
-    sezione, non passa da `consentito()`."""
+    sezione, non passa da `consentito()`. "Nota Spese" è un'unica voce di
+    primo livello in "Moduli" (non una per funzione): le singole funzioni
+    sono sottovoci, stesso pattern da riusare per ogni futuro modulo."""
 
-    def test_capo_qualsiasi_vede_la_voce(self):
+    def test_capo_qualsiasi_vede_solo_la_voce_nota_spese(self):
         utente = _persona("mario.rossi@example.it", codice_socio="123456A")
 
         sezioni = sezioni_menu(utente)
 
-        assert "Note spese" in _etichette(sezioni, "Moduli")
+        assert _etichette(sezioni, "Moduli").count("Nota Spese") == 1
+        assert "Note spese" not in _etichette(sezioni, "Moduli")
+        assert "Note spese" in _sottoetichette(sezioni, "Moduli", "Nota Spese")
 
     def test_account_di_gruppo_senza_ruoli_non_vede_la_voce(self):
         utente = _persona("account.gruppo@example.it")
 
         sezioni = sezioni_menu(utente)
 
-        assert "Note spese" not in _etichette(sezioni, "Moduli")
+        assert "Nota Spese" not in _etichette(sezioni, "Moduli")
 
     def test_segreteria_vede_la_voce_anche_senza_codice_socio(self):
         utente = _persona("segreteria@campania.agesci.it")
@@ -144,7 +158,32 @@ class TestNoteSpeseInMenu:
 
         sezioni = sezioni_menu(utente)
 
-        assert "Note spese" in _etichette(sezioni, "Moduli")
+        assert "Nota Spese" in _etichette(sezioni, "Moduli")
+
+    def test_capo_semplice_non_vede_le_funzioni_di_gestione(self):
+        utente = _persona("mario.rossi@example.it", codice_socio="123456A")
+
+        sezioni = sezioni_menu(utente)
+
+        sottovoci = _sottoetichette(sezioni, "Moduli", "Nota Spese")
+        assert "Verifica note spese" not in sottovoci
+        assert "Eventi" not in sottovoci
+        assert "Esporta note spese" not in sottovoci
+
+    def test_segreteria_vede_tutte_le_funzioni_come_sottovoci(self):
+        utente = _persona("segreteria@campania.agesci.it")
+        Ruolo.objects.create(utente=utente, tipo=Ruolo.Tipo.SEGRETERIA)
+
+        sezioni = sezioni_menu(utente)
+
+        sottovoci = _sottoetichette(sezioni, "Moduli", "Nota Spese")
+        assert sottovoci == [
+            "Panoramica",
+            "Note spese",
+            "Verifica note spese",
+            "Eventi",
+            "Esporta note spese",
+        ]
 
 
 class TestAssegnaIncaricoNonPiuInMenu:
