@@ -8,6 +8,16 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.1.20] - 2026-09-25
+
+### Modificato
+
+- Nel menu "Moduli", "Nota Spese" è ora un'unica voce (prima erano 4 voci
+  separate: Note spese, Verifica note spese, Eventi, Esporta note spese),
+  con una pagina di accesso dedicata e le singole funzioni raggiungibili da
+  lì o come sottovoci della barra laterale. Il percorso mostrato in cima
+  alla pagina (breadcrumb) segue la stessa struttura.
+
 ## [1.1.19] - 2026-09-24
 
 ### Aggiunto
