@@ -172,24 +172,32 @@ Legenda: ✅ completata — 🔄 in corso — ⬜ da fare.
 - [ ] Valutare aggiornamento `docs/docker.md`/`README.md` (nessun comando/dipendenza
       di setup è cambiato: `uv sync` resta invariato, nessun aggiornamento necessario)
 
-### Fase 1 — Layout base ⬜
+### Fase 1 — Layout base ✅
 
-- [ ] `templates/base.html`: `{% extends "agesci_coreui/base.html" %}`
-- [ ] `sidebar_items` da `sezioni_menu` con `{% ag_nav_title %}`/`{% ag_nav_item %}`
+- [x] `templates/base.html`: `{% extends "agesci_coreui/base.html" %}`
+- [x] `sidebar_items` da `sezioni_menu` con `{% ag_nav_title %}`/`{% ag_nav_item %}`
       (markup `.nav-group`/`.nav-group-items` per le voci con `sottovoci`, es. "Nota
       Spese")
-- [ ] `sidebar_user`: valutare se basta il default CoreUI (avatar + nome) o va
-      sovrascritto per mantenere il dropdown (Cambia password, Preferenze, Impersona,
-      Esci)
-- [ ] `header_actions`/`header_nav`: riportare eventuali link persi dalla rimozione di
-      `offcanvas_nav`
-- [ ] Blocco `footer` riscritto (colonne + `{% include
+- [x] `sidebar_user` sovrascritto con `{% ag_avatar %}` per mantenere il dropdown
+      (Cambia password, Preferenze, Impersona, Esci): il default CoreUI da solo non
+      basta, non ha slot per questi link
+- [x] `header_actions`/`header_nav`: nessun link da riportare — `offcanvas_nav`
+      duplicava il menu della sidebar solo per mobile, ora la sidebar stessa è il menu
+      mobile (nativo CoreUI), non c'era altro contenuto da preservare
+- [x] Blocco `footer` riscritto (colonne + `{% include
       "agesci_theme/partials/cookie_banner.html" %}`)
-- [ ] Rimuovere `templates/agesci_theme/partials/breadcrumb.html` e
+- [x] Rimossi `templates/agesci_theme/partials/breadcrumb.html` e
       `templates/agesci_theme/partials/footer.html` (dead code)
-- [ ] Aggiornare `apps/core/tests/test_breadcrumb.py` (riga 87) per il markup CoreUI
-- [ ] Verificare `extra_js` (script applicativi invariati, non dipendono da Bootstrap
-      JS)
+- [x] Aggiornato `apps/core/tests/test_breadcrumb.py`: l'icona Home (override
+      rimosso) non ha equivalente nel layout nativo, il test verifica ora solo la
+      presenza del markup breadcrumb nativo (`class="breadcrumb"`)
+- [x] `extra_js` verificato: script applicativi invariati (`table-filter.js`,
+      `table-sort.js`, `cookie-banner.js`), nessuna dipendenza da Bootstrap JS
+
+Verifica eseguita: `manage.py check`, `mise run lint`, `mise run test` (stessi 3
+fallimenti PDF preesistenti su `main`, non correlati) e smoke test manuale via
+Django test client su home e una pagina con voce di menu a sottovoci (Nota Spese) —
+sidebar, `nav-group`, footer e breadcrumb renderizzano senza errori di template.
 
 ### Fase 2 — Verifica visiva end-to-end ⬜
 
