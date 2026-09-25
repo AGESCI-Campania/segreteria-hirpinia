@@ -78,22 +78,18 @@ def test_sottovoce_di_modulo_ha_sezione_voce_e_sottovoce(client, segreteria):
     assert items[3] == {"label": "Note spese"}
 
 
-class TestIconaHome:
-    """M13: override locale di agesci_theme/partials/breadcrumb.html.
-    bs_icon renderizza un <svg> (django_bootstrap_icons): verifichiamo che
-    compaia dentro il breadcrumb, non il markup esatto (fuori controllo)."""
+class TestMarkupBreadcrumb:
+    """Migrazione a django-agesci-campania-coreui-theme: il breadcrumb non è
+    più un partial separato con override locale (icona Home rimossa insieme
+    all'override), ma markup nativo inline in agesci_coreui/base.html,
+    pilotato dalla stessa variabile di contesto `breadcrumb_items`."""
 
-    def _svg_nel_breadcrumb(self, content: str) -> bool:
-        inizio = content.index('class="breadcrumb-agesci"')
-        fine = content.index("</nav>", inizio)
-        return "<svg" in content[inizio:fine]
-
-    def test_home_ha_icona(self, client, segreteria):
+    def test_breadcrumb_nativo_presente(self, client, segreteria):
         client.force_login(segreteria)
         response = client.get("/")
-        assert self._svg_nel_breadcrumb(response.content.decode())
+        assert 'class="breadcrumb' in response.content.decode()
 
-    def test_pagina_figlia_ha_comunque_icona_home(self, client, segreteria):
+    def test_pagina_figlia_ha_comunque_il_breadcrumb(self, client, segreteria):
         client.force_login(segreteria)
         response = client.get("/gruppi/nuovo/")
-        assert self._svg_nel_breadcrumb(response.content.decode())
+        assert 'class="breadcrumb' in response.content.decode()

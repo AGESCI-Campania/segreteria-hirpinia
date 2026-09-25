@@ -1,148 +1,103 @@
-{% extends "agesci_theme/base.html" %}
+{% extends "agesci_coreui/base.html" %}
 {% load static %}
 {% load bootstrap_icons %}
+{% load agesci_coreui %}
 
 {% block title %}{% block page_title %}{{ agesci_theme_nome }}{% endblock %}{% endblock %}
 
-{% block offcanvas_nav %}
-  <li><a href="{% url 'core:home' %}" class="nav-link">{% bs_icon "house-fill" %} Home</a></li>
+{% block brand_url %}{% url 'core:home' %}{% endblock %}
+
+{% block sidebar_items %}
+  {% url 'core:home' as home_url %}
+  {% ag_nav_item "Home" home_url icon="house-fill" %}
   {% for sezione in sezioni_menu %}
-    <li><h6 class="dropdown-header">{% bs_icon sezione.icona %} {{ sezione.etichetta }}</h6></li>
+    {% ag_nav_title sezione.etichetta %}
     {% for voce in sezione.voci %}
       {% if voce.sottovoci %}
-        {% for sotto in voce.sottovoci %}
-          <li><a href="{{ sotto.url }}" class="nav-link">{% bs_icon sotto.icona %} {{ sotto.etichetta }}</a></li>
-        {% endfor %}
+        <li class="nav-group">
+          <a class="nav-link nav-group-toggle" href="#">
+            {% bs_icon voce.icona %} {{ voce.etichetta }}
+          </a>
+          <ul class="nav-group-items compact">
+            {% for sotto in voce.sottovoci %}
+              {% ag_nav_item sotto.etichetta sotto.url icon=sotto.icona %}
+            {% endfor %}
+          </ul>
+        </li>
       {% else %}
-        <li><a href="{{ voce.url }}" class="nav-link">{% bs_icon voce.icona %} {{ voce.etichetta }}</a></li>
+        {% ag_nav_item voce.etichetta voce.url icon=voce.icona %}
       {% endif %}
     {% endfor %}
   {% endfor %}
 {% endblock %}
 
-{% block sidebar %}
-<button class="ag-sidebar__mobile-toggle d-lg-none"
-        type="button"
-        data-bs-toggle="offcanvas"
-        data-bs-target="#agSidebar"
-        aria-controls="agSidebar"
-        aria-label="Apri menu laterale">
-  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-    <path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5"/>
-  </svg>
-</button>
-
-<nav class="ag-sidebar ag-sidebar--dark offcanvas-lg offcanvas-start" id="agSidebar" tabindex="-1" aria-label="Menu laterale">
-  <button class="ag-sidebar__toggle d-none d-lg-flex"
-          id="agSidebarToggle"
-          aria-label="Comprimi menu laterale"
-          aria-expanded="true"
-          aria-controls="agSidebar">
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-      <path d="M0 3a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm5-1v12h9a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zM4 2H2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h2z"/>
-    </svg>
-    <span class="ag-sidebar__toggle-label ms-2">Menu</span>
-  </button>
-
-  <button class="ag-sidebar__close d-lg-none"
-          type="button"
-          data-bs-dismiss="offcanvas"
-          aria-label="Chiudi menu laterale">
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-      <path d="M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z"/>
-    </svg>
-  </button>
-
-  <ul class="ag-sidebar__nav">
-    {% block sidebar_items %}
+{% block sidebar_user %}
+{% if request.user.is_authenticated %}
+<div class="sidebar-footer border-top ag-sidebar-user">
+  <div class="dropdown dropup">
+    <a href="#"
+       class="d-flex align-items-center gap-2 text-decoration-none text-white dropdown-toggle"
+       data-coreui-toggle="dropdown"
+       aria-expanded="false">
+      {% ag_avatar name=request.user.get_full_name|default:request.user.username size="md" %}
+      <span class="text-truncate">{{ request.user.get_full_name|default:request.user.username }}</span>
+    </a>
+    <ul class="dropdown-menu dropdown-menu-dark shadow">
       <li>
-        <a href="{% url 'core:home' %}" class="ag-sidebar__nav-link{% if request.path == '/' %} active{% endif %}">
-          {% bs_icon "house-fill" %}
-          <span class="ag-sidebar__label">Home</span>
-        </a>
+        <span class="dropdown-item-text small">
+          <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+          {% if request.user.email %}<br><span class="text-white-50">{{ request.user.email }}</span>{% endif %}
+        </span>
       </li>
-      {% for sezione in sezioni_menu %}
-        <li>
-          <a href="#ag-sidebar-sezione-{{ forloop.counter }}"
-             class="ag-sidebar__nav-link"
-             data-bs-toggle="collapse"
-             role="button"
-             aria-expanded="false"
-             aria-controls="ag-sidebar-sezione-{{ forloop.counter }}">
-            {% bs_icon sezione.icona %}
-            <span class="ag-sidebar__label">{{ sezione.etichetta }}</span>
-            <span class="ms-auto">{% bs_icon "chevron-down" size="12" %}</span>
-          </a>
-          <ul class="collapse list-unstyled" id="ag-sidebar-sezione-{{ forloop.counter }}">
-            {% for voce in sezione.voci %}
-              {% if voce.sottovoci %}
-                <li>
-                  <a href="#ag-sidebar-sezione-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
-                     class="ag-sidebar__nav-link ps-4"
-                     data-bs-toggle="collapse"
-                     role="button"
-                     aria-expanded="false"
-                     aria-controls="ag-sidebar-sezione-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
-                    {% bs_icon voce.icona %}
-                    <span class="ag-sidebar__label">{{ voce.etichetta }}</span>
-                    <span class="ms-auto">{% bs_icon "chevron-down" size="12" %}</span>
-                  </a>
-                  <ul class="collapse list-unstyled" id="ag-sidebar-sezione-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
-                    {% for sotto in voce.sottovoci %}
-                      <li>
-                        <a href="{{ sotto.url }}" class="ag-sidebar__nav-link ps-5">
-                          {% bs_icon sotto.icona %}
-                          <span class="ag-sidebar__label">{{ sotto.etichetta }}</span>
-                        </a>
-                      </li>
-                    {% endfor %}
-                  </ul>
-                </li>
-              {% else %}
-                <li>
-                  <a href="{{ voce.url }}" class="ag-sidebar__nav-link ps-4">
-                    {% bs_icon voce.icona %}
-                    <span class="ag-sidebar__label">{{ voce.etichetta }}</span>
-                  </a>
-                </li>
-              {% endif %}
-            {% endfor %}
-          </ul>
-        </li>
-      {% endfor %}
-    {% endblock %}
-  </ul>
+      <li><hr class="dropdown-divider"></li>
+      <li><a class="dropdown-item" href="{% url 'account_change_password' %}">Cambia password</a></li>
+      <li><a class="dropdown-item" href="{% url 'accounts:preferenze' %}">Preferenze</a></li>
+      {% if puo_impersonare %}
+        <li><a class="dropdown-item" href="{% url 'accounts:impersona_lista' %}">Impersona un utente</a></li>
+      {% endif %}
+      <li><a class="dropdown-item" href="{% url 'account_logout' %}">Esci</a></li>
+    </ul>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
 
-  {% block sidebar_user %}
-  {% if request.user.is_authenticated %}
-  <div class="ag-sidebar__user">
-    <div class="dropdown dropup">
-      <a href="#" class="ag-sidebar__user-toggle dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-        <span class="ag-sidebar__user-avatar" aria-hidden="true">{{ request.user.get_full_name|default:request.user.username|first|upper }}</span>
-        <span class="ag-sidebar__label">{{ request.user.get_full_name|default:request.user.username }}</span>
-      </a>
-      <ul class="dropdown-menu dropdown-menu-dark shadow">
-        <li>
-          <span class="dropdown-item-text small">
-            <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
-            {% if request.user.email %}<br><span class="text-white-50">{{ request.user.email }}</span>{% endif %}
-          </span>
-        </li>
-        <li><hr class="dropdown-divider"></li>
-        <li><a class="dropdown-item" href="{% url 'account_change_password' %}">Cambia password</a></li>
-        <li><a class="dropdown-item" href="{% url 'accounts:preferenze' %}">Preferenze</a></li>
-        {% if puo_impersonare %}
-          <li><a class="dropdown-item" href="{% url 'accounts:impersona_lista' %}">Impersona un utente</a></li>
-        {% endif %}
-        <li><a class="dropdown-item" href="{% url 'account_logout' %}">Esci</a></li>
+{% block footer %}
+<footer class="footer px-4 mt-4">
+  <div class="container-fluid">
+    <div class="row g-4 py-4">
+      <div class="col-12 col-md-3">
+        <a href="{% url 'core:home' %}" class="d-inline-block mb-2">
+          <img src="{% static agesci_theme_logo_navbar %}" alt="{{ agesci_theme_nome }}" class="ag-footer__logo">
+        </a>
+        <p class="small">{{ agesci_theme_nome }}</p>
+      </div>
+      <div class="col-6 col-md-2">
+        <h5>Informazioni</h5>
+        <ul class="ag-footer__nav list-unstyled">
+          <li><a href="{% url 'core:privacy' %}">{% bs_icon "shield-lock" %} Privacy Policy</a></li>
+          <li><a href="https://segreteria-hirpinia.readthedocs.io" target="_blank" rel="noopener">{% bs_icon "book" %} Manuale d'uso</a></li>
+        </ul>
+      </div>
+      <div class="col-6 col-md-2">
+        <h5>Contatti</h5>
+        <ul class="ag-footer__nav list-unstyled">
+          <li><a href="mailto:zonahirpinia@campania.agesci.it">{% bs_icon "envelope" %} Responsabili di Zona</a></li>
+          <li><a href="https://www.instagram.com/agesci.zonahirpinia" target="_blank" rel="noopener">{% bs_icon "instagram" %} Instagram</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center pt-3 border-top gap-2">
+      <div>{% block footer_copyright %}© AGESCI Zona Hirpinia. Progetto con <a href="https://github.com/AGESCI-Campania/segreteria-hirpinia/blob/main/LICENSE" target="_blank" rel="noopener">Licenza MIT</a> realizzato da <a href="https://www.bruand81.it" target="_blank" rel="noopener">Andrea Bruno</a>{% endblock %}</div>
+      <ul class="ag-footer-links list-unstyled d-flex gap-3 mb-0">
+        {% block footer_links %}
+        <li><a href="https://www.agesci.it" target="_blank" rel="noopener">agesci.it</a></li>
+        {% endblock %}
       </ul>
     </div>
   </div>
-  {% endif %}
-  {% endblock %}
-</nav>
-
-<script src="{% static 'agesci_theme/js/sidebar.js' %}" defer></script>
+</footer>
+{% include "agesci_theme/partials/cookie_banner.html" %}
 {% endblock %}
 
 {% block content %}{% endblock %}
