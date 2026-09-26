@@ -19,47 +19,49 @@
     possibili anche in loro presenza.
   </p>
 
-  <table class="table table-sm">
-    <thead>
-      <tr>
-        <th>Numero</th>
-        <th>Beneficiario</th>
-        <th>Evento</th>
-        <th>Stato</th>
-        <th>Eccezioni</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for riga in righe %}
+  <div class="table-responsive">
+    <table class="table table-sm">
+      <thead>
         <tr>
-          <td>
-            <a href="{% url 'note_spese:nota_dettaglio' riga.nota.pk %}">
-              {{ riga.nota.numero|default:"(bozza)" }}
-            </a>
-          </td>
-          <td>{{ riga.nota.beneficiario }}</td>
-          <td>{{ riga.nota.evento }}</td>
-          <td>{{ riga.nota.get_stato_display }}</td>
-          <td>
-            {% if riga.incarico_non_strutturato %}
-              <span class="badge bg-warning text-dark">Incarico "Altro"</span>
-            {% endif %}
-            {% if riga.doppioni_targa or riga.doppioni_passeggero %}
-              <span class="badge bg-warning text-dark">Possibile doppione</span>
-            {% endif %}
-            {% if riga.capienza_sforata %}
-              <span class="badge bg-danger">
-                Capienza sforata (residuo indicativo {{ riga.capienza.residuo_indicativo }})
-              </span>
-            {% endif %}
-            {% if not riga.ha_eccezioni %}
-              <span class="text-muted">—</span>
-            {% endif %}
-          </td>
+          <th>Numero</th>
+          <th>Beneficiario</th>
+          <th>Evento</th>
+          <th>Stato</th>
+          <th>Eccezioni</th>
         </tr>
-      {% empty %}
-        <tr><td colspan="5">Nessuna nota in lavorazione{% if solo_eccezioni %} con eccezioni{% endif %}.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for riga in righe %}
+          <tr>
+            <td>
+              <a href="{% url 'note_spese:nota_dettaglio' riga.nota.pk %}">
+                {{ riga.nota.numero|default:"(bozza)" }}
+              </a>
+            </td>
+            <td>{{ riga.nota.beneficiario }}</td>
+            <td>{{ riga.nota.evento }}</td>
+            <td>{{ riga.nota.get_stato_display }}</td>
+            <td>
+              {% if riga.incarico_non_strutturato %}
+                <span class="badge bg-warning text-dark">Incarico "Altro"</span>
+              {% endif %}
+              {% if riga.doppioni_targa or riga.doppioni_passeggero %}
+                <span class="badge bg-warning text-dark">Possibile doppione</span>
+              {% endif %}
+              {% if riga.capienza_sforata %}
+                <span class="badge bg-danger">
+                  Capienza sforata (residuo indicativo {{ riga.capienza.residuo_indicativo }})
+                </span>
+              {% endif %}
+              {% if not riga.ha_eccezioni %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5">Nessuna nota in lavorazione{% if solo_eccezioni %} con eccezioni{% endif %}.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endblock %}

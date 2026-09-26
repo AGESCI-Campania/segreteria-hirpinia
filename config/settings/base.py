@@ -250,7 +250,15 @@ AXES_RESET_COOL_OFF_ON_FAILURE = False
 HIJACK_PERMISSION_CHECK = "apps.accounts.permessi.puo_impersonare"
 HIJACK_LOGIN_REDIRECT_URL = "/"
 HIJACK_LOGOUT_REDIRECT_URL = "/"
-HIJACK_INSERT_BEFORE = "</body>"
+
+# Layout CoreUI: la sidebar (`position: fixed`) e il footer possono trovarsi
+# molto più in basso nel documento rispetto al vecchio tema. Inserendo il
+# banner subito prima di `</body>` (default del pacchetto), il banner
+# `position: sticky` parte dalla sua posizione naturale a fine documento e
+# resta invisibile finché non si scorre oltre il footer. Va inserito come
+# primo elemento del `<body>`, prima della sidebar, perché lo sticky funzioni
+# fin dal caricamento della pagina.
+HIJACK_INSERT_BEFORE = '<div class="sidebar '
 
 LOGIN_URL = "account_login"
 LOGIN_REDIRECT_URL = "core:home"

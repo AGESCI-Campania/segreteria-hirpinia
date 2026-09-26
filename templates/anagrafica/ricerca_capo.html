@@ -24,13 +24,15 @@
 
   {% if cercato %}
     {% if trovato %}
-      <table class="table table-sm">
-        <tbody>
-          <tr><th>Codice socio</th><td>{{ trovato.codice_socio }}</td></tr>
-          <tr><th>Nome</th><td>{{ trovato.nome }} {{ trovato.cognome }}</td></tr>
-          <tr><th>Gruppo di censimento</th><td>{{ trovato.gruppo_censimento_nome }} ({{ trovato.gruppo_censimento_codice }})</td></tr>
-        </tbody>
-      </table>
+      <div class="table-responsive">
+        <table class="table table-sm">
+          <tbody>
+            <tr><th>Codice socio</th><td>{{ trovato.codice_socio }}</td></tr>
+            <tr><th>Nome</th><td>{{ trovato.nome }} {{ trovato.cognome }}</td></tr>
+            <tr><th>Gruppo di censimento</th><td>{{ trovato.gruppo_censimento_nome }} ({{ trovato.gruppo_censimento_codice }})</td></tr>
+          </tbody>
+        </table>
+      </div>
       <a href="{% url 'anagrafica:assegna_incarico' %}?codice_socio={{ trovato.codice_socio }}" class="btn btn-success">
         Assegna incarico
       </a>

@@ -27,26 +27,28 @@
 
     {% if piano.anomalie %}
       <h3>Anomalie</h3>
-      <table class="table table-sm">
-        <thead>
-          <tr>
-            <th>Livello</th>
-            <th>Campo</th>
-            <th>Dettaglio</th>
-            <th>Codice socio</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for anomalia in piano.anomalie %}
+      <div class="table-responsive">
+        <table class="table table-sm">
+          <thead>
             <tr>
-              <td>{{ anomalia.livello }}</td>
-              <td>{{ anomalia.campo }}</td>
-              <td>{{ anomalia.dettaglio }}</td>
-              <td>{{ anomalia.codice_socio }}</td>
+              <th>Livello</th>
+              <th>Campo</th>
+              <th>Dettaglio</th>
+              <th>Codice socio</th>
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {% for anomalia in piano.anomalie %}
+              <tr>
+                <td>{{ anomalia.livello }}</td>
+                <td>{{ anomalia.campo }}</td>
+                <td>{{ anomalia.dettaglio }}</td>
+                <td>{{ anomalia.codice_socio }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     {% endif %}
 
     <form method="post" action="{% url 'anagrafica:importazione_autorizzazioni_conferma' %}">

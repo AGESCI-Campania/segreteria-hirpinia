@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block page_title %}Nuova nota spese{% endblock %}
 
@@ -14,9 +15,17 @@
 
     {% for field in form %}
       {% if field.name != "beneficiario_codice_socio" or puo_gestire_note %}
-        <div class="mb-3">
+        <div class="mb-3{% if field.name == "beneficiario_codice_socio" %} position-relative{% endif %}">
           {{ field.label_tag }}
           {{ field }}
+          {% if field.name == "beneficiario_codice_socio" %}
+            <ul
+              class="list-group position-absolute w-100"
+              id="beneficiario-ricerca-risultati"
+              style="z-index: 1000; display: none;"
+            ></ul>
+            <div class="form-text" id="beneficiario-ricerca-selezionato"></div>
+          {% endif %}
           {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
           {{ field.errors }}
         </div>
@@ -30,4 +39,15 @@
 
     <button type="submit" class="btn btn-primary">Crea bozza</button>
   </form>
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  {% if puo_gestire_note %}
+    <script
+      src="{% static 'js/nota-spese-beneficiario-autocomplete.js' %}"
+      defer
+      data-url-autocomplete="{% url 'note_spese:beneficiario_ricerca_autocomplete' %}"
+    ></script>
+  {% endif %}
 {% endblock %}

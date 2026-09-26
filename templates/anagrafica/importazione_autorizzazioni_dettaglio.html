@@ -12,16 +12,18 @@
   </p>
 
   <h2>Conteggi</h2>
-  <table class="table table-sm">
-    <tbody>
-      {% for chiave, valore in importazione.conteggi.items %}
-        <tr>
-          <th>{{ chiave }}</th>
-          <td>{{ valore }}</td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-responsive">
+    <table class="table table-sm">
+      <tbody>
+        {% for chiave, valore in importazione.conteggi.items %}
+          <tr>
+            <th>{{ chiave }}</th>
+            <td>{{ valore }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
   {% if importazione.file_pdf.all %}
     <h2>PDF applicati</h2>
@@ -34,25 +36,27 @@
 
   {% if importazione.anomalie %}
     <h2>Anomalie</h2>
-    <table class="table table-sm">
-      <thead>
-        <tr>
-          <th>Livello</th>
-          <th>Campo</th>
-          <th>Dettaglio</th>
-          <th>Codice socio</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for anomalia in importazione.anomalie %}
+    <div class="table-responsive">
+      <table class="table table-sm">
+        <thead>
           <tr>
-            <td>{{ anomalia.livello }}</td>
-            <td>{{ anomalia.campo }}</td>
-            <td>{{ anomalia.dettaglio }}</td>
-            <td>{{ anomalia.codice_socio }}</td>
+            <th>Livello</th>
+            <th>Campo</th>
+            <th>Dettaglio</th>
+            <th>Codice socio</th>
           </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {% for anomalia in importazione.anomalie %}
+            <tr>
+              <td>{{ anomalia.livello }}</td>
+              <td>{{ anomalia.campo }}</td>
+              <td>{{ anomalia.dettaglio }}</td>
+              <td>{{ anomalia.codice_socio }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   {% endif %}
 {% endblock %}

@@ -128,53 +128,55 @@
     <a href="{% url 'note_spese:riga_crea' nota.pk %}" class="btn btn-sm btn-primary mb-2">Aggiungi riga</a>
     <a href="{% url 'note_spese:riga_auto_crea' nota.pk %}" class="btn btn-sm btn-primary mb-2">Aggiungi riga auto</a>
   {% endif %}
-  <table class="table table-sm">
-    <thead>
-      <tr>
-        <th>Data</th>
-        <th>Categoria</th>
-        <th>Descrizione / tratta</th>
-        <th>Importo richiesto</th>
-        <th>Importo riconosciuto</th>
-        <th>Giustificativi</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for riga in righe %}
+  <div class="table-responsive">
+    <table class="table table-sm">
+      <thead>
         <tr>
-          <td>{{ riga.data }}</td>
-          <td>{{ riga.categoria }}</td>
-          <td>
-            {% if riga.localita_partenza %}
-              {{ riga.localita_partenza }} → {{ riga.localita_arrivo }}
-            {% else %}
-              {{ riga.tratta_testo|default:riga.descrizione }}
-            {% endif %}
-          </td>
-          <td>{{ riga.importo_originale|default:riga.importo }}</td>
-          <td>{{ riga.importo }}</td>
-          <td>
-            {% for allegato in riga.allegati.all %}
-              <a href="{% url 'note_spese:allegato_scarica' allegato.pk %}">{% bs_icon "paperclip" %}</a>
-            {% endfor %}
-            {% if puo_modificare %}
-              <a href="{% url 'note_spese:allegato_carica' nota.pk riga.pk %}" class="btn btn-sm btn-outline-secondary">
-                Carica
-              </a>
-            {% endif %}
-          </td>
-          <td>
-            {% if puo_modificare and riga.categoria.sottotipo_chilometrico == "ANDATA_RITORNO" %}
-              <a href="{% url 'note_spese:riga_duplica' nota.pk riga.pk %}" class="btn btn-sm btn-outline-secondary">
-                Duplica
-              </a>
-            {% endif %}
-          </td>
+          <th>Data</th>
+          <th>Categoria</th>
+          <th>Descrizione / tratta</th>
+          <th>Importo richiesto</th>
+          <th>Importo riconosciuto</th>
+          <th>Giustificativi</th>
+          <th></th>
         </tr>
-      {% empty %}
-        <tr><td colspan="7">Nessuna riga.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for riga in righe %}
+          <tr>
+            <td>{{ riga.data }}</td>
+            <td>{{ riga.categoria }}</td>
+            <td>
+              {% if riga.localita_partenza %}
+                {{ riga.localita_partenza }} → {{ riga.localita_arrivo }}
+              {% else %}
+                {{ riga.tratta_testo|default:riga.descrizione }}
+              {% endif %}
+            </td>
+            <td>{{ riga.importo_originale|default:riga.importo }}</td>
+            <td>{{ riga.importo }}</td>
+            <td>
+              {% for allegato in riga.allegati.all %}
+                <a href="{% url 'note_spese:allegato_scarica' allegato.pk %}">{% bs_icon "paperclip" %}</a>
+              {% endfor %}
+              {% if puo_modificare %}
+                <a href="{% url 'note_spese:allegato_carica' nota.pk riga.pk %}" class="btn btn-sm btn-outline-secondary">
+                  Carica
+                </a>
+              {% endif %}
+            </td>
+            <td>
+              {% if puo_modificare and riga.categoria.sottotipo_chilometrico == "ANDATA_RITORNO" %}
+                <a href="{% url 'note_spese:riga_duplica' nota.pk riga.pk %}" class="btn btn-sm btn-outline-secondary">
+                  Duplica
+                </a>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7">Nessuna riga.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endblock %}

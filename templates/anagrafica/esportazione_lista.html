@@ -6,32 +6,34 @@
   <h1>Registro esportazioni anagrafica</h1>
 
   {% include "anagrafica/_tab_visualizza_anagrafica.html" with tab_attiva="registro" %}
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Eseguita il</th>
-        <th>Anno scout</th>
-        <th>Utente</th>
-        <th>Profilo colonne</th>
-        <th>Capi</th>
-        <th>Righe</th>
-        <th>Filtri</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for esportazione in esportazioni %}
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
         <tr>
-          <td>{{ esportazione.eseguita_il }}</td>
-          <td>{{ esportazione.anno_scout }}</td>
-          <td>{{ esportazione.utente|default:"—" }}</td>
-          <td>{{ esportazione.get_profilo_colonne_display }}</td>
-          <td>{{ esportazione.numero_capi }}</td>
-          <td>{{ esportazione.numero_righe }}</td>
-          <td>{{ esportazione.filtri }}</td>
+          <th>Eseguita il</th>
+          <th>Anno scout</th>
+          <th>Utente</th>
+          <th>Profilo colonne</th>
+          <th>Capi</th>
+          <th>Righe</th>
+          <th>Filtri</th>
         </tr>
-      {% empty %}
-        <tr><td colspan="7">Nessuna esportazione registrata.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for esportazione in esportazioni %}
+          <tr>
+            <td>{{ esportazione.eseguita_il }}</td>
+            <td>{{ esportazione.anno_scout }}</td>
+            <td>{{ esportazione.utente|default:"—" }}</td>
+            <td>{{ esportazione.get_profilo_colonne_display }}</td>
+            <td>{{ esportazione.numero_capi }}</td>
+            <td>{{ esportazione.numero_righe }}</td>
+            <td>{{ esportazione.filtri }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7">Nessuna esportazione registrata.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endblock %}

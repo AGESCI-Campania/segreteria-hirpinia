@@ -8,49 +8,51 @@
     <a href="{% url 'note_spese:evento_crea' %}" class="btn btn-primary">Nuovo evento</a>
   </div>
 
-  <table class="table table-sm">
-    <thead>
-      <tr>
-        <th>Nome</th>
-        <th>Data inizio</th>
-        <th>Data fine</th>
-        <th>Stato</th>
-        <th>Note collegate</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for evento in eventi %}
+  <div class="table-responsive">
+    <table class="table table-sm">
+      <thead>
         <tr>
-          <td>{{ evento.nome }}</td>
-          <td>{{ evento.data_inizio }}</td>
-          <td>{{ evento.data_fine|default:"—" }}</td>
-          <td>
-            {% if evento.validato %}
-              <span class="badge bg-success">Validato</span>
-            {% else %}
-              <span class="badge bg-warning text-dark">Non validato</span>
-            {% endif %}
-          </td>
-          <td>{{ evento.note_spese.count }}</td>
-          <td>
-            {% if not evento.validato %}
-              <form method="post" action="{% url 'note_spese:evento_valida' evento.pk %}" class="d-inline">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-sm btn-outline-success">Valida</button>
-              </form>
-            {% endif %}
-            <a href="{% url 'note_spese:evento_modifica' evento.pk %}" class="btn btn-sm btn-outline-secondary">
-              Modifica
-            </a>
-            <a href="{% url 'note_spese:evento_fondi' evento.pk %}" class="btn btn-sm btn-outline-warning">
-              Fondi con...
-            </a>
-          </td>
+          <th>Nome</th>
+          <th>Data inizio</th>
+          <th>Data fine</th>
+          <th>Stato</th>
+          <th>Note collegate</th>
+          <th></th>
         </tr>
-      {% empty %}
-        <tr><td colspan="6">Nessun evento.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for evento in eventi %}
+          <tr>
+            <td>{{ evento.nome }}</td>
+            <td>{{ evento.data_inizio }}</td>
+            <td>{{ evento.data_fine|default:"—" }}</td>
+            <td>
+              {% if evento.validato %}
+                <span class="badge bg-success">Validato</span>
+              {% else %}
+                <span class="badge bg-warning text-dark">Non validato</span>
+              {% endif %}
+            </td>
+            <td>{{ evento.note_spese.count }}</td>
+            <td>
+              {% if not evento.validato %}
+                <form method="post" action="{% url 'note_spese:evento_valida' evento.pk %}" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-success">Valida</button>
+                </form>
+              {% endif %}
+              <a href="{% url 'note_spese:evento_modifica' evento.pk %}" class="btn btn-sm btn-outline-secondary">
+                Modifica
+              </a>
+              <a href="{% url 'note_spese:evento_fondi' evento.pk %}" class="btn btn-sm btn-outline-warning">
+                Fondi con...
+              </a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6">Nessun evento.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endblock %}

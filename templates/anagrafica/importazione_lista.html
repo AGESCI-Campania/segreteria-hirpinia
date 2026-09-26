@@ -7,32 +7,34 @@
     <h1>Importazioni CSV Buona Caccia</h1>
     <a href="{% url 'anagrafica:importazione_anteprima' %}" class="btn btn-primary">Nuova importazione</a>
   </div>
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Anno scout</th>
-        <th>Eseguita il</th>
-        <th>Utente</th>
-        <th>Capi disattivati</th>
-        <th>Trasferimenti</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for importazione in importazioni %}
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
         <tr>
-          <td>
-            <a href="{% url 'anagrafica:importazione_dettaglio' importazione.pk %}">
-              {{ importazione.anno_scout }}
-            </a>
-          </td>
-          <td>{{ importazione.eseguita_il }}</td>
-          <td>{{ importazione.utente|default:"—" }}</td>
-          <td>{{ importazione.conteggi.capi_disattivati|default:0 }}</td>
-          <td>{{ importazione.conteggi.trasferimenti_rilevati|default:0 }}</td>
+          <th>Anno scout</th>
+          <th>Eseguita il</th>
+          <th>Utente</th>
+          <th>Capi disattivati</th>
+          <th>Trasferimenti</th>
         </tr>
-      {% empty %}
-        <tr><td colspan="5">Nessuna importazione.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for importazione in importazioni %}
+          <tr>
+            <td>
+              <a href="{% url 'anagrafica:importazione_dettaglio' importazione.pk %}">
+                {{ importazione.anno_scout }}
+              </a>
+            </td>
+            <td>{{ importazione.eseguita_il }}</td>
+            <td>{{ importazione.utente|default:"—" }}</td>
+            <td>{{ importazione.conteggi.capi_disattivati|default:0 }}</td>
+            <td>{{ importazione.conteggi.trasferimenti_rilevati|default:0 }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5">Nessuna importazione.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endblock %}

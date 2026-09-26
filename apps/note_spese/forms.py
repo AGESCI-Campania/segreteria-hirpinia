@@ -33,7 +33,7 @@ class NotaCreaForm(forms.Form):
     beneficiario_codice_socio = forms.CharField(
         required=False,
         label="Codice socio del beneficiario",
-        help_text="Lascia vuoto per creare la nota per te stesso. Compilabile solo da chi gestisce le note (D-36).",
+        help_text="Lascia vuoto per creare la nota per te stesso. Compilabile solo da chi gestisce le note.",
     )
     evento = forms.ModelChoiceField(
         queryset=Evento.objects.all().order_by("-data_inizio"), label="Evento"
@@ -114,7 +114,7 @@ class RigaSpesaAutoForm(forms.Form):
     passeggeri_codici_socio = forms.CharField(
         required=False,
         label="Altri passeggeri censiti",
-        help_text="Codici socio separati da virgola. Non includere te stesso: il conducente non ha una riga propria (D-52).",
+        help_text="Codici socio separati da virgola. Non includere te stesso: il conducente non ha una riga propria.",
     )
     passeggeri_nomi_liberi = forms.CharField(
         required=False,
@@ -152,7 +152,7 @@ class RespingiNotaForm(forms.Form):
     causale = forms.CharField(
         label="Causale del respingimento",
         widget=forms.Textarea(attrs={"rows": 3}),
-        help_text="Obbligatoria in ogni caso: un respingimento senza causale non è possibile (D-24).",
+        help_text="Obbligatoria in ogni caso: un respingimento senza causale non è possibile.",
     )
 
 

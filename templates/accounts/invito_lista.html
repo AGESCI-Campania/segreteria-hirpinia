@@ -7,28 +7,30 @@
     <h1>Inviti di attivazione</h1>
     <a href="{% url 'accounts:invito_crea' %}" class="btn btn-primary">Nuovo invito</a>
   </div>
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Email</th>
-        <th>Gruppo</th>
-        <th>Stato</th>
-        <th>Inviato il</th>
-        <th>Tentativi</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for invito in inviti %}
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
         <tr>
-          <td>{{ invito.email }}</td>
-          <td>{{ invito.gruppo|default:"—" }}</td>
-          <td>{{ invito.get_stato_display }}</td>
-          <td>{{ invito.inviato_il|default:"—" }}</td>
-          <td>{{ invito.tentativi }}</td>
+          <th>Email</th>
+          <th>Gruppo</th>
+          <th>Stato</th>
+          <th>Inviato il</th>
+          <th>Tentativi</th>
         </tr>
-      {% empty %}
-        <tr><td colspan="5">Nessun invito.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for invito in inviti %}
+          <tr>
+            <td>{{ invito.email }}</td>
+            <td>{{ invito.gruppo|default:"—" }}</td>
+            <td>{{ invito.get_stato_display }}</td>
+            <td>{{ invito.inviato_il|default:"—" }}</td>
+            <td>{{ invito.tentativi }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5">Nessun invito.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endblock %}

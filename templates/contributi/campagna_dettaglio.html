@@ -83,90 +83,94 @@
 
   {% if totali_altri_gruppi %}
     <h2>Totali altri gruppi</h2>
-    <table class="table table-sm">
-      <thead>
-        <tr>
-          <th>Codice</th>
-          <th>Denominazione</th>
-          <th>Importo</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for totale in totali_altri_gruppi %}
+    <div class="table-responsive">
+      <table class="table table-sm">
+        <thead>
           <tr>
-            <td>{{ totale.gruppo_codice }}</td>
-            <td>{{ totale.denominazione }}</td>
-            <td>{{ totale.importo }}</td>
+            <th>Codice</th>
+            <th>Denominazione</th>
+            <th>Importo</th>
           </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {% for totale in totali_altri_gruppi %}
+            <tr>
+              <td>{{ totale.gruppo_codice }}</td>
+              <td>{{ totale.denominazione }}</td>
+              <td>{{ totale.importo }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   {% endif %}
 
   <h2>Partecipazioni</h2>
-  <table class="table table-sm">
-    <thead>
-      <tr>
-        <th>Capo</th>
-        <th>Gruppo</th>
-        <th>Tipologia</th>
-        <th>Data inizio</th>
-        <th>Stato</th>
-        <th>Quota versata</th>
-        <th>Note</th>
-        <th>Importo</th>
-        {% if campagna.stato == "IN_VALUTAZIONE" %}<th>Valutazione</th>{% endif %}
-      </tr>
-    </thead>
-    <tbody>
-      {% for p in partecipazioni %}
+  <div class="table-responsive">
+    <table class="table table-sm">
+      <thead>
         <tr>
-          <td>{{ p.capo }}</td>
-          <td>{{ p.gruppo }}</td>
-          <td>
-            {{ p.tipologia }}
-            {% if p.descrizione_altro %}<br><small class="text-muted">{{ p.descrizione_altro }}</small>{% endif %}
-          </td>
-          <td>{{ p.data_inizio }}</td>
-          <td>
-            {{ p.get_stato_display }}
-            {% if p.stato == "RESPINTA" and p.motivazione_respingimento %}
-              <br><small class="text-muted">{{ p.motivazione_respingimento }}</small>
-            {% endif %}
-          </td>
-          <td>{{ p.quota_versata }}</td>
-          <td>{{ p.note|truncatewords:15 }}</td>
-          <td>
-            {% for c in p.contributi.all %}
-              {{ c.importo }}{% if c.is_simulazione %} (simulato){% endif %}<br>
-            {% endfor %}
-          </td>
-          {% if campagna.stato == "IN_VALUTAZIONE" %}
+          <th>Capo</th>
+          <th>Gruppo</th>
+          <th>Tipologia</th>
+          <th>Data inizio</th>
+          <th>Stato</th>
+          <th>Quota versata</th>
+          <th>Note</th>
+          <th>Importo</th>
+          {% if campagna.stato == "IN_VALUTAZIONE" %}<th>Valutazione</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in partecipazioni %}
+          <tr>
+            <td>{{ p.capo }}</td>
+            <td>{{ p.gruppo }}</td>
             <td>
-              {% if p.stato == "INSERITA" or p.stato == "DOCUMENTI_RICHIESTI" %}
-                {% if puo_valutare_partecipazioni %}
-                  <form method="post" action="{% url 'contributi:partecipazione_approva' campagna.pk p.pk %}" class="d-inline">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-sm btn-success">Approva</button>
-                  </form>
-                  <a href="{% url 'contributi:partecipazione_respingi' campagna.pk p.pk %}" class="btn btn-sm btn-danger">Respingi</a>
-                  {% if p.stato == "INSERITA" %}
-                    <form method="post" action="{% url 'contributi:partecipazione_richiedi_documenti' campagna.pk p.pk %}" class="d-inline">
-                      {% csrf_token %}
-                      <button type="submit" class="btn btn-sm btn-outline-secondary">Richiedi documenti</button>
-                    </form>
-                  {% endif %}
-                {% endif %}
-                {% if p.stato == "DOCUMENTI_RICHIESTI" %}
-                  <a href="{% url 'contributi:partecipazione_allegato_carica' campagna.pk p.pk %}" class="btn btn-sm btn-outline-secondary">Carica allegato</a>
-                {% endif %}
+              {{ p.tipologia }}
+              {% if p.descrizione_altro %}<br><small class="text-muted">{{ p.descrizione_altro }}</small>{% endif %}
+            </td>
+            <td>{{ p.data_inizio }}</td>
+            <td>
+              {{ p.get_stato_display }}
+              {% if p.stato == "RESPINTA" and p.motivazione_respingimento %}
+                <br><small class="text-muted">{{ p.motivazione_respingimento }}</small>
               {% endif %}
             </td>
-          {% endif %}
-        </tr>
-      {% empty %}
-        <tr><td colspan="7">Nessuna partecipazione.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+            <td>{{ p.quota_versata }}</td>
+            <td>{{ p.note|truncatewords:15 }}</td>
+            <td>
+              {% for c in p.contributi.all %}
+                {{ c.importo }}{% if c.is_simulazione %} (simulato){% endif %}<br>
+              {% endfor %}
+            </td>
+            {% if campagna.stato == "IN_VALUTAZIONE" %}
+              <td>
+                {% if p.stato == "INSERITA" or p.stato == "DOCUMENTI_RICHIESTI" %}
+                  {% if puo_valutare_partecipazioni %}
+                    <form method="post" action="{% url 'contributi:partecipazione_approva' campagna.pk p.pk %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-success">Approva</button>
+                    </form>
+                    <a href="{% url 'contributi:partecipazione_respingi' campagna.pk p.pk %}" class="btn btn-sm btn-danger">Respingi</a>
+                    {% if p.stato == "INSERITA" %}
+                      <form method="post" action="{% url 'contributi:partecipazione_richiedi_documenti' campagna.pk p.pk %}" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">Richiedi documenti</button>
+                      </form>
+                    {% endif %}
+                  {% endif %}
+                  {% if p.stato == "DOCUMENTI_RICHIESTI" %}
+                    <a href="{% url 'contributi:partecipazione_allegato_carica' campagna.pk p.pk %}" class="btn btn-sm btn-outline-secondary">Carica allegato</a>
+                  {% endif %}
+                {% endif %}
+              </td>
+            {% endif %}
+          </tr>
+        {% empty %}
+          <tr><td colspan="7">Nessuna partecipazione.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endblock %}

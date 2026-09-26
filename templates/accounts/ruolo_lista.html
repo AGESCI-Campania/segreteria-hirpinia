@@ -22,33 +22,35 @@
     aprono e chiudono da soli in base a incarichi/altri ruoli, non si revocano
     a mano.
   </p>
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Utente</th>
-        <th>Ruolo</th>
-        <th>Gruppo</th>
-        <th>Dal</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for ruolo in ruoli %}
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
         <tr>
-          <td>{{ ruolo.utente }}</td>
-          <td>{{ ruolo.get_tipo_display }}</td>
-          <td>{{ ruolo.gruppo|default:"—" }}</td>
-          <td>{{ ruolo.data_inizio }}</td>
-          <td>
-            <form method="post" action="{% url 'accounts:ruolo_revoca' ruolo.pk %}">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-sm btn-outline-danger">Revoca</button>
-            </form>
-          </td>
+          <th>Utente</th>
+          <th>Ruolo</th>
+          <th>Gruppo</th>
+          <th>Dal</th>
+          <th></th>
         </tr>
-      {% empty %}
-        <tr><td colspan="5">Nessun ruolo amministrativo attivo.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for ruolo in ruoli %}
+          <tr>
+            <td>{{ ruolo.utente }}</td>
+            <td>{{ ruolo.get_tipo_display }}</td>
+            <td>{{ ruolo.gruppo|default:"—" }}</td>
+            <td>{{ ruolo.data_inizio }}</td>
+            <td>
+              <form method="post" action="{% url 'accounts:ruolo_revoca' ruolo.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-danger">Revoca</button>
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5">Nessun ruolo amministrativo attivo.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endblock %}

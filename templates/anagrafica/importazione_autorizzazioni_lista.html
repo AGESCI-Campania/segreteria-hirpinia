@@ -9,32 +9,34 @@
       Nuova importazione
     </a>
   </div>
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Anno scout</th>
-        <th>Eseguita il</th>
-        <th>Utente</th>
-        <th>Gruppi applicati</th>
-        <th>Incarichi creati</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for importazione in importazioni %}
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
         <tr>
-          <td>
-            <a href="{% url 'anagrafica:importazione_autorizzazioni_dettaglio' importazione.pk %}">
-              {{ importazione.anno_scout }}
-            </a>
-          </td>
-          <td>{{ importazione.eseguita_il }}</td>
-          <td>{{ importazione.utente|default:"—" }}</td>
-          <td>{{ importazione.conteggi.gruppi_applicati|default:0 }}</td>
-          <td>{{ importazione.conteggi.incarichi_creati|default:0 }}</td>
+          <th>Anno scout</th>
+          <th>Eseguita il</th>
+          <th>Utente</th>
+          <th>Gruppi applicati</th>
+          <th>Incarichi creati</th>
         </tr>
-      {% empty %}
-        <tr><td colspan="5">Nessuna importazione.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for importazione in importazioni %}
+          <tr>
+            <td>
+              <a href="{% url 'anagrafica:importazione_autorizzazioni_dettaglio' importazione.pk %}">
+                {{ importazione.anno_scout }}
+              </a>
+            </td>
+            <td>{{ importazione.eseguita_il }}</td>
+            <td>{{ importazione.utente|default:"—" }}</td>
+            <td>{{ importazione.conteggi.gruppi_applicati|default:0 }}</td>
+            <td>{{ importazione.conteggi.incarichi_creati|default:0 }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5">Nessuna importazione.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endblock %}

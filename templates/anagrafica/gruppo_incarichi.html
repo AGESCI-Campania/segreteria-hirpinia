@@ -13,32 +13,34 @@
     </a>
   </div>
 
-  <table class="table table-sm">
-    <thead>
-      <tr>
-        <th>Anno</th>
-        <th>Capo</th>
-        <th>Unità</th>
-        <th>Funzione</th>
-        <th>Origine</th>
-        <th>Cessato il</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for incarico in incarichi %}
+  <div class="table-responsive">
+    <table class="table table-sm">
+      <thead>
         <tr>
-          <td>{{ incarico.anno_scout }}</td>
-          <td>{{ incarico.capo }}</td>
-          <td>{{ incarico.codice_unita }} {{ incarico.nome_unita }}</td>
-          <td>{{ incarico.get_funzione_display }}</td>
-          <td>{{ incarico.get_origine_display }}</td>
-          <td>{{ incarico.cessato_il|default:"—" }}</td>
+          <th>Anno</th>
+          <th>Capo</th>
+          <th>Unità</th>
+          <th>Funzione</th>
+          <th>Origine</th>
+          <th>Cessato il</th>
         </tr>
-      {% empty %}
-        <tr><td colspan="6">Nessun incarico.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for incarico in incarichi %}
+          <tr>
+            <td>{{ incarico.anno_scout }}</td>
+            <td>{{ incarico.capo }}</td>
+            <td>{{ incarico.codice_unita }} {{ incarico.nome_unita }}</td>
+            <td>{{ incarico.get_funzione_display }}</td>
+            <td>{{ incarico.get_origine_display }}</td>
+            <td>{{ incarico.cessato_il|default:"—" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6">Nessun incarico.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
   <a href="{% url 'anagrafica:assegna_incarico' %}?gruppo={{ gruppo.codice }}" class="btn btn-primary">
     Assegna incarico

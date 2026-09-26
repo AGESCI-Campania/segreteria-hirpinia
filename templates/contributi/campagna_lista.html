@@ -25,28 +25,30 @@
       </a>
     </div>
   {% endif %}
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Anno</th>
-        <th>Stato</th>
-        <th>Budget</th>
-        <th>Tetto per partecipazione</th>
-        <th>Finestra di inserimento</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for campagna in campagne %}
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
         <tr>
-          <td><a href="{% url 'contributi:campagna_dettaglio' campagna.pk %}">{{ campagna.anno }}</a></td>
-          <td>{{ campagna.get_stato_display }}</td>
-          <td>{{ campagna.budget }}</td>
-          <td>{{ campagna.tetto_per_partecipazione }}</td>
-          <td>{{ campagna.data_inizio_inserimento }} – {{ campagna.data_fine_inserimento }}</td>
+          <th>Anno</th>
+          <th>Stato</th>
+          <th>Budget</th>
+          <th>Tetto per partecipazione</th>
+          <th>Finestra di inserimento</th>
         </tr>
-      {% empty %}
-        <tr><td colspan="5">Nessuna campagna.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for campagna in campagne %}
+          <tr>
+            <td><a href="{% url 'contributi:campagna_dettaglio' campagna.pk %}">{{ campagna.anno }}</a></td>
+            <td>{{ campagna.get_stato_display }}</td>
+            <td>{{ campagna.budget }}</td>
+            <td>{{ campagna.tetto_per_partecipazione }}</td>
+            <td>{{ campagna.data_inizio_inserimento }} – {{ campagna.data_fine_inserimento }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5">Nessuna campagna.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endblock %}

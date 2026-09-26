@@ -10,16 +10,18 @@
   </p>
 
   <h2>Conteggi</h2>
-  <table class="table table-sm">
-    <tbody>
-      {% for chiave, valore in importazione.conteggi.items %}
-        <tr>
-          <th>{{ chiave }}</th>
-          <td>{{ valore }}</td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-responsive">
+    <table class="table table-sm">
+      <tbody>
+        {% for chiave, valore in importazione.conteggi.items %}
+          <tr>
+            <th>{{ chiave }}</th>
+            <td>{{ valore }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
   {% if importazione.capi_disattivati.all %}
     <h2>Capi disattivati</h2>
@@ -53,27 +55,29 @@
 
   {% if importazione.anomalie %}
     <h2>Anomalie</h2>
-    <table class="table table-sm">
-      <thead>
-        <tr>
-          <th>Riga</th>
-          <th>Livello</th>
-          <th>Campo</th>
-          <th>Dettaglio</th>
-          <th>Codice socio</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for anomalia in importazione.anomalie %}
+    <div class="table-responsive">
+      <table class="table table-sm">
+        <thead>
           <tr>
-            <td>{{ anomalia.numero_riga }}</td>
-            <td>{{ anomalia.livello }}</td>
-            <td>{{ anomalia.campo }}</td>
-            <td>{{ anomalia.dettaglio }}</td>
-            <td>{{ anomalia.codice_socio }}</td>
+            <th>Riga</th>
+            <th>Livello</th>
+            <th>Campo</th>
+            <th>Dettaglio</th>
+            <th>Codice socio</th>
           </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {% for anomalia in importazione.anomalie %}
+            <tr>
+              <td>{{ anomalia.numero_riga }}</td>
+              <td>{{ anomalia.livello }}</td>
+              <td>{{ anomalia.campo }}</td>
+              <td>{{ anomalia.dettaglio }}</td>
+              <td>{{ anomalia.codice_socio }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   {% endif %}
 {% endblock %}
