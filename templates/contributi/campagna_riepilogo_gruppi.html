@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load agesci_coreui %}
 
 {% block page_title %}Riepilogo gruppi — Campagna {{ campagna.anno }}{% endblock %}
 
@@ -29,31 +30,31 @@
             <td>{{ riga.gruppo_nome }} ({{ riga.gruppo_codice }})</td>
             <td>
               {% if riga.account_attivato %}
-                <span class="badge text-bg-success">Sì</span>
+                {% ag_chip "Sì" variant="success" %}
               {% else %}
-                <span class="badge text-bg-danger">No</span>
+                {% ag_chip "No" variant="danger" %}
               {% endif %}
             </td>
             <td>
               {% if riga.iban_caricato %}
-                <span class="badge text-bg-success">Sì</span>
+                {% ag_chip "Sì" variant="success" %}
               {% else %}
-                <span class="badge text-bg-danger">No</span>
+                {% ag_chip "No" variant="danger" %}
               {% endif %}
             </td>
             <td>
               {{ riga.capi_inseriti }}
               {% if riga.nessun_rimborso_dichiarato %}
-                <span class="badge text-bg-secondary">Nessun rimborso richiesto</span>
+                {% ag_chip "Nessun rimborso richiesto" variant="secondary" %}
               {% endif %}
             </td>
             <td>
               {% if riga.stato.value == "verde" %}
-                <span class="badge text-bg-success">Completo</span>
+                {% ag_chip "Completo" variant="success" %}
               {% elif riga.stato.value == "giallo" %}
-                <span class="badge text-bg-warning">Parziale</span>
+                {% ag_chip "Parziale" variant="warning" %}
               {% else %}
-                <span class="badge text-bg-danger">Da iniziare</span>
+                {% ag_chip "Da iniziare" variant="danger" %}
               {% endif %}
             </td>
             {% if campagna.stato == "CHIUSA" or campagna.stato == "LIQUIDATA" %}

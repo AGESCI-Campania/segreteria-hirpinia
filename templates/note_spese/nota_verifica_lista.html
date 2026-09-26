@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load agesci_coreui %}
 
 {% block page_title %}Verifica note spese{% endblock %}
 
@@ -14,10 +15,7 @@
     {% endif %}
   </div>
 
-  <p class="text-muted">
-    Le eccezioni sono segnalazioni, non blocchi: approvazione e liquidazione restano
-    possibili anche in loro presenza.
-  </p>
+  {% ag_callout variant="info" text="Le eccezioni sono segnalazioni, non blocchi: approvazione e liquidazione restano possibili anche in loro presenza." %}
 
   <div class="table-responsive">
     <table class="table table-sm">
@@ -43,12 +41,16 @@
             <td>{{ riga.nota.get_stato_display }}</td>
             <td>
               {% if riga.incarico_non_strutturato %}
-                <span class="badge bg-warning text-dark">Incarico "Altro"</span>
+                {% ag_chip 'Incarico "Altro"' variant="warning" %}
               {% endif %}
               {% if riga.doppioni_targa or riga.doppioni_passeggero %}
-                <span class="badge bg-warning text-dark">Possibile doppione</span>
+                {% ag_chip "Possibile doppione" variant="warning" %}
               {% endif %}
               {% if riga.capienza_sforata %}
+                {# Testo con valore dinamico (residuo indicativo): resta uno <span>
+                   semplice, non ag_chip — l'etichetta del componente è una stringa
+                   singola valutata come espressione, concatenarci un valore
+                   calcolato a runtime è più fragile del guadagno visivo. #}
                 <span class="badge bg-danger">
                   Capienza sforata (residuo indicativo {{ riga.capienza.residuo_indicativo }})
                 </span>

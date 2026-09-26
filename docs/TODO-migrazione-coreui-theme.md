@@ -169,7 +169,7 @@ Legenda: ✅ completata — 🔄 in corso — ⬜ da fare.
       `django-agesci-campania-theme` a `>=2.7.0` in `pyproject.toml`
 - [x] `"agesci_coreui"` aggiunta a `INSTALLED_APPS` (`config/settings/base.py`)
 - [x] `manage.py check` senza errori (`agesci_coreui.E001`)
-- [ ] Valutare aggiornamento `docs/docker.md`/`README.md` (nessun comando/dipendenza
+- [x] Valutare aggiornamento `docs/docker.md`/`README.md` (nessun comando/dipendenza
       di setup è cambiato: `uv sync` resta invariato, nessun aggiornamento necessario)
 
 ### Fase 1 — Layout base ✅
@@ -199,7 +199,7 @@ fallimenti PDF preesistenti su `main`, non correlati) e smoke test manuale via
 Django test client su home e una pagina con voce di menu a sottovoci (Nota Spese) —
 sidebar, `nav-group`, footer e breadcrumb renderizzano senza errori di template.
 
-### Fase 2 — Verifica visiva end-to-end 🔄
+### Fase 2 — Verifica visiva end-to-end ✅
 
 **Problemi trovati e corretti**:
 
@@ -213,44 +213,152 @@ sidebar, `nav-group`, footer e breadcrumb renderizzano senza errori di template.
       esplicito, indipendente dal CSS del tema. **Lezione**: ogni classe `ag-*`
       riportata da markup del vecchio tema va verificata contro il CSS del nuovo prima
       di assumerla esistente.
+- [x] Banner di impersonificazione (D-27) invisibile finché non si scorreva oltre il
+      footer: `HIJACK_INSERT_BEFORE = "</body>"` lo inserisce come ultimo elemento del
+      `<body>`, dopo la sidebar `position: fixed` e il footer del nuovo layout —
+      `position: sticky` da solo non basta se l'elemento nasce già fuori dal primo
+      viewport. Spostato con `HIJACK_INSERT_BEFORE = '<div class="sidebar '`
+      (`config/settings/base.py`): il banner ora è il primo elemento del `<body>`,
+      visibile fin dal caricamento.
+- [x] Tutte le tabelle dell'app (27 template su tutto il repo, non solo quelle nel
+      giro di verifica) erano senza il wrapper `.table-responsive`: su mobile/basse
+      risoluzioni una tabella larga va in overflow orizzontale oltre il viewport senza
+      modo ovvio di raggiungerne il resto. **Problema ereditato dal tema Bootstrap**
+      (non introdotto da questa migrazione: mancava anche prima), corretto comunque in
+      questo giro perché emerso dalla verifica visiva. Esclusi i due template per
+      WeasyPrint (`note_spese/nota_pdf.html`, `contributi/riepilogo_pdf.html`, mai
+      renderizzati in browser).
+- [x] "Visualizza anagrafica" (`apps/anagrafica/esportazione.py`) mostrava i codici
+      gruppo invece dei nomi nelle colonne "Gruppo censimento"/"Gruppo servizio", pur
+      avendo già i campi `_nome` calcolati e mai usati — **problema ereditato**, non
+      introdotto dalla migrazione. Corretto usando i campi `_nome`.
+- [x] `templates/anagrafica/esportazione_form.html` aveva `{% csrf_token %}` dentro un
+      `<form method="get">`: il token finiva nella querystring della ricerca (CSRF
+      protegge solo le richieste che cambiano stato, qui non serve). **Problema
+      ereditato**, verificato "ovunque" nel repo (unico caso). Il token serve solo ai
+      due bottoni "Esporta" (`formmethod="post"`): ora `disabled` di default,
+      riabilitato via JS solo al click su quei bottoni.
+- [x] Codici di decisione (`D-36`) ancora visibili in UI in `apps/note_spese/forms.py`
+      (help_text di "Nuova nota spese") e in altri 16 punti di
+      `apps/note_spese/models.py`/`forms.py` non ancora emersi a schermo — vincolo di
+      `CLAUDE.md` (nessun `D-NN`/`M-NN` in testo utente). Rimossi tutti, migrazione
+      `0014_alter_categoriaspesa_sottotipo_chilometrico_and_more` generata (solo
+      `help_text`/`choices`, nessun cambio di schema).
 
+**Deviazione dal piano di questa fase**: aggiunto anche l'autocompletamento per
+"Codice socio del beneficiario" in "Nuova nota spese" (`BeneficiarioRicercaAutocompleteView`
+in `apps/note_spese/views.py`, perimetro come `RicercaSociAutocompleteView` di M7 —
+tutti i gruppi, non solo `gruppi_visibili`, riservato a chi gestisce le note). Non era
+un problema introdotto dalla migrazione, ma un gap UX notato durante la stessa verifica
+visiva e risolto su richiesta esplicita dell'utente.
 
-
-- [ ] `mise run dev`: home, lista con tabella filtrabile, form con
+- [x] `mise run dev`: home, lista con tabella filtrabile, form con
       `AgesciFormRenderer`, flusso impersonificazione, mobile (sidebar overlay sotto
-      992px) e desktop (sidebar comprimibile)
-- [ ] Confronto con la demo ufficiale
-      (https://agesci-campania.github.io/django-agesci-campania-theme/coreui/)
-- [ ] Verifica palette per branca (`data-branca`, variabili `--cui-*`)
+      992px) e desktop (sidebar comprimibile) — verificati da Andrea con screenshot
+      (`docs/ignored/checklist-verifica-coreui-fase2.md`, non versionato) e via browser
+      automation per i fix sopra.
+- [x] Confronto con la demo ufficiale
+      (https://agesci-campania.github.io/django-agesci-campania-theme/coreui/) —
+      nessuna discrepanza rilevata da Andrea.
+- [x] Verifica palette per branca (`data-branca`, variabili `--cui-*`) — nessun
+      problema rilevato da Andrea.
 
-### Fase 3 — Adozione componenti CoreUI nei template applicativi ⬜
+Verifica eseguita: `mise run lint` e `mise run test` verdi (stessi 3 fallimenti
+PDF/WeasyPrint preesistenti su `main`, non correlati).
 
-- [ ] `ag_chip` al posto di `<span class="badge ...">` in:
-      `templates/accounts/sessioni_lista.html:30`,
-      `templates/accounts/sessioni_tutte_lista.html:31` ("Sessione corrente"),
-      `templates/anagrafica/importazione_cruscotto.html:37,39` (anomalie),
-      `templates/note_spese/evento_lista.html:30,32` (validato/non validato),
-      `templates/note_spese/nota_verifica_lista.html:45,48,51` (incarico "Altro"/
-      doppione/anomalie), `templates/contributi/campagna_riepilogo_gruppi.html:31-55`
-      (Sì/No, stato rimborso) — `variant="primary"` segue la branca, per questi usi
-      semantici restano `variant="success"/"warning"/"danger"`
-- [ ] `ag_callout` per box informativi statici (non i messaggi Django, quelli restano
-      gestiti dal blocco `messages` del layout) — valutare caso per caso
-- [ ] `ag_avatar` per l'iniziale utente in `sidebar_user` (oggi uno `<span>` con
-      iniziale fatta a mano)
-- [ ] `CampoChip`/`InputChip`: nessun campo multi-valore libero individuato nel
-      dominio attuale (i multi-select esistenti usano `SelectMultiploADiscesa`) — non
-      applicabile ora, opportunità futura
+### Fase 3 — Adozione componenti CoreUI nei template applicativi ✅
 
-### Fase 4 — Pulizia e checklist finale ⬜
+- [x] `ag_chip` al posto di `<span class="badge ...">` in:
+      `templates/accounts/sessioni_lista.html`, `templates/accounts/
+      sessioni_tutte_lista.html` ("Sessione corrente" → `variant="secondary"`),
+      `templates/anagrafica/importazione_cruscotto.html` (anomalie →
+      `variant="warning"/"success"`), `templates/note_spese/evento_lista.html`
+      (validato/non validato → `variant="success"/"warning"`),
+      `templates/note_spese/nota_verifica_lista.html` (incarico "Altro"/doppione →
+      `variant="warning"`), `templates/contributi/campagna_riepilogo_gruppi.html`
+      (Sì/No, stato rimborso → `variant="success"/"danger"/"warning"/"secondary"`).
+      **Eccezione dichiarata**: il badge "Capienza sforata (residuo indicativo
+      …)" in `nota_verifica_lista.html` è rimasto uno `<span>` semplice — l'etichetta
+      di `ag_chip` è una singola espressione di template, concatenarci un valore
+      calcolato a runtime (il residuo) è più fragile del guadagno visivo.
+      Verificato in browser (`mise run dev`): contrasto e colore corretti per ogni
+      variante.
+- [x] `ag_callout` per box informativi statici, valutato caso per caso: solo 2
+      candidati genuini trovati su 15 paragrafi `text-muted` nel repo — un avviso
+      su comportamento/conseguenze, non solo una descrizione di campo — in
+      `templates/accounts/impersona_lista.html` (`variant="warning"`, perimetro
+      impersonificazione) e `templates/note_spese/nota_verifica_lista.html`
+      (`variant="info"`, le eccezioni non bloccano l'approvazione). Gli altri
+      `text-muted` restano testo semplice: non ogni paragrafo informativo merita un
+      riquadro.
+- [x] `ag_avatar` per l'iniziale utente in `sidebar_user`: **già fatto in Fase 1**
+      (`templates/base.html:42`), voce ridondante in questo elenco.
+- [x] `CampoChip`/`InputChip`: confermato non applicabile, nessuna azione (nessun
+      campo multi-valore libero nel dominio attuale).
 
-- [ ] Rimuovere residui Bootstrap-specifici non più necessari
-- [ ] Checklist di `CLAUDE.md`: `mise run lint`, `mise run test`, nessuna logica
-      duplicata, `README.md`/`docs/` aggiornati se necessario
-- [ ] Valutare con l'utente se questa migrazione va tracciata anche in
+Verifica eseguita: `manage.py check`, `mise run lint`, `mise run test` (stessi 3
+fallimenti PDF/WeasyPrint preesistenti su `main`, non correlati) e verifica visiva
+in browser di eventi, verifica note spese, cruscotto importazioni e impersona
+utente.
+
+### Fase 4 — Pulizia e checklist finale ✅
+
+- [x] Rimuovere residui Bootstrap-specifici non più necessari — verificato con grep
+      mirato: nessun `data-bs-*` residuo, `templates/agesci_theme/` contiene solo
+      `partials/cookie_banner.html` (tenuto per scelta), `agesci_theme/css/
+      agesci.min.css` è caricato solo da `templates/500.html` (pagina standalone che
+      non estende il tema, per scelta esplicita già documentata lì). I due `<span
+      class="badge ...">` rimasti (`nota_verifica_lista.html`, eccezione dichiarata in
+      Fase 3; `contributi/partecipazione_inserisci.html`, badge JS-controllato fuori
+      dall'elenco Fase 3) non sono residui da rimuovere, sono scelte deliberate.
+- [x] Checklist di `CLAUDE.md`: `mise run lint` e `mise run test` verdi ad ogni fase
+      (stessi 3 fallimenti PDF/WeasyPrint preesistenti su `main`); nessuna logica
+      duplicata introdotta al di fuori del pattern già presente nel repo (i 4 endpoint
+      di ricerca soci restano volutamente separati, stesso principio già in
+      `CLAUDE.md` per gli altri 3); `README.md`/`docs/Catello_Progettazione.md`
+      **non** aggiornati — descrivono lo stato di `main` (ancora sul tema Bootstrap):
+      aggiornarli ora, a migrazione non ancora approvata/mergiata, li renderebbe
+      disallineati dal codice realmente in produzione. Da fare in Fase 4 solo al
+      momento del merge.
+- [x] Valutare con l'utente se questa migrazione va tracciata anche in
       `docs/piano-sviluppo-todo.md` (fuori dallo schema M1-M13 esistente) o resta un
-      piano a sé
-- [ ] Elencare esplicitamente ogni deviazione da questo piano
+      piano a sé — **deciso con Andrea: resta un piano a sé**, non è una milestone di
+      prodotto come M1-M13 ma un intervento di layout trasversale, questo file basta
+      da solo.
+- [x] Elencare esplicitamente ogni deviazione da questo piano — vedi sezione
+      "Deviazioni dal piano" più sotto
+
+## Deviazioni dal piano
+
+- **Correzioni di bug ereditati dal tema Bootstrap, non introdotti da questa
+  migrazione**, emersi durante la verifica visiva di Fase 2 e corretti nello stesso
+  giro invece di essere solo segnalati: tabelle senza `.table-responsive` (27
+  template su tutto il repo), codici invece di nomi gruppo nell'export anagrafica,
+  `csrfmiddlewaretoken` in una querystring GET. Motivazione: erano bug reali trovati
+  mentre si verificava proprio quelle pagine, rimandarli avrebbe richiesto una
+  seconda sessione di verifica sulle stesse schermate.
+- **Nuova funzionalità aggiunta durante la Fase 2**, non nel piano originale:
+  autocompletamento per "Codice socio del beneficiario" in "Nuova nota spese"
+  (`BeneficiarioRicercaAutocompleteView`, perimetro come `RicercaSociAutocompleteView`
+  di M7). Motivazione: gap UX notato durante la verifica visiva e richiesto
+  esplicitamente dall'utente nello stesso giro.
+- **Pulizia D-NN in UI più ampia del previsto**: oltre al punto segnalato a schermo
+  (`apps/note_spese/forms.py`), rimossi altri 16 riferimenti a `D-NN` in `help_text`
+  di model/form field di `note_spese` non ancora emersi visivamente ma che
+  violavano lo stesso vincolo di `CLAUDE.md`. Migrazione generata (solo `help_text`/
+  `choices`, nessun cambio di schema).
+- **Fase 3, `ag_callout`**: il piano lasciava "valutare caso per caso" senza
+  elencare file. Convertiti solo 2 paragrafi su 15 candidati `text-muted` nel
+  repo (quelli che sono un avviso su comportamento/conseguenze, non solo la
+  descrizione di un campo) — una scelta di giudizio, non un'applicazione
+  esaustiva a ogni testo informativo.
+- **Fase 3, `ag_chip`**: un badge nell'elenco originale (`nota_verifica_lista.html`,
+  "Capienza sforata (residuo indicativo …)") non è stato convertito: l'etichetta di
+  `ag_chip` è una singola espressione di template, concatenarci un valore calcolato
+  a runtime è più fragile del guadagno visivo. Resta uno `<span>` Bootstrap.
+- **Fase 3, `ag_avatar`**: la voce del piano era già stata completata in Fase 1
+  (`templates/base.html:42`) — nessun lavoro aggiuntivo necessario, solo una
+  voce ridondante nell'elenco originale.
 
 ## File critici
 

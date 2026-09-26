@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load agesci_coreui %}
 
 {% block page_title %}Eventi{% endblock %}
 
@@ -28,9 +29,9 @@
             <td>{{ evento.data_fine|default:"—" }}</td>
             <td>
               {% if evento.validato %}
-                <span class="badge bg-success">Validato</span>
+                {% ag_chip "Validato" variant="success" %}
               {% else %}
-                <span class="badge bg-warning text-dark">Non validato</span>
+                {% ag_chip "Non validato" variant="warning" %}
               {% endif %}
             </td>
             <td>{{ evento.note_spese.count }}</td>

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load agesci_coreui %}
 
 {% block page_title %}Le mie sessioni{% endblock %}
 
@@ -28,7 +29,7 @@
             <td>{{ sessione.user_agent|truncatechars:60 }}</td>
             <td>
               {% if sessione.is_current %}
-                <span class="badge bg-secondary">Sessione corrente</span>
+                {% ag_chip "Sessione corrente" variant="secondary" %}
               {% else %}
                 <form method="post" action="{% url 'accounts:sessione_termina' sessione.pk %}">
                   {% csrf_token %}

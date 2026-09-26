@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load agesci_coreui %}
 
 {% block page_title %}Importa{% endblock %}
 
@@ -35,9 +36,9 @@
             <td>{{ riga.importazione.utente|default:"—" }}</td>
             <td>
               {% if riga.con_anomalie %}
-                <span class="badge text-bg-warning">Con anomalie</span>
+                {% ag_chip "Con anomalie" variant="warning" %}
               {% else %}
-                <span class="badge text-bg-success">Senza anomalie</span>
+                {% ag_chip "Senza anomalie" variant="success" %}
               {% endif %}
             </td>
           </tr>
