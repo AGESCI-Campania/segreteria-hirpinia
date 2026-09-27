@@ -18,52 +18,52 @@
   {% ag_callout variant="info" text="Le eccezioni sono segnalazioni, non blocchi: approvazione e liquidazione restano possibili anche in loro presenza." %}
 
   <div class="table-responsive">
-    <table class="table table-sm">
-      <thead>
+  <table class="table table-sm">
+    <thead>
+      <tr>
+        <th>Numero</th>
+        <th>Beneficiario</th>
+        <th>Evento</th>
+        <th>Stato</th>
+        <th>Eccezioni</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for riga in righe %}
         <tr>
-          <th>Numero</th>
-          <th>Beneficiario</th>
-          <th>Evento</th>
-          <th>Stato</th>
-          <th>Eccezioni</th>
+          <td>
+            <a href="{% url 'note_spese:nota_dettaglio' riga.nota.pk %}">
+              {{ riga.nota.numero|default:"(bozza)" }}
+            </a>
+          </td>
+          <td>{{ riga.nota.beneficiario }}</td>
+          <td>{{ riga.nota.evento }}</td>
+          <td>{{ riga.nota.get_stato_display }}</td>
+          <td>
+            {% if riga.incarico_non_strutturato %}
+              {% ag_chip 'Incarico "Altro"' variant="warning" %}
+            {% endif %}
+            {% if riga.doppioni_targa or riga.doppioni_passeggero %}
+              {% ag_chip "Possibile doppione" variant="warning" %}
+            {% endif %}
+            {% if riga.capienza_sforata %}
+              {# Testo con valore dinamico (residuo indicativo): resta uno <span>
+                 semplice, non ag_chip — l'etichetta del componente è una stringa
+                 singola valutata come espressione, concatenarci un valore
+                 calcolato a runtime è più fragile del guadagno visivo. #}
+              <span class="badge bg-danger">
+                Capienza sforata (residuo indicativo {{ riga.capienza.residuo_indicativo }})
+              </span>
+            {% endif %}
+            {% if not riga.ha_eccezioni %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
         </tr>
-      </thead>
-      <tbody>
-        {% for riga in righe %}
-          <tr>
-            <td>
-              <a href="{% url 'note_spese:nota_dettaglio' riga.nota.pk %}">
-                {{ riga.nota.numero|default:"(bozza)" }}
-              </a>
-            </td>
-            <td>{{ riga.nota.beneficiario }}</td>
-            <td>{{ riga.nota.evento }}</td>
-            <td>{{ riga.nota.get_stato_display }}</td>
-            <td>
-              {% if riga.incarico_non_strutturato %}
-                {% ag_chip 'Incarico "Altro"' variant="warning" %}
-              {% endif %}
-              {% if riga.doppioni_targa or riga.doppioni_passeggero %}
-                {% ag_chip "Possibile doppione" variant="warning" %}
-              {% endif %}
-              {% if riga.capienza_sforata %}
-                {# Testo con valore dinamico (residuo indicativo): resta uno <span>
-                   semplice, non ag_chip — l'etichetta del componente è una stringa
-                   singola valutata come espressione, concatenarci un valore
-                   calcolato a runtime è più fragile del guadagno visivo. #}
-                <span class="badge bg-danger">
-                  Capienza sforata (residuo indicativo {{ riga.capienza.residuo_indicativo }})
-                </span>
-              {% endif %}
-              {% if not riga.ha_eccezioni %}
-                <span class="text-muted">—</span>
-              {% endif %}
-            </td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="5">Nessuna nota in lavorazione{% if solo_eccezioni %} con eccezioni{% endif %}.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+      {% empty %}
+        <tr><td colspan="5">Nessuna nota in lavorazione{% if solo_eccezioni %} con eccezioni{% endif %}.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
   </div>
 {% endblock %}

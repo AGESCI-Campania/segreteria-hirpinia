@@ -17,36 +17,36 @@
   </div>
 
   <div class="table-responsive">
-    <table class="table">
-      <thead>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Tipo</th>
+        <th>Anno scout</th>
+        <th>Eseguita il</th>
+        <th>Utente</th>
+        <th>Stato</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for riga in righe %}
         <tr>
-          <th>Tipo</th>
-          <th>Anno scout</th>
-          <th>Eseguita il</th>
-          <th>Utente</th>
-          <th>Stato</th>
+          <td>{{ riga.tipo }}</td>
+          <td><a href="{{ riga.url_dettaglio }}">{{ riga.importazione.anno_scout }}</a></td>
+          <td>{{ riga.importazione.eseguita_il }}</td>
+          <td>{{ riga.importazione.utente|default:"—" }}</td>
+          <td>
+            {% if riga.con_anomalie %}
+              {% ag_chip "Con anomalie" variant="warning" %}
+            {% else %}
+              {% ag_chip "Senza anomalie" variant="success" %}
+            {% endif %}
+          </td>
         </tr>
-      </thead>
-      <tbody>
-        {% for riga in righe %}
-          <tr>
-            <td>{{ riga.tipo }}</td>
-            <td><a href="{{ riga.url_dettaglio }}">{{ riga.importazione.anno_scout }}</a></td>
-            <td>{{ riga.importazione.eseguita_il }}</td>
-            <td>{{ riga.importazione.utente|default:"—" }}</td>
-            <td>
-              {% if riga.con_anomalie %}
-                {% ag_chip "Con anomalie" variant="warning" %}
-              {% else %}
-                {% ag_chip "Senza anomalie" variant="success" %}
-              {% endif %}
-            </td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="5">Nessuna importazione.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+      {% empty %}
+        <tr><td colspan="5">Nessuna importazione.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
   </div>
 
   <p class="mt-3">

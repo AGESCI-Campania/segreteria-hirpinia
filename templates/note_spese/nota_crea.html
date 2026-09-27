@@ -44,6 +44,7 @@
 {% block extra_js %}
   {{ block.super }}
   {% if puo_gestire_note %}
+    <script src="{% static 'js/ricerca-autocomplete-comune.js' %}" defer></script>
     <script
       src="{% static 'js/nota-spese-beneficiario-autocomplete.js' %}"
       defer
