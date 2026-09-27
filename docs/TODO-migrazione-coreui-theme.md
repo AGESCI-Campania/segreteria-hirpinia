@@ -295,11 +295,28 @@ PDF/WeasyPrint preesistenti su `main`, non correlati).
       (`templates/base.html:42`), voce ridondante in questo elenco.
 - [x] `CampoChip`/`InputChip`: confermato non applicabile, nessuna azione (nessun
       campo multi-valore libero nel dominio attuale).
+- [x] `ag_callout` anche per il box "campagna in evidenza" in
+      `templates/contributi/campagna_lista.html` (segnalato da Andrea dopo la
+      chiusura iniziale di questa fase, come box che "sembra un jumbotron"): non
+      usava in realtà `{% ag_jumbotron %}` (tag del solo tema base, mai importato
+      in `agesci_coreui`), era markup manuale (`p-4 rounded bg-ag-viola`, blocco
+      pieno). Sostituito con `{% ag_callout variant="primary" %}` (bordo sinistro
+      colorato, coerente con lo stile nativo CoreUI) — **il tag non supporta un
+      CTA**, quindi il bottone "Vai alla campagna" resta fuori dal componente, in
+      un contenitore flex accanto; cambiato da `btn-light` a `btn-primary` perché
+      lo sfondo non è più pieno. Titolo/testo con due variabili (`Campagna {{
+      anno }}`, `Stato: {{ stato }}`) costruiti con `{% blocktranslate asvar %}`:
+      l'argomento di un inclusion tag è una singola `FilterExpression`, non
+      supporta la concatenazione letterale+variabile che serviva qui (il filtro
+      `add` fallisce su stringa+intero). Verificato: `--ag-primary`/viola è fisso
+      in tutta la piattaforma (`AGESCI_THEME_BRANCA = "capi"`, non per branca di
+      chi guarda), quindi `variant="primary"` riproduce lo stesso colore di prima,
+      non introduce una dipendenza dalla branca dell'utente.
 
 Verifica eseguita: `manage.py check`, `mise run lint`, `mise run test` (stessi 3
 fallimenti PDF/WeasyPrint preesistenti su `main`, non correlati) e verifica visiva
-in browser di eventi, verifica note spese, cruscotto importazioni e impersona
-utente.
+in browser di eventi, verifica note spese, cruscotto importazioni, impersona
+utente e campagne contributo.
 
 ### Fase 4 — Pulizia e checklist finale ✅
 

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load agesci_coreui i18n %}
 
 {% block page_title %}Campagne{% endblock %}
 
@@ -15,12 +16,13 @@
     </div>
   </div>
   {% if ultima_campagna %}
-    <div class="p-4 mb-4 rounded bg-ag-viola d-flex justify-content-between align-items-center">
-      <div>
-        <h2 class="h4 mb-1">Campagna {{ ultima_campagna.anno }}</h2>
-        <p class="mb-0">Stato: {{ ultima_campagna.get_stato_display }}</p>
+    {% blocktranslate asvar titolo_ultima_campagna with anno=ultima_campagna.anno %}Campagna {{ anno }}{% endblocktranslate %}
+    {% blocktranslate asvar stato_ultima_campagna with stato=ultima_campagna.get_stato_display %}Stato: {{ stato }}{% endblocktranslate %}
+    <div class="d-flex justify-content-between align-items-center gap-3 mb-4">
+      <div class="flex-grow-1">
+        {% ag_callout title=titolo_ultima_campagna text=stato_ultima_campagna variant="primary" %}
       </div>
-      <a href="{% url 'contributi:campagna_dettaglio' ultima_campagna.pk %}" class="btn btn-light">
+      <a href="{% url 'contributi:campagna_dettaglio' ultima_campagna.pk %}" class="btn btn-primary">
         Vai alla campagna
       </a>
     </div>
