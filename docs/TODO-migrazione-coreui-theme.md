@@ -376,6 +376,19 @@ utente e campagne contributo.
 - **Fase 3, `ag_avatar`**: la voce del piano era già stata completata in Fase 1
   (`templates/base.html:42`) — nessun lavoro aggiuntivo necessario, solo una
   voce ridondante nell'elenco originale.
+- **Fase 5 non pianificata: riduzione duplicazione JS post-PR**, per far passare
+  la quality gate SonarCloud sulla PR (`new_duplicated_lines_density`, soglia 3%).
+  Due cause: (1) il wrapping `.table-responsive` reindentava ogni riga interna
+  delle tabelle, facendo contare come "nuova" duplicazione preesistente su `main`
+  fra file diversi — corretto aggiungendo solo le due righe del `<div>` wrapper,
+  senza toccare l'indentazione del contenuto; (2) `nota-spese-beneficiario-
+  autocomplete.js` (nuovo) duplicava per intero il blocco fetch/debounce/dropdown
+  già presente in 3 script preesistenti — estratto in `static/js/
+  ricerca-autocomplete-comune.js` (`window.AgesciAutocomplete.avvia`), e
+  refactorizzati anche i 3 script preesistenti per usarlo (altrimenti la
+  duplicazione restava, solo spostata). Verificato in browser che tutti e 4 i
+  flussi di autocomplete (M7, M14, località, beneficiario) si comportano
+  esattamente come prima.
 
 ## File critici
 

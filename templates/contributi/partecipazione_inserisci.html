@@ -55,6 +55,7 @@
 {% block extra_js %}
   {{ block.super }}
   {{ quote_default|json_script:"quote-default-tipologia" }}
+  <script src="{% static 'js/ricerca-autocomplete-comune.js' %}" defer></script>
   <script
     src="{% static 'js/ricerca-socio-contributo-autocomplete.js' %}"
     defer
