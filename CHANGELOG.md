@@ -8,6 +8,22 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.1.22] - 2026-09-27
+
+### Corretto
+
+- Nel riepilogo di una campagna Fo.Ca. chiusa/liquidata, il testo non mostra
+  più riferimenti alle variabili interne della formula ("(N)", "(B/N)").
+- Tutti gli importi delle pagine di campagna Fo.Ca. mostrano ora il simbolo
+  €, incluso il campo "Quota versata" durante l'inserimento di una
+  partecipazione.
+
+### Aggiunto
+
+- Nel riepilogo di campagna, la "Quota proporzionale per partecipante" è
+  ora accompagnata dalla "Quota erogata per partecipante" quando il tetto
+  per partecipazione riduce l'importo effettivo.
+
 ## [1.1.21] - 2026-09-27
 
 ### Modificato
