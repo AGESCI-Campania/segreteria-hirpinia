@@ -5,8 +5,8 @@
 {% block content %}
   <h1>Campagna {{ campagna.anno }} — {{ campagna.get_stato_display }}</h1>
   <ul>
-    <li>Budget: {{ campagna.budget }}</li>
-    <li>Tetto per partecipazione: {{ campagna.tetto_per_partecipazione }}</li>
+    <li>Budget: {{ campagna.budget }} €</li>
+    <li>Tetto per partecipazione: {{ campagna.tetto_per_partecipazione }} €</li>
     <li>Finestra di inserimento: {{ campagna.data_inizio_inserimento }} – {{ campagna.data_fine_inserimento }}</li>
   </ul>
 
@@ -75,9 +75,10 @@
   {% if riepilogo %}
     <h2>Riepilogo</h2>
     <ul>
-      <li>Partecipazioni approvate (N): {{ riepilogo.n }}</li>
-      <li>Quota proporzionale: {{ riepilogo.quota_proporzionale|floatformat:2 }}</li>
-      <li>Residuo: {{ riepilogo.residuo }}</li>
+      <li>Partecipazioni approvate: {{ riepilogo.n }}</li>
+      <li>Quota proporzionale per partecipante: {{ riepilogo.quota_proporzionale|floatformat:2 }} €</li>
+      <li>Quota erogata per partecipante: {{ riepilogo.quota_erogata|floatformat:2 }} €</li>
+      <li>Residuo fondo Fo.Ca.: {{ riepilogo.residuo }} €</li>
     </ul>
   {% endif %}
 
@@ -97,7 +98,7 @@
           <tr>
             <td>{{ totale.gruppo_codice }}</td>
             <td>{{ totale.denominazione }}</td>
-            <td>{{ totale.importo }}</td>
+            <td>{{ totale.importo }} €</td>
           </tr>
         {% endfor %}
       </tbody>
@@ -137,11 +138,11 @@
               <br><small class="text-muted">{{ p.motivazione_respingimento }}</small>
             {% endif %}
           </td>
-          <td>{{ p.quota_versata }}</td>
+          <td>{{ p.quota_versata }} €</td>
           <td>{{ p.note|truncatewords:15 }}</td>
           <td>
             {% for c in p.contributi.all %}
-              {{ c.importo }}{% if c.is_simulazione %} (simulato){% endif %}<br>
+              {{ c.importo }} €{% if c.is_simulazione %} (simulato){% endif %}<br>
             {% endfor %}
           </td>
           {% if campagna.stato == "IN_VALUTAZIONE" %}

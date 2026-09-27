@@ -91,6 +91,7 @@ class TestCalcolaRiepilogo:
 
         assert riepilogo.n == 2
         assert riepilogo.quota_proporzionale == Decimal("500.00")
+        assert riepilogo.quota_erogata == Decimal("50.00")  # capata dal tetto per partecipazione
         assert riepilogo.residuo == Decimal("920.00")
         assert len(riepilogo.righe) == 1
         assert riepilogo.righe[0].importo == Decimal("80.00")

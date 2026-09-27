@@ -43,8 +43,8 @@
         <tr>
           <td><a href="{% url 'contributi:campagna_dettaglio' campagna.pk %}">{{ campagna.anno }}</a></td>
           <td>{{ campagna.get_stato_display }}</td>
-          <td>{{ campagna.budget }}</td>
-          <td>{{ campagna.tetto_per_partecipazione }}</td>
+          <td>{{ campagna.budget }} €</td>
+          <td>{{ campagna.tetto_per_partecipazione }} €</td>
           <td>{{ campagna.data_inizio_inserimento }} – {{ campagna.data_fine_inserimento }}</td>
         </tr>
       {% empty %}

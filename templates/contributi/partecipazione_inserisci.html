@@ -38,11 +38,16 @@
       {% if field.name != "codice_socio" %}
         <div class="mb-3"{% if field.name == "descrizione_altro" %} id="campo-descrizione-altro"{% endif %}>
           {{ field.label_tag }}
-          {{ field }}
           {% if field.name == "quota_versata" %}
+            <div class="input-group">
+              {{ field }}
+              <span class="input-group-text">€</span>
+            </div>
             <span class="badge text-bg-secondary d-none" id="quota-badge-precompilato">
               Precompilato, modificabile
             </span>
+          {% else %}
+            {{ field }}
           {% endif %}
           {{ field.errors }}
         </div>

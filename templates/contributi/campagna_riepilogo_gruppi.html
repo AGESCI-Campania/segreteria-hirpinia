@@ -58,7 +58,7 @@
             {% endif %}
           </td>
           {% if campagna.stato == "CHIUSA" or campagna.stato == "LIQUIDATA" %}
-            <td>{{ riga.contributo_ricevuto|default_if_none:"—" }}</td>
+            <td>{% if riga.contributo_ricevuto is not None %}{{ riga.contributo_ricevuto }} €{% else %}—{% endif %}</td>
           {% endif %}
           <td>
             {% if riga.gruppo_codice in gruppi_azionabili and campagna.stato == "APERTA" %}
