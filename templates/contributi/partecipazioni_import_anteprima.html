@@ -27,6 +27,7 @@
 
     {% if piano.conflitti %}
       <h3>Conflitti</h3>
+      <div class="table-responsive">
       <table class="table table-sm">
         <thead>
           <tr><th>Riga</th><th>Codice socio</th><th>Differenze</th></tr>
@@ -41,10 +42,12 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
     {% endif %}
 
     {% if piano.anomalie %}
       <h3>Anomalie</h3>
+      <div class="table-responsive">
       <table class="table table-sm">
         <thead>
           <tr>
@@ -67,6 +70,7 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
     {% endif %}
 
     {% if piano.valido %}

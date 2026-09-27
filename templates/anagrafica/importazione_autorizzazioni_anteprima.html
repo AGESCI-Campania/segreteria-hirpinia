@@ -27,6 +27,7 @@
 
     {% if piano.anomalie %}
       <h3>Anomalie</h3>
+      <div class="table-responsive">
       <table class="table table-sm">
         <thead>
           <tr>
@@ -47,6 +48,7 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
     {% endif %}
 
     <form method="post" action="{% url 'anagrafica:importazione_autorizzazioni_conferma' %}">

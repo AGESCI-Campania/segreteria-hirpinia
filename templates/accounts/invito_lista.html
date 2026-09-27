@@ -7,6 +7,7 @@
     <h1>Inviti di attivazione</h1>
     <a href="{% url 'accounts:invito_crea' %}" class="btn btn-primary">Nuovo invito</a>
   </div>
+  <div class="table-responsive">
   <table class="table">
     <thead>
       <tr>
@@ -31,4 +32,5 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 {% endblock %}

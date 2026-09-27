@@ -2,11 +2,11 @@
   "use strict";
 
   // Variante di ricerca-socio-autocomplete.js (M7) per "Inserisci
-  // partecipazione" (M14): stesso meccanismo di ricerca, ma senza la
-  // precompilazione di un gruppo di servizio (qui il gruppo è sempre
-  // risolto dal censimento nel service layer, mai un input) e con
-  // l'etichetta "[Nome] [Cognome] ([Codice Socio])" richiesta dal TODO,
-  // diversa da quella usata in M7.
+  // partecipazione" (M14): stesso meccanismo di ricerca (condiviso in
+  // ricerca-autocomplete-comune.js), ma senza la precompilazione di un
+  // gruppo di servizio (qui il gruppo è sempre risolto dal censimento nel
+  // service layer, mai un input) e con l'etichetta "[Nome] [Cognome]
+  // ([Codice Socio])" richiesta dal TODO, diversa da quella usata in M7.
 
   function attivaAutocomplete(script) {
     var url = script.dataset.urlAutocomplete;
@@ -25,84 +25,32 @@
       }
     }
 
-    var timeoutId = null;
-    var controllerCorrente = null;
-
-    function nascondiLista() {
-      lista.style.display = "none";
-      lista.innerHTML = "";
-    }
-
     function etichetta(risultato) {
       return risultato.nome + " " + risultato.cognome + " (" + risultato.codice_socio + ")";
     }
 
-    function selezionaRisultato(risultato) {
-      hiddenCodiceSocio.value = risultato.codice_socio;
-      input.value = etichetta(risultato);
-      if (selezionato) {
-        selezionato.textContent = etichetta(risultato) + " — " + risultato.gruppo;
-      }
-      nascondiLista();
-    }
-
-    function mostraRisultati(risultati) {
-      lista.innerHTML = "";
-      if (!risultati.length) {
-        nascondiLista();
-        return;
-      }
-      risultati.forEach(function (risultato) {
-        var voce = document.createElement("li");
-        voce.className = "list-group-item list-group-item-action";
-        voce.style.cursor = "pointer";
+    window.AgesciAutocomplete.avvia({
+      url: url,
+      input: input,
+      lista: lista,
+      onInput: function () {
+        hiddenCodiceSocio.value = "";
+      },
+      renderVoce: function (risultato) {
         // Gruppo di censimento in coda (M18 #1): non è dato riservato
         // (a differenza dei recapiti, stesso principio già applicato in
         // M7), utile qui perché il perimetro può includere più gruppi
         // per SEGRETERIA/ADMIN/RDZ. L'etichetta dopo la selezione resta
         // invece quella richiesta dal TODO M14, senza gruppo.
-        voce.textContent = etichetta(risultato) + " — " + risultato.gruppo;
-        voce.addEventListener("click", function () {
-          selezionaRisultato(risultato);
-        });
-        lista.appendChild(voce);
-      });
-      lista.style.display = "block";
-    }
-
-    input.addEventListener("input", function () {
-      hiddenCodiceSocio.value = "";
-      var termine = input.value.trim();
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-      if (termine.length < 2) {
-        nascondiLista();
-        return;
-      }
-      timeoutId = setTimeout(function () {
-        if (controllerCorrente) {
-          controllerCorrente.abort();
+        return etichetta(risultato) + " — " + risultato.gruppo;
+      },
+      onSeleziona: function (risultato) {
+        hiddenCodiceSocio.value = risultato.codice_socio;
+        input.value = etichetta(risultato);
+        if (selezionato) {
+          selezionato.textContent = etichetta(risultato) + " — " + risultato.gruppo;
         }
-        controllerCorrente = new AbortController();
-        fetch(url + "?q=" + encodeURIComponent(termine), { signal: controllerCorrente.signal })
-          .then(function (risposta) {
-            return risposta.json();
-          })
-          .then(function (dati) {
-            mostraRisultati(dati.risultati || []);
-          })
-          .catch(function () {
-            // Richiesta annullata da un termine di ricerca più recente, o
-            // rete non disponibile: nessuna azione, l'utente può riprovare.
-          });
-      }, 250);
-    });
-
-    document.addEventListener("click", function (event) {
-      if (event.target !== input && !lista.contains(event.target)) {
-        nascondiLista();
-      }
+      },
     });
   }
 

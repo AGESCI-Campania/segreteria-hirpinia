@@ -38,6 +38,11 @@ urlpatterns = [
         views.LocalitaRicercaAutocompleteView.as_view(),
         name="localita_ricerca_autocomplete",
     ),
+    path(
+        "beneficiario/ricerca-autocomplete/",
+        views.BeneficiarioRicercaAutocompleteView.as_view(),
+        name="beneficiario_ricerca_autocomplete",
+    ),
     # F6d — transizioni di stato
     path("<int:pk>/invia/", views.NotaInviaView.as_view(), name="nota_invia"),
     path(

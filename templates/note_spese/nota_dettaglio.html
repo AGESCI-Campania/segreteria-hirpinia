@@ -128,6 +128,7 @@
     <a href="{% url 'note_spese:riga_crea' nota.pk %}" class="btn btn-sm btn-primary mb-2">Aggiungi riga</a>
     <a href="{% url 'note_spese:riga_auto_crea' nota.pk %}" class="btn btn-sm btn-primary mb-2">Aggiungi riga auto</a>
   {% endif %}
+  <div class="table-responsive">
   <table class="table table-sm">
     <thead>
       <tr>
@@ -177,4 +178,5 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 {% endblock %}

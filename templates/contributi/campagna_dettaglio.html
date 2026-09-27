@@ -83,6 +83,7 @@
 
   {% if totali_altri_gruppi %}
     <h2>Totali altri gruppi</h2>
+    <div class="table-responsive">
     <table class="table table-sm">
       <thead>
         <tr>
@@ -101,9 +102,11 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
   {% endif %}
 
   <h2>Partecipazioni</h2>
+  <div class="table-responsive">
   <table class="table table-sm">
     <thead>
       <tr>
@@ -169,4 +172,5 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 {% endblock %}

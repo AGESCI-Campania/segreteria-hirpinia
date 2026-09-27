@@ -7,6 +7,7 @@
     <h1 class="mb-0">Note spese</h1>
     <a href="{% url 'note_spese:nota_crea' %}" class="btn btn-primary">Nuova nota</a>
   </div>
+  <div class="table-responsive">
   <table class="table table-sm">
     <thead>
       <tr>
@@ -33,4 +34,5 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 {% endblock %}

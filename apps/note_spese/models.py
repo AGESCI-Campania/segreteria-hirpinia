@@ -58,7 +58,7 @@ class CategoriaSpesa(models.Model):
         max_length=20,
         choices=SottotipoChilometrico.choices,
         blank=True,
-        help_text="Solo per tipo_calcolo=CHILOMETRICO (D-53): distingue andata/ritorno da altri spostamenti.",
+        help_text="Solo per tipo_calcolo=CHILOMETRICO: distingue andata/ritorno da altri spostamenti.",
     )
     richiede_tratta = models.BooleanField(default=False)
     richiede_descrizione = models.BooleanField(default=False)
@@ -294,7 +294,7 @@ class NotaSpese(FSMModelMixin, models.Model):
         null=True,
         blank=True,
         editable=False,
-        help_text="Data di presentazione (D-67), valorizzata da invia_nota() insieme a numero/anno_spesa.",
+        help_text="Data di presentazione, valorizzata da invia_nota() insieme a numero/anno_spesa.",
     )
 
     beneficiario = models.ForeignKey(
@@ -306,13 +306,13 @@ class NotaSpese(FSMModelMixin, models.Model):
         null=True,
         blank=True,
         related_name="note_spese_compilate",
-        help_text="Valorizzato solo se diverso dal beneficiario (D-36).",
+        help_text="Valorizzato solo se diverso dal beneficiario.",
     )
     gruppo_censimento = models.ForeignKey(
         "organizzazione.Gruppo",
         on_delete=models.PROTECT,
         related_name="note_spese",
-        help_text="Derivato da CensimentoCapo alla creazione, congelato (D-34/D-44).",
+        help_text="Derivato da CensimentoCapo alla creazione, congelato.",
     )
     evento = models.ForeignKey(Evento, on_delete=models.PROTECT, related_name="note_spese")
     incarico = models.ForeignKey(
@@ -325,7 +325,7 @@ class NotaSpese(FSMModelMixin, models.Model):
     incarico_altro = models.CharField(
         max_length=100,
         blank=True,
-        help_text="Obbligatorio se 'incarico' è nullo (D-50).",
+        help_text="Obbligatorio se 'incarico' è nullo.",
     )
     centro_costo = models.ForeignKey(
         "CentroCosto",
@@ -348,12 +348,12 @@ class NotaSpese(FSMModelMixin, models.Model):
     anno_spesa = models.IntegerField(
         null=True,
         blank=True,
-        help_text="Derivato dalle date delle righe (D-41), ricalcolato dal service layer.",
+        help_text="Derivato dalle date delle righe, ricalcolato dal service layer.",
     )
     anno_contabilizzazione = models.IntegerField(
         null=True,
         blank=True,
-        help_text="Valorizzato solo alla transizione verso LIQUIDATA (D-41). Vedi trappola in docstring.",
+        help_text="Valorizzato solo alla transizione verso LIQUIDATA. Vedi trappola in docstring.",
     )
 
     nota_originale = models.ForeignKey(
@@ -362,7 +362,7 @@ class NotaSpese(FSMModelMixin, models.Model):
         null=True,
         blank=True,
         related_name="derivate",
-        help_text="Clonazione (D-43) o nota di integrazione (D-40).",
+        help_text="Clonazione o nota di integrazione.",
     )
 
     eliminata_il = models.DateTimeField(
@@ -375,20 +375,20 @@ class NotaSpese(FSMModelMixin, models.Model):
         null=True,
         blank=True,
         related_name="rilievi",
-        help_text="Riga oggetto del rilievo in DA_INTEGRARE/DA_CONFERMARE (D-38).",
+        help_text="Riga oggetto del rilievo in DA_INTEGRARE/DA_CONFERMARE.",
     )
     rilievo_nota = models.TextField(
-        blank=True, help_text="Nota testuale del verificatore sul rilievo (D-38)."
+        blank=True, help_text="Nota testuale del verificatore sul rilievo."
     )
     rilievo_il = models.DateTimeField(
         null=True,
         blank=True,
-        help_text="Timestamp del rilievo: un nuovo allegato successivo sblocca DA_INTEGRARE (D-38).",
+        help_text="Timestamp del rilievo: un nuovo allegato successivo sblocca DA_INTEGRARE.",
     )
     causale_respinta = models.TextField(
         blank=True,
         help_text=(
-            "Motivazione del respingimento. Non specificata in una decisione D-xx per "
+            "Motivazione del respingimento. Non specificata in una decisione dedicata per "
             "Nota Spese: obbligatoria per coerenza con lo stesso principio già applicato "
             "altrove in Catello, non un requisito testuale di questo modulo."
         ),
@@ -509,7 +509,7 @@ class RigaSpesa(models.Model):
         null=True,
         blank=True,
         related_name="righe_spesa_partenza",
-        help_text="Solo categorie Auto (D-53): tratta strutturata per il calcolo distanza.",
+        help_text="Solo categorie Auto: tratta strutturata per il calcolo distanza.",
     )
     localita_arrivo = models.ForeignKey(
         "Localita",
@@ -521,7 +521,7 @@ class RigaSpesa(models.Model):
     targa = models.CharField(max_length=15, blank=True)
 
     distanza_km = models.DecimalField(
-        max_digits=6, decimal_places=1, null=True, blank=True, help_text="D-54: congelata."
+        max_digits=6, decimal_places=1, null=True, blank=True, help_text="Congelata."
     )
     distanza_backend = models.CharField(max_length=30, blank=True)
     distanza_calcolata_il = models.DateTimeField(null=True, blank=True)
@@ -530,7 +530,7 @@ class RigaSpesa(models.Model):
         decimal_places=1,
         null=True,
         blank=True,
-        help_text="Correzione manuale del verificatore (D-54).",
+        help_text="Correzione manuale del verificatore.",
     )
 
     importo = models.DecimalField(
@@ -538,7 +538,7 @@ class RigaSpesa(models.Model):
         decimal_places=2,
         null=True,
         blank=True,
-        help_text="Inserito per le categorie documentali, cache calcolata per le chilometriche (D-45).",
+        help_text="Inserito per le categorie documentali, cache calcolata per le chilometriche.",
     )
     importo_originale = models.DecimalField(
         max_digits=8,
@@ -546,7 +546,7 @@ class RigaSpesa(models.Model):
         null=True,
         blank=True,
         help_text=(
-            "D-39: congelato alla prima correzione di 'importo' dopo l'invio della "
+            "Congelato alla prima correzione di 'importo' dopo l'invio della "
             "nota, mai più sovrascritto. Nullo se la riga non è mai stata corretta."
         ),
     )

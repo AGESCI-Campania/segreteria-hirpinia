@@ -7,6 +7,7 @@
     <h1>Importazioni CSV Buona Caccia</h1>
     <a href="{% url 'anagrafica:importazione_anteprima' %}" class="btn btn-primary">Nuova importazione</a>
   </div>
+  <div class="table-responsive">
   <table class="table">
     <thead>
       <tr>
@@ -35,4 +36,5 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 {% endblock %}

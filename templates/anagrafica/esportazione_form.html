@@ -12,8 +12,14 @@
       <div class="alert alert-danger">{{ form.non_field_errors }}</div>
     {% endif %}
 
-    <form method="get" class="mb-4">
-      {% csrf_token %}
+    <form method="get" class="mb-4" id="form-esportazione-anagrafica">
+      {% comment %}
+        Il token serve solo alle due esportazioni (formmethod="post"): il
+        campo resta disabled di default per non finire nella querystring
+        della ricerca GET (che non ne ha bisogno), e viene riabilitato via
+        JS solo per l'invio che lo richiede davvero.
+      {% endcomment %}
+      <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}" disabled>
       <div class="row">
         {% for field in form %}
           {% if field.name != "formato" %}
@@ -27,14 +33,21 @@
       </div>
       <button type="submit" class="btn btn-primary">Cerca</button>
       {% if righe_tabella %}
-        <button type="submit" formmethod="post" name="formato" value="csv" class="btn btn-outline-primary">
+        <button type="submit" formmethod="post" name="formato" value="csv" class="btn btn-outline-primary" data-esporta>
           Esporta CSV
         </button>
-        <button type="submit" formmethod="post" name="formato" value="xlsx" class="btn btn-outline-primary">
+        <button type="submit" formmethod="post" name="formato" value="xlsx" class="btn btn-outline-primary" data-esporta>
           Esporta XLSX
         </button>
       {% endif %}
     </form>
+    <script>
+      document.querySelectorAll('#form-esportazione-anagrafica [data-esporta]').forEach(function (bottone) {
+        bottone.addEventListener('click', function () {
+          document.querySelector('#form-esportazione-anagrafica [name="csrfmiddlewaretoken"]').disabled = false;
+        });
+      });
+    </script>
 
     {% if righe_tabella is not None %}
       <p class="text-muted">

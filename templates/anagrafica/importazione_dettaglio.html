@@ -10,6 +10,7 @@
   </p>
 
   <h2>Conteggi</h2>
+  <div class="table-responsive">
   <table class="table table-sm">
     <tbody>
       {% for chiave, valore in importazione.conteggi.items %}
@@ -20,6 +21,7 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 
   {% if importazione.capi_disattivati.all %}
     <h2>Capi disattivati</h2>
@@ -53,6 +55,7 @@
 
   {% if importazione.anomalie %}
     <h2>Anomalie</h2>
+    <div class="table-responsive">
     <table class="table table-sm">
       <thead>
         <tr>
@@ -75,5 +78,6 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
   {% endif %}
 {% endblock %}

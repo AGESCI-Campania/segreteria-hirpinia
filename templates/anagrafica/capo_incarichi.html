@@ -5,6 +5,7 @@
 {% block content %}
   <h1>Incarichi di {{ codice_socio }} — anno {{ anno_scout }}</h1>
 
+  <div class="table-responsive">
   <table class="table table-sm">
     <thead>
       <tr>
@@ -38,6 +39,7 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 
   <a href="{% url 'anagrafica:assegna_incarico' %}?codice_socio={{ codice_socio }}" class="btn btn-primary">
     Assegna nuovo incarico

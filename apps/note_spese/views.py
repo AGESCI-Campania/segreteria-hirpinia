@@ -7,10 +7,10 @@ funzioni di `creazione.py`/`transizioni.py`/`eventi.py`/`esportazione.py`,
 mai un controllo di ruolo diretto qui: un capo qualsiasi deve poter
 accedere alle proprie note, i permessi di ogni transizione restano
 `transizioni.py::_richiedi_permesso_*`. `NotaVerificaListaView`, le viste
-sugli eventi e `NotaEsportaView` sono l'eccezione dichiarata: sono
-riservate a chi gestisce le note, quindi il controllo di ruolo è nella view
-stessa (nessuna funzione di dominio da riusare, non sono un'azione sui dati
-di una singola nota)."""
+sugli eventi, `NotaEsportaView` e `BeneficiarioRicercaAutocompleteView` sono
+l'eccezione dichiarata: sono riservate a chi gestisce le note, quindi il
+controllo di ruolo è nella view stessa (nessuna funzione di dominio da
+riusare, non sono un'azione sui dati di una singola nota)."""
 
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ import io
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db.models import Q
 from django.http import FileResponse, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -29,7 +30,7 @@ from django.views.generic import ListView
 from openpyxl import Workbook
 
 from apps.accounts.models import Utente
-from apps.anagrafica.models import Capo, IncaricoUnita
+from apps.anagrafica.models import Capo, CensimentoCapo, IncaricoUnita
 from apps.core.messaggi import messaggi_per_campo, messaggio_utente
 
 from .allegati import carica_allegato
@@ -205,6 +206,48 @@ def _applica_errori(form, exc: Exception) -> None:
                 form.add_error(None, testo)
     else:
         form.add_error(None, messaggio_utente(exc))
+
+
+LIMITE_RISULTATI_BENEFICIARIO = 15
+MINIMO_CARATTERI_BENEFICIARIO = 2
+
+
+class BeneficiarioRicercaAutocompleteView(RichiedeGestioneNoteMixin, View):
+    """Autocompletamento per "Nuova nota spese" quando si compila per conto
+    terzi: **quarto** endpoint di ricerca soci, perimetro deciso con
+    l'utente uguale a `apps.anagrafica.views.RicercaSociAutocompleteView`
+    (M7) — tutti i gruppi, non solo `gruppi_visibili`, perché chi gestisce
+    le note deve poter cercare un beneficiario censito ovunque in zona.
+    Riservata a chi gestisce le note (D-36, stesso perimetro del campo che
+    serve): un capo che compila per sé non ha bisogno di cercare se stesso."""
+
+    def get(self, request):
+        query = request.GET.get("q", "").strip()
+        if len(query) < MINIMO_CARATTERI_BENEFICIARIO:
+            return JsonResponse({"risultati": []})
+
+        anno = anno_associativo_per_data(timezone.now().date())
+        censimenti = (
+            CensimentoCapo.objects.filter(anno_scout=anno)
+            .filter(
+                Q(capo__nome__icontains=query)
+                | Q(capo__cognome__icontains=query)
+                | Q(capo__codice_socio__icontains=query)
+                | Q(gruppo__nome__icontains=query)
+            )
+            .select_related("capo", "gruppo")
+            .order_by("capo__cognome", "capo__nome")[:LIMITE_RISULTATI_BENEFICIARIO]
+        )
+        risultati = [
+            {
+                "codice_socio": c.capo.codice_socio,
+                "nome": c.capo.nome,
+                "cognome": c.capo.cognome,
+                "gruppo": c.gruppo.nome,
+            }
+            for c in censimenti
+        ]
+        return JsonResponse({"risultati": risultati})
 
 
 class NotaCreaView(LoginRequiredMixin, View):
