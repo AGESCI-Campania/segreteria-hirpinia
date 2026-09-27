@@ -8,6 +8,31 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.1.21] - 2026-09-27
+
+### Modificato
+
+- Rinnovata la veste grafica della piattaforma: nuovo layout con menu
+  laterale, intestazione e componenti nativi, più chiaro e coerente su
+  desktop e mobile.
+- Nell'elenco campagne Fo.Ca., la campagna in evidenza ha ora un riquadro più
+  sobrio (bordo colorato) invece del blocco a tinta unita.
+
+### Aggiunto
+
+- In "Nuova nota spese", chi gestisce le note ora può cercare il beneficiario
+  digitando nome, cognome o gruppo, invece di dover conoscere a memoria il
+  codice socio.
+
+### Corretto
+
+- Le tabelle troppo larghe per lo schermo (su mobile o a bassa risoluzione)
+  ora si possono scorrere invece di risultare tagliate.
+- Nell'export "Visualizza anagrafica", le colonne Gruppo censimento/Gruppo
+  servizio mostrano il nome del gruppo invece del codice.
+- Il banner "stai operando per conto di" durante un'impersonificazione è ora
+  visibile subito, non solo scorrendo la pagina fino in fondo.
+
 ## [1.1.20] - 2026-09-25
 
 ### Modificato
