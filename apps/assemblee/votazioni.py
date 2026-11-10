@@ -8,7 +8,7 @@ chiamano `soglia()` ed `esito()`, non le reimplementano.
 | Mozione, raccomandazione, bilancio,         | presenti            | art. 14    |
 | regolamento, altra deliberazione            |                     |            |
 | Elezione (per candidato)                    | presenti            | art. 18    |
-| Ballottaggio (solo carta)                   | presenti            | art. 18 c.4|
+| Ballottaggio                                | presenti            | art. 18 c.4|
 | Mozione d'ordine, nuovo punto all'OdG       | votanti (f + c + a) | art. 13    |
 | Revoca di un mandato                        | aventi diritto      | art. 19 c.3|
 
@@ -46,8 +46,10 @@ VOTAZIONI_SU_VOTANTI = frozenset({TipoVotazione.MOZIONE_ORDINE, TipoVotazione.NU
 
 def canali(votazione: Votazione) -> list[str]:
     """Canali in cui si registrano i voti: alzata di mano per le palesi, app e
-    carta per le segrete, solo carta per il ballottaggio (l'app non lo supporta)."""
-    if votazione.tipo == TipoVotazione.BALLOTTAGGIO:
+    carta per le segrete. Il ballottaggio con l'app del Nazionale è solo su
+    carta (limite di quell'app, non del regolamento); con il voto di Catello
+    si vota anche in app (docs/plan_voto.md, V5)."""
+    if votazione.tipo == TipoVotazione.BALLOTTAGGIO and not votazione.seduta.assemblea.voto_catello:
         return [CanaleVoto.CARTA]
     if votazione.segreta:
         return [CanaleVoto.APP, CanaleVoto.CARTA]
@@ -296,7 +298,8 @@ def _verifica_coerenza(votazione: Votazione) -> None:
 @transaction.atomic
 def apri_ballottaggio(votazione: Votazione, utente: Utente) -> Votazione:
     """Ballottaggio fra i due candidati proposti dall'esito dell'elezione
-    (art. 18 c.3), solo cartaceo, per un posto. Si fa un solo turno."""
+    (art. 18 c.3), per un posto: solo su carta con l'app del Nazionale, anche
+    in app con il voto di Catello (`canali()`). Si fa un solo turno."""
     _verifica_operatore(utente, votazione.seduta)
     _verifica_seduta(votazione.seduta)
     if votazione.tipo != TipoVotazione.ELEZIONE or not votazione.chiusa:

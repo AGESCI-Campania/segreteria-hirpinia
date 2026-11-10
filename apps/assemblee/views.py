@@ -1242,7 +1242,14 @@ class VotazioneAzioneView(LoginRequiredMixin, View):
         try:
             if azione == "ballottaggio":
                 ballottaggio = voto.apri_ballottaggio(votazione, request.user)
-                messages.success(request, "Ballottaggio aperto: si vota solo su carta.")
+                messages.success(
+                    request,
+                    (
+                        "Ballottaggio aperto: apri l'urna elettronica dalla sua pagina."
+                        if votazione.seduta.assemblea.voto_catello
+                        else "Ballottaggio aperto: si vota solo su carta."
+                    ),
+                )
                 return redirect(
                     reverse("assemblee:votazione", args=[pk, seduta_pk, ballottaggio.pk])
                 )

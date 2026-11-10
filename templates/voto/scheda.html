@@ -25,12 +25,12 @@
                       <label for="c{{ indice }}-{{ candidato.pk }}" class="fs-lg">{{ candidato.nome }}</label>
                     </div>
                   {% endfor %}
-                  {% for _ in posti %}
+                  {% if votazione.tipo != "BALLOTTAGGIO" %}{% for _ in posti %}
                     <div class="form-field mb-3">
                       <label for="l{{ indice }}-{{ forloop.counter }}">Altro nome (facoltativo)</label>
                       <input id="l{{ indice }}-{{ forloop.counter }}" type="text" name="liberi_{{ indice }}" maxlength="100" class="form-control" autocomplete="off">
                     </div>
-                  {% endfor %}
+                  {% endfor %}{% endif %}
                   <div class="form-field mt-5 mb-3">
                     <input id="e{{ indice }}-voto" type="radio" name="esito_{{ indice }}" value="VOTO" class="check" checked>
                     <label for="e{{ indice }}-voto">Voto le preferenze indicate</label>

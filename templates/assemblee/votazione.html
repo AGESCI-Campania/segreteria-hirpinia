@@ -8,7 +8,7 @@
   <p class="fg-2 mb-5">
     {% if votazione.incarico %}{{ votazione.incarico }}{% if votazione.tipo == "ELEZIONE" %}, {{ votazione.posti }} {% if votazione.posti == 1 %}posto{% else %}posti{% endif %}{% endif %} — {% endif %}
     aperta alle {{ votazione.aperta_il|time:"H:i" }} con {{ votazione.presenti }} presenti su {{ votazione.aventi_diritto }} aventi diritto
-    — {% if votazione.segreta %}scrutinio segreto{% if votazione.tipo == "BALLOTTAGGIO" %}, solo su carta{% endif %}{% else %}alzata di mano{% endif %}
+    — {% if votazione.segreta %}scrutinio segreto{% if votazione.tipo == "BALLOTTAGGIO" and not assemblea.voto_catello %}, solo su carta{% endif %}{% else %}alzata di mano{% endif %}
   </p>
 
   <div class="alert theme-info mb-5" role="note">
@@ -68,7 +68,7 @@
     {% if puo_ballottaggio and puo_operare %}
       <form method="post" action="{% url 'assemblee:votazione_azione' assemblea.pk seduta.pk votazione.pk %}" class="mt-5">
         {% csrf_token %}<input type="hidden" name="azione" value="ballottaggio">
-        <button type="submit" class="btn-solid theme-primary">Apri il ballottaggio (solo su carta)</button>
+        <button type="submit" class="btn-solid theme-primary">Apri il ballottaggio{% if not assemblea.voto_catello %} (solo su carta){% endif %}</button>
       </form>
     {% endif %}
     {% if ballottaggio %}

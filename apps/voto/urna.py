@@ -151,6 +151,10 @@ def valida_scelte(votazione: Votazione, scelte: Scelte) -> Scelte:
         raise ValidationError("Scelta non valida.")
     if scelte.esito != ESITO_VOTO:
         return Scelte(esito=scelte.esito)
+    if votazione.tipo == TipoVotazione.BALLOTTAGGIO and any(n.strip() for n in scelte.liberi):
+        # Il ballottaggio è fra i due candidati proposti (art. 18 c.3): un nome
+        # scritto non può essere né l'uno né l'altro.
+        raise ValidationError("Nel ballottaggio si sceglie solo fra i due candidati.")
     ammessi = set(votazione.candidati.values_list("pk", flat=True))
     candidati = tuple(dict.fromkeys(scelte.candidati))
     if set(candidati) - ammessi:
