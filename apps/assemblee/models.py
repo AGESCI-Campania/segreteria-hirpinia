@@ -231,6 +231,10 @@ class AventeDiritto(models.Model):
     codice_socio = models.CharField(max_length=20, blank=True)
     nome = models.CharField(max_length=100)
     cognome = models.CharField(max_length=100)
+    # Recapito per l'assemblea (tracciato, codice di voto): precompilato da
+    # `capo.email` all'import, poi corretto qui (a mano, al banco o con l'Excel
+    # dei capigruppo) senza mai scrivere l'anagrafica.
+    email = models.EmailField(blank=True)
     gruppo = models.ForeignKey(
         "organizzazione.Gruppo",
         on_delete=models.PROTECT,
@@ -383,6 +387,7 @@ class OperatoreVoto(models.Model):
 class TipoFile(models.TextChoices):
     TRACCIATO_APP = "TRACCIATO_APP", "Tracciato per l'app di voto"
     FOGLIO_PRESENZE = "FOGLIO_PRESENZE", "Foglio presenze"
+    EMAIL_GRUPPO = "EMAIL_GRUPPO", "Email degli aventi diritto per gruppo"
 
 
 class ScaricamentoFile(models.Model):
@@ -409,6 +414,37 @@ class ScaricamentoFile(models.Model):
 
     def __str__(self) -> str:
         return f"{self.get_tipo_display()} — {self.scaricato_il:%d/%m/%Y %H:%M}"
+
+
+class ImportazioneEmail(models.Model):
+    """Import dell'Excel delle email di un gruppo, compilato dal capogruppo:
+    il report delle anomalie resta scaricabile. Il file non si conserva:
+    contiene solo recapiti, già applicati agli aventi diritto."""
+
+    assemblea = models.ForeignKey(
+        Assemblea, on_delete=models.CASCADE, related_name="importazioni_email"
+    )
+    nome_file = models.CharField(max_length=255)
+    utente = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    importata_il = models.DateTimeField(auto_now_add=True)
+    righe_lette = models.PositiveIntegerField(default=0)
+    email_aggiornate = models.PositiveIntegerField(default=0)
+    # Elenco di {"riga", "avente", "messaggio", "bloccante"}.
+    anomalie = models.JSONField(default=list)
+
+    class Meta:
+        verbose_name = "importazione delle email"
+        verbose_name_plural = "importazioni delle email"
+        ordering = ["-importata_il"]
+
+    def __str__(self) -> str:
+        return f"{self.nome_file} — {self.importata_il:%d/%m/%Y %H:%M}"
 
 
 class DelegaAE(models.Model):

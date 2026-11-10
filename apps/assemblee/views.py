@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -17,7 +19,7 @@ from apps.accounts.models import Utente
 from apps.core.mixins import BreadcrumbExtraMixin
 from apps.organizzazione.models import Gruppo
 
-from . import cruscotto, elenco, odg, sedute
+from . import cruscotto, elenco, email_aventi, odg, sedute
 from . import deleghe as deleghe_ae
 from . import file as file_assemblea
 from . import quorum as quorum_assemblea
@@ -28,6 +30,8 @@ from .forms import (
     AventeInserisciForm,
     ConvocazioneForm,
     DelegaForm,
+    EmailAventeForm,
+    ImportEmailForm,
     IncaricoDichiaratoFormSet,
     OperatoreAggiungiForm,
     PuntoOdGForm,
@@ -42,6 +46,7 @@ from .models import (
     Assemblea,
     AventeDiritto,
     DelegaAE,
+    ImportazioneEmail,
     OperatoreVoto,
     PuntoOdG,
     RichiedenteVerifica,
@@ -773,6 +778,186 @@ class QualificheView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
             "ae_gruppo": deleghe_ae.e_ae_gruppo(avente),
         }
         return render(request, self.template_name, contesto)
+
+
+# --- Email degli aventi diritto (Excel per gruppo) ------------------------------
+
+_SESSION_EMAIL = "assemblee_import_email"
+XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+def _breadcrumb_email(request, *ultimi: dict) -> list[dict]:
+    pk = request.resolver_match.kwargs["pk"]
+    return _breadcrumb_assemblea(
+        request,
+        {"label": "Email degli aventi", "url": reverse("assemblee:email_aventi", args=[pk])},
+        *ultimi,
+    )
+
+
+class EmailAventiView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+    """Un Excel per gruppo da far verificare ai capigruppo, e il suo reimport."""
+
+    template_name = "assemblee/email_aventi.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_assemblea(request, {"label": "Email degli aventi"})
+
+    def get(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        return render(request, self.template_name, self._contesto(assemblea, ImportEmailForm()))
+
+    @staticmethod
+    def _contesto(assemblea: Assemblea, form) -> dict:
+        elenco_attuale = assemblea.aventi_diritto.nell_elenco()
+        gruppi = []
+        for gruppo in email_aventi.gruppi_con_aventi(assemblea):
+            del_gruppo = elenco_attuale.filter(gruppo=gruppo)
+            gruppi.append(
+                {
+                    "gruppo": gruppo,
+                    "aventi": del_gruppo.count(),
+                    "senza_email": del_gruppo.filter(email="").count(),
+                }
+            )
+        return {
+            "assemblea": assemblea,
+            "gruppi": gruppi,
+            "form": form,
+            "importazioni": assemblea.importazioni_email.select_related("utente")[:20],
+        }
+
+
+class EmailGruppoView(GestisceAssembleeMixin, View):
+    def get(self, request, pk, codice):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        gruppo = get_object_or_404(Gruppo, pk=codice)
+        contenuto = email_aventi.genera_excel_gruppo(assemblea, gruppo, request.user)
+        risposta = HttpResponse(contenuto, content_type=XLSX)
+        nome = email_aventi.nome_file_gruppo(assemblea, gruppo)
+        risposta["Content-Disposition"] = f'attachment; filename="{nome}"'
+        return risposta
+
+
+class EmailZipView(GestisceAssembleeMixin, View):
+    def get(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        contenuto = email_aventi.genera_zip_gruppi(assemblea, request.user)
+        risposta = HttpResponse(contenuto, content_type="application/zip")
+        nome = f"email-aventi-{assemblea.anno_scout}-{assemblea.pk}.zip"
+        risposta["Content-Disposition"] = f'attachment; filename="{nome}"'
+        return risposta
+
+
+class ImportEmailAnteprimaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+    """L'anteprima non scrive nulla: il file resta in sessione (DB-backed) per
+    la conferma, mai su disco, come gli import dell'anagrafica."""
+
+    template_name = "assemblee/email_import_anteprima.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_email(request, {"label": "Anteprima dell'import"})
+
+    def post(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        form = ImportEmailForm(request.POST, request.FILES)
+        if not form.is_valid():
+            return render(
+                request, EmailAventiView.template_name, EmailAventiView._contesto(assemblea, form)
+            )
+        file = form.cleaned_data["file"]
+        contenuto = file.read()
+        anteprima = email_aventi.anteprima_import(assemblea, email_aventi.leggi_excel(contenuto))
+        request.session[_SESSION_EMAIL] = {
+            "assemblea": assemblea.pk,
+            "utente": request.user.pk,
+            "nome_file": file.name,
+            "contenuto": base64.b64encode(contenuto).decode("ascii"),
+        }
+        return render(request, self.template_name, {"assemblea": assemblea, "anteprima": anteprima})
+
+
+class ImportEmailConfermaView(GestisceAssembleeMixin, View):
+    """Rilegge il file dalla sessione e ricalcola tutto da capo in
+    `applica_import()`: mai l'anteprima già mostrata."""
+
+    def post(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        dati = request.session.get(_SESSION_EMAIL)
+        if not dati or dati["assemblea"] != assemblea.pk or dati["utente"] != request.user.pk:
+            messages.error(request, "L'anteprima è scaduta: ricarica il file.")
+            return redirect(reverse("assemblee:email_aventi", args=[pk]))
+        try:
+            importazione = email_aventi.applica_import(
+                assemblea, base64.b64decode(dati["contenuto"]), dati["nome_file"], request.user
+            )
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+        else:
+            request.session.pop(_SESSION_EMAIL, None)
+            messages.success(
+                request,
+                f"Import completato: {importazione.email_aggiornate} email aggiornate "
+                f"su {importazione.righe_lette} righe.",
+            )
+        return redirect(reverse("assemblee:email_aventi", args=[pk]))
+
+
+class ImportEmailReportView(GestisceAssembleeMixin, View):
+    def get(self, request, pk, importazione_pk):
+        importazione = get_object_or_404(ImportazioneEmail, pk=importazione_pk, assemblea_id=pk)
+        risposta = HttpResponse(
+            "\ufeff" + email_aventi.report_csv(importazione), content_type="text/csv"
+        )
+        risposta["Content-Disposition"] = (
+            f'attachment; filename="anomalie-email-{importazione.pk}.csv"'
+        )
+        return risposta
+
+
+class AventeEmailView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
+    """Correzione dell'email di un avente: gestori e operatori al banco."""
+
+    template_name = "assemblee/avente_email.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_assemblea(
+            request,
+            {
+                "label": "Aventi diritto",
+                "url": reverse("assemblee:elenco", args=[request.resolver_match.kwargs["pk"]]),
+            },
+            {"label": "Email"},
+        )
+
+    def _avente(self, request, pk, avente_pk) -> AventeDiritto:
+        assemblea = _assemblea_visibile(request, pk)
+        if not puo_operare(request.user, assemblea):
+            raise PermissionDenied
+        return get_object_or_404(AventeDiritto, pk=avente_pk, assemblea=assemblea)
+
+    def get(self, request, pk, avente_pk):
+        avente = self._avente(request, pk, avente_pk)
+        form = EmailAventeForm(initial={"email": avente.email})
+        return render(request, self.template_name, {"avente": avente, "form": form})
+
+    def post(self, request, pk, avente_pk):
+        avente = self._avente(request, pk, avente_pk)
+        form = EmailAventeForm(request.POST)
+        if form.is_valid():
+            try:
+                elenco.aggiorna_email(avente, form.cleaned_data["email"], request.user)
+            except ValidationError as errore:
+                form.add_error("email", errore)
+            else:
+                messages.success(request, f"Email di {avente} aggiornata.")
+                return redirect(
+                    reverse("assemblee:elenco", args=[pk]) + f"?gruppo={avente.gruppo_id}"
+                )
+        return render(request, self.template_name, {"avente": avente, "form": form})
 
 
 # --- Cruscotto in tempo reale, proiettore, abilitazione app ----------------------

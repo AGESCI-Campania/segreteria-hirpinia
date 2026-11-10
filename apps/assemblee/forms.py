@@ -84,12 +84,36 @@ class AventeInserisciForm(forms.Form):
         required=False,
         help_text="Facoltativo. Se è fra i censiti già in Catello, il capo vota in app.",
     )
+    email = forms.EmailField(
+        required=False,
+        help_text="Facoltativa. Serve per il tracciato e per ricevere il codice di voto.",
+    )
 
     def __init__(self, *args, assemblea: Assemblea, **kwargs):
         super().__init__(*args, **kwargs)
         cast(forms.ModelChoiceField, self.fields["gruppo"]).queryset = Gruppo.objects.attivi(
             assemblea.anno_scout
         ).order_by("nome")
+
+
+class EmailAventeForm(forms.Form):
+    email = forms.EmailField(
+        required=False,
+        help_text="Vale solo per questa assemblea: l'anagrafica non cambia.",
+    )
+
+
+class ImportEmailForm(forms.Form):
+    file = forms.FileField(
+        label="File Excel del gruppo",
+        help_text="Il file scaricato da qui, con la colonna Email verificata dal capogruppo.",
+    )
+
+    def clean_file(self):
+        file = self.cleaned_data["file"]
+        if file.size > 2 * 1024 * 1024:
+            raise forms.ValidationError("Il file supera i 2 MB.")
+        return file
 
 
 class IncaricoDichiaratoForm(forms.Form):

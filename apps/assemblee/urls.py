@@ -42,6 +42,33 @@ urlpatterns = [
         name="aggiorna_gruppo",
     ),
     path("<int:pk>/file/tracciato-app/", views.TracciatoView.as_view(), name="tracciato"),
+    path("<int:pk>/email/", views.EmailAventiView.as_view(), name="email_aventi"),
+    path("<int:pk>/email/tutti.zip", views.EmailZipView.as_view(), name="email_zip"),
+    path(
+        "<int:pk>/email/gruppi/<str:codice>.xlsx",
+        views.EmailGruppoView.as_view(),
+        name="email_gruppo",
+    ),
+    path(
+        "<int:pk>/email/import/anteprima/",
+        views.ImportEmailAnteprimaView.as_view(),
+        name="email_import_anteprima",
+    ),
+    path(
+        "<int:pk>/email/import/conferma/",
+        views.ImportEmailConfermaView.as_view(),
+        name="email_import_conferma",
+    ),
+    path(
+        "<int:pk>/email/import/<int:importazione_pk>/anomalie.csv",
+        views.ImportEmailReportView.as_view(),
+        name="email_import_report",
+    ),
+    path(
+        "<int:pk>/elenco/<int:avente_pk>/email/",
+        views.AventeEmailView.as_view(),
+        name="avente_email",
+    ),
     path(
         "<int:pk>/file/foglio-presenze/",
         views.FoglioPresenzeView.as_view(),

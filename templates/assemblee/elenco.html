@@ -84,6 +84,7 @@
         {% if puo_gestire %}<th></th>{% endif %}
         <th>Cognome e nome</th>
         <th>Codice socio</th>
+        <th>Email</th>
         <th>Gruppo</th>
         <th>Dati</th>
         <th>Voto</th>
@@ -103,6 +104,7 @@
             {% if riga.rdz %}{% ag_chip "RdZ" variant="primary" %}{% elif riga.comitato %}{% ag_chip "Comitato" variant="primary" %}{% endif %}
           </td>
           <td>{{ riga.codice_socio|default:"—" }}</td>
+          <td>{{ riga.email|default:"—" }}</td>
           <td>
             {{ riga.gruppo.nome }}
             {% if riga.trasferito %}<br><small class="fg-2">da {{ riga.gruppo_origine.nome }}</small>{% endif %}
@@ -136,6 +138,7 @@
                 <a href="{% url 'assemblee:qualifiche' assemblea.pk riga.pk %}" class="btn-outline theme-secondary btn-sm">Qualifiche</a>
               {% endif %}
               {% if puo_operare %}
+                <a href="{% url 'assemblee:avente_email' assemblea.pk riga.pk %}" class="btn-outline theme-secondary btn-sm">Email</a>
                 {% if riga.vota_in_app %}
                   <form method="post" action="{% url 'assemblee:passa_a_carta' assemblea.pk riga.pk %}" class="d-inline">
                     {% csrf_token %}
@@ -155,7 +158,7 @@
           </td>
         </tr>
       {% empty %}
-        <tr><td colspan="7">Nessun capo corrisponde ai filtri.</td></tr>
+        <tr><td colspan="8">Nessun capo corrisponde ai filtri.</td></tr>
       {% endfor %}
     </tbody>
   </table>

@@ -10,6 +10,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.validators import validate_email
 from django.db import transaction
 from django.utils import timezone
 
@@ -112,6 +113,7 @@ def importa_elenco(assemblea: Assemblea, utente: Utente) -> int:
                     codice_socio=censimento.capo_id,
                     nome=censimento.capo.nome,
                     cognome=censimento.capo.cognome,
+                    email=censimento.capo.email,
                     gruppo=gruppo,
                     gruppo_origine=gruppo,
                     origine=OrigineAvente.IMPORT,
@@ -178,6 +180,7 @@ def inserisci(
     gruppo: Gruppo,
     provenienza: str,
     codice_socio: str = "",
+    email: str = "",
     incarichi: Iterable[dict] = (),
 ) -> AventeDiritto:
     """Nuovo capo inserito a mano. Se il codice socio è fra i censiti
@@ -194,6 +197,7 @@ def inserisci(
         codice_socio=codice_socio,
         nome=nome.strip(),
         cognome=cognome.strip(),
+        email=email.strip(),
         gruppo=gruppo,
         origine=OrigineAvente.MANUALE,
         provenienza=provenienza,
@@ -202,12 +206,38 @@ def inserisci(
     )
     if codice_socio:
         avente.capo = Capo.objects.filter(pk=codice_socio).first()
+        if avente.capo and not avente.email:
+            avente.email = avente.capo.email
     _aggiorna_voto(avente)
     avente.save()
     IncaricoDichiarato.objects.bulk_create(
         IncaricoDichiarato(avente=avente, **dati) for dati in incarichi if dati.get("funzione")
     )
     return avente
+
+
+def normalizza_email(email: str) -> str:
+    """Unica validazione dell'email di un avente (form, banco, import Excel):
+    spazi tolti, minuscole; ValidationError se non è un indirizzo valido."""
+    email = email.strip().lower()
+    if email:
+        validate_email(email)
+    return email
+
+
+@transaction.atomic
+def aggiorna_email(avente: AventeDiritto, email: str, utente: Utente) -> bool:
+    """Corregge l'email per l'assemblea (mai quella dell'anagrafica): gestori,
+    e operatori al banco. Restituisce False se non cambia nulla."""
+    if not puo_operare(utente, avente.assemblea):
+        raise PermissionDenied
+    _verifica_modificabile(avente.assemblea)
+    email = normalizza_email(email)
+    if email == avente.email:
+        return False
+    avente.email = email
+    avente.save(update_fields=["email"])
+    return True
 
 
 @transaction.atomic
@@ -363,6 +393,8 @@ def applica_aggiorna_gruppo(
         avente.codice_socio = censimento.capo_id
         avente.nome = censimento.capo.nome
         avente.cognome = censimento.capo.cognome
+        # Un'email già corretta per l'assemblea vince su quella dell'anagrafica.
+        avente.email = avente.email or censimento.capo.email
         avente.origine = OrigineAvente.IMPORT
         avente.gruppo_origine = gruppo
         avente.anno_censimento = anno
@@ -402,6 +434,7 @@ def applica_aggiorna_gruppo(
             codice_socio=censimento.capo_id,
             nome=censimento.capo.nome,
             cognome=censimento.capo.cognome,
+            email=censimento.capo.email,
             gruppo=gruppo,
             gruppo_origine=gruppo,
             origine=OrigineAvente.IMPORT,

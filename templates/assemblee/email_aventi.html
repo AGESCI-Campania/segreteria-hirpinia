@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% load bootstrap_icons %}
+
+{% block page_title %}Email degli aventi — {{ assemblea }}{% endblock %}
+
+{% block content %}
+  <h1 class="mb-3">Email degli aventi diritto</h1>
+  <p class="fg-2 mb-7">
+    Un file Excel per gruppo da mandare al capogruppo, che verifica e completa le email dei
+    suoi capi. Reimportato qui, aggiorna solo le email per questa assemblea: l'anagrafica
+    non cambia. Le email servono al tracciato e all'invio dei codici di voto.
+  </p>
+
+  <div class="d-flex flex-wrap gap-3 mb-5">
+    <a href="{% url 'assemblee:email_zip' assemblea.pk %}" class="btn-solid theme-primary">{% bs_icon "file-earmark-zip" %} Tutti i gruppi (.zip)</a>
+  </div>
+
+  <div class="table-responsive mb-7">
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Gruppo</th><th>Aventi diritto</th><th>Senza email</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for riga in gruppi %}
+          <tr>
+            <td>{{ riga.gruppo.nome }}</td>
+            <td>{{ riga.aventi }}</td>
+            <td>{% if riga.senza_email %}<strong>{{ riga.senza_email }}</strong>{% else %}0{% endif %}</td>
+            <td><a href="{% url 'assemblee:email_gruppo' assemblea.pk riga.gruppo.pk %}" class="btn-outline theme-primary btn-sm">{% bs_icon "file-earmark-spreadsheet" %} Excel</a></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4">Nessun avente diritto nell'elenco.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if not assemblea.conclusa %}
+    <h2 class="fs-xl">Importa un file compilato</h2>
+    <p class="fg-2">Prima vedi cosa cambia; niente viene scritto finché non confermi.</p>
+    <form method="post" enctype="multipart/form-data" action="{% url 'assemblee:email_import_anteprima' assemblea.pk %}" class="mb-7">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit" class="btn-solid theme-primary">Anteprima</button>
+    </form>
+  {% endif %}
+
+  <h2 class="fs-xl">Importazioni</h2>
+  <div class="table-responsive">
+    <table class="table table-sm">
+      <thead>
+        <tr><th>File</th><th>Importato</th><th>Righe</th><th>Email aggiornate</th><th>Avvisi</th></tr>
+      </thead>
+      <tbody>
+        {% for importazione in importazioni %}
+          <tr>
+            <td>{{ importazione.nome_file }}</td>
+            <td>{{ importazione.importata_il|date:"d/m/Y H:i" }}{% if importazione.utente %}<br><small class="fg-2">{{ importazione.utente }}</small>{% endif %}</td>
+            <td>{{ importazione.righe_lette }}</td>
+            <td>{{ importazione.email_aggiornate }}</td>
+            <td>
+              {% if importazione.anomalie %}
+                <a href="{% url 'assemblee:email_import_report' assemblea.pk importazione.pk %}">{{ importazione.anomalie|length }} (CSV)</a>
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5">Nessuna importazione.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
