@@ -16,32 +16,47 @@ qui.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
+from django.core import mail
 from django.core.exceptions import ImproperlyConfigured
-from django.core.mail import get_connection
 from django.core.mail.backends.base import BaseEmailBackend
-
-from . import backend_path
 
 if TYPE_CHECKING:  # pragma: no cover
     from collections.abc import Sequence
 
     from django.core.mail import EmailMessage
-    from django.core.mail.backends.base import BaseEmailBackend as Connection
+
+#: Alias di `MAILERS` definiti da `config/settings/prod.py` accanto a
+#: "default" (che è questo backend): solo questo modulo li usa.
+ALIAS_PROVIDER = "provider"
+ALIAS_MAILPIT = "mailpit"
 
 
 class MailpitOverridableBackend(BaseEmailBackend):
-    """Delega a Mailpit se `ImpostazioniPiattaforma.corrente().email_su_mailpit`
-    è vero, altrimenti al provider configurato in `EMAIL_PROVIDER`."""
+    """Delega al mailer "mailpit" se `ImpostazioniPiattaforma.corrente().email_su_mailpit`
+    è vero, altrimenti al mailer "provider" (quello di `EMAIL_PROVIDER`)."""
+
+    def __init__(self, fail_silently: bool = False, **kwargs: Any) -> None:
+        # fail_silently arriva solo dai chiamanti che usano ancora l'argomento
+        # deprecato in Django 6.1 (send(fail_silently=...)): con MAILERS non si
+        # può più inoltrare al mailer delegato, quindi si applica qui.
+        super().__init__(**kwargs)
+        self.fail_silently = fail_silently
 
     def send_messages(self, email_messages: Sequence[EmailMessage]) -> int:
         if not email_messages:
             return 0
-        return self._connessione_attiva().send_messages(email_messages) or 0
+        alias = self._alias_attivo()
+        try:
+            return mail.mailers[alias].send_messages(email_messages) or 0
+        except Exception:
+            if not self.fail_silently:
+                raise
+            return 0
 
-    def _connessione_attiva(self) -> Connection:
+    def _alias_attivo(self) -> str:
         from apps.core.models import ImpostazioniPiattaforma
 
         if ImpostazioniPiattaforma.corrente().email_su_mailpit:
@@ -55,14 +70,5 @@ class MailpitOverridableBackend(BaseEmailBackend):
                     "Impostazioni piattaforma ha email_su_mailpit=True ma "
                     "EMAIL_MAILPIT_HOST non è configurato."
                 )
-            return get_connection(
-                backend="django.core.mail.backends.smtp.EmailBackend",
-                host=settings.EMAIL_MAILPIT_HOST,
-                port=settings.EMAIL_MAILPIT_PORT,
-                use_tls=False,
-                use_ssl=False,
-                fail_silently=self.fail_silently,
-            )
-        return get_connection(
-            backend=backend_path(settings.EMAIL_PROVIDER), fail_silently=self.fail_silently
-        )
+            return ALIAS_MAILPIT
+        return ALIAS_PROVIDER

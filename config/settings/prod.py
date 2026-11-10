@@ -1,7 +1,15 @@
 from django.core.exceptions import ImproperlyConfigured
 
 from .base import *  # noqa: F403
-from .base import BASE_DIR, EMAIL_PROVIDER, _env_bool, _env_list
+from .base import (
+    BASE_DIR,
+    EMAIL_MAILPIT_HOST,
+    EMAIL_MAILPIT_PORT,
+    EMAIL_PROVIDER,
+    _env_bool,
+    _env_list,
+)
+from .base import MAILERS as _MAILERS_BASE
 from .base import STORAGES as _STORAGES_BASE
 
 DEBUG = False
@@ -10,7 +18,7 @@ DEBUG = False
 # vedi LOGGING sotto). Formato "Nome:email", più voci separate da virgola.
 # Se ImpostazioniPiattaforma.email_su_mailpit è attivo, questa mail (come
 # ogni altra) viene reindirizzata su Mailpit invece che ai destinatari reali
-# (EMAIL_BACKEND sotto): comportamento coerente col resto dell'infrastruttura
+# (MAILERS sotto): comportamento coerente col resto dell'infrastruttura
 # email, non un'eccezione da correggere qui.
 ADMINS = [tuple(coppia.split(":", 1)) for coppia in _env_list("DJANGO_ADMINS") if ":" in coppia]
 
@@ -31,7 +39,18 @@ if EMAIL_PROVIDER in {"console", "locmem"}:
 # reindirizzare su Mailpit in base al flag `email_su_mailpit` di
 # `ImpostazioniPiattaforma` — vedi apps/core/email/override.py e
 # docs/email/mailpit-override-produzione.md.
-EMAIL_BACKEND = "apps.core.email.override.MailpitOverridableBackend"
+#
+# Il mailer "default" è quindi l'interruttore; i due trasporti reali fra cui
+# sceglie sono alias propri, usati solo da override.py: "provider" è il mailer
+# costruito da base.py su EMAIL_PROVIDER, "mailpit" il sink SMTP senza TLS.
+MAILERS = {
+    "default": {"BACKEND": "apps.core.email.override.MailpitOverridableBackend"},
+    "provider": _MAILERS_BASE["default"],
+    "mailpit": {
+        "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+        "OPTIONS": {"host": EMAIL_MAILPIT_HOST, "port": EMAIL_MAILPIT_PORT},
+    },
+}
 
 # Tabella creata una tantum con `manage.py createcachetable` (comando NON
 # idempotente: non va in docker/entrypoint.sh, va eseguito manualmente al primo

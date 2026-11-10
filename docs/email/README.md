@@ -28,13 +28,17 @@ Microsoft 365, ecc.) la fonte di verità resta **§ 8 di
 ## Come funziona la selezione
 
 1. `EMAIL_PROVIDER` in `.env` seleziona il backend.
-2. `apps/core/email/__init__.py::backend_path()` traduce il nome nel percorso della
-   classe Django (`EMAIL_BACKEND`). Un valore non riconosciuto solleva
-   `ImproperlyConfigured` **all'avvio** dell'applicazione: è una scelta deliberata,
-   preferibile a scoprire in esercizio che le email non partono.
-3. `config/settings/base.py` legge `EMAIL_PROVIDER` e imposta `EMAIL_BACKEND` di
-   conseguenza, oltre a leggere le variabili comuni SMTP (`EMAIL_HOST`, `EMAIL_PORT`,
-   ecc.) usate solo dal provider `smtp`.
+2. `apps/core/email/__init__.py::configurazione_mailer()` traduce il nome nella voce
+   `default` di `MAILERS` (Django 6.1): `BACKEND` (da `backend_path()`) più le sole
+   `OPTIONS` che quel backend accetta (`OPZIONI_ACCETTATE`). Un valore non riconosciuto
+   solleva `ImproperlyConfigured` **all'avvio** dell'applicazione: è una scelta
+   deliberata, preferibile a scoprire in esercizio che le email non partono.
+3. `config/settings/base.py` legge `EMAIL_PROVIDER` e le variabili d'ambiente comuni
+   (`EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`,
+   `EMAIL_USE_TLS`, `EMAIL_USE_SSL`, `EMAIL_TIMEOUT`) e le passa come `OPTIONS`: i nomi
+   delle variabili nel `.env` non cambiano, ma **non esistono più come impostazioni
+   Django** (`settings.EMAIL_HOST` & co.): con `MAILERS` definito Django le vieta.
+   `EMAIL_TIMEOUT` vale per `smtp` e per i backend Gmail.
 4. I backend `gmail_service_account`, `gmail_oauth` e `microsoft_graph` estendono
    `apps/core/email/base.py::ApiEmailBackend`, che implementa la parte comune (MIME,
    `fail_silently`, cache del token di accesso, logging che non registra mai corpo del

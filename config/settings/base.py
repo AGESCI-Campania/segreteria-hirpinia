@@ -11,7 +11,7 @@ from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
-from apps.core.email import DEFAULT_PROVIDER, backend_path
+from apps.core.email import DEFAULT_PROVIDER, configurazione_mailer
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -172,19 +172,30 @@ STORAGES = {
 
 # ─── Email (§ 8 del documento di progettazione) ────────────────────────────────
 EMAIL_PROVIDER = os.environ.get("EMAIL_PROVIDER", DEFAULT_PROVIDER)
-EMAIL_BACKEND = backend_path(EMAIL_PROVIDER)
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "")
 
 if _env_bool("EMAIL_USE_TLS") and _env_bool("EMAIL_USE_SSL"):
     raise ImproperlyConfigured("EMAIL_USE_TLS e EMAIL_USE_SSL non possono essere entrambi attivi.")
 
-EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
-EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
-EMAIL_USE_TLS = _env_bool("EMAIL_USE_TLS", default=True)
-EMAIL_USE_SSL = _env_bool("EMAIL_USE_SSL", default=False)
-EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "20"))
+# Django 6.1: il trasporto si configura con MAILERS, e con MAILERS definito le
+# vecchie impostazioni EMAIL_BACKEND/EMAIL_HOST/EMAIL_PORT/EMAIL_TIMEOUT… sono
+# vietate (ImproperlyConfigured all'avvio). Le variabili d'ambiente mantengono
+# i nomi di prima: qui diventano le OPTIONS del mailer "default", filtrate per
+# provider da configurazione_mailer() (apps/core/email/__init__.py).
+MAILERS = {
+    "default": configurazione_mailer(
+        EMAIL_PROVIDER,
+        {
+            "host": os.environ.get("EMAIL_HOST", ""),
+            "port": int(os.environ.get("EMAIL_PORT", "587")),
+            "username": os.environ.get("EMAIL_HOST_USER", ""),
+            "password": os.environ.get("EMAIL_HOST_PASSWORD", ""),
+            "use_tls": _env_bool("EMAIL_USE_TLS", default=True),
+            "use_ssl": _env_bool("EMAIL_USE_SSL", default=False),
+            "timeout": int(os.environ.get("EMAIL_TIMEOUT", "20")),
+        },
+    )
+}
 
 # Endpoint di un Mailpit raggiungibile solo dal container, usato esclusivamente
 # da apps.core.email.override.MailpitOverridableBackend (solo

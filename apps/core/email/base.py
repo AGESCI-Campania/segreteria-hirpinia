@@ -12,7 +12,7 @@ Le sottoclassi implementano soltanto:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from django.core.cache import cache
 from django.core.mail.backends.base import BaseEmailBackend
@@ -34,6 +34,14 @@ class ApiEmailBackend(BaseEmailBackend):
 
     #: Chiave di cache del token di accesso. Le sottoclassi la differenziano.
     cache_key = "email:access_token"
+
+    def __init__(self, fail_silently: bool = False, *, timeout: int = 20, **kwargs: Any) -> None:
+        # Django 6.1: ``timeout`` arriva dalle OPTIONS del mailer (MAILERS), non più
+        # da ``settings.EMAIL_TIMEOUT``. ``fail_silently`` va tenuto come attributo
+        # proprio: quello di BaseEmailBackend è deprecato.
+        super().__init__(**kwargs)
+        self.fail_silently = fail_silently
+        self.timeout = timeout
 
     # ── da implementare nelle sottoclassi ────────────────────────────────────
 

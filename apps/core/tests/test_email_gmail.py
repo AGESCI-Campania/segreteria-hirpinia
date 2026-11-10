@@ -61,7 +61,6 @@ def test_service_account_json_malformato(settings):
 def test_service_account_invio_riuscito(settings):
     settings.GMAIL_SERVICE_ACCOUNT_JSON = SERVICE_ACCOUNT_JSON
     settings.GMAIL_MITTENTE = "segreteria@example.com"
-    settings.EMAIL_TIMEOUT = 20
     backend = GmailServiceAccountBackend()
 
     credenziali_finte = MagicMock()
@@ -160,7 +159,6 @@ def test_oauth_invio_riuscito(settings):
     settings.GMAIL_CLIENT_ID = "client-id"
     settings.GMAIL_CLIENT_SECRET = "client-secret"
     settings.GMAIL_REFRESH_TOKEN = "refresh-token"
-    settings.EMAIL_TIMEOUT = 20
     backend = GmailOAuthBackend()
 
     risposta_token = MagicMock()
@@ -180,3 +178,32 @@ def test_oauth_invio_riuscito(settings):
     assert primo_url == "https://oauth2.googleapis.com/token"
     secondo_kwargs = mock_post.call_args_list[1].kwargs
     assert secondo_kwargs["headers"]["Authorization"] == "Bearer token-oauth"
+
+
+def test_timeout_arriva_dalle_options_del_mailer(settings):
+    # Django 6.1: il timeout è un'opzione di MAILERS, non più settings.EMAIL_TIMEOUT.
+    settings.GMAIL_CLIENT_ID = "client-id"
+    settings.GMAIL_CLIENT_SECRET = "client-secret"
+    settings.GMAIL_REFRESH_TOKEN = "refresh-token"
+    settings.MAILERS = {
+        "default": {
+            "BACKEND": "apps.core.email.gmail.GmailOAuthBackend",
+            "OPTIONS": {"timeout": 7},
+        }
+    }
+    # setup_test_environment ha già sostituito MAILERS con locmem: il backend
+    # va quindi costruito dall'handler sui settings appena impostati.
+    from django.core.cache import cache
+    from django.core.mail import mailers
+
+    cache.clear()  # il token OAuth di un test precedente salterebbe la prima richiesta
+    backend = mailers.create_connection("default")
+
+    risposta_token = MagicMock()
+    risposta_token.json.return_value = {"access_token": "token-oauth", "expires_in": 3599}
+    with patch(
+        "apps.core.email.gmail.requests.post", side_effect=[risposta_token, MagicMock()]
+    ) as mock_post:
+        backend.send_messages([_messaggio()])
+
+    assert [c.kwargs["timeout"] for c in mock_post.call_args_list] == [7, 7]

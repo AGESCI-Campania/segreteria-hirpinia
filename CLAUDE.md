@@ -240,14 +240,19 @@ nelle fixture di test.
 
 ### Email
 
-- Il provider si sceglie **solo** con `EMAIL_PROVIDER`. Non scrivere mai `EMAIL_BACKEND`
-  a mano nei settings d'ambiente e non introdurre `if provider == ...` nel codice
-  applicativo: allauth e le view usano `django.core.mail` e basta. **Unica eccezione
-  dichiarata**: `apps/core/email/override.py::MailpitOverridableBackend`, selezionato
-  incondizionatamente da `config/settings/prod.py` (mai da `base.py`/`dev.py`), che a
-  ogni invio decide fra `EMAIL_PROVIDER` e Mailpit in base al flag
-  `ImpostazioniPiattaforma.email_su_mailpit`. È confinata a quel solo modulo: nessun'altra
-  view o service layer legge mai quel flag. Dettagli e rischi operativi in
+- Il provider si sceglie **solo** con `EMAIL_PROVIDER`, che `base.py` traduce in `MAILERS`
+  (Django 6.1) con `apps/core/email/__init__.py::configurazione_mailer()`. Non scrivere
+  mai `MAILERS` a mano nei settings d'ambiente, non reintrodurre `EMAIL_BACKEND`/
+  `EMAIL_HOST`/`EMAIL_TIMEOUT`… come impostazioni (con `MAILERS` Django rifiuta di
+  avviarsi), non usare `get_connection()` né `send(fail_silently=...)` (deprecati: un
+  errore d'invio si intercetta con try/except, come in `invia_email_template()`), e
+  non introdurre `if provider == ...` nel codice applicativo: allauth e le view usano
+  `django.core.mail` e basta. **Unica eccezione dichiarata**:
+  `apps/core/email/override.py::MailpitOverridableBackend`, mailer `default` di
+  `config/settings/prod.py` (mai di `base.py`/`dev.py`), che a ogni invio delega
+  all'alias `provider` (`EMAIL_PROVIDER`) o all'alias `mailpit` in base al flag
+  `ImpostazioniPiattaforma.email_su_mailpit`; quei due alias li usa solo lui. È
+  confinata a quel solo modulo: nessun'altra view o service layer legge mai quel flag. Dettagli e rischi operativi in
   `docs/email/mailpit-override-produzione.md`.
 - I backend Gmail e Graph estendono `apps/core/email/base.py::ApiEmailBackend` e
   implementano solo `_richiedi_token()` e `_invia_mime()`. Se stai riscrivendo la

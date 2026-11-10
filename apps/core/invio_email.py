@@ -10,6 +10,8 @@ sceglie mai il trasporto: `EMAIL_PROVIDER` resta l'unico selettore
 
 from __future__ import annotations
 
+import logging
+
 import bleach
 from bleach.css_sanitizer import CSSSanitizer
 from django.core.mail import EmailMultiAlternatives
@@ -21,6 +23,8 @@ from .template_email import (
     contesto_con_variabili_globali,
     sostituisci_placeholder,
 )
+
+logger = logging.getLogger(__name__)
 
 # Vocabolario ridotto: solo markup semantico, niente <script>/<style>/eventi
 # inline. `strip=True` rimuove i tag non ammessi invece di limitarsi a
@@ -214,4 +218,15 @@ def invia_email_template(
     messaggio = EmailMultiAlternatives(subject=oggetto, body=corpo_testo, to=destinatari)
     if corpo_html.strip():
         messaggio.attach_alternative(sanifica_html(corpo_html), "text/html")
-    messaggio.send(fail_silently=fail_silently)
+    # Django 6.1 depreca send(fail_silently=...): l'errore si intercetta qui. Nel
+    # log solo template e numero di destinatari, mai il corpo (dati personali).
+    try:
+        messaggio.send()
+    except Exception:
+        if not fail_silently:
+            raise
+        logger.exception(
+            "Invio email fallito (template=%s, destinatari=%d)",
+            codice_template,
+            len(destinatari),
+        )

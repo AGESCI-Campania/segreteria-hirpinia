@@ -70,7 +70,7 @@ class GmailServiceAccountBackend(ApiEmailBackend):
         )
 
     def _invia_mime(self, mime: bytes, token: str, mittente: str) -> None:
-        _invia_via_gmail_api(mime, token)
+        _invia_via_gmail_api(mime, token, self.timeout)
 
 
 class GmailOAuthBackend(ApiEmailBackend):
@@ -100,17 +100,17 @@ class GmailOAuthBackend(ApiEmailBackend):
                 "refresh_token": settings.GMAIL_REFRESH_TOKEN,
                 "grant_type": "refresh_token",
             },
-            timeout=settings.EMAIL_TIMEOUT,
+            timeout=self.timeout,
         )
         risposta.raise_for_status()
         dati = risposta.json()
         return dati["access_token"], int(dati.get("expires_in", 3600))
 
     def _invia_mime(self, mime: bytes, token: str, mittente: str) -> None:
-        _invia_via_gmail_api(mime, token)
+        _invia_via_gmail_api(mime, token, self.timeout)
 
 
-def _invia_via_gmail_api(mime: bytes, token: str) -> None:
+def _invia_via_gmail_api(mime: bytes, token: str, timeout: int) -> None:
     raw = base64.urlsafe_b64encode(mime).decode("ascii")
     risposta = requests.post(
         GMAIL_SEND_URL,
@@ -119,6 +119,6 @@ def _invia_via_gmail_api(mime: bytes, token: str) -> None:
             "Content-Type": "application/json",
         },
         json={"raw": raw},
-        timeout=settings.EMAIL_TIMEOUT,
+        timeout=timeout,
     )
     risposta.raise_for_status()

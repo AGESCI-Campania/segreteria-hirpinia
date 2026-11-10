@@ -115,15 +115,19 @@ def test_logging_ha_mail_admins_su_django_request():
     assert risultato.stdout.strip() == "ok"
 
 
-def test_email_backend_e_override_mailpit():
-    # M-mailpit: in produzione EMAIL_BACKEND punta sempre al backend che
-    # decide a ogni invio (via ImpostazioniPiattaforma), non al provider
-    # scelto direttamente — vedi apps/core/email/override.py.
+def test_mailers_default_e_override_mailpit():
+    # M-mailpit: in produzione il mailer "default" è sempre il backend che
+    # decide a ogni invio (via ImpostazioniPiattaforma), non il provider
+    # scelto direttamente — vedi apps/core/email/override.py. Il provider di
+    # EMAIL_PROVIDER resta raggiungibile come alias "provider".
     risultato = subprocess.run(
         [
             sys.executable,
             "-c",
-            "import config.settings.prod; print(config.settings.prod.EMAIL_BACKEND)",
+            "import config.settings.prod as s; "
+            "print(s.MAILERS['default']['BACKEND']); "
+            "print(s.MAILERS['provider']['BACKEND']); "
+            "print(s.MAILERS['mailpit']['BACKEND'])",
         ],
         env={
             **os.environ,
@@ -137,4 +141,28 @@ def test_email_backend_e_override_mailpit():
     )
 
     assert risultato.returncode == 0, risultato.stderr
-    assert risultato.stdout.strip() == "apps.core.email.override.MailpitOverridableBackend"
+    assert risultato.stdout.split() == [
+        "apps.core.email.override.MailpitOverridableBackend",
+        "django.core.mail.backends.smtp.EmailBackend",
+        "django.core.mail.backends.smtp.EmailBackend",
+    ]
+
+
+def test_prod_si_avvia_con_mailers_senza_impostazioni_email_deprecate():
+    # Con MAILERS definito Django rifiuta all'avvio EMAIL_HOST/EMAIL_TIMEOUT/…
+    # (ImproperlyConfigured): django.setup() deve riuscire senza errori.
+    risultato = subprocess.run(
+        [sys.executable, "-c", "import django; django.setup(); print('ok')"],
+        env={
+            **os.environ,
+            "DJANGO_SETTINGS_MODULE": "config.settings.prod",
+            "SECRET_KEY": "chiave-di-test",
+            "EMAIL_PROVIDER": "smtp",
+        },
+        capture_output=True,
+        text=True,
+        cwd=BASE_DIR,
+    )
+
+    assert risultato.returncode == 0, risultato.stderr
+    assert risultato.stdout.strip() == "ok"

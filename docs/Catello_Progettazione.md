@@ -1797,7 +1797,8 @@ attivo, ogni email che l'applicazione tenta di inviare viene reindirizzata su un
 Mailpit interno (`EMAIL_MAILPIT_HOST`/`EMAIL_MAILPIT_PORT`) invece di raggiungere il
 provider configurato in `EMAIL_PROVIDER`, senza riavviare il processo. Implementato in
 un solo modulo aggiuntivo, `apps/core/email/override.py::MailpitOverridableBackend`,
-selezionato incondizionatamente da `config/settings/prod.py` come `EMAIL_BACKEND`: la
+selezionato incondizionatamente da `config/settings/prod.py` come mailer `default` di
+`MAILERS` (gli alias `provider` e `mailpit` sono i due trasporti fra cui sceglie): la
 decisione fra provider reale e Mailpit avviene lì, mai in view o service layer, che
 continuano a usare solo `django.core.mail`.
 
