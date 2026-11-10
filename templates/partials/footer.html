@@ -1,0 +1,17 @@
+{% extends "agesci_theme/partials/footer.html" %}
+{% load bootstrap_icons %}
+{# Footer del tema (agesci_theme/partials/footer.html) esteso, non replicato: stesso motivo di partials/sidebar.html. #}
+
+{% block footer_col1_title %}Informazioni{% endblock %}
+{% block footer_col1_links %}
+  <li><a href="{% url 'core:privacy' %}">{% bs_icon "shield-lock" %} Privacy Policy</a></li>
+  <li><a href="https://segreteria-hirpinia.readthedocs.io" target="_blank" rel="noopener">{% bs_icon "book" %} Manuale d'uso</a></li>
+{% endblock %}
+
+{% block footer_col2_title %}Contatti{% endblock %}
+{% block footer_col2_links %}
+  <li><a href="mailto:zonahirpinia@campania.agesci.it">{% bs_icon "envelope" %} Responsabili di Zona</a></li>
+  <li><a href="https://www.instagram.com/agesci.zonahirpinia" target="_blank" rel="noopener">{% bs_icon "instagram" %} Instagram</a></li>
+{% endblock %}
+
+{% block footer_copyright %}© AGESCI Zona Hirpinia. Progetto con <a href="https://github.com/AGESCI-Campania/segreteria-hirpinia/blob/main/LICENSE" target="_blank" rel="noopener">Licenza MIT</a> realizzato da <a href="https://www.bruand81.it" target="_blank" rel="noopener">Andrea Bruno</a>{% endblock %}
