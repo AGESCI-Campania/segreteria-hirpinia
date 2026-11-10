@@ -20,7 +20,7 @@ class CodiceTemplateEmail(models.TextChoices):
     `apps/accounts/inviti.py`, `apps/accounts/deleghe.py`,
     `apps/accounts/signals.py`, `apps/anagrafica/incarichi.py`,
     `apps/note_spese/transizioni.py`, `apps/note_spese/promemoria.py`,
-    `apps/note_spese/report_gestori.py`. Vocabolario chiuso: nessun valore
+    `apps/note_spese/report_gestori.py`, `apps/voto/codici.py`. Vocabolario chiuso: nessun valore
     va aggiunto senza collegarlo a un vero punto di invio."""
 
     INVITO_ATTIVAZIONE = "invito_attivazione", "Invito di attivazione"
@@ -35,6 +35,7 @@ class CodiceTemplateEmail(models.TextChoices):
     NOTA_SPESE_LIQUIDATA = "nota_spese_liquidata", "Nota spese — liquidata"
     NOTA_SPESE_PROMEMORIA = "nota_spese_promemoria", "Nota spese — promemoria"
     NOTA_SPESE_REPORT_GESTORI = "nota_spese_report_gestori", "Nota spese — report gestori"
+    CODICE_VOTO = "codice_voto", "Assemblea — codice di voto"
 
 
 class TemplateEmail(models.Model):

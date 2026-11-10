@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -16,8 +18,12 @@ from django.views.generic import ListView
 from apps.accounts.models import Utente
 from apps.core.mixins import BreadcrumbExtraMixin
 from apps.organizzazione.models import Gruppo
+from apps.voto import codici as codici_voto
+from apps.voto import scrutinio as scrutinio_voto
+from apps.voto import urna as urna_voto
+from apps.voto import views as voto_banco
 
-from . import cruscotto, elenco, odg, sedute
+from . import cruscotto, elenco, email_aventi, odg, sedute
 from . import deleghe as deleghe_ae
 from . import file as file_assemblea
 from . import quorum as quorum_assemblea
@@ -28,6 +34,8 @@ from .forms import (
     AventeInserisciForm,
     ConvocazioneForm,
     DelegaForm,
+    EmailAventeForm,
+    ImportEmailForm,
     IncaricoDichiaratoFormSet,
     OperatoreAggiungiForm,
     PuntoOdGForm,
@@ -41,11 +49,15 @@ from .forms import (
 from .models import (
     Assemblea,
     AventeDiritto,
+    CanaleVoto,
     DelegaAE,
+    ImportazioneEmail,
+    ModalitaVoto,
     OperatoreVoto,
     PuntoOdG,
     RichiedenteVerifica,
     Seduta,
+    SistemaVoto,
     TipoAppello,
     Votazione,
 )
@@ -139,6 +151,11 @@ class AssembleaDettaglioView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             "totale_aventi_diritto": elenco.count(),
             "totale_app": elenco.filter(vota_in_app=True).count(),
             "form_operatore": OperatoreAggiungiForm(assemblea=assemblea) if puo_gestire else None,
+            "sistemi_voto": SistemaVoto.choices,
+            "modalita_voto": ModalitaVoto.choices,
+            "sistema_modificabile": puo_gestire
+            and not assemblea.conclusa
+            and not Votazione.objects.filter(seduta__assemblea=assemblea).exists(),
         }
         return render(request, self.template_name, contesto)
 
@@ -637,8 +654,20 @@ class PresenzeView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             "cerca": cerca,
             "solo_assenti": solo_assenti,
             "puo_operare": puo_operare(request.user, assemblea) and seduta.aperta,
+            **_stato_codici(seduta),
         }
         return render(request, self.template_name, contesto)
+
+
+def _stato_codici(seduta: Seduta) -> dict:
+    """Chi ha già un codice di voto attivo, e come l'ha avuto (solo voto di Catello)."""
+    if not seduta.assemblea.voto_catello:
+        return {"codici_email": set(), "codici_banco": set()}
+    attivi = codici_voto.aventi_con_codice(seduta)
+    return {
+        "codici_email": {a for a, c in attivi.items() if c.inviato_per_email},
+        "codici_banco": {a for a, c in attivi.items() if not c.inviato_per_email},
+    }
 
 
 class PresenzaView(LoginRequiredMixin, View):
@@ -650,6 +679,10 @@ class PresenzaView(LoginRequiredMixin, View):
                 sedute.annulla_presenza(seduta, avente, request.user)
             else:
                 sedute.registra_presenza(seduta, avente, request.user)
+                # Voto di Catello: il codice parte subito per email (plan_voto, flusso 1).
+                voto_banco.messaggio_invio(
+                    request, avente, codici_voto.dopo_la_presenza(seduta, avente, request.user)
+                )
         except ValidationError as errore:
             messages.error(request, " ".join(errore.messages))
         return _torna_all_elenco(request, seduta.assemblea)
@@ -773,6 +806,186 @@ class QualificheView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
             "ae_gruppo": deleghe_ae.e_ae_gruppo(avente),
         }
         return render(request, self.template_name, contesto)
+
+
+# --- Email degli aventi diritto (Excel per gruppo) ------------------------------
+
+_SESSION_EMAIL = "assemblee_import_email"
+XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+def _breadcrumb_email(request, *ultimi: dict) -> list[dict]:
+    pk = request.resolver_match.kwargs["pk"]
+    return _breadcrumb_assemblea(
+        request,
+        {"label": "Email degli aventi", "url": reverse("assemblee:email_aventi", args=[pk])},
+        *ultimi,
+    )
+
+
+class EmailAventiView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+    """Un Excel per gruppo da far verificare ai capigruppo, e il suo reimport."""
+
+    template_name = "assemblee/email_aventi.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_assemblea(request, {"label": "Email degli aventi"})
+
+    def get(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        return render(request, self.template_name, self._contesto(assemblea, ImportEmailForm()))
+
+    @staticmethod
+    def _contesto(assemblea: Assemblea, form) -> dict:
+        elenco_attuale = assemblea.aventi_diritto.nell_elenco()
+        gruppi = []
+        for gruppo in email_aventi.gruppi_con_aventi(assemblea):
+            del_gruppo = elenco_attuale.filter(gruppo=gruppo)
+            gruppi.append(
+                {
+                    "gruppo": gruppo,
+                    "aventi": del_gruppo.count(),
+                    "senza_email": del_gruppo.filter(email="").count(),
+                }
+            )
+        return {
+            "assemblea": assemblea,
+            "gruppi": gruppi,
+            "form": form,
+            "importazioni": assemblea.importazioni_email.select_related("utente")[:20],
+        }
+
+
+class EmailGruppoView(GestisceAssembleeMixin, View):
+    def get(self, request, pk, codice):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        gruppo = get_object_or_404(Gruppo, pk=codice)
+        contenuto = email_aventi.genera_excel_gruppo(assemblea, gruppo, request.user)
+        risposta = HttpResponse(contenuto, content_type=XLSX)
+        nome = email_aventi.nome_file_gruppo(assemblea, gruppo)
+        risposta["Content-Disposition"] = f'attachment; filename="{nome}"'
+        return risposta
+
+
+class EmailZipView(GestisceAssembleeMixin, View):
+    def get(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        contenuto = email_aventi.genera_zip_gruppi(assemblea, request.user)
+        risposta = HttpResponse(contenuto, content_type="application/zip")
+        nome = f"email-aventi-{assemblea.anno_scout}-{assemblea.pk}.zip"
+        risposta["Content-Disposition"] = f'attachment; filename="{nome}"'
+        return risposta
+
+
+class ImportEmailAnteprimaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+    """L'anteprima non scrive nulla: il file resta in sessione (DB-backed) per
+    la conferma, mai su disco, come gli import dell'anagrafica."""
+
+    template_name = "assemblee/email_import_anteprima.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_email(request, {"label": "Anteprima dell'import"})
+
+    def post(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        form = ImportEmailForm(request.POST, request.FILES)
+        if not form.is_valid():
+            return render(
+                request, EmailAventiView.template_name, EmailAventiView._contesto(assemblea, form)
+            )
+        file = form.cleaned_data["file"]
+        contenuto = file.read()
+        anteprima = email_aventi.anteprima_import(assemblea, email_aventi.leggi_excel(contenuto))
+        request.session[_SESSION_EMAIL] = {
+            "assemblea": assemblea.pk,
+            "utente": request.user.pk,
+            "nome_file": file.name,
+            "contenuto": base64.b64encode(contenuto).decode("ascii"),
+        }
+        return render(request, self.template_name, {"assemblea": assemblea, "anteprima": anteprima})
+
+
+class ImportEmailConfermaView(GestisceAssembleeMixin, View):
+    """Rilegge il file dalla sessione e ricalcola tutto da capo in
+    `applica_import()`: mai l'anteprima già mostrata."""
+
+    def post(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        dati = request.session.get(_SESSION_EMAIL)
+        if not dati or dati["assemblea"] != assemblea.pk or dati["utente"] != request.user.pk:
+            messages.error(request, "L'anteprima è scaduta: ricarica il file.")
+            return redirect(reverse("assemblee:email_aventi", args=[pk]))
+        try:
+            importazione = email_aventi.applica_import(
+                assemblea, base64.b64decode(dati["contenuto"]), dati["nome_file"], request.user
+            )
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+        else:
+            request.session.pop(_SESSION_EMAIL, None)
+            messages.success(
+                request,
+                f"Import completato: {importazione.email_aggiornate} email aggiornate "
+                f"su {importazione.righe_lette} righe.",
+            )
+        return redirect(reverse("assemblee:email_aventi", args=[pk]))
+
+
+class ImportEmailReportView(GestisceAssembleeMixin, View):
+    def get(self, request, pk, importazione_pk):
+        importazione = get_object_or_404(ImportazioneEmail, pk=importazione_pk, assemblea_id=pk)
+        risposta = HttpResponse(
+            "\ufeff" + email_aventi.report_csv(importazione), content_type="text/csv"
+        )
+        risposta["Content-Disposition"] = (
+            f'attachment; filename="anomalie-email-{importazione.pk}.csv"'
+        )
+        return risposta
+
+
+class AventeEmailView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
+    """Correzione dell'email di un avente: gestori e operatori al banco."""
+
+    template_name = "assemblee/avente_email.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_assemblea(
+            request,
+            {
+                "label": "Aventi diritto",
+                "url": reverse("assemblee:elenco", args=[request.resolver_match.kwargs["pk"]]),
+            },
+            {"label": "Email"},
+        )
+
+    def _avente(self, request, pk, avente_pk) -> AventeDiritto:
+        assemblea = _assemblea_visibile(request, pk)
+        if not puo_operare(request.user, assemblea):
+            raise PermissionDenied
+        return get_object_or_404(AventeDiritto, pk=avente_pk, assemblea=assemblea)
+
+    def get(self, request, pk, avente_pk):
+        avente = self._avente(request, pk, avente_pk)
+        form = EmailAventeForm(initial={"email": avente.email})
+        return render(request, self.template_name, {"avente": avente, "form": form})
+
+    def post(self, request, pk, avente_pk):
+        avente = self._avente(request, pk, avente_pk)
+        form = EmailAventeForm(request.POST)
+        if form.is_valid():
+            try:
+                elenco.aggiorna_email(avente, form.cleaned_data["email"], request.user)
+            except ValidationError as errore:
+                form.add_error("email", errore)
+            else:
+                messages.success(request, f"Email di {avente} aggiornata.")
+                return redirect(
+                    reverse("assemblee:elenco", args=[pk]) + f"?gruppo={avente.gruppo_id}"
+                )
+        return render(request, self.template_name, {"avente": avente, "form": form})
 
 
 # --- Cruscotto in tempo reale, proiettore, abilitazione app ----------------------
@@ -936,12 +1149,32 @@ class VotazioneView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             {"label": "Votazione"},
         )
 
-    def _contesto(self, request, votazione, form=None):
+    @staticmethod
+    def _canali_a_mano(votazione) -> list[str]:
+        """Con il voto di Catello i voti in app arrivano dall'urna, non dal form."""
         canali_voto = voto.canali(votazione)
+        if votazione.seduta.assemblea.voto_catello:
+            return [c for c in canali_voto if c != CanaleVoto.APP]
+        return canali_voto
+
+    def _contesto(self, request, votazione, form=None):
+        canali_voto = self._canali_a_mano(votazione)
         if form is None and not votazione.chiusa:
             form = form_risultati(votazione, canali_voto)
         esito = voto.esito(votazione) if votazione.chiusa else None
+        assemblea = votazione.seduta.assemblea
+        in_app = assemblea.voto_catello and urna_voto.votazioni_in_app(votazione)
         return {
+            "urna": {
+                "prevista": in_app,
+                "votanti": scrutinio_voto.numero_votanti(votazione) if in_app else 0,
+                "da_interpretare": (
+                    len(scrutinio_voto.nomi_da_interpretare(votazione)) if in_app else 0
+                ),
+                "nomi_scritti": len(scrutinio_voto.nomi_scritti(votazione)) if in_app else 0,
+                "altra_aperta": (urna_voto.votazione_aperta(votazione.seduta) if in_app else None),
+                "nota": scrutinio_voto.nota_verbale(votazione) if in_app else "",
+            },
             "assemblea": votazione.seduta.assemblea,
             "seduta": votazione.seduta,
             "votazione": votazione,
@@ -965,7 +1198,7 @@ class VotazioneView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
 
     def post(self, request, pk, seduta_pk, votazione_pk):
         votazione = _votazione_visibile(request, pk, seduta_pk, votazione_pk)
-        canali_voto = voto.canali(votazione)
+        canali_voto = self._canali_a_mano(votazione)
         form = form_risultati(votazione, canali_voto, request.POST)
         if form.is_valid():
             dati = form.cleaned_data
@@ -1009,7 +1242,14 @@ class VotazioneAzioneView(LoginRequiredMixin, View):
         try:
             if azione == "ballottaggio":
                 ballottaggio = voto.apri_ballottaggio(votazione, request.user)
-                messages.success(request, "Ballottaggio aperto: si vota solo su carta.")
+                messages.success(
+                    request,
+                    (
+                        "Ballottaggio aperto: apri l'urna elettronica dalla sua pagina."
+                        if votazione.seduta.assemblea.voto_catello
+                        else "Ballottaggio aperto: si vota solo su carta."
+                    ),
+                )
                 return redirect(
                     reverse("assemblee:votazione", args=[pk, seduta_pk, ballottaggio.pk])
                 )

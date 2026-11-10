@@ -75,10 +75,28 @@
             <strong>{{ riga.cognome }} {{ riga.nome }}</strong><br>
             <small class="fg-2">{{ riga.gruppo.nome }}{% if riga.codice_socio %} — {{ riga.codice_socio }}{% endif %}{% if verifica and riga.pk in precedenti_ids and riga.pk not in presenti_ids %} — era presente{% endif %}</small>
           </td>
-          <td>{% if riga.vota_in_app %}{% ag_chip "App" variant="success" %}{% else %}{% ag_chip "Carta" variant="secondary" %}{% endif %}</td>
+          <td>
+            {% if riga.vota_in_app %}{% ag_chip "App" variant="success" %}{% else %}{% ag_chip "Carta" variant="secondary" %}{% endif %}
+            {% if assemblea.voto_catello and riga.vota_in_app and riga.pk in presenti_ids %}
+              {% if riga.pk in codici_email %}<br><small class="fg-2">codice inviato per email</small>{% elif riga.pk in codici_banco %}<br><small class="fg-2">codice dato al banco</small>{% else %}<br><small class="fg-danger">senza codice</small>{% endif %}
+            {% endif %}
+          </td>
           <td class="text-end">
             {% if riga.pk in presenti_ids %}
               {% ag_chip "Presente" variant="success" %}
+              {% if puo_operare and assemblea.voto_catello and riga.vota_in_app %}
+                <form method="post" action="{% url 'voto:codice_invia' assemblea.pk seduta.pk riga.pk %}" class="d-inline-flex gap-3 align-items-center">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}#avente-{{ riga.pk }}">
+                  {% if not riga.email %}<input type="email" name="email" class="form-control form-control-sm" placeholder="Email" aria-label="Email di {{ riga }}" required>{% endif %}
+                  <button type="submit" class="btn-outline theme-primary btn-sm">{% if riga.email %}Invia di nuovo il codice{% else %}Salva e invia il codice{% endif %}</button>
+                </form>
+                <form method="post" action="{% url 'voto:codice_mostra' assemblea.pk seduta.pk riga.pk %}" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}#avente-{{ riga.pk }}">
+                  <button type="submit" class="btn-outline theme-warning btn-sm">Rigenera e mostra</button>
+                </form>
+              {% endif %}
               {% if puo_operare %}
                 <form method="post" action="{% url 'assemblee:presenza' assemblea.pk seduta.pk riga.pk %}" class="d-inline">
                   {% csrf_token %}

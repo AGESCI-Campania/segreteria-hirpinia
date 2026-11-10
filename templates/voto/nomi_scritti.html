@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block page_title %}Nomi scritti — {{ votazione.oggetto }}{% endblock %}
+
+{% block content %}
+  <h1 class="mb-3">Nomi scritti</h1>
+  <p class="fs-lg mb-1">{{ votazione.oggetto }}</p>
+  <p class="fg-2 mb-5">
+    La commissione elettorale interpreta la volontà dell'elettore: attribuisce ogni nome a un
+    avente diritto (che diventa candidato, se non lo era) oppure lo dichiara nullo. Lo stesso
+    testo vale per tutte le schede che lo contengono. Questi testi si vedono solo qui: in
+    bacheca e nel verbale compare solo l'interpretazione.
+  </p>
+  {% if messages %}{% for messaggio in messages %}<div class="alert theme-danger mb-5" role="alert">{{ messaggio }}</div>{% endfor %}{% endif %}
+
+  <div class="table-responsive">
+    <table class="table">
+      <thead><tr><th>Nome scritto</th><th>Schede</th><th>Interpretazione</th><th></th></tr></thead>
+      <tbody>
+        {% for nome in nomi %}
+          <tr>
+            <td>«{{ nome.testo }}»</td>
+            <td>{{ nome.schede }}</td>
+            <td>
+              {% if nome.decisione %}
+                {% if nome.decisione.avente %}{{ nome.decisione.avente.cognome }} {{ nome.decisione.avente.nome }}{% else %}nullo{% endif %}
+                <br><small class="fg-2">{{ nome.decisione.decisa_da|default:"" }} — {{ nome.decisione.decisa_il|date:"H:i" }}</small>
+              {% else %}<strong class="fg-danger">da interpretare</strong>{% endif %}
+            </td>
+            <td>
+              {% if not votazione.chiusa %}
+                <form method="post" class="d-flex flex-wrap gap-3 align-items-center">
+                  {% csrf_token %}
+                  <input type="hidden" name="testo" value="{{ nome.testo }}">
+                  <select name="avente" class="form-control form-control-sm" aria-label="Interpretazione di {{ nome.testo }}">
+                    <option value="">—</option>
+                    <option value="nullo">Nullo</option>
+                    {% for avente in aventi %}<option value="{{ avente.pk }}"{% if nome.decisione.avente_id == avente.pk %} selected{% endif %}>{{ avente.cognome }} {{ avente.nome }} — {{ avente.gruppo.nome }}</option>{% endfor %}
+                  </select>
+                  <button type="submit" class="btn-outline theme-primary btn-sm">Salva</button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4">Nessun nome scritto nelle schede.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="mt-5"><a href="{% url 'assemblee:votazione' assemblea.pk seduta.pk votazione.pk %}">Torna alla votazione</a></p>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block page_title %}Anteprima import email — {{ assemblea }}{% endblock %}
+
+{% block content %}
+  <h1 class="mb-3">Anteprima dell'import</h1>
+
+  {% if anteprima.errore %}
+    <div class="alert theme-danger" role="alert">{{ anteprima.errore }}</div>
+  {% else %}
+    <p class="fg-2 mb-5">
+      Gruppo {{ anteprima.gruppo.nome }}: {{ anteprima.righe_lette }} righe lette,
+      {{ anteprima.modifiche|length }} email da aggiornare, {{ anteprima.invariate }} invariate.
+    </p>
+
+    {% if anteprima.anomalie %}
+      <h2 class="fs-xl">Anomalie</h2>
+      <div class="table-responsive mb-5">
+        <table class="table table-sm">
+          <thead><tr><th>Riga</th><th>Avente</th><th>Tipo</th><th>Messaggio</th></tr></thead>
+          <tbody>
+            {% for anomalia in anteprima.anomalie %}
+              <tr>
+                <td>{{ anomalia.riga }}</td>
+                <td>{{ anomalia.avente|default:"—" }}</td>
+                <td>{% if anomalia.bloccante %}<span class="badge theme-danger">Bloccante</span>{% else %}<span class="badge theme-warning">Avviso</span>{% endif %}</td>
+                <td>{{ anomalia.messaggio }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+
+    {% if anteprima.modifiche %}
+      <h2 class="fs-xl">Email da aggiornare</h2>
+      <div class="table-responsive mb-5">
+        <table class="table table-sm">
+          <thead><tr><th>Avente</th><th>Attuale</th><th>Nuova</th></tr></thead>
+          <tbody>
+            {% for modifica in anteprima.modifiche %}
+              <tr>
+                <td>{{ modifica.avente.cognome }} {{ modifica.avente.nome }}</td>
+                <td>{{ modifica.vecchia|default:"—" }}</td>
+                <td>{{ modifica.nuova }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  {% endif %}
+
+  <div class="d-flex gap-3">
+    {% if anteprima.bloccata %}
+      <div class="alert theme-warning" role="note">Il file ha anomalie bloccanti: correggile nel file e ricaricalo.</div>
+    {% else %}
+      <form method="post" action="{% url 'assemblee:email_import_conferma' assemblea.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn-solid theme-primary">Conferma l'import</button>
+      </form>
+    {% endif %}
+    <a href="{% url 'assemblee:email_aventi' assemblea.pk %}" class="btn-outline theme-secondary">Torna indietro</a>
+  </div>
+{% endblock %}

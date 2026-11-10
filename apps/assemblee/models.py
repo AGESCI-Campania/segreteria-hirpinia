@@ -25,6 +25,20 @@ class SessioneAssemblea(models.TextChoices):
     STRAORDINARIA = "STRAORDINARIA", "Straordinaria"
 
 
+class SistemaVoto(models.TextChoices):
+    """Come si vota a scrutinio segreto (docs/plan_voto.md): con l'app del
+    Nazionale (tracciato, risultati copiati a mano, D-70) o con il voto
+    elettronico di Catello (`apps/voto`)."""
+
+    NAZIONALE = "NAZIONALE", "App del Nazionale"
+    CATELLO = "CATELLO", "Voto elettronico di Catello"
+
+
+class ModalitaVoto(models.TextChoices):
+    PERSONALE_E_SEGGIO = "PERSONALE_E_SEGGIO", "Dispositivi personali e seggi"
+    SOLO_SEGGIO = "SOLO_SEGGIO", "Solo seggi"
+
+
 class Assemblea(models.Model):
     tipo = models.CharField(max_length=20, choices=TipoAssemblea.choices)
     anno_scout = models.PositiveIntegerField(
@@ -32,6 +46,20 @@ class Assemblea(models.Model):
     )
     sessione = models.CharField(
         max_length=20, choices=SessioneAssemblea.choices, default=SessioneAssemblea.ORDINARIA
+    )
+    # Si cambia solo fino all'apertura della prima votazione (apps/voto/sistema.py).
+    sistema_voto = models.CharField(
+        "Sistema di voto",
+        max_length=10,
+        choices=SistemaVoto.choices,
+        default=SistemaVoto.NAZIONALE,
+    )
+    # Solo con il voto di Catello; modificabile anche il giorno stesso.
+    modalita_voto = models.CharField(
+        "Modalità di voto",
+        max_length=20,
+        choices=ModalitaVoto.choices,
+        default=ModalitaVoto.PERSONALE_E_SEGGIO,
     )
     conclusa_il = models.DateTimeField(null=True, blank=True)
     creata_il = models.DateTimeField(auto_now_add=True)
@@ -66,6 +94,10 @@ class Assemblea(models.Model):
     @property
     def conclusa(self) -> bool:
         return self.conclusa_il is not None
+
+    @property
+    def voto_catello(self) -> bool:
+        return self.sistema_voto == SistemaVoto.CATELLO
 
 
 class Seduta(models.Model):
@@ -231,6 +263,10 @@ class AventeDiritto(models.Model):
     codice_socio = models.CharField(max_length=20, blank=True)
     nome = models.CharField(max_length=100)
     cognome = models.CharField(max_length=100)
+    # Recapito per l'assemblea (tracciato, codice di voto): precompilato da
+    # `capo.email` all'import, poi corretto qui (a mano, al banco o con l'Excel
+    # dei capigruppo) senza mai scrivere l'anagrafica.
+    email = models.EmailField(blank=True)
     gruppo = models.ForeignKey(
         "organizzazione.Gruppo",
         on_delete=models.PROTECT,
@@ -383,6 +419,7 @@ class OperatoreVoto(models.Model):
 class TipoFile(models.TextChoices):
     TRACCIATO_APP = "TRACCIATO_APP", "Tracciato per l'app di voto"
     FOGLIO_PRESENZE = "FOGLIO_PRESENZE", "Foglio presenze"
+    EMAIL_GRUPPO = "EMAIL_GRUPPO", "Email degli aventi diritto per gruppo"
 
 
 class ScaricamentoFile(models.Model):
@@ -409,6 +446,37 @@ class ScaricamentoFile(models.Model):
 
     def __str__(self) -> str:
         return f"{self.get_tipo_display()} — {self.scaricato_il:%d/%m/%Y %H:%M}"
+
+
+class ImportazioneEmail(models.Model):
+    """Import dell'Excel delle email di un gruppo, compilato dal capogruppo:
+    il report delle anomalie resta scaricabile. Il file non si conserva:
+    contiene solo recapiti, già applicati agli aventi diritto."""
+
+    assemblea = models.ForeignKey(
+        Assemblea, on_delete=models.CASCADE, related_name="importazioni_email"
+    )
+    nome_file = models.CharField(max_length=255)
+    utente = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    importata_il = models.DateTimeField(auto_now_add=True)
+    righe_lette = models.PositiveIntegerField(default=0)
+    email_aggiornate = models.PositiveIntegerField(default=0)
+    # Elenco di {"riga", "avente", "messaggio", "bloccante"}.
+    anomalie = models.JSONField(default=list)
+
+    class Meta:
+        verbose_name = "importazione delle email"
+        verbose_name_plural = "importazioni delle email"
+        ordering = ["-importata_il"]
+
+    def __str__(self) -> str:
+        return f"{self.nome_file} — {self.importata_il:%d/%m/%Y %H:%M}"
 
 
 class DelegaAE(models.Model):
@@ -518,6 +586,12 @@ class Votazione(models.Model):
         related_name="+",
     )
     chiusa_il = models.DateTimeField(null=True, blank=True)
+    # Urna elettronica (voto di Catello, apps/voto): aperta e chiusa a parte
+    # rispetto alla votazione, che si chiude solo con i risultati registrati.
+    aperta_in_app_il = models.DateTimeField(null=True, blank=True)
+    chiusa_in_app_il = models.DateTimeField(null=True, blank=True)
+    # SHA-256 dell'elenco ordinato delle schede pubblicato in bacheca: va nel verbale.
+    hash_bacheca = models.CharField(max_length=64, blank=True)
 
     class Meta:
         verbose_name = "votazione"
@@ -534,6 +608,14 @@ class Votazione(models.Model):
     @property
     def chiusa(self) -> bool:
         return self.chiusa_il is not None
+
+    @property
+    def urna_aperta(self) -> bool:
+        return (
+            self.aperta_in_app_il is not None
+            and self.chiusa_in_app_il is None
+            and self.chiusa_il is None
+        )
 
 
 class RisultatoCanale(models.Model):

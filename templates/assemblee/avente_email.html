@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block page_title %}Email — {{ avente }}{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="md:col-6">
+      <h1>Email di {{ avente.cognome }} {{ avente.nome }}</h1>
+      <p class="fg-2">
+        Serve per il tracciato e per l'invio del codice di voto.
+        {% if avente.capo.email and avente.capo.email != avente.email %}In anagrafica: {{ avente.capo.email }}.{% endif %}
+      </p>
+      <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="d-flex gap-3">
+          <button type="submit" class="btn-solid theme-primary">Salva</button>
+          <a href="{% url 'assemblee:elenco' avente.assemblea_id %}?gruppo={{ avente.gruppo_id }}" class="btn-outline theme-secondary">Annulla</a>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

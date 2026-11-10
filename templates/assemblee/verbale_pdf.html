@@ -87,7 +87,7 @@
     {% if punto.testo %}{{ punto.testo|linebreaks }}{% endif %}
     {% if votazioni %}
       <ul class="votazioni">
-        {% for v in votazioni %}<li>{{ v.votazione.get_tipo_display }}{% if v.votazione.incarico %} — {{ v.votazione.incarico }}{% endif %}: {{ v.votazione.oggetto }}. {{ v.frase }}</li>{% endfor %}
+        {% for v in votazioni %}<li>{{ v.votazione.get_tipo_display }}{% if v.votazione.incarico %} — {{ v.votazione.incarico }}{% endif %}: {{ v.votazione.oggetto }}. {{ v.frase }}{% if v.nota_app %} {{ v.nota_app }}{% endif %}</li>{% endfor %}
       </ul>
     {% endif %}
   {% endfor %}
@@ -95,7 +95,7 @@
   {% if senza_punto %}
     <h2>Altre votazioni</h2>
     <ul class="votazioni">
-      {% for v in senza_punto %}<li>{{ v.votazione.get_tipo_display }}{% if v.votazione.incarico %} — {{ v.votazione.incarico }}{% endif %}: {{ v.votazione.oggetto }}. {{ v.frase }}</li>{% endfor %}
+      {% for v in senza_punto %}<li>{{ v.votazione.get_tipo_display }}{% if v.votazione.incarico %} — {{ v.votazione.incarico }}{% endif %}: {{ v.votazione.oggetto }}. {{ v.frase }}{% if v.nota_app %} {{ v.nota_app }}{% endif %}</li>{% endfor %}
     </ul>
   {% endif %}
 

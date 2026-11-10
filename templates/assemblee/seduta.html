@@ -47,7 +47,7 @@
             <a href="{% url 'assemblee:cruscotto' assemblea.pk seduta.pk %}" class="btn-outline theme-primary">Cruscotto</a>
             <a href="{% url 'assemblee:votazioni' assemblea.pk seduta.pk %}" class="btn-outline theme-primary">Votazioni</a>
             {% if puo_gestire and seduta.costituita %}<a href="{% url 'assemblee:verbale' assemblea.pk seduta.pk %}" class="btn-outline theme-primary">Verbale</a>{% endif %}
-            <a href="{% url 'assemblee:abilitazione_app' assemblea.pk seduta.pk %}" class="btn-outline theme-primary">Abilitazione app</a>
+            {% if not assemblea.voto_catello %}<a href="{% url 'assemblee:abilitazione_app' assemblea.pk seduta.pk %}" class="btn-outline theme-primary">Abilitazione app</a>{% else %}<a href="{% url 'voto:seggi' assemblea.pk seduta.pk %}" class="btn-outline theme-primary">Seggi</a>{% endif %}
           </div>
         {% endif %}
       </div></div>

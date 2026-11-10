@@ -129,6 +129,10 @@ _FALLBACK: dict[str, tuple[str, str]] = {
         "Catello — report note spese in sospeso",
         "note_spese/email/nota_report_gestori.txt",
     ),
+    CodiceTemplateEmail.CODICE_VOTO: (
+        "Catello — il tuo codice di voto",
+        "voto/email/codice_voto.txt",
+    ),
 }
 
 

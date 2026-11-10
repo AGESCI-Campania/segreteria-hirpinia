@@ -1337,7 +1337,7 @@ modalità (app o carta).
 | --- | --- | --- |
 | Deliberazioni: mozioni, raccomandazioni, bilanci, regolamento (art. 14) | presenti aventi diritto | favorevoli ≥ metà dei presenti + 1 |
 | Elezioni: RdZ, Comitato, Consigliere generale (art. 18 c.1-2) | presenti aventi diritto | voti al candidato ≥ metà dei presenti + 1 |
-| Ballottaggio fra i primi due (art. 18 c.3-5) | presenti all'Assemblea | maggioranza assoluta; **solo voto cartaceo** (l'app non lo supporta); nessun ballottaggio con candidatura unica |
+| Ballottaggio fra i primi due (art. 18 c.3-5) | presenti all'Assemblea | maggioranza assoluta; con l'app del Nazionale **solo voto cartaceo** (l'app non lo supporta; con il voto di Catello anche in app, D-71); nessun ballottaggio con candidatura unica |
 | Mozione d'ordine, nuovi punti all'OdG (art. 13) | votanti (favorevoli + contrari + astenuti) | metà dei votanti + 1 |
 | Revoca di un mandato (art. 19 c.3) | aventi diritto | metà degli aventi diritto + 1, indipendentemente dai presenti |
 
@@ -1366,6 +1366,104 @@ mozioni e RdZ firmatari (uno o due: un posto può essere vacante) sono testo lib
 suggerimenti dall'elenco, comuni ai due verbali della seduta. I numeri della frase sul
 quorum sono quelli fotografati alla dichiarazione di seduta costituita. Ordine del giorno
 e verbali sono riservati ad ADMIN, SEGRETERIA e RdZ (non agli operatori di voto).
+
+### D-71 — Voto elettronico di Catello per le elezioni
+
+Decisione del 2026-11-10 (piano completo e storia delle scelte in `docs/plan_voto.md`),
+obiettivo l'assemblea primaverile. Catello ha un proprio voto online per le **elezioni di
+persone e i ballottaggi**; deliberazioni e mozioni restano per alzata di mano, la revoca
+del mandato (art. 19) resta su carta. Il regolamento ammette «strumenti telematici»
+(art. 9 c.1). Aggiorna D-70 dove indicato sotto.
+
+**Sistema di voto per assemblea.** Alla creazione si sceglie fra *app del Nazionale*
+(D-70 invariata: tracciato, risultati copiati a mano, carta per chi ha problemi) e *voto
+di Catello* (`Assemblea.sistema_voto`). Si cambia fino all'apertura della prima votazione;
+tornando al Nazionale i codici emessi si revocano. Con il voto di Catello si sceglie anche
+la modalità, modificabile il giorno stesso: dispositivi personali e seggi, oppure solo
+seggi (`modalita_voto`).
+
+**Deviazioni da D-70** (solo con il voto di Catello):
+- *vota in app* non significa più «ha dati da BuonaStrada» ma «vota con il codice»: vota
+  in app chiunque non sia passato a carta, anche senza codice socio
+  (`elenco.calcola_vota_in_app()`, unico punto della regola);
+- il ballottaggio si vota anche in app (`votazioni.canali()`); nel ballottaggio non si
+  scrivono nomi, si sceglie fra i due candidati;
+- i voti in app non si inseriscono a mano: arrivano dallo scrutinio dell'urna
+  (`registra_risultati()` li prende da `apps/voto/scrutinio.conteggio()`);
+- tracciato e pagina «abilitazione app» non servono e non compaiono.
+
+**Email degli aventi diritto.** `AventeDiritto.email` (vale anche con l'app del Nazionale,
+che la riceve nel tracciato): precompilata da `capo.email` all'import, corretta a mano, al
+banco o con l'Excel per gruppo verificato dai capigruppo (export, import con anteprima e
+conferma, report anomalie). Non scrive mai l'anagrafica. L'import del capogruppo per il
+proprio gruppo arriverà con l'autunnale successiva.
+
+**Codice di voto** (`apps/voto/codici.py`). 10 caratteri da un alfabeto senza caratteri
+ambigui (31 simboli, circa 50 bit), mostrati a gruppi (`K7QM-R4XP-2W`) per essere copiati
+a mano. Uno attivo per avente e seduta; si salva **solo l'hash** (HMAC-SHA256, come l'OTP
+di D-20). Parte per email alla registrazione della presenza, con il codice nel *fragment*
+del link (`/voto/#c=…`, mai nei log del server); al banco si inserisce l'email mancante o si
+fa «Rigenera e mostra» (codice e QR a schermo una volta sola, tagliando stampabile dal
+browser se c'è una stampante). Il passaggio a carta revoca il codice ed è rifiutato a chi
+ha già votato in app in una votazione non ancora scrutinata.
+
+**Urna** (`apps/voto/urna.py::vota()`, unico punto). Il codice vale se è attivo e della
+seduta, l'urna della votazione è aperta, l'avente è fra i presenti dell'appello effettivo
+(`quorum.presenti()`), non è passato a carta e non ha già votato. Con una delega
+registrata il delegato esprime anche la scheda del delegante (al massimo due). Scheda:
+fino a N preferenze (N = posti) contando i nomi scritti, oppure bianca, oppure nulla. Due
+passi: riepilogo e conferma; poi una ricevuta per scheda. Una sola urna aperta per seduta;
+durante il voto si vede solo il numero dei votanti.
+
+**Seggi** (`apps/voto/postazioni.py`). Postazioni per seduta attivate con un link monouso
+(segreto nel fragment); il dispositivo riceve un cookie firmato di cui si salva solo
+l'hash. Al seggio la ricevuta resta 30 secondi e la pagina si azzera. Con «solo seggi»
+l'urna rifiuta i dispositivi personali.
+
+**Scrutinio** (`apps/voto/scrutinio.py`). Alla chiusura: verifica bloccante schede =
+votanti, poi rimescolamento (schede riscritte in ordine casuale con id nuovi, in un'unica
+transazione). I nomi scritti li interpreta la **commissione elettorale**, per testo: a un
+avente diritto (che diventa candidato) o nulli; una scheda senza preferenze valide è
+nulla; finché resta un nome da interpretare il conteggio non parte. Bacheca pubblica a
+risultati registrati (ricevuta → scheda interpretata, **mai il testo scritto**: potrebbe
+fare da segno di riconoscimento) con impronta SHA-256 riportata nel verbale; verifica
+personale della ricevuta.
+
+**Anonimato: cosa garantisce e cosa no.** Nessun legame nel modello fra `Scheda` e
+`Votante` (niente FK, id casuali, nessun timestamp); il rimescolamento cancella nel dato a
+regime la traccia fisica dell'ordine di inserimento. **Rischio residuo dichiarato**: chi
+amministra il server *durante* la votazione (WAL, backup fatti in quel momento, codice
+modificato) può in teoria correlare: l'anonimato verso l'amministratore è
+**organizzativo**, come la fiducia in chi custodisce l'urna, non crittografico (non è un
+sistema end-to-end verificabile). La bacheca garantisce che ciascuno ritrovi la propria
+scheda e che chiunque possa ricontare; con la ricevuta si può dimostrare a terzi il proprio
+voto (limite accettato). Chi legge l'email di un altro può votare al suo posto solo se
+quella persona risulta presente; il titolare se ne accorge, ma il voto non si annulla.
+Codici, ricevute e scelte non passano mai da log o auditlog.
+
+**Limiti dei tentativi** per sessione e per postazione, **non per IP** (200 telefoni
+escono dallo stesso NAT). Deviazione dal piano: nessun blocco per seduta, che
+permetterebbe a chiunque in sala di bloccare l'urna a tutti; a 50 bit la forza bruta
+online resta comunque irrealistica.
+
+**Tempo reale** come D-70: polling ogni 3 secondi su uno stato condiviso in cache per
+seduta (2 secondi).
+
+**Prova di carico** (`manage.py prova_carico_voto` + `scripts/carico_voto.py`, solo
+DEBUG). Eseguita il 2026-11-10 su un Mac di sviluppo (impostazioni dev, non la macchina
+di produzione), 400 votanti simulati con 5 giri di polling ciascuno:
+- 3 worker sync (default attuale): 40 votanti contemporanei senza errori ma p95 498 ms,
+  al limite; un picco di 200 contemporanei dà connessioni rifiutate;
+- 3 worker × 4 thread (`GUNICORN_THREADS=4`): 40 contemporanei p95 390 ms; 120
+  contemporanei senza errori ma p95 1,2 s;
+- in ogni prova schede = votanti.
+Indicazione: in produzione `GUNICORN_THREADS=4`, e ripetere la prova su
+`segreteriahirpinia` prima della primaverile. Il collo di bottiglia più probabile resta la
+rete della sala: è il motivo dell'interruttore «solo seggi».
+
+**Prerequisito bloccante: HTTPS.** Le configurazioni generate da `configure-prod.sh` non
+includono TLS; codici e cookie del seggio non devono mai viaggiare in chiaro. Va verificato
+sul server prima di qualunque prova reale.
 
 ---
 

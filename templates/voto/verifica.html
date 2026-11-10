@@ -1,0 +1,35 @@
+{% extends "voto/base_voto.html" %}
+
+{% block title %}Verifica la ricevuta{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="md:col-6">
+      <h1 class="mb-5">Verifica la ricevuta</h1>
+      {% include "voto/_messaggi.html" %}
+      {% if esito %}
+        {% if not esito.trovata %}
+          <div class="alert theme-warning mb-5" role="status">Nessuna scheda con questa ricevuta. Controlla di averla copiata bene.</div>
+        {% elif not esito.pubblicata %}
+          <div class="alert theme-success mb-5" role="status">La tua scheda è nell'urna di «{{ esito.votazione.oggetto }}». A votazione chiusa potrai vederla qui come è stata contata.</div>
+        {% else %}
+          <div class="alert theme-success mb-5" role="status">
+            <div>
+              <p class="mb-1">«{{ esito.votazione.oggetto }}»: la tua scheda è stata contata così.</p>
+              <p class="font-monospace mb-1">{{ esito.riga }}</p>
+              <a href="{% url 'voto:bacheca' esito.votazione.pk %}">Vedi la bacheca completa</a>
+            </div>
+          </div>
+        {% endif %}
+      {% endif %}
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-field mb-5">
+          <label for="ricevuta">Ricevuta</label>
+          <input id="ricevuta" name="ricevuta" class="form-control font-monospace" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX" required>
+        </div>
+        <button type="submit" class="btn-solid theme-primary w-100">Verifica</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

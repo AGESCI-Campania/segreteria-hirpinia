@@ -47,6 +47,41 @@
     </div>
   </div>
 
+  <h2 class="fs-xl">Sistema di voto</h2>
+  <p class="mb-3">
+    <strong>{{ assemblea.get_sistema_voto_display }}</strong>{% if assemblea.voto_catello %} — {{ assemblea.get_modalita_voto_display|lower }}{% endif %}.
+    {% if assemblea.voto_catello %}Chi è presente riceve un codice per votare dal telefono o al seggio; chi vota su carta resta su carta.{% else %}Tracciato per l'app del Nazionale e risultati copiati a mano; su carta chi ha problemi.{% endif %}
+  </p>
+  {% if puo_gestire and not assemblea.conclusa %}
+    <form method="post" action="{% url 'voto:sistema' assemblea.pk %}" class="row g-3 align-items-end mb-7">
+      {% csrf_token %}
+      {% if sistema_modificabile %}
+        <div class="md:col-4">
+          <div class="form-field">
+            <label for="sistema-voto">Sistema</label>
+            <select id="sistema-voto" name="sistema_voto" class="form-control">
+              {% for valore, etichetta in sistemi_voto %}<option value="{{ valore }}"{% if valore == assemblea.sistema_voto %} selected{% endif %}>{{ etichetta }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+      {% endif %}
+      {% if assemblea.voto_catello %}
+        <div class="md:col-4">
+          <div class="form-field">
+            <label for="modalita-voto">Modalità</label>
+            <select id="modalita-voto" name="modalita_voto" class="form-control">
+              {% for valore, etichetta in modalita_voto %}<option value="{{ valore }}"{% if valore == assemblea.modalita_voto %} selected{% endif %}>{{ etichetta }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+      {% endif %}
+      {% if sistema_modificabile or assemblea.voto_catello %}
+        <div class="md:col-auto"><button type="submit" class="btn-outline theme-primary">Salva</button></div>
+      {% endif %}
+    </form>
+    {% if not sistema_modificabile %}<p class="fg-2 mb-7">Le votazioni sono iniziate: il sistema di voto non si cambia più.</p>{% endif %}
+  {% endif %}
+
   {% if puo_gestire %}
     <h2 class="fs-xl">File</h2>
     <p class="fg-2">
@@ -54,8 +89,9 @@
       l'elenco cambia. Il tracciato contiene solo chi vota in app, con il gruppo del censimento.
     </p>
     <div class="d-flex flex-wrap gap-3 mb-7">
-      <a href="{% url 'assemblee:tracciato' assemblea.pk %}" class="btn-outline theme-primary">{% bs_icon "file-earmark-spreadsheet" %} Tracciato per l'app di voto (.xlsx)</a>
+      {% if not assemblea.voto_catello %}<a href="{% url 'assemblee:tracciato' assemblea.pk %}" class="btn-outline theme-primary">{% bs_icon "file-earmark-spreadsheet" %} Tracciato per l'app di voto (.xlsx)</a>{% endif %}
       <a href="{% url 'assemblee:foglio_presenze' assemblea.pk %}" class="btn-outline theme-primary">{% bs_icon "file-earmark-pdf" %} Foglio presenze (PDF)</a>
+      <a href="{% url 'assemblee:email_aventi' assemblea.pk %}" class="btn-outline theme-primary">{% bs_icon "envelope" %} Email degli aventi (Excel per gruppo)</a>
       <a href="{% url 'assemblee:odg' assemblea.pk %}" class="btn-outline theme-primary">{% bs_icon "list-ol" %} Ordine del giorno</a>
     </div>
   {% endif %}

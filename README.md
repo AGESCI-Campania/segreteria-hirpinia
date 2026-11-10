@@ -22,6 +22,7 @@ regionali AGESCI Campania, con autenticazione locale autonoma (non collegata a S
 | --- | --- |
 | **Anagrafica** | Importazione dei capi dall'export CSV "Ricerca Soci" di Buona Caccia e degli incarichi in unità dai PDF di autorizzazione dei gruppi; esportazione in xlsx/csv con filtri per unità, branca, ruolo e livello FoCa |
 | **Contributo Formazione Capi** | Inserimento delle partecipazioni ai campi da parte dei gruppi (manuale o da file xlsx), valutazione del Comitato di Zona, calcolo automatico del contributo, generazione del file per i bonifici |
+| **Assemblee e voto elettronico** | Elenco degli aventi diritto, presenze, quorum, deleghe, votazioni con le soglie del regolamento e verbali in PDF; per le elezioni il voto con l'app del Nazionale o con il voto elettronico di Catello (codici personali, urna, seggi, scrutinio e bacheca pubblica) |
 
 ## Requisiti
 
@@ -212,6 +213,9 @@ apps/
   esecuzione con Docker, in sviluppo e in produzione
 - [`docs/email/`](docs/email/README.md) — guide passo-passo per configurare ciascun
   provider di invio email (SMTP, Gmail, Microsoft Graph)
+- [`docs/plan_voto.md`](docs/plan_voto.md) — piano del voto elettronico (D-71); la prova
+  di carico si prepara con `uv run python manage.py prova_carico_voto prepara` (solo con
+  `DEBUG`) e si esegue con `scripts/carico_voto.py`
 - [`docs/TODO.md`](docs/TODO.md) — elenco delle modifiche da fare emerse durante il beta
   testing
 - [`CLAUDE.md`](CLAUDE.md) — vincoli operativi per lo sviluppo assistito

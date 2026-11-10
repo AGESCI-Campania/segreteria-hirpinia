@@ -291,9 +291,10 @@ deve violare:
   "migliorarle", non renderle configurabili. Base delle elezioni e delle deliberazioni
   sono i **presenti** (art. 14 e 18), non i votanti; solo le mozioni d'ordine usano i
   votanti (art. 13), solo la revoca gli aventi diritto (art. 19). Il ballottaggio è solo
-  cartaceo. Il calcolo vive in un'unica funzione di service layer: view, PDF e verbali la
+  cartaceo con l'app del Nazionale, anche in app con il voto di Catello (D-71). Il calcolo vive in un'unica funzione di service layer: view, PDF e verbali la
   chiamano, non la reimplementano.
-- **Voto in app o su carta** si decide in un solo punto, per codice socio contro i
+- **Voto in app o su carta** si decide in un solo punto (`elenco.calcola_vota_in_app()`;
+  con il voto di Catello vale la regola di D-71), per codice socio contro i
   censiti della Zona dell'anno da cui è importato il gruppo (autunnale: anno scelto
   gruppo per gruppo), più il passaggio manuale a carta; nel tracciato il gruppo è quello
   di origine, anche dopo un trasferimento.
@@ -303,6 +304,34 @@ deve violare:
   `templates/pdf/carta_intestata.html` + `carta_intestata_stile.html`, con i dati della
   Zona (`ZONA`) e i percorsi dei loghi da `apps/core/pdf.py::contesto_carta_intestata()`. Non ricopiarla in un nuovo
   template.
+
+### Voto elettronico (D-71)
+
+Regole complete in D-71 e in `docs/plan_voto.md`. Qui ciò che il codice non deve violare:
+- **`apps/voto` è l'unica superficie pubblica senza login.** Pagine autonome
+  (`templates/voto/base_voto.html`), mai in cache (`never_cache`), nessuno script di
+  terze parti. Non scrive mai `Capo`, `CensimentoCapo` o `IncaricoUnita` (D-70).
+- **Codici: solo hash**, come l'OTP di D-20. Il codice in chiaro esiste solo nel valore
+  restituito da `codici.emetti()` (email o schermo del banco): mai in sessione, database,
+  log, auditlog, URL di path o querystring. Nei link sta nel *fragment* (`#c=…`), e così
+  il segreto di attivazione dei seggi (`#s=…`). In sessione resta l'id del `CodiceVoto`.
+- **`Scheda` non ha e non deve avere** FK verso avente, codice, votante o postazione, né
+  timestamp; `Votante` nemmeno timestamp. Un test sul `_meta` lo verifica: non
+  aggiungere campi «per comodità». Nessun log registra codici, ricevute o scelte, e
+  nessun modello di `apps/voto` va registrato in auditlog o in Django admin.
+- **Unici punti delle regole**: `urna.vota()` per votare, `codici` per emettere e
+  revocare, `scrutinio` per aprire/chiudere l'urna, interpretare i nomi scritti, contare
+  e pubblicare la bacheca, `postazioni` per i seggi, `sistema` per sistema e modalità di
+  voto. La presenza si verifica con `quorum.presenti()`, le soglie con `votazioni.esito()`:
+  non riscriverle.
+- **Con il voto di Catello i voti in app non si inseriscono a mano**:
+  `registra_risultati()` li prende da `scrutinio.conteggio()` e ignora quelli passati.
+- **In bacheca e nel verbale mai il testo dei nomi scritti**, solo l'interpretazione
+  della commissione (il testo potrebbe essere un segno di riconoscimento).
+- Limiti dei tentativi **per sessione e per postazione, mai per IP** (NAT della sala) e
+  mai un blocco per seduta (bloccherebbe l'urna a tutti).
+- `manage.py prova_carico_voto` scrive codici in chiaro su file: funziona solo con
+  `DEBUG`, non togliere quel controllo.
 
 ### Menu: un modulo con più funzioni è una voce sola
 
@@ -400,7 +429,9 @@ subito dopo il footer. Il banner di impersonificazione (`templates/hijack/notifi
 viewport fisso del tema. Il cookie banner è **informativo**
 (una sola presa visione "Ho capito", persistita in `localStorage`), non un gate di
 consenso a categorie: verificato che l'app imposta solo cookie tecnici necessari
-(`sessionid`, `csrftoken`), che `django-axes`/`django-hijack` non usano cookie propri e
+(`sessionid`, `csrftoken`, più `voto_postazione`, tecnico anch'esso, impostato solo sui
+dispositivi della Zona attivati come seggio, D-71), che `django-axes`/`django-hijack` non
+usano cookie propri e
 che il "trust this device" di `allauth.mfa` non è mai attivo (`MFA_TRUST_ENABLED` non
 impostato). Se in futuro si introduce un cookie non necessario (analytics, terze parti,
 un `mfa_trusted` attivato), il banner va **rifatto** come vero consenso con

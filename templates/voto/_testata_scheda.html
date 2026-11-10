@@ -1,0 +1,4 @@
+<p class="fg-2 mb-1">{{ assemblea }} — {{ seduta.get_convocazione_display }}</p>
+<h1 class="mb-3">{{ votazione.oggetto }}</h1>
+{% if votazione.incarico %}<p class="mb-1">Incarico: <strong>{{ votazione.incarico }}</strong></p>{% endif %}
+<p class="fg-2 mb-5">{% if votazione.tipo == "BALLOTTAGGIO" %}Ballottaggio: scegli uno dei due candidati.{% elif votazione.posti == 1 %}Una preferenza, anche scrivendo un nome.{% else %}Fino a {{ votazione.posti }} preferenze, anche scrivendo un nome.{% endif %}</p>

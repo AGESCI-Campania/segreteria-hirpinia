@@ -31,10 +31,15 @@ from .votazioni import frase_esito, soglie_correnti
 class VotazioneVerbale:
     votazione: Votazione
     frase: str
+    # Voto elettronico di Catello: schede in app e impronta della bacheca.
+    nota_app: str = ""
 
 
 def _votazioni(qs) -> list[VotazioneVerbale]:
-    return [VotazioneVerbale(v, frase_esito(v)) for v in qs.order_by("aperta_il")]
+    # Lazy: apps.voto dipende da questo modulo, non il contrario.
+    from apps.voto.scrutinio import nota_verbale
+
+    return [VotazioneVerbale(v, frase_esito(v), nota_verbale(v)) for v in qs.order_by("aperta_il")]
 
 
 def verbale_della_seduta(seduta: Seduta) -> VerbaleSeduta:

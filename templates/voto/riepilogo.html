@@ -1,0 +1,30 @@
+{% extends "voto/base_voto.html" %}
+
+{% block title %}Conferma il voto{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="md:col-8">
+      {% include "voto/_testata_scheda.html" %}
+      <p class="fs-lg mb-5"><strong>Controlla e conferma.</strong> Dopo la conferma il voto non si può cambiare.</p>
+      <form method="post" action="{% url 'voto:scheda' %}">
+        {% csrf_token %}
+        <input type="hidden" name="votazione" value="{{ votazione.pk }}">
+        <input type="hidden" name="azione" value="conferma">
+        {% for scheda in schede %}
+          <div class="card mb-5">
+            <div class="card-body">
+              <h2 class="fs-lg">{% if scheda.spettante.per_delega %}Per delega di {{ scheda.spettante.avente.cognome }} {{ scheda.spettante.avente.nome }}{% else %}La tua scheda{% endif %}</h2>
+              <ul class="mb-0">{% for riga in scheda.righe %}<li>{{ riga }}</li>{% endfor %}</ul>
+              <input type="hidden" name="esito_{{ scheda.indice }}" value="{{ scheda.scelte.esito }}">
+              {% for candidato in scheda.scelte.candidati %}<input type="hidden" name="candidati_{{ scheda.indice }}" value="{{ candidato }}">{% endfor %}
+              {% for nome in scheda.scelte.liberi %}<input type="hidden" name="liberi_{{ scheda.indice }}" value="{{ nome }}">{% endfor %}
+            </div>
+          </div>
+        {% endfor %}
+        <button type="submit" class="btn-solid theme-success w-100 mb-3">Conferma il voto</button>
+      </form>
+      <a href="{% url 'voto:scheda' %}" class="btn-outline theme-secondary w-100">Modifica</a>
+    </div>
+  </div>
+{% endblock %}

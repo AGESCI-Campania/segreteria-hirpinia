@@ -8,7 +8,7 @@ chiamano `soglia()` ed `esito()`, non le reimplementano.
 | Mozione, raccomandazione, bilancio,         | presenti            | art. 14    |
 | regolamento, altra deliberazione            |                     |            |
 | Elezione (per candidato)                    | presenti            | art. 18    |
-| Ballottaggio (solo carta)                   | presenti            | art. 18 c.4|
+| Ballottaggio                                | presenti            | art. 18 c.4|
 | Mozione d'ordine, nuovo punto all'OdG       | votanti (f + c + a) | art. 13    |
 | Revoca di un mandato                        | aventi diritto      | art. 19 c.3|
 
@@ -46,8 +46,10 @@ VOTAZIONI_SU_VOTANTI = frozenset({TipoVotazione.MOZIONE_ORDINE, TipoVotazione.NU
 
 def canali(votazione: Votazione) -> list[str]:
     """Canali in cui si registrano i voti: alzata di mano per le palesi, app e
-    carta per le segrete, solo carta per il ballottaggio (l'app non lo supporta)."""
-    if votazione.tipo == TipoVotazione.BALLOTTAGGIO:
+    carta per le segrete. Il ballottaggio con l'app del Nazionale è solo su
+    carta (limite di quell'app, non del regolamento); con il voto di Catello
+    si vota anche in app (docs/plan_voto.md, V5)."""
+    if votazione.tipo == TipoVotazione.BALLOTTAGGIO and not votazione.seduta.assemblea.voto_catello:
         return [CanaleVoto.CARTA]
     if votazione.segreta:
         return [CanaleVoto.APP, CanaleVoto.CARTA]
@@ -219,7 +221,12 @@ def registra_risultati(
     """Registra i voti e chiude la votazione. `per_canale` ha una voce per
     ciascun canale della votazione (favorevoli, contrari, astenuti, bianche,
     nulle); `voti_candidati` mappa l'id del candidato su voti_app/voti_carta.
-    I voti non possono superare i presenti fotografati all'apertura."""
+    I voti non possono superare i presenti fotografati all'apertura.
+
+    Con il voto di Catello i voti in app non si inseriscono a mano: arrivano
+    dallo scrutinio dell'urna (`apps/voto/scrutinio.conteggio()`), che blocca
+    finché l'urna è aperta o restano nomi scritti da interpretare; quelli
+    passati qui per il canale app si ignorano."""
     _verifica_operatore(utente, votazione.seduta)
     if votazione.chiusa:
         raise ValidationError("I risultati di questa votazione sono già registrati.")
@@ -227,8 +234,25 @@ def registra_risultati(
     if set(per_canale) - set(ammessi):
         raise ValidationError("Canale di voto non previsto per questa votazione.")
     elezione = votazione.tipo in (TipoVotazione.ELEZIONE, TipoVotazione.BALLOTTAGGIO)
+    dall_urna = None
+    if votazione.seduta.assemblea.voto_catello and CanaleVoto.APP in ammessi:
+        # Lazy: apps.voto dipende da questo modulo, non il contrario.
+        from apps.voto import scrutinio
+
+        dall_urna = scrutinio.conteggio(votazione)
+        carta = voti_candidati or {}
+        # Il conteggio può aver aggiunto candidati (nomi scritti attribuiti).
+        voti_candidati = {
+            c.pk: {
+                "voti_app": dall_urna.voti.get(c.pk, 0),
+                "voti_carta": carta.get(c.pk, {}).get("voti_carta", 0),
+            }
+            for c in votazione.candidati.all()
+        }
     for canale in ammessi:
         dati = per_canale.get(canale, {})
+        if dall_urna is not None and canale == CanaleVoto.APP:
+            dati = {"bianche": dall_urna.bianche, "nulle": dall_urna.nulle}
         if elezione:
             dati = {"bianche": dati.get("bianche", 0), "nulle": dati.get("nulle", 0)}
         else:
@@ -248,6 +272,8 @@ def registra_risultati(
     _verifica_coerenza(votazione)
     votazione.chiusa_il = timezone.now()
     votazione.save(update_fields=["chiusa_il"])
+    if dall_urna is not None:
+        scrutinio.pubblica_bacheca(votazione)
     return esito(votazione)
 
 
@@ -272,7 +298,8 @@ def _verifica_coerenza(votazione: Votazione) -> None:
 @transaction.atomic
 def apri_ballottaggio(votazione: Votazione, utente: Utente) -> Votazione:
     """Ballottaggio fra i due candidati proposti dall'esito dell'elezione
-    (art. 18 c.3), solo cartaceo, per un posto. Si fa un solo turno."""
+    (art. 18 c.3), per un posto: solo su carta con l'app del Nazionale, anche
+    in app con il voto di Catello (`canali()`). Si fa un solo turno."""
     _verifica_operatore(utente, votazione.seduta)
     _verifica_seduta(votazione.seduta)
     if votazione.tipo != TipoVotazione.ELEZIONE or not votazione.chiusa:
@@ -308,6 +335,8 @@ def annulla_votazione(votazione: Votazione, utente: Utente) -> None:
     _verifica_operatore(utente, votazione.seduta)
     if votazione.chiusa:
         raise ValidationError("Una votazione con i risultati registrati non si annulla.")
+    if votazione.aperta_in_app_il is not None:
+        raise ValidationError("Una votazione con l'urna elettronica già aperta non si annulla.")
     votazione.delete()
 
 

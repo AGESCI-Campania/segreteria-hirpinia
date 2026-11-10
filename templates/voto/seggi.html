@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block page_title %}Seggi — {{ seduta }}{% endblock %}
+
+{% block content %}
+  <h1 class="mb-3">Seggi</h1>
+  <p class="fg-2 mb-5">
+    {{ assemblea }} — {{ seduta.get_convocazione_display }} — modalità: {{ assemblea.get_modalita_voto_display|lower }}.
+    Ogni postazione è un tablet o un PC della Zona: si attiva aprendo il link sul dispositivo, che resta un seggio per questa seduta.
+    Dopo ogni voto la pagina mostra la ricevuta per 30 secondi e poi si azzera.
+  </p>
+
+  {% for messaggio in messages %}<div class="alert theme-{% if messaggio.tags == 'error' %}danger{% else %}success{% endif %} mb-5" role="status">{{ messaggio }}</div>{% endfor %}
+
+  {% if nuova %}
+    <div class="card mb-7">
+      <div class="card-body">
+        <h2 class="fs-lg">Link di attivazione di «{{ nuova.nome }}»</h2>
+        <p class="fg-2">Aprilo sul dispositivo del seggio (o inquadra il QR). Vale una volta sola e non si potrà rivedere.</p>
+        <p class="font-monospace text-break">{{ link }}</p>
+        <div><img src="{{ qr }}" alt="QR del link di attivazione"></div>
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="table-responsive mb-7">
+    <table class="table table-sm">
+      <thead><tr><th>Postazione</th><th>Stato</th><th></th></tr></thead>
+      <tbody>
+        {% for postazione in postazioni %}
+          <tr>
+            <td>{{ postazione.nome }}</td>
+            <td>{% if not postazione.attiva %}disattivata{% elif postazione.attivata_il %}attiva dalle {{ postazione.attivata_il|time:"H:i" }}{% else %}da attivare{% endif %}</td>
+            <td>
+              {% if postazione.attiva %}
+                <form method="post">
+                  {% csrf_token %}
+                  <input type="hidden" name="disattiva" value="{{ postazione.pk }}">
+                  <button type="submit" class="btn-outline theme-danger btn-sm">Disattiva</button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="3">Nessuna postazione.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if not seduta.chiusa_il %}
+    <form method="post" class="row g-3 align-items-end">
+      {% csrf_token %}
+      <div class="md:col-6">
+        <div class="form-field">
+          <label for="nome-postazione">Nuova postazione</label>
+          <input id="nome-postazione" name="nome" class="form-control" placeholder="Seggio 1" maxlength="100" required>
+        </div>
+      </div>
+      <div class="md:col-auto"><button type="submit" class="btn-solid theme-primary">Crea</button></div>
+    </form>
+  {% endif %}
+{% endblock %}

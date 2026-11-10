@@ -98,7 +98,7 @@ def righe_tracciato(assemblea: Assemblea) -> list[list]:
                 None,
                 REGIONE,
                 STATUS,
-                (capo.email if capo and capo.email else EMAIL_SEGNAPOSTO),
+                avente.email or EMAIL_SEGNAPOSTO,
                 (capo.cellulare if capo and capo.cellulare else CELLULARE_SEGNAPOSTO),
                 None,
                 None,

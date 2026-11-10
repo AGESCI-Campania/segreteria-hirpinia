@@ -56,6 +56,7 @@ VARIABILI_PER_CODICE: dict[str, list[str]] = {
     CodiceTemplateEmail.NOTA_SPESE_RESPINTA: ["numero", "evento", "causale", "link"],
     CodiceTemplateEmail.NOTA_SPESE_LIQUIDATA: ["numero", "evento", "link"],
     CodiceTemplateEmail.NOTA_SPESE_PROMEMORIA: ["elenco", "elenco_html", "link"],
+    CodiceTemplateEmail.CODICE_VOTO: ["nome", "assemblea", "codice", "link"],
     CodiceTemplateEmail.NOTA_SPESE_REPORT_GESTORI: [
         "numero_note",
         "elenco",
@@ -90,6 +91,11 @@ def _contesto_esempio_invito_attivazione() -> dict[str, str]:
 
 
 _CONTESTO_ESEMPIO_STATICO: dict[str, dict[str, str]] = {
+    CodiceTemplateEmail.CODICE_VOTO: {
+        "nome": "Mario Rossi",
+        "assemblea": "Assemblea primaverile 2026/2027",
+        "codice": "K7QM-R4XP-2W",
+    },
     CodiceTemplateEmail.FINE_IMPERSONIFICAZIONE: {
         "amministratore": "Segreteria Zona",
         "quando": "31/12/2026 18:00",
@@ -185,6 +191,8 @@ def contesto_esempio(codice: str) -> dict[str, str]:
         contesto["link"] = f"{settings.SITE_URL}{reverse('note_spese:nota_dettaglio', args=[1])}"
     elif codice == CodiceTemplateEmail.NOTA_SPESE_PROMEMORIA:
         contesto["link"] = f"{settings.SITE_URL}{reverse('note_spese:nota_lista')}"
+    elif codice == CodiceTemplateEmail.CODICE_VOTO:
+        contesto["link"] = f"{settings.SITE_URL}{reverse('voto:urna')}#c=K7QMR4XP2W"
     elif codice == CodiceTemplateEmail.NOTA_SPESE_REPORT_GESTORI:
         contesto["link"] = f"{settings.SITE_URL}{reverse('note_spese:nota_verifica_lista')}"
     return contesto

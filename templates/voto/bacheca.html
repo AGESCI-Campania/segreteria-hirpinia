@@ -1,0 +1,19 @@
+{% extends "voto/base_voto.html" %}
+
+{% block title %}Bacheca — {{ votazione.oggetto }}{% endblock %}
+{% block intestazione %}{{ assemblea }}{% endblock %}
+
+{% block content %}
+  <h1 class="mb-3">Bacheca: {{ votazione.oggetto }}</h1>
+  <p class="mb-3">{{ frase_esito }}</p>
+  <p class="fg-2 mb-5">
+    Ogni riga è una scheda votata in app, come è stata contata (i nomi scritti come li ha
+    interpretati la commissione elettorale). Cerca la tua ricevuta per controllare la tua
+    scheda; chiunque può ricontare. Le schede su carta non compaiono qui.
+  </p>
+  <p class="mb-5"><a href="{% url 'voto:verifica' %}">Verifica la tua ricevuta</a></p>
+  <ul class="list-unstyled font-monospace mb-7">
+    {% for riga in righe %}<li>{{ riga }}</li>{% empty %}<li>Nessuna scheda in app.</li>{% endfor %}
+  </ul>
+  <p class="fg-2 text-break">Impronta SHA-256 dell'elenco (riportata nel verbale): <span class="font-monospace">{{ impronta }}</span></p>
+{% endblock %}
