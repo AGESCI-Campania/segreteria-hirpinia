@@ -120,3 +120,43 @@ class Scheda(models.Model):
 
     def __str__(self) -> str:
         return f"Scheda {self.ricevuta}"
+
+
+class InterpretazioneNome(models.Model):
+    """Decisione della commissione elettorale su un nome scritto in una
+    scheda, per testo (lo stesso testo vale uguale in tutte le schede):
+    attribuito a un avente diritto, oppure nullo (`avente` vuoto). Il testo
+    resta qui, visibile solo a chi gestisce lo scrutinio; bacheca e verbale
+    riportano solo l'interpretazione. Non collega alcuna scheda."""
+
+    votazione = models.ForeignKey(
+        "assemblee.Votazione", on_delete=models.CASCADE, related_name="interpretazioni_nomi"
+    )
+    chiave = models.CharField(max_length=100)
+    avente = models.ForeignKey(
+        "assemblee.AventeDiritto",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    decisa_da = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    decisa_il = models.DateTimeField()
+
+    class Meta:
+        verbose_name = "interpretazione di un nome scritto"
+        verbose_name_plural = "interpretazioni dei nomi scritti"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["votazione", "chiave"], name="una_interpretazione_per_nome"
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.chiave} → {self.avente or 'nullo'}"

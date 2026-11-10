@@ -3,7 +3,7 @@ from __future__ import annotations
 import segno
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.decorators import method_decorator
@@ -12,10 +12,11 @@ from django.views import View
 from django.views.decorators.cache import never_cache
 
 from apps.assemblee import elenco
-from apps.assemblee.models import Assemblea, AventeDiritto, Seduta
-from apps.assemblee.permessi import assemblee_visibili
+from apps.assemblee.models import Assemblea, AventeDiritto, Seduta, Votazione
+from apps.assemblee.permessi import assemblee_visibili, puo_operare
+from apps.core.mixins import BreadcrumbExtraMixin
 
-from . import codici, sistema
+from . import codici, scrutinio, sistema
 
 MESSAGGI_INVIO = {
     codici.EsitoInvio.INVIATO: "codice di voto inviato per email",
@@ -116,3 +117,96 @@ class SistemaVotoView(LoginRequiredMixin, View):
         else:
             messages.success(request, "Sistema di voto aggiornato.")
         return redirect(reverse("assemblee:assemblea_dettaglio", args=[pk]))
+
+
+def _votazione(request, pk: int, seduta_pk: int, votazione_pk: int) -> Votazione:
+    assemblea = get_object_or_404(assemblee_visibili(request.user), pk=pk)
+    return get_object_or_404(
+        Votazione, pk=votazione_pk, seduta_id=seduta_pk, seduta__assemblea=assemblea
+    )
+
+
+def _alla_votazione(votazione: Votazione):
+    return redirect(
+        reverse(
+            "assemblee:votazione",
+            args=[votazione.seduta.assemblea_id, votazione.seduta_id, votazione.pk],
+        )
+    )
+
+
+class UrnaAzioneView(LoginRequiredMixin, View):
+    """Apertura e chiusura dell'urna elettronica dalla pagina della votazione."""
+
+    def post(self, request, pk, seduta_pk, votazione_pk):
+        votazione = _votazione(request, pk, seduta_pk, votazione_pk)
+        azione = request.POST.get("azione")
+        try:
+            if azione == "apri":
+                scrutinio.apri_urna(votazione, request.user)
+                messages.success(request, "Urna aperta: si vota dal telefono e ai seggi.")
+            elif azione == "chiudi" and request.POST.get("conferma") == "1":
+                scrutinio.chiudi_urna(votazione, request.user)
+                messages.success(request, "Urna chiusa: le schede sono state rimescolate.")
+            else:
+                messages.error(request, "Azione non riconosciuta o non confermata.")
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+        return _alla_votazione(votazione)
+
+
+class NomiScrittiView(LoginRequiredMixin, BreadcrumbExtraMixin, View):
+    """La commissione elettorale attribuisce i nomi scritti a un avente
+    diritto o li dichiara nulli. Il testo si vede solo qui."""
+
+    template_name = "voto/nomi_scritti.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        kwargs = request.resolver_match.kwargs
+        return [
+            {"label": "Moduli"},
+            {"label": "Assemblee", "url": reverse("assemblee:assemblea_lista")},
+            {
+                "label": "Votazione",
+                "url": reverse(
+                    "assemblee:votazione",
+                    args=[kwargs["pk"], kwargs["seduta_pk"], kwargs["votazione_pk"]],
+                ),
+            },
+            {"label": "Nomi scritti"},
+        ]
+
+    def _contesto(self, votazione: Votazione) -> dict:
+        return {
+            "votazione": votazione,
+            "assemblea": votazione.seduta.assemblea,
+            "seduta": votazione.seduta,
+            "nomi": scrutinio.nomi_scritti(votazione),
+            "aventi": votazione.seduta.assemblea.aventi_diritto.nell_elenco().order_by(
+                "cognome", "nome"
+            ),
+        }
+
+    def get(self, request, pk, seduta_pk, votazione_pk):
+        votazione = _votazione(request, pk, seduta_pk, votazione_pk)
+        if not puo_operare(request.user, votazione.seduta.assemblea):
+            raise PermissionDenied
+        return render(request, self.template_name, self._contesto(votazione))
+
+    def post(self, request, pk, seduta_pk, votazione_pk):
+        votazione = _votazione(request, pk, seduta_pk, votazione_pk)
+        scelta = request.POST.get("avente", "")
+        avente = None
+        if scelta and scelta != "nullo":
+            avente = get_object_or_404(
+                AventeDiritto, pk=scelta, assemblea_id=votazione.seduta.assemblea_id
+            )
+        if not scelta:
+            messages.error(request, "Scegli un avente diritto oppure «nullo».")
+        else:
+            try:
+                scrutinio.interpreta(votazione, request.POST.get("testo", ""), avente, request.user)
+            except ValidationError as errore:
+                messages.error(request, " ".join(errore.messages))
+        return redirect(reverse("voto:nomi_scritti", args=[pk, seduta_pk, votazione_pk]))

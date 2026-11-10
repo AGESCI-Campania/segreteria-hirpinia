@@ -219,7 +219,12 @@ def registra_risultati(
     """Registra i voti e chiude la votazione. `per_canale` ha una voce per
     ciascun canale della votazione (favorevoli, contrari, astenuti, bianche,
     nulle); `voti_candidati` mappa l'id del candidato su voti_app/voti_carta.
-    I voti non possono superare i presenti fotografati all'apertura."""
+    I voti non possono superare i presenti fotografati all'apertura.
+
+    Con il voto di Catello i voti in app non si inseriscono a mano: arrivano
+    dallo scrutinio dell'urna (`apps/voto/scrutinio.conteggio()`), che blocca
+    finché l'urna è aperta o restano nomi scritti da interpretare; quelli
+    passati qui per il canale app si ignorano."""
     _verifica_operatore(utente, votazione.seduta)
     if votazione.chiusa:
         raise ValidationError("I risultati di questa votazione sono già registrati.")
@@ -227,8 +232,25 @@ def registra_risultati(
     if set(per_canale) - set(ammessi):
         raise ValidationError("Canale di voto non previsto per questa votazione.")
     elezione = votazione.tipo in (TipoVotazione.ELEZIONE, TipoVotazione.BALLOTTAGGIO)
+    dall_urna = None
+    if votazione.seduta.assemblea.voto_catello and CanaleVoto.APP in ammessi:
+        # Lazy: apps.voto dipende da questo modulo, non il contrario.
+        from apps.voto import scrutinio
+
+        dall_urna = scrutinio.conteggio(votazione)
+        carta = voti_candidati or {}
+        # Il conteggio può aver aggiunto candidati (nomi scritti attribuiti).
+        voti_candidati = {
+            c.pk: {
+                "voti_app": dall_urna.voti.get(c.pk, 0),
+                "voti_carta": carta.get(c.pk, {}).get("voti_carta", 0),
+            }
+            for c in votazione.candidati.all()
+        }
     for canale in ammessi:
         dati = per_canale.get(canale, {})
+        if dall_urna is not None and canale == CanaleVoto.APP:
+            dati = {"bianche": dall_urna.bianche, "nulle": dall_urna.nulle}
         if elezione:
             dati = {"bianche": dati.get("bianche", 0), "nulle": dati.get("nulle", 0)}
         else:
@@ -248,6 +270,8 @@ def registra_risultati(
     _verifica_coerenza(votazione)
     votazione.chiusa_il = timezone.now()
     votazione.save(update_fields=["chiusa_il"])
+    if dall_urna is not None:
+        scrutinio.pubblica_bacheca(votazione)
     return esito(votazione)
 
 
@@ -308,6 +332,8 @@ def annulla_votazione(votazione: Votazione, utente: Utente) -> None:
     _verifica_operatore(utente, votazione.seduta)
     if votazione.chiusa:
         raise ValidationError("Una votazione con i risultati registrati non si annulla.")
+    if votazione.aperta_in_app_il is not None:
+        raise ValidationError("Una votazione con l'urna elettronica già aperta non si annulla.")
     votazione.delete()
 
 

@@ -16,7 +16,7 @@
           </div>
         </div>
       {% endfor %}
-      <p class="fg-2 mb-5">La ricevuta non dice a nessuno chi sei. Non viene mostrata di nuovo.</p>
+      <p class="fg-2 mb-5">La ricevuta non dice a nessuno chi sei. Non viene mostrata di nuovo: la puoi controllare in <a href="{% url 'voto:verifica' %}">verifica della ricevuta</a>.</p>
       <a href="{% url 'voto:scheda' %}" class="btn-solid theme-primary w-100">Fatto</a>
     </div>
   </div>

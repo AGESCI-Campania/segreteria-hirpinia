@@ -16,15 +16,16 @@ from django.contrib import messages
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest, JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.cache import never_cache
 
 from apps.assemblee.models import Votazione
+from apps.assemblee.votazioni import frase_esito
 
-from . import urna
+from . import scrutinio, urna
 from .models import CodiceVoto
 
 SESSIONE_CODICE = "voto_codice"
@@ -214,3 +215,48 @@ class EsciView(View):
     def post(self, request):
         request.session.flush()
         return redirect(reverse("voto:urna"))
+
+
+class BachecaView(View):
+    """Bacheca pubblica di una votazione, a risultati registrati: ricevuta →
+    scheda interpretata, con l'impronta riportata nel verbale."""
+
+    def get(self, request, votazione_pk):
+        votazione = get_object_or_404(
+            Votazione.objects.select_related("seduta__assemblea"),
+            pk=votazione_pk,
+            chiusa_il__isnull=False,
+            aperta_in_app_il__isnull=False,
+        )
+        righe = scrutinio.righe_bacheca(votazione)
+        return render(
+            request,
+            "voto/bacheca.html",
+            {
+                "votazione": votazione,
+                "assemblea": votazione.seduta.assemblea,
+                "righe": righe,
+                "impronta": scrutinio.impronta(righe),
+                "frase_esito": frase_esito(votazione),
+            },
+        )
+
+
+@method_decorator(never_cache, name="dispatch")
+class VerificaView(View):
+    """Verifica personale della ricevuta. Tentativi limitati come l'accesso."""
+
+    template_name = "voto/verifica.html"
+
+    def get(self, request):
+        return render(request, self.template_name)
+
+    def post(self, request):
+        tentativi = _tentativi_recenti(request)
+        if len(tentativi) >= MAX_TENTATIVI:
+            messages.error(request, "Troppi tentativi: riprova più tardi.")
+            return redirect("voto:verifica")
+        esito = scrutinio.verifica_ricevuta(request.POST.get("ricevuta", ""))
+        if not esito.trovata:
+            request.session[SESSIONE_TENTATIVI] = [*tentativi, time.time()]
+        return render(request, self.template_name, {"esito": esito})

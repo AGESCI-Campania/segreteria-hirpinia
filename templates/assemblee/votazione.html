@@ -18,6 +18,49 @@
     </p>
   </div>
 
+  {% if urna.prevista %}
+    <div class="card mb-5">
+      <div class="card-body">
+        <h2 class="fs-lg">Urna elettronica</h2>
+        {% if not votazione.aperta_in_app_il %}
+          <p class="mb-3">Non ancora aperta: chi ha il codice vedrà la scheda appena la apri.</p>
+          {% if puo_operare and not votazione.chiusa %}
+            {% if urna.altra_aperta %}
+              <p class="fg-2 mb-0">C'è già un'urna aperta in questa seduta: «{{ urna.altra_aperta.oggetto }}».</p>
+            {% else %}
+              <form method="post" action="{% url 'voto:urna_azione' assemblea.pk seduta.pk votazione.pk %}">
+                {% csrf_token %}<input type="hidden" name="azione" value="apri">
+                <button type="submit" class="btn-solid theme-primary">Apri l'urna</button>
+              </form>
+            {% endif %}
+          {% endif %}
+        {% elif not votazione.chiusa_in_app_il %}
+          <p class="fs-2xl mb-1">{{ urna.votanti }}</p>
+          <p class="fg-2 mb-3">hanno votato in app (aperta alle {{ votazione.aperta_in_app_il|time:"H:i" }}). I risultati si vedono solo a urna chiusa.</p>
+          {% if puo_operare %}
+            <form method="post" action="{% url 'voto:urna_azione' assemblea.pk seduta.pk votazione.pk %}" class="d-flex flex-wrap align-items-center gap-3">
+              {% csrf_token %}<input type="hidden" name="azione" value="chiudi">
+              <div class="form-field mb-0">
+                <input type="checkbox" name="conferma" value="1" id="conferma-chiudi-urna" class="check" required>
+                <label for="conferma-chiudi-urna">Hanno votato tutti quelli che volevano votare in app</label>
+              </div>
+              <button type="submit" class="btn-solid theme-warning">Chiudi l'urna</button>
+            </form>
+          {% endif %}
+        {% else %}
+          <p class="mb-3">Chiusa alle {{ votazione.chiusa_in_app_il|time:"H:i" }}: {{ urna.votanti }} {% if urna.votanti == 1 %}scheda{% else %}schede{% endif %} in app.
+            {% if urna.nomi_scritti %}Nomi scritti: {{ urna.nomi_scritti }}{% if urna.da_interpretare %}, <strong>{{ urna.da_interpretare }} da interpretare</strong>{% endif %} — <a href="{% url 'voto:nomi_scritti' assemblea.pk seduta.pk votazione.pk %}">commissione elettorale</a>.{% endif %}
+          </p>
+          {% if votazione.chiusa %}
+            <p class="mb-0"><a href="{% url 'voto:bacheca' votazione.pk %}">Bacheca pubblica</a> — {{ urna.nota }}</p>
+          {% else %}
+            <p class="fg-2 mb-0">I voti in app si contano da soli alla registrazione dei risultati: qui sotto vanno solo quelli su carta.</p>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
   {% if votazione.chiusa %}
     <div class="alert {% if esito.approvata is False or esito.posti_vacanti %}theme-warning{% else %}theme-success{% endif %}" role="status">
       <p class="mb-0 fs-lg">{{ frase_esito }}</p>

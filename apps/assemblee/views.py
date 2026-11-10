@@ -19,6 +19,8 @@ from apps.accounts.models import Utente
 from apps.core.mixins import BreadcrumbExtraMixin
 from apps.organizzazione.models import Gruppo
 from apps.voto import codici as codici_voto
+from apps.voto import scrutinio as scrutinio_voto
+from apps.voto import urna as urna_voto
 from apps.voto import views as voto_banco
 
 from . import cruscotto, elenco, email_aventi, odg, sedute
@@ -47,6 +49,7 @@ from .forms import (
 from .models import (
     Assemblea,
     AventeDiritto,
+    CanaleVoto,
     DelegaAE,
     ImportazioneEmail,
     ModalitaVoto,
@@ -1146,12 +1149,32 @@ class VotazioneView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             {"label": "Votazione"},
         )
 
-    def _contesto(self, request, votazione, form=None):
+    @staticmethod
+    def _canali_a_mano(votazione) -> list[str]:
+        """Con il voto di Catello i voti in app arrivano dall'urna, non dal form."""
         canali_voto = voto.canali(votazione)
+        if votazione.seduta.assemblea.voto_catello:
+            return [c for c in canali_voto if c != CanaleVoto.APP]
+        return canali_voto
+
+    def _contesto(self, request, votazione, form=None):
+        canali_voto = self._canali_a_mano(votazione)
         if form is None and not votazione.chiusa:
             form = form_risultati(votazione, canali_voto)
         esito = voto.esito(votazione) if votazione.chiusa else None
+        assemblea = votazione.seduta.assemblea
+        in_app = assemblea.voto_catello and urna_voto.votazioni_in_app(votazione)
         return {
+            "urna": {
+                "prevista": in_app,
+                "votanti": scrutinio_voto.numero_votanti(votazione) if in_app else 0,
+                "da_interpretare": (
+                    len(scrutinio_voto.nomi_da_interpretare(votazione)) if in_app else 0
+                ),
+                "nomi_scritti": len(scrutinio_voto.nomi_scritti(votazione)) if in_app else 0,
+                "altra_aperta": (urna_voto.votazione_aperta(votazione.seduta) if in_app else None),
+                "nota": scrutinio_voto.nota_verbale(votazione) if in_app else "",
+            },
             "assemblea": votazione.seduta.assemblea,
             "seduta": votazione.seduta,
             "votazione": votazione,
@@ -1175,7 +1198,7 @@ class VotazioneView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
 
     def post(self, request, pk, seduta_pk, votazione_pk):
         votazione = _votazione_visibile(request, pk, seduta_pk, votazione_pk)
-        canali_voto = voto.canali(votazione)
+        canali_voto = self._canali_a_mano(votazione)
         form = form_risultati(votazione, canali_voto, request.POST)
         if form.is_valid():
             dati = form.cleaned_data
