@@ -14,6 +14,7 @@ from django.utils import timezone
 
 from .models import AventeDiritto, Presenza, Seduta
 from .quorum import appello_effettivo, presenti, stato_quorum, verifica_in_corso
+from .votazioni import soglie_correnti
 
 INTERVALLO_AGGIORNAMENTO_MS = 3000
 
@@ -77,6 +78,7 @@ def stato_seduta(seduta: Seduta, *, con_elenco: bool = False) -> dict:
         "raggiunto": stato.raggiunto,
         "mancanti": stato.mancanti,
         "verifica": None,
+        "soglie": soglie_correnti(stato.presenti, stato.aventi_diritto),
     }
     if verifica is not None:
         in_verifica = stato_quorum(seduta, verifica)

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block page_title %}Votazioni — {{ seduta }}{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Votazioni</h1>
+    {% if puo_votare %}
+      <a href="{% url 'assemblee:votazione_nuova' assemblea.pk seduta.pk %}" class="btn-solid theme-primary">Nuova votazione</a>
+    {% endif %}
+  </div>
+  <p class="fg-2 mb-5">{{ seduta.get_convocazione_display }} — {{ assemblea }}</p>
+  {% if not puo_votare and seduta.costituita is not True %}
+    <div class="alert theme-info" role="note"><p class="mb-0">Si vota solo dopo aver dichiarato la seduta validamente costituita.</p></div>
+  {% endif %}
+
+  <div class="table-responsive">
+  <table class="table">
+    <thead><tr><th>Ora</th><th>Votazione</th><th>Esito</th><th></th></tr></thead>
+    <tbody>
+      {% for votazione, frase in votazioni %}
+        <tr>
+          <td>{{ votazione.aperta_il|time:"H:i" }}</td>
+          <td>
+            <strong>{{ votazione.get_tipo_display }}</strong>: {{ votazione.oggetto }}
+            {% if votazione.punto %}<br><small class="fg-2">Punto {{ votazione.punto }}</small>{% endif %}
+          </td>
+          <td>{{ frase }}</td>
+          <td><a href="{% url 'assemblee:votazione' assemblea.pk seduta.pk votazione.pk %}" class="btn-outline theme-primary btn-sm">{% if votazione.chiusa %}Apri{% else %}Registra i voti{% endif %}</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4">Nessuna votazione in questa seduta.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+{% endblock %}

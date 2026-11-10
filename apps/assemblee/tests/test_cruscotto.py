@@ -76,6 +76,7 @@ def test_stato_senza_elenco_ha_solo_numeri(seduta):
     assert (dati["aventi_diritto"], dati["presenti"], dati["soglia"]) == (4, 4, 3)
     assert (dati["presenti_app"], dati["presenti_carta"]) == (3, 1)
     assert dati["raggiunto"]
+    assert dati["soglie"] == {"deliberazioni": 3, "elezioni": 3, "revoca": 3}
     assert "elenco" not in dati
 
 

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block page_title %}{{ votazione }}{% endblock %}
+
+{% block content %}
+  <h1 class="mb-3">{{ votazione.get_tipo_display }}</h1>
+  <p class="fs-lg mb-1">{{ votazione.oggetto }}</p>
+  <p class="fg-2 mb-5">
+    {% if votazione.incarico %}{{ votazione.incarico }}{% if votazione.tipo == "ELEZIONE" %}, {{ votazione.posti }} {% if votazione.posti == 1 %}posto{% else %}posti{% endif %}{% endif %} — {% endif %}
+    aperta alle {{ votazione.aperta_il|time:"H:i" }} con {{ votazione.presenti }} presenti su {{ votazione.aventi_diritto }} aventi diritto
+    — {% if votazione.segreta %}scrutinio segreto{% if votazione.tipo == "BALLOTTAGGIO" %}, solo su carta{% endif %}{% else %}alzata di mano{% endif %}
+  </p>
+
+  <div class="alert theme-info mb-5" role="note">
+    <p class="mb-0">
+      Maggioranza richiesta: metà {% if soglia.0 == "votanti" %}dei votanti{% elif soglia.0 == "aventi diritto" %}degli aventi diritto{% else %}dei presenti{% endif %} + 1
+      {% if soglia.0 == "votanti" and not votazione.chiusa %}(si calcola a voti registrati){% else %}= <strong>{{ soglia.2 }}</strong> su {{ soglia.1 }}{% endif %}{% if votazione.tipo == "ELEZIONE" %}, per ciascun candidato{% endif %}.
+    </p>
+  </div>
+
+  {% if votazione.chiusa %}
+    <div class="alert {% if esito.approvata is False or esito.posti_vacanti %}theme-warning{% else %}theme-success{% endif %}" role="status">
+      <p class="mb-0 fs-lg">{{ frase_esito }}</p>
+    </div>
+    {% if puo_ballottaggio and puo_operare %}
+      <form method="post" action="{% url 'assemblee:votazione_azione' assemblea.pk seduta.pk votazione.pk %}" class="mt-5">
+        {% csrf_token %}<input type="hidden" name="azione" value="ballottaggio">
+        <button type="submit" class="btn-solid theme-primary">Apri il ballottaggio (solo su carta)</button>
+      </form>
+    {% endif %}
+    {% if ballottaggio %}
+      <p class="mt-5"><a href="{% url 'assemblee:votazione' assemblea.pk seduta.pk ballottaggio.pk %}">Vai al ballottaggio</a></p>
+    {% endif %}
+    {% if votazione.ballottaggio_di %}
+      <p class="mt-5 fg-2">Ballottaggio dell'elezione: <a href="{% url 'assemblee:votazione' assemblea.pk seduta.pk votazione.ballottaggio_di.pk %}">{{ votazione.ballottaggio_di.oggetto }}</a>. Se nessuno raggiunge la maggioranza il posto resta vacante fino all'assemblea successiva.</p>
+    {% endif %}
+  {% elif puo_operare %}
+    <h2 class="fs-xl">Registra i voti</h2>
+    <form method="post">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <div class="row g-3">
+        {% for campo in form %}
+          <div class="md:col-4"><div class="form-field">{{ campo.label_tag }}{{ campo }}{{ campo.errors }}</div></div>
+        {% endfor %}
+      </div>
+      <button type="submit" class="btn-solid theme-primary mt-5">Registra e chiudi la votazione</button>
+    </form>
+
+    <form method="post" action="{% url 'assemblee:votazione_azione' assemblea.pk seduta.pk votazione.pk %}" class="d-flex flex-wrap align-items-center gap-3 mt-7">
+      {% csrf_token %}<input type="hidden" name="azione" value="annulla">
+      <div class="form-field mb-0">
+        <input type="checkbox" name="conferma" value="1" id="conferma-annulla-votazione" class="check" required>
+        <label for="conferma-annulla-votazione">Aperta per errore</label>
+      </div>
+      <button type="submit" class="btn-outline theme-danger btn-sm">Annulla la votazione</button>
+    </form>
+  {% endif %}
+
+  <p class="mt-7"><a href="{% url 'assemblee:votazioni' assemblea.pk seduta.pk %}">Tutte le votazioni della seduta</a></p>
+{% endblock %}

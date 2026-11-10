@@ -25,6 +25,11 @@ templates/500.html: Bootstrap 6 con la stessa versione e SRI del tema.
       <div class="md:col-4"><p class="fs-5xl fw-bold mb-0" data-campo="presenti_carta">{{ stato.presenti_carta }}</p><p class="fs-xl">votanti su carta</p></div>
     </div>
 
+    <div class="row g-7 mb-7">
+      <div class="md:col-6"><p class="fs-4xl fw-bold mb-0" data-campo="soglia_deliberazioni">{{ stato.soglie.deliberazioni }}</p><p class="fs-lg">maggioranza per deliberazioni ed elezioni</p></div>
+      <div class="md:col-6"><p class="fs-4xl fw-bold mb-0" data-campo="soglia_revoca">{{ stato.soglie.revoca }}</p><p class="fs-lg">maggioranza per la revoca di un mandato</p></div>
+    </div>
+
     <p class="fs-3xl fw-bold" data-campo="stato_quorum">{% if stato.soglia is None %}Quorum non richiesto{% elif stato.raggiunto %}Quorum raggiunto{% else %}Mancano {{ stato.mancanti }} presenti{% endif %}</p>
     <p class="fs-xl{% if not stato.verifica %} d-none{% endif %}" data-verifica>
       Verifica del quorum in corso: rilevati <span data-campo="verifica_presenti">{{ stato.verifica.presenti }}</span>

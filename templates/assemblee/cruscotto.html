@@ -37,6 +37,18 @@
     <p class="mb-0 fs-lg" data-campo="stato_quorum">{% if stato.soglia is None %}Quorum non richiesto{% elif stato.raggiunto %}Quorum raggiunto{% else %}Mancano {{ stato.mancanti }} presenti{% endif %}</p>
   </div>
 
+  <h2 class="fs-xl">Maggioranze richieste ora</h2>
+  <div class="table-responsive mb-5">
+  <table class="table table-sm">
+    <tbody>
+      <tr><td>Deliberazioni (mozioni, raccomandazioni, bilanci, regolamento)</td><td>metà dei presenti + 1</td><td class="fs-lg" data-campo="soglia_deliberazioni">{{ stato.soglie.deliberazioni }}</td></tr>
+      <tr><td>Elezioni (per ogni candidato) e ballottaggio</td><td>metà dei presenti + 1</td><td class="fs-lg" data-campo="soglia_elezioni">{{ stato.soglie.elezioni }}</td></tr>
+      <tr><td>Revoca di un mandato</td><td>metà degli aventi diritto + 1</td><td class="fs-lg" data-campo="soglia_revoca">{{ stato.soglie.revoca }}</td></tr>
+      <tr><td>Mozione d'ordine, nuovo punto all'ordine del giorno</td><td>metà dei votanti + 1</td><td class="fg-2">a voto concluso</td></tr>
+    </tbody>
+  </table>
+  </div>
+
   <div class="alert theme-info mb-5{% if not stato.verifica %} d-none{% endif %}" role="status" data-verifica>
     <p class="mb-0">
       <strong>Verifica del quorum in corso</strong> (<span data-campo="verifica_richiedente">{{ stato.verifica.richiedente }}</span>):

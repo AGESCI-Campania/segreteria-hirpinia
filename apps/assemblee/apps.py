@@ -13,11 +13,15 @@ class AssembleeConfig(AppConfig):
             Appello,
             Assemblea,
             AventeDiritto,
+            Candidato,
             DelegaAE,
             IncaricoDichiarato,
             OperatoreVoto,
             Presenza,
+            PuntoOdG,
+            RisultatoCanale,
             Seduta,
+            Votazione,
         )
 
         # Eliminazioni, trasferimenti e nomine di operatori vanno tracciati (D-70):
@@ -30,3 +34,7 @@ class AssembleeConfig(AppConfig):
         auditlog.register(Appello)
         auditlog.register(Presenza)
         auditlog.register(DelegaAE)
+        auditlog.register(PuntoOdG)
+        auditlog.register(Votazione)
+        auditlog.register(RisultatoCanale)
+        auditlog.register(Candidato)

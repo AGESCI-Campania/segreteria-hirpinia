@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block page_title %}Nuova votazione — {{ seduta }}{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="lg:col-8">
+      <h1>Nuova votazione</h1>
+      <p class="fg-2">
+        All'apertura Catello fotografa presenti e aventi diritto: sono la base della maggioranza
+        e non cambiano dopo. Mozioni, raccomandazioni, bilanci e mozioni d'ordine si votano per
+        alzata di mano; elezioni e revoche a scrutinio segreto, in app e su carta.
+      </p>
+      <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="d-flex gap-3">
+          <button type="submit" class="btn-solid theme-primary">Apri la votazione</button>
+          <a href="{% url 'assemblee:votazioni' assemblea.pk seduta.pk %}" class="btn-outline theme-secondary">Annulla</a>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

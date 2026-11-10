@@ -103,4 +103,24 @@ urlpatterns = [
         views.AbilitazioneAppView.as_view(),
         name="abilitazione_app",
     ),
+    path(
+        "<int:pk>/sedute/<int:seduta_pk>/votazioni/",
+        views.VotazioniView.as_view(),
+        name="votazioni",
+    ),
+    path(
+        "<int:pk>/sedute/<int:seduta_pk>/votazioni/nuova/",
+        views.NuovaVotazioneView.as_view(),
+        name="votazione_nuova",
+    ),
+    path(
+        "<int:pk>/sedute/<int:seduta_pk>/votazioni/<int:votazione_pk>/",
+        views.VotazioneView.as_view(),
+        name="votazione",
+    ),
+    path(
+        "<int:pk>/sedute/<int:seduta_pk>/votazioni/<int:votazione_pk>/azione/",
+        views.VotazioneAzioneView.as_view(),
+        name="votazione_azione",
+    ),
 ]

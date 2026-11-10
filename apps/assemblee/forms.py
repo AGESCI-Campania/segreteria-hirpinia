@@ -8,7 +8,15 @@ from apps.accounts.models import StatoUtente, TipoUtente, Utente
 from apps.anagrafica.models import BrancaUnita, FunzioneIncarico
 from apps.organizzazione.models import Gruppo, anno_scout_corrente
 
-from .models import Assemblea, AventeDiritto, Provenienza, Seduta
+from .models import (
+    Assemblea,
+    AventeDiritto,
+    CanaleVoto,
+    Provenienza,
+    PuntoOdG,
+    Seduta,
+    TipoVotazione,
+)
 
 
 class AssembleaCreaForm(forms.ModelForm):
@@ -122,6 +130,11 @@ class _AventeChoiceField(forms.ModelChoiceField):
         return f"{obj.cognome} {obj.nome} — {obj.gruppo.nome}"
 
 
+class _AventiMultipliField(forms.ModelMultipleChoiceField):
+    def label_from_instance(self, obj):
+        return f"{obj.cognome} {obj.nome} — {obj.gruppo.nome}"
+
+
 class DelegaForm(forms.Form):
     delegante = _AventeChoiceField(queryset=AventeDiritto.objects.none(), label="AE che delega")
     delegato = _AventeChoiceField(queryset=AventeDiritto.objects.none(), label="Delegato")
@@ -144,3 +157,71 @@ class QualificheForm(forms.Form):
         required=False,
         help_text="Un Responsabile di Zona è sempre anche membro del Comitato.",
     )
+
+
+class VotazioneForm(forms.Form):
+    tipo = forms.ChoiceField(
+        label="Tipo",
+        choices=[(v, e) for v, e in TipoVotazione.choices if v != TipoVotazione.BALLOTTAGGIO],
+    )
+    oggetto = forms.CharField(label="Oggetto", max_length=500)
+    punto = forms.ModelChoiceField(
+        label="Punto all'ordine del giorno", queryset=PuntoOdG.objects.none(), required=False
+    )
+    incarico = forms.CharField(
+        label="Incarico da eleggere",
+        max_length=200,
+        required=False,
+        help_text="Solo per le elezioni (es. membro del Comitato di Zona).",
+    )
+    posti = forms.IntegerField(
+        label="Posti da eleggere", min_value=1, initial=1, help_text="Solo per le elezioni."
+    )
+    candidati = _AventiMultipliField(
+        label="Candidati dall'elenco",
+        queryset=AventeDiritto.objects.none(),
+        required=False,
+        widget=forms.SelectMultiple(attrs={"size": 8}),
+    )
+    altri_candidati = forms.CharField(
+        label="Altri candidati",
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 3}),
+        help_text="Uno per riga, se non sono nell'elenco degli aventi diritto.",
+    )
+
+    def __init__(self, *args, assemblea: Assemblea, **kwargs):
+        super().__init__(*args, **kwargs)
+        cast(forms.ModelChoiceField, self.fields["punto"]).queryset = assemblea.punti_odg.all()
+        cast(forms.ModelChoiceField, self.fields["candidati"]).queryset = (
+            assemblea.aventi_diritto.nell_elenco()
+            .select_related("gruppo")
+            .order_by("cognome", "nome")
+        )
+
+
+def form_risultati(votazione, canali_voto: list[str], data=None) -> forms.Form:
+    """Form dei risultati costruito sulla votazione: favorevoli/contrari/
+    astenuti per canale nelle votazioni sì/no; voti per candidato più schede
+    bianche e nulle nelle elezioni."""
+    campi: dict[str, forms.Field] = {}
+    elezione = votazione.tipo in (TipoVotazione.ELEZIONE, TipoVotazione.BALLOTTAGGIO)
+    etichette = dict(CanaleVoto.choices)
+    # Prima i voti dei candidati, poi schede bianche e nulle: l'ordine dello spoglio.
+    if elezione:
+        for candidato in votazione.candidati.all():
+            for canale in canali_voto:
+                chiave = "voti_app" if canale == CanaleVoto.APP else "voti_carta"
+                campi[f"candidato_{candidato.pk}_{chiave}"] = forms.IntegerField(
+                    label=f"{candidato.nome} ({etichette[canale].lower()})",
+                    min_value=0,
+                    initial=0,
+                )
+    for canale in canali_voto:
+        voci = ("bianche", "nulle") if elezione else ("favorevoli", "contrari", "astenuti")
+        for voce in voci:
+            campi[f"{canale}_{voce}"] = forms.IntegerField(
+                label=f"{voce.capitalize()} ({etichette[canale].lower()})", min_value=0, initial=0
+            )
+    classe = type("RisultatiForm", (forms.Form,), campi)
+    return classe(data)

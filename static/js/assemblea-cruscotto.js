@@ -67,6 +67,11 @@
       imposta("[data-campo='verifica_presenti']", verifica.presenti);
       imposta("[data-campo='verifica_soglia']", verifica.soglia === null ? "—" : verifica.soglia);
     }
+    if (dati.soglie) {
+      imposta("[data-campo='soglia_deliberazioni']", dati.soglie.deliberazioni);
+      imposta("[data-campo='soglia_elezioni']", dati.soglie.elezioni);
+      imposta("[data-campo='soglia_revoca']", dati.soglie.revoca);
+    }
     aggiornaElenco(dati.elenco);
   }
 

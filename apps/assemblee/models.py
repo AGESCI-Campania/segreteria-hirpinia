@@ -439,3 +439,140 @@ class DelegaAE(models.Model):
 
     def __str__(self) -> str:
         return f"{self.delegante} → {self.delegato}"
+
+
+class PuntoOdG(models.Model):
+    """Punto all'ordine del giorno dell'assemblea, con il testo della
+    discussione per il verbale."""
+
+    assemblea = models.ForeignKey(Assemblea, on_delete=models.CASCADE, related_name="punti_odg")
+    ordine = models.PositiveSmallIntegerField()
+    titolo = models.CharField(max_length=500)
+    testo = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "punto all'ordine del giorno"
+        verbose_name_plural = "punti all'ordine del giorno"
+        ordering = ["assemblea", "ordine"]
+
+    def __str__(self) -> str:
+        return f"{self.ordine}. {self.titolo}"
+
+
+class TipoVotazione(models.TextChoices):
+    MOZIONE = "MOZIONE", "Mozione"
+    RACCOMANDAZIONE = "RACCOMANDAZIONE", "Raccomandazione"
+    BILANCIO = "BILANCIO", "Bilancio"
+    REGOLAMENTO = "REGOLAMENTO", "Modifica del regolamento"
+    ALTRA_DELIBERA = "ALTRA_DELIBERA", "Altra deliberazione"
+    MOZIONE_ORDINE = "MOZIONE_ORDINE", "Mozione d'ordine"
+    NUOVO_PUNTO_ODG = "NUOVO_PUNTO_ODG", "Inserimento di un punto all'ordine del giorno"
+    ELEZIONE = "ELEZIONE", "Elezione"
+    BALLOTTAGGIO = "BALLOTTAGGIO", "Ballottaggio"
+    REVOCA = "REVOCA", "Revoca di un mandato"
+
+
+# Votazioni a scrutinio segreto (art. 14 c.3, art. 19 c.3): risultati separati
+# fra app e carta. Le altre sono palesi, per alzata di mano.
+VOTAZIONI_SEGRETE = frozenset(
+    {TipoVotazione.ELEZIONE, TipoVotazione.BALLOTTAGGIO, TipoVotazione.REVOCA}
+)
+
+
+class CanaleVoto(models.TextChoices):
+    PALESE = "PALESE", "Alzata di mano"
+    APP = "APP", "App"
+    CARTA = "CARTA", "Carta"
+
+
+class Votazione(models.Model):
+    """Una votazione della seduta (D-70). Presenti e aventi diritto sono
+    fotografati all'apertura: sono la base delle soglie (votazioni.py)."""
+
+    seduta = models.ForeignKey(Seduta, on_delete=models.CASCADE, related_name="votazioni")
+    punto = models.ForeignKey(
+        PuntoOdG, on_delete=models.SET_NULL, null=True, blank=True, related_name="votazioni"
+    )
+    tipo = models.CharField(max_length=20, choices=TipoVotazione.choices)
+    oggetto = models.CharField(max_length=500)
+    # Solo elezioni e ballottaggi.
+    incarico = models.CharField(max_length=200, blank=True)
+    posti = models.PositiveSmallIntegerField(default=1)
+    ballottaggio_di = models.ForeignKey(
+        "self", on_delete=models.CASCADE, null=True, blank=True, related_name="ballottaggi"
+    )
+    presenti = models.PositiveIntegerField()
+    aventi_diritto = models.PositiveIntegerField()
+    aperta_il = models.DateTimeField(auto_now_add=True)
+    aperta_da = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    chiusa_il = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "votazione"
+        verbose_name_plural = "votazioni"
+        ordering = ["seduta", "aperta_il"]
+
+    def __str__(self) -> str:
+        return f"{self.get_tipo_display()}: {self.oggetto}"
+
+    @property
+    def segreta(self) -> bool:
+        return self.tipo in VOTAZIONI_SEGRETE
+
+    @property
+    def chiusa(self) -> bool:
+        return self.chiusa_il is not None
+
+
+class RisultatoCanale(models.Model):
+    """Voti espressi in un canale: alzata di mano per le palesi, app e carta
+    per le segrete. Per le elezioni favorevoli/contrari/astenuti non si usano:
+    i voti stanno sui candidati."""
+
+    votazione = models.ForeignKey(Votazione, on_delete=models.CASCADE, related_name="risultati")
+    canale = models.CharField(max_length=10, choices=CanaleVoto.choices)
+    favorevoli = models.PositiveIntegerField(default=0)
+    contrari = models.PositiveIntegerField(default=0)
+    astenuti = models.PositiveIntegerField(default=0)
+    bianche = models.PositiveIntegerField(default=0)
+    nulle = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "risultato per canale"
+        verbose_name_plural = "risultati per canale"
+        constraints = [
+            models.UniqueConstraint(fields=["votazione", "canale"], name="un_risultato_per_canale")
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.votazione} — {self.get_canale_display()}"
+
+
+class Candidato(models.Model):
+    votazione = models.ForeignKey(Votazione, on_delete=models.CASCADE, related_name="candidati")
+    # Collegato all'elenco quando possibile (serve al verbale del rappresentante
+    # legale), altrimenti solo il nome.
+    avente = models.ForeignKey(
+        AventeDiritto, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    nome = models.CharField(max_length=200)
+    voti_app = models.PositiveIntegerField(default=0)
+    voti_carta = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "candidato"
+        verbose_name_plural = "candidati"
+        ordering = ["votazione", "nome"]
+
+    def __str__(self) -> str:
+        return self.nome
+
+    @property
+    def voti(self) -> int:
+        return self.voti_app + self.voti_carta

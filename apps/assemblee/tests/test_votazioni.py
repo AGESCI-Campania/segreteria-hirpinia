@@ -1,0 +1,267 @@
+"""Votazioni, soglie ed esiti alla lettera dal regolamento (apps/assemblee/votazioni.py)."""
+
+import datetime
+
+import pytest
+from allauth.mfa.models import Authenticator
+from django.core.exceptions import PermissionDenied, ValidationError
+
+from apps.accounts.models import Ruolo, StatoUtente, TipoUtente, Utente
+from apps.anagrafica.models import Capo, CensimentoCapo
+from apps.assemblee import elenco, sedute, votazioni
+from apps.assemblee.models import (
+    Assemblea,
+    CanaleVoto,
+    Seduta,
+    TipoAssemblea,
+    TipoVotazione,
+    Votazione,
+)
+from apps.organizzazione.models import Gruppo
+
+pytestmark = pytest.mark.django_db
+
+PRESENTI = 120
+AVENTI = 186
+
+
+@pytest.fixture
+def segreteria() -> Utente:
+    utente = Utente.objects.create(
+        username="segr", email="s@example.it", tipo=TipoUtente.PERSONA, stato=StatoUtente.ATTIVO
+    )
+    Ruolo.objects.create(utente=utente, tipo=Ruolo.Tipo.SEGRETERIA)
+    Authenticator.objects.create(user=utente, type=Authenticator.Type.TOTP, data={})
+    return utente
+
+
+@pytest.fixture
+def seduta(segreteria) -> Seduta:
+    """Seduta costituita con 4 aventi diritto e 3 presenti (per le operazioni)."""
+    gruppo = Gruppo.objects.create(codice="E0133", nome="AVELLINO 1")
+    for i in range(4):
+        capo = Capo.objects.create(codice_socio=str(i), nome="Nome", cognome=f"C{i}")
+        CensimentoCapo.objects.create(capo=capo, anno_scout=2026, gruppo=gruppo)
+    assemblea = Assemblea.objects.create(tipo=TipoAssemblea.AUTUNNALE, anno_scout=2027)
+    seduta = Seduta.objects.create(
+        assemblea=assemblea, convocazione=1, data=datetime.date(2026, 11, 22)
+    )
+    elenco.importa_elenco(assemblea, segreteria)
+    sedute.apri_seduta(seduta, segreteria)
+    for i in range(3):
+        sedute.registra_presenza(
+            seduta, assemblea.aventi_diritto.get(codice_socio=str(i)), segreteria
+        )
+    sedute.dichiara_costituita(seduta, segreteria)
+    return seduta
+
+
+def _votazione(seduta, tipo, *, presenti=PRESENTI, aventi=AVENTI, posti=1, candidati=()):
+    """Votazione con numeri fotografati arbitrari, per provare le soglie."""
+    v = Votazione.objects.create(
+        seduta=seduta,
+        tipo=tipo,
+        oggetto="Prova",
+        incarico="Membro del Comitato di Zona" if candidati else "",
+        posti=posti,
+        presenti=presenti,
+        aventi_diritto=aventi,
+    )
+    for nome in candidati:
+        v.candidati.create(nome=nome)
+    return v
+
+
+def _palese(votazione, utente, fav, contr, ast):
+    canale = votazioni.canali(votazione)[0]
+    return votazioni.registra_risultati(
+        votazione,
+        utente,
+        per_canale={canale: {"favorevoli": fav, "contrari": contr, "astenuti": ast}},
+    )
+
+
+def _elezione(votazione, utente, voti_carta: dict[str, int], bianche=0, nulle=0):
+    voti = {c.pk: {"voti_carta": voti_carta[c.nome]} for c in votazione.candidati.all()}
+    per_canale = {CanaleVoto.CARTA.value: {"bianche": bianche, "nulle": nulle}}
+    return votazioni.registra_risultati(
+        votazione, utente, per_canale=per_canale, voti_candidati=voti
+    )
+
+
+class TestDeliberazioni:
+    @pytest.mark.parametrize(
+        "tipo",
+        [TipoVotazione.MOZIONE, TipoVotazione.BILANCIO, TipoVotazione.RACCOMANDAZIONE],
+    )
+    def test_soglia_meta_dei_presenti_piu_uno(self, seduta, segreteria, tipo):
+        respinta = _palese(_votazione(seduta, tipo), segreteria, 60, 30, 30)
+        approvata = _palese(_votazione(seduta, tipo), segreteria, 61, 30, 29)
+        assert (respinta.soglia, respinta.approvata) == (61, False)
+        assert approvata.approvata
+
+    def test_astenuti_pesano_come_non_favorevoli(self, seduta, segreteria):
+        """Esempio concordato: 120 presenti, 55 favorevoli → respinta."""
+        assert not _palese(
+            _votazione(seduta, TipoVotazione.MOZIONE), segreteria, 55, 40, 25
+        ).approvata
+
+    def test_palese_un_solo_canale(self, seduta):
+        assert votazioni.canali(_votazione(seduta, TipoVotazione.MOZIONE)) == [CanaleVoto.PALESE]
+
+    def test_mozione_d_ordine_sui_votanti(self, seduta, segreteria):
+        esito = _palese(_votazione(seduta, TipoVotazione.MOZIONE_ORDINE), segreteria, 30, 20, 9)
+        assert (esito.base_nome, esito.base, esito.soglia, esito.approvata) == (
+            "votanti",
+            59,
+            30,
+            True,
+        )
+
+    def test_revoca_sugli_aventi_diritto(self, seduta, segreteria):
+        revoca = _votazione(seduta, TipoVotazione.REVOCA)
+        assert votazioni.canali(revoca) == [CanaleVoto.APP, CanaleVoto.CARTA]
+        esito = votazioni.registra_risultati(
+            revoca,
+            segreteria,
+            per_canale={
+                CanaleVoto.APP.value: {"favorevoli": 60},
+                CanaleVoto.CARTA.value: {"favorevoli": 33},
+            },
+        )
+        # 93 favorevoli su 120 presenti, ma servono 94 degli aventi diritto.
+        assert (esito.soglia, esito.approvata) == (94, False)
+
+    def test_voti_oltre_i_presenti_rifiutati(self, seduta, segreteria):
+        with pytest.raises(ValidationError):
+            _palese(_votazione(seduta, TipoVotazione.MOZIONE), segreteria, 100, 20, 1)
+
+
+class TestElezioni:
+    def test_eletto_al_primo_turno(self, seduta, segreteria):
+        v = _votazione(seduta, TipoVotazione.ELEZIONE, candidati=["Anna", "Bruno"])
+        esito = _elezione(v, segreteria, {"Anna": 70, "Bruno": 40}, bianche=10)
+        assert [c.nome for c in esito.eletti] == ["Anna"]
+        assert esito.posti_vacanti == 0
+
+    def test_nessuno_eletto_ballottaggio_fra_i_primi_due(self, seduta, segreteria):
+        v = _votazione(seduta, TipoVotazione.ELEZIONE, candidati=["Anna", "Bruno", "Carla"])
+        esito = _elezione(v, segreteria, {"Anna": 55, "Bruno": 50, "Carla": 10})
+        assert esito.eletti == []
+        assert [c.nome for c in esito.ballottaggio_proposto] == ["Anna", "Bruno"]
+
+    def test_candidatura_unica_senza_quorum_posto_vacante(self, seduta, segreteria):
+        v = _votazione(seduta, TipoVotazione.ELEZIONE, candidati=["Anna"])
+        esito = _elezione(v, segreteria, {"Anna": 55})
+        assert esito.posti_vacanti == 1 and esito.ballottaggio_proposto == []
+
+    def test_piu_posti(self, seduta, segreteria):
+        v = _votazione(seduta, TipoVotazione.ELEZIONE, posti=2, candidati=["A", "B", "C"])
+        esito = _elezione(v, segreteria, {"A": 80, "B": 65, "C": 30})
+        assert [c.nome for c in esito.eletti] == ["A", "B"]
+
+    def test_piu_posti_con_posto_scoperto(self, seduta, segreteria):
+        v = _votazione(seduta, TipoVotazione.ELEZIONE, posti=2, candidati=["A", "B", "C"])
+        esito = _elezione(v, segreteria, {"A": 80, "B": 50, "C": 45})
+        assert [c.nome for c in esito.eletti] == ["A"]
+        assert [c.nome for c in esito.ballottaggio_proposto] == ["B", "C"]
+
+    def test_parita_sull_ultimo_posto(self, seduta, segreteria):
+        v = _votazione(seduta, TipoVotazione.ELEZIONE, posti=2, candidati=["A", "B", "C"])
+        esito = _elezione(v, segreteria, {"A": 90, "B": 70, "C": 70})
+        assert [c.nome for c in esito.eletti] == ["A"]
+        assert {c.nome for c in esito.ballottaggio_proposto} == {"B", "C"}
+
+    def test_ballottaggio_solo_carta_e_un_solo_turno(self, seduta, segreteria):
+        v = _votazione(seduta, TipoVotazione.ELEZIONE, candidati=["Anna", "Bruno", "Carla"])
+        _elezione(v, segreteria, {"Anna": 55, "Bruno": 50, "Carla": 10})
+        ballottaggio = votazioni.apri_ballottaggio(v, segreteria)
+        assert votazioni.canali(ballottaggio) == [CanaleVoto.CARTA]
+        assert sorted(c.nome for c in ballottaggio.candidati.all()) == ["Anna", "Bruno"]
+        with pytest.raises(ValidationError):
+            votazioni.apri_ballottaggio(v, segreteria)
+
+    def test_ballottaggio_senza_maggioranza_posto_vacante(self, seduta, segreteria):
+        v = _votazione(seduta, TipoVotazione.ELEZIONE, candidati=["Anna", "Bruno", "Carla"])
+        _elezione(v, segreteria, {"Anna": 55, "Bruno": 50, "Carla": 10})
+        ballottaggio = votazioni.apri_ballottaggio(v, segreteria)
+        # Il ballottaggio fotografa i presenti della seduta (3 nella fixture).
+        esito = _elezione(ballottaggio, segreteria, {"Anna": 1, "Bruno": 1})
+        assert esito.eletti == [] and esito.posti_vacanti == 1
+        assert esito.ballottaggio_proposto == []
+
+    def test_frase_di_esito(self, seduta, segreteria):
+        v = _votazione(seduta, TipoVotazione.ELEZIONE, candidati=["Anna", "Bruno"])
+        _elezione(v, segreteria, {"Anna": 70, "Bruno": 40}, bianche=2)
+        frase = votazioni.frase_esito(v)
+        assert "Anna 70 voti" in frase and "eletto: Anna" in frase and "soglia 61" in frase
+
+
+class TestApertura:
+    def test_fotografa_i_presenti(self, seduta, segreteria):
+        v = votazioni.apri_votazione(
+            seduta, segreteria, tipo=TipoVotazione.MOZIONE, oggetto="Bilancio"
+        )
+        assert (v.presenti, v.aventi_diritto) == (3, 4)
+        sedute.registra_presenza(
+            seduta, seduta.assemblea.aventi_diritto.get(codice_socio="3"), segreteria
+        )
+        v.refresh_from_db()
+        assert v.presenti == 3
+
+    def test_elezione_richiede_incarico_e_candidati(self, seduta, segreteria):
+        with pytest.raises(ValidationError):
+            votazioni.apri_votazione(
+                seduta, segreteria, tipo=TipoVotazione.ELEZIONE, oggetto="Comitato"
+            )
+        v = votazioni.apri_votazione(
+            seduta,
+            segreteria,
+            tipo=TipoVotazione.ELEZIONE,
+            oggetto="Comitato",
+            incarico="Membro del Comitato",
+            candidati=[seduta.assemblea.aventi_diritto.get(codice_socio="0"), "Esterno Mario"],
+        )
+        assert v.candidati.count() == 2
+        assert v.candidati.filter(avente__isnull=False).count() == 1
+
+    def test_solo_in_seduta_costituita(self, seduta, segreteria):
+        Seduta.objects.filter(pk=seduta.pk).update(costituita=None)
+        seduta.refresh_from_db()
+        with pytest.raises(ValidationError):
+            votazioni.apri_votazione(seduta, segreteria, tipo=TipoVotazione.MOZIONE, oggetto="X")
+
+    def test_solo_gestori_e_operatori(self, seduta):
+        capo = Utente.objects.create(username="capo", email="c@example.it")
+        with pytest.raises(PermissionDenied):
+            votazioni.apri_votazione(seduta, capo, tipo=TipoVotazione.MOZIONE, oggetto="X")
+
+    def test_annulla_solo_prima_dei_risultati(self, seduta, segreteria):
+        v = votazioni.apri_votazione(seduta, segreteria, tipo=TipoVotazione.MOZIONE, oggetto="X")
+        _palese(v, segreteria, 2, 1, 0)
+        with pytest.raises(ValidationError):
+            votazioni.annulla_votazione(v, segreteria)
+
+
+def test_soglie_correnti():
+    assert votazioni.soglie_correnti(120, 186) == {
+        "deliberazioni": 61,
+        "elezioni": 61,
+        "revoca": 94,
+    }
+
+
+def test_flusso_dalle_pagine(client, seduta, segreteria):
+    client.force_login(segreteria)
+    base = f"/assemblee/{seduta.assemblea_id}/sedute/{seduta.pk}/votazioni/"
+    client.post(f"{base}nuova/", {"tipo": TipoVotazione.MOZIONE, "oggetto": "Bilancio", "posti": 1})
+    v = Votazione.objects.get()
+    client.post(
+        f"{base}{v.pk}/",
+        {"PALESE_favorevoli": 2, "PALESE_contrari": 1, "PALESE_astenuti": 0},
+    )
+    v.refresh_from_db()
+    assert v.chiusa
+    assert votazioni.esito(v).approvata
+    pagina = client.get(base)
+    assert "Approvata con 2 voti favorevoli" in pagina.content.decode()

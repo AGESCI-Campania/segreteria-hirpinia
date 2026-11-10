@@ -21,6 +21,7 @@ from . import cruscotto, elenco, sedute
 from . import deleghe as deleghe_ae
 from . import file as file_assemblea
 from . import quorum as quorum_assemblea
+from . import votazioni as voto
 from .forms import (
     AssembleaCreaForm,
     AventeInserisciForm,
@@ -30,6 +31,8 @@ from .forms import (
     OperatoreAggiungiForm,
     QualificheForm,
     TrasferisciForm,
+    VotazioneForm,
+    form_risultati,
 )
 from .models import (
     Assemblea,
@@ -39,6 +42,7 @@ from .models import (
     RichiedenteVerifica,
     Seduta,
     TipoAppello,
+    Votazione,
 )
 from .permessi import accede_assemblee, assemblee_visibili, puo_gestire_assemblee, puo_operare
 from .quorum import stato_quorum
@@ -832,3 +836,180 @@ class AbilitazioneAppView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             "aggiornato_il": timezone.localtime(),
         }
         return render(request, self.template_name, contesto)
+
+
+# --- Votazioni --------------------------------------------------------------------
+
+
+def _votazione_visibile(request: HttpRequest, pk: int, seduta_pk: int, votazione_pk: int):
+    seduta = _seduta_visibile(request, pk, seduta_pk)
+    return get_object_or_404(Votazione, pk=votazione_pk, seduta=seduta)
+
+
+class VotazioniView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
+    template_name = "assemblee/votazioni.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_seduta(request, {"label": "Votazioni"})
+
+    def get(self, request, pk, seduta_pk):
+        seduta = _seduta_visibile(request, pk, seduta_pk)
+        votazioni_seduta = seduta.votazioni.select_related("punto").prefetch_related(
+            "risultati", "candidati"
+        )
+        contesto = {
+            "assemblea": seduta.assemblea,
+            "seduta": seduta,
+            "votazioni": [(v, voto.frase_esito(v)) for v in votazioni_seduta],
+            "puo_votare": puo_operare(request.user, seduta.assemblea)
+            and seduta.aperta
+            and seduta.costituita is True,
+        }
+        return render(request, self.template_name, contesto)
+
+
+class NuovaVotazioneView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
+    template_name = "assemblee/votazione_nuova.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_seduta(request, {"label": "Nuova votazione"})
+
+    def get(self, request, pk, seduta_pk):
+        seduta = _seduta_visibile(request, pk, seduta_pk)
+        form = VotazioneForm(assemblea=seduta.assemblea)
+        return render(
+            request,
+            self.template_name,
+            {"seduta": seduta, "assemblea": seduta.assemblea, "form": form},
+        )
+
+    def post(self, request, pk, seduta_pk):
+        seduta = _seduta_visibile(request, pk, seduta_pk)
+        form = VotazioneForm(request.POST, assemblea=seduta.assemblea)
+        if form.is_valid():
+            dati = form.cleaned_data
+            candidati = [*dati["candidati"], *dati["altri_candidati"].splitlines()]
+            try:
+                votazione = voto.apri_votazione(
+                    seduta,
+                    request.user,
+                    tipo=dati["tipo"],
+                    oggetto=dati["oggetto"],
+                    punto=dati["punto"],
+                    incarico=dati["incarico"],
+                    posti=dati["posti"],
+                    candidati=candidati,
+                )
+            except ValidationError as errore:
+                form.add_error(None, errore)
+            else:
+                messages.success(request, f"Votazione aperta: {votazione.oggetto}.")
+                return redirect(reverse("assemblee:votazione", args=[pk, seduta_pk, votazione.pk]))
+        return render(
+            request,
+            self.template_name,
+            {"seduta": seduta, "assemblea": seduta.assemblea, "form": form},
+        )
+
+
+class VotazioneView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
+    template_name = "assemblee/votazione.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        kwargs = request.resolver_match.kwargs
+        return _breadcrumb_seduta(
+            request,
+            {
+                "label": "Votazioni",
+                "url": reverse("assemblee:votazioni", args=[kwargs["pk"], kwargs["seduta_pk"]]),
+            },
+            {"label": "Votazione"},
+        )
+
+    def _contesto(self, request, votazione, form=None):
+        canali_voto = voto.canali(votazione)
+        if form is None and not votazione.chiusa:
+            form = form_risultati(votazione, canali_voto)
+        esito = voto.esito(votazione) if votazione.chiusa else None
+        return {
+            "assemblea": votazione.seduta.assemblea,
+            "seduta": votazione.seduta,
+            "votazione": votazione,
+            "form": form,
+            "soglia": voto.soglia(votazione),
+            "esito": esito,
+            "frase_esito": voto.frase_esito(votazione),
+            "puo_operare": puo_operare(request.user, votazione.seduta.assemblea),
+            "puo_ballottaggio": (
+                esito is not None
+                and esito.ballottaggio_proposto
+                and not votazione.ballottaggi.exists()
+            ),
+            "ballottaggio": votazione.ballottaggi.first(),
+        }
+
+    def get(self, request, pk, seduta_pk, votazione_pk):
+        votazione = _votazione_visibile(request, pk, seduta_pk, votazione_pk)
+        return render(request, self.template_name, self._contesto(request, votazione))
+
+    def post(self, request, pk, seduta_pk, votazione_pk):
+        votazione = _votazione_visibile(request, pk, seduta_pk, votazione_pk)
+        canali_voto = voto.canali(votazione)
+        form = form_risultati(votazione, canali_voto, request.POST)
+        if form.is_valid():
+            dati = form.cleaned_data
+            per_canale = {
+                canale: {
+                    voce: dati[f"{canale}_{voce}"]
+                    for voce in ("favorevoli", "contrari", "astenuti", "bianche", "nulle")
+                    if f"{canale}_{voce}" in dati
+                }
+                for canale in canali_voto
+            }
+            voti_candidati = {
+                c.pk: {
+                    chiave: dati[f"candidato_{c.pk}_{chiave}"]
+                    for chiave in ("voti_app", "voti_carta")
+                    if f"candidato_{c.pk}_{chiave}" in dati
+                }
+                for c in votazione.candidati.all()
+            }
+            try:
+                voto.registra_risultati(
+                    votazione,
+                    request.user,
+                    per_canale=per_canale,
+                    voti_candidati=voti_candidati,
+                )
+            except ValidationError as errore:
+                form.add_error(None, errore)
+            else:
+                messages.success(request, voto.frase_esito(votazione))
+                return redirect(reverse("assemblee:votazione", args=[pk, seduta_pk, votazione_pk]))
+        return render(request, self.template_name, self._contesto(request, votazione, form))
+
+
+class VotazioneAzioneView(LoginRequiredMixin, View):
+    """Ballottaggio e annullamento: i permessi li controlla il service layer."""
+
+    def post(self, request, pk, seduta_pk, votazione_pk):
+        votazione = _votazione_visibile(request, pk, seduta_pk, votazione_pk)
+        azione = request.POST.get("azione")
+        try:
+            if azione == "ballottaggio":
+                ballottaggio = voto.apri_ballottaggio(votazione, request.user)
+                messages.success(request, "Ballottaggio aperto: si vota solo su carta.")
+                return redirect(
+                    reverse("assemblee:votazione", args=[pk, seduta_pk, ballottaggio.pk])
+                )
+            if azione == "annulla" and request.POST.get("conferma") == "1":
+                voto.annulla_votazione(votazione, request.user)
+                messages.success(request, "Votazione annullata.")
+                return redirect(reverse("assemblee:votazioni", args=[pk, seduta_pk]))
+            messages.error(request, "Azione non riconosciuta o non confermata.")
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+        return redirect(reverse("assemblee:votazione", args=[pk, seduta_pk, votazione_pk]))
