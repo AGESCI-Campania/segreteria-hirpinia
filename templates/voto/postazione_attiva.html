@@ -1,0 +1,20 @@
+{% extends "voto/base_voto.html" %}
+
+{% block title %}Attiva il seggio{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="md:col-6">
+      <h1 class="mb-5">Attiva il seggio</h1>
+      {% if non_valido %}
+        <div class="alert theme-danger" role="alert">Link non valido o già usato: chiedi al banco una nuova postazione.</div>
+      {% else %}
+        <p class="mb-5">Questo dispositivo diventerà un seggio di voto per la seduta. Il link vale una volta sola.</p>
+        <form method="post">
+          {% csrf_token %}
+          <button type="submit" class="btn-solid theme-primary w-100">Attiva questo dispositivo come seggio</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

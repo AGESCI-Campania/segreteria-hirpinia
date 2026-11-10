@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import segno
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -16,7 +17,7 @@ from apps.assemblee.models import Assemblea, AventeDiritto, Seduta, Votazione
 from apps.assemblee.permessi import assemblee_visibili, puo_operare
 from apps.core.mixins import BreadcrumbExtraMixin
 
-from . import codici, scrutinio, sistema
+from . import codici, postazioni, scrutinio, sistema
 
 MESSAGGI_INVIO = {
     codici.EsitoInvio.INVIATO: "codice di voto inviato per email",
@@ -210,3 +211,65 @@ class NomiScrittiView(LoginRequiredMixin, BreadcrumbExtraMixin, View):
             except ValidationError as errore:
                 messages.error(request, " ".join(errore.messages))
         return redirect(reverse("voto:nomi_scritti", args=[pk, seduta_pk, votazione_pk]))
+
+
+@method_decorator(never_cache, name="dispatch")
+class SeggiView(LoginRequiredMixin, BreadcrumbExtraMixin, View):
+    """Postazioni di voto della seduta: creazione (il link di attivazione si
+    vede una volta sola) e disattivazione."""
+
+    template_name = "voto/seggi.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        kwargs = request.resolver_match.kwargs
+        return [
+            {"label": "Moduli"},
+            {"label": "Assemblee", "url": reverse("assemblee:assemblea_lista")},
+            {
+                "label": "Seduta",
+                "url": reverse("assemblee:seduta", args=[kwargs["pk"], kwargs["seduta_pk"]]),
+            },
+            {"label": "Seggi"},
+        ]
+
+    def _seduta(self, request, pk, seduta_pk) -> Seduta:
+        assemblea = get_object_or_404(assemblee_visibili(request.user), pk=pk)
+        if not puo_operare(request.user, assemblea):
+            raise PermissionDenied
+        return get_object_or_404(Seduta, pk=seduta_pk, assemblea=assemblea)
+
+    def _contesto(self, seduta: Seduta, **extra) -> dict:
+        return {
+            "seduta": seduta,
+            "assemblea": seduta.assemblea,
+            "postazioni": seduta.postazioni.all(),
+            **extra,
+        }
+
+    def get(self, request, pk, seduta_pk):
+        seduta = self._seduta(request, pk, seduta_pk)
+        return render(request, self.template_name, self._contesto(seduta))
+
+    def post(self, request, pk, seduta_pk):
+        seduta = self._seduta(request, pk, seduta_pk)
+        extra: dict = {}
+        try:
+            if "disattiva" in request.POST:
+                postazione = get_object_or_404(seduta.postazioni, pk=request.POST.get("disattiva"))
+                postazioni.disattiva(postazione, request.user)
+                messages.success(request, f"{postazione} disattivata.")
+            else:
+                postazione, segreto = postazioni.crea(
+                    seduta, request.POST.get("nome", ""), request.user
+                )
+                # Stessa convenzione dei link nelle email: SITE_URL, mai build_absolute_uri.
+                link = f"{settings.SITE_URL}{reverse('voto:attiva_postazione', args=[segreto])}"
+                extra = {
+                    "nuova": postazione,
+                    "link": link,
+                    "qr": segno.make(link, error="m").svg_inline(scale=5),
+                }
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+        return render(request, self.template_name, self._contesto(seduta, **extra))

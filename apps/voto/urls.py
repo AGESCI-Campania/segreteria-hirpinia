@@ -12,6 +12,11 @@ urlpatterns = [
     path("stato.json", views_urna.StatoView.as_view(), name="stato"),
     path("esci/", views_urna.EsciView.as_view(), name="esci"),
     path("verifica/", views_urna.VerificaView.as_view(), name="verifica"),
+    path(
+        "seggio/<str:segreto>/",
+        views_urna.AttivaPostazioneView.as_view(),
+        name="attiva_postazione",
+    ),
     path("bacheca/<int:votazione_pk>/", views_urna.BachecaView.as_view(), name="bacheca"),
     # Banco e gestione (login): stessa struttura di URL delle assemblee.
     path(
@@ -38,5 +43,10 @@ urlpatterns = [
         "gestione/<int:pk>/sedute/<int:seduta_pk>/votazioni/<int:votazione_pk>/nomi/",
         views.NomiScrittiView.as_view(),
         name="nomi_scritti",
+    ),
+    path(
+        "gestione/<int:pk>/sedute/<int:seduta_pk>/seggi/",
+        views.SeggiView.as_view(),
+        name="seggi",
     ),
 ]

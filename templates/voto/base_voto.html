@@ -13,6 +13,7 @@ della pagina, niente script di terze parti.
   <meta name="referrer" content="no-referrer">
   <meta name="robots" content="noindex, nofollow">
   <title>{% block title %}Voto{% endblock %}</title>
+  {% block extra_head %}{% endblock %}
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
   <link href="{% static 'agesci_theme/css/agesci.min.css' %}" rel="stylesheet">
 </head>

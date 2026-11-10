@@ -1,6 +1,8 @@
 {% extends "voto/base_voto.html" %}
 
 {% block title %}Ricevuta{% endblock %}
+{% block extra_head %}{% if al_seggio %}<meta http-equiv="refresh" content="{{ secondi_ricevuta }};url={% url 'voto:urna' %}">{% endif %}{% endblock %}
+{% block intestazione %}{% if al_seggio %}Seggio — la pagina si azzera tra {{ secondi_ricevuta }} secondi{% else %}AGESCI Zona Hirpinia — Voto{% endif %}{% endblock %}
 
 {% block content %}
   <div class="row justify-content-center">
@@ -17,7 +19,11 @@
         </div>
       {% endfor %}
       <p class="fg-2 mb-5">La ricevuta non dice a nessuno chi sei. Non viene mostrata di nuovo: la puoi controllare in <a href="{% url 'voto:verifica' %}">verifica della ricevuta</a>.</p>
-      <a href="{% url 'voto:scheda' %}" class="btn-solid theme-primary w-100">Fatto</a>
+      {% if al_seggio %}
+        <a href="{% url 'voto:urna' %}" class="btn-solid theme-primary w-100">Fatto, avanti il prossimo</a>
+      {% else %}
+        <a href="{% url 'voto:scheda' %}" class="btn-solid theme-primary w-100">Fatto</a>
+      {% endif %}
     </div>
   </div>
 {% endblock %}

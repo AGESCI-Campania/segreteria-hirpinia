@@ -25,12 +25,23 @@ from django.views.decorators.cache import never_cache
 from apps.assemblee.models import Votazione
 from apps.assemblee.votazioni import frase_esito
 
-from . import scrutinio, urna
-from .models import CodiceVoto
+from . import postazioni, scrutinio, urna
+from .models import CodiceVoto, Postazione
 
 SESSIONE_CODICE = "voto_codice"
 SESSIONE_TENTATIVI = "voto_tentativi"
 MAX_TENTATIVI = 10
+# Al seggio la sessione è condivisa da tutti i votanti che passano.
+MAX_TENTATIVI_SEGGIO = 30
+SECONDI_RICEVUTA_SEGGIO = 30
+SALE_COOKIE = "apps.voto.postazione"
+
+
+def postazione_della_richiesta(request: HttpRequest) -> Postazione | None:
+    valore = request.get_signed_cookie(postazioni.COOKIE, default=None, salt=SALE_COOKIE)
+    return postazioni.dal_cookie(valore)
+
+
 FINESTRA_TENTATIVI = 15 * 60
 CACHE_STATO_SECONDI = 2
 
@@ -64,7 +75,9 @@ class UrnaView(View):
     def get(self, request):
         if codice_della_sessione(request) is not None:
             return redirect("voto:scheda")
-        return render(request, self.template_name)
+        return render(
+            request, self.template_name, {"postazione": postazione_della_richiesta(request)}
+        )
 
 
 @method_decorator(never_cache, name="dispatch")
@@ -73,17 +86,23 @@ class AccediView(View):
         return redirect("voto:urna")
 
     def post(self, request):
+        postazione = postazione_della_richiesta(request)
         tentativi = _tentativi_recenti(request)
-        if len(tentativi) >= MAX_TENTATIVI:
+        if len(tentativi) >= (MAX_TENTATIVI_SEGGIO if postazione else MAX_TENTATIVI):
             messages.error(request, "Troppi tentativi con codici non validi: chiedi al banco.")
             return redirect("voto:urna")
         codice = urna.accedi(request.POST.get("codice", ""))
+        if codice is not None and not urna.ammesso_da(codice, postazione):
+            messages.error(request, "In questa assemblea si vota solo ai seggi in sala.")
+            return redirect("voto:urna")
         if codice is None:
             request.session[SESSIONE_TENTATIVI] = [*tentativi, time.time()]
             messages.error(request, "Codice non valido o non più attivo. Controllalo e riprova.")
             return redirect("voto:urna")
-        # Nuova chiave di sessione all'accesso, come a un login.
-        request.session.cycle_key()
+        # Nuova chiave di sessione all'accesso, come a un login (non al seggio,
+        # dove la sessione serve a contare i tentativi della postazione).
+        if postazione is None:
+            request.session.cycle_key()
         request.session[SESSIONE_CODICE] = codice.pk
         request.session.pop(SESSIONE_TENTATIVI, None)
         return redirect("voto:scheda")
@@ -156,10 +175,11 @@ class SchedaView(View):
             messages.warning(request, "La votazione è cambiata: ricontrolla la scheda.")
             return redirect("voto:scheda")
         azione = request.POST.get("azione")
+        postazione = postazione_della_richiesta(request)
         try:
             scelte = _scelte_dal_post(request, len(contesto["spettanti"]))
             if azione == "conferma":
-                esito = urna.vota(codice.pk, votazione, scelte)
+                esito = urna.vota(codice.pk, votazione, scelte, postazione)
             else:
                 scelte = [urna.valida_scelte(votazione, s) for s in scelte]
         except ValidationError as errore:
@@ -174,10 +194,20 @@ class SchedaView(View):
                 }
                 for r in esito.ricevute
             ]
+            al_seggio = postazione is not None
+            if al_seggio:
+                # Il prossimo votante non deve trovare la sessione di chi ha appena votato.
+                request.session.pop(SESSIONE_CODICE, None)
             return render(
                 request,
                 "voto/ricevuta.html",
-                {**contesto, "ricevute": ricevute, "votazione": votazione},
+                {
+                    **contesto,
+                    "ricevute": ricevute,
+                    "votazione": votazione,
+                    "al_seggio": al_seggio,
+                    "secondi_ricevuta": SECONDI_RICEVUTA_SEGGIO,
+                },
             )
         schede = [
             {
@@ -260,3 +290,29 @@ class VerificaView(View):
         if not esito.trovata:
             request.session[SESSIONE_TENTATIVI] = [*tentativi, time.time()]
         return render(request, self.template_name, {"esito": esito})
+
+
+@method_decorator(never_cache, name="dispatch")
+class AttivaPostazioneView(View):
+    """Link monouso aperto sul tablet del seggio: lascia il cookie firmato."""
+
+    def get(self, request, segreto):
+        return render(request, "voto/postazione_attiva.html", {"segreto": segreto})
+
+    def post(self, request, segreto):
+        risultato = postazioni.attiva(segreto)
+        if risultato is None:
+            return render(request, "voto/postazione_attiva.html", {"non_valido": True})
+        postazione, valore = risultato
+        request.session.flush()
+        risposta = redirect("voto:urna")
+        risposta.set_signed_cookie(
+            postazioni.COOKIE,
+            valore,
+            salt=SALE_COOKIE,
+            max_age=24 * 3600,
+            httponly=True,
+            samesite="Strict",
+            secure=request.is_secure(),
+        )
+        return risposta

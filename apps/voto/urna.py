@@ -20,11 +20,18 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from apps.assemblee import quorum
-from apps.assemblee.models import AventeDiritto, CanaleVoto, Seduta, TipoVotazione, Votazione
+from apps.assemblee.models import (
+    AventeDiritto,
+    CanaleVoto,
+    ModalitaVoto,
+    Seduta,
+    TipoVotazione,
+    Votazione,
+)
 from apps.assemblee.votazioni import canali
 
 from . import codici
-from .models import CodiceVoto, Scheda, Votante
+from .models import CodiceVoto, Postazione, Scheda, Votante
 
 ESITO_VOTO = "VOTO"
 ESITO_BIANCA = "BIANCA"
@@ -180,8 +187,21 @@ def _nuova_ricevuta() -> str:
             return ricevuta
 
 
+def ammesso_da(codice: CodiceVoto, postazione: Postazione | None) -> bool:
+    """Con «solo seggi» si vota solo da una postazione attiva della seduta del
+    codice; altrimenti anche dal proprio dispositivo."""
+    if postazione is not None:
+        return postazione.attiva and postazione.seduta_id == codice.seduta_id
+    return codice.seduta.assemblea.modalita_voto != ModalitaVoto.SOLO_SEGGIO
+
+
 @transaction.atomic
-def vota(codice_id: int, votazione: Votazione, scelte: list[Scelte]) -> EsitoVoto:
+def vota(
+    codice_id: int,
+    votazione: Votazione,
+    scelte: list[Scelte],
+    postazione: Postazione | None = None,
+) -> EsitoVoto:
     """Registra le schede del titolare del codice in `votazione`. `codice_id`
     viene dalla sessione aperta con `accedi()` (il codice in chiaro non si
     conserva da nessuna parte); `scelte` ha una voce per ciascuna scheda
@@ -196,6 +216,8 @@ def vota(codice_id: int, votazione: Votazione, scelte: list[Scelte]) -> EsitoVot
     if not codice_valido(codice):
         raise ValidationError("Codice non valido o non più attivo.")
     assert codice is not None
+    if not ammesso_da(codice, postazione):
+        raise ValidationError("In questa assemblea si vota solo ai seggi.")
     votazione = Votazione.objects.select_for_update().get(pk=votazione.pk)
     if votazione.seduta_id != codice.seduta_id:
         raise ValidationError("Il codice non vale per questa votazione.")

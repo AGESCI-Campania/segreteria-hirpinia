@@ -160,3 +160,35 @@ class InterpretazioneNome(models.Model):
 
     def __str__(self) -> str:
         return f"{self.chiave} → {self.avente or 'nullo'}"
+
+
+class Postazione(models.Model):
+    """Seggio: un tablet o un PC della Zona che fa da chiosco di voto per una
+    seduta. Si abilita aprendo sul dispositivo un link monouso; da lì il
+    dispositivo è riconosciuto da un cookie firmato, di cui qui si salva solo
+    l'hash. Con la modalità «solo seggi» l'urna accetta voti solo da qui."""
+
+    seduta = models.ForeignKey(
+        "assemblee.Seduta", on_delete=models.CASCADE, related_name="postazioni"
+    )
+    nome = models.CharField(max_length=100)
+    attivazione_hash = models.CharField(max_length=64, unique=True)
+    attivata_il = models.DateTimeField(null=True, blank=True)
+    token_hash = models.CharField(max_length=64, blank=True)
+    attiva = models.BooleanField(default=True)
+    creata_il = models.DateTimeField(auto_now_add=True)
+    creata_da = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+
+    class Meta:
+        verbose_name = "postazione di voto"
+        verbose_name_plural = "postazioni di voto"
+        ordering = ["seduta", "nome"]
+
+    def __str__(self) -> str:
+        return self.nome

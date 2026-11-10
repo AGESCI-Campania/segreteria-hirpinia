@@ -6,7 +6,7 @@
 {% block content %}
   <div class="row justify-content-center">
     <div class="md:col-6">
-      <h1 class="mb-5">Voto</h1>
+      <h1 class="mb-5">Voto{% if postazione %} — {{ postazione.nome }}{% endif %}</h1>
       {% include "voto/_messaggi.html" %}
       <p class="mb-5">Inserisci il codice di voto che hai ricevuto per email o al banco.</p>
       <form method="post" action="{% url 'voto:accedi' %}" data-voto-accesso>
