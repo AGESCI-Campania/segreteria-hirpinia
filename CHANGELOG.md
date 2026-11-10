@@ -8,7 +8,7 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
-## [Non rilasciato]
+## [1.2.0] - 2026-11-10
 
 ### Modificato
 
