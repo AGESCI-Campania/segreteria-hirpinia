@@ -21,6 +21,7 @@ class AssembleeConfig(AppConfig):
             PuntoOdG,
             RisultatoCanale,
             Seduta,
+            VariazioneRappresentante,
             VerbaleSeduta,
             Votazione,
         )
@@ -40,3 +41,4 @@ class AssembleeConfig(AppConfig):
         auditlog.register(RisultatoCanale)
         auditlog.register(Candidato)
         auditlog.register(VerbaleSeduta)
+        auditlog.register(VariazioneRappresentante)

@@ -1337,8 +1337,15 @@ modalità (app o carta).
 | Mozione d'ordine, nuovi punti all'OdG (art. 13) | votanti (favorevoli + contrari + astenuti) | metà dei votanti + 1 |
 | Revoca di un mandato (art. 19 c.3) | aventi diritto | metà degli aventi diritto + 1, indipendentemente dai presenti |
 
-"Metà + 1" si calcola come `n // 2 + 1`. I risultati si inseriscono a mano, separati fra
-app e carta; i presenti di riferimento sono fotografati all'apertura della votazione.
+"Metà + 1" si calcola come `n // 2 + 1`, in un'unica funzione
+(`apps/assemblee/votazioni.py`). I risultati si inseriscono a mano; i presenti di
+riferimento sono fotografati all'apertura della votazione. Deliberazioni, mozioni
+d'ordine e nuovi punti all'OdG si votano per alzata di mano: un solo conteggio di
+favorevoli, contrari e astenuti. Elezioni e revoca sono a scrutinio segreto, con app e
+carta separate (nelle elezioni anche schede bianche e nulle). Un'elezione è una votazione
+per incarico con N posti: eletti i candidati sopra soglia in ordine di voti; parità
+sull'ultimo posto o posti scoperti → ballottaggio fra i due più votati non eletti, un solo
+turno; senza maggioranza nemmeno al ballottaggio, il posto resta vacante.
 
 **Tempo reale senza infrastruttura nuova.** Cruscotti di presenze, quorum e votanti
 app/carta si aggiornano interrogando il server ogni 3 secondi: D-17 resta valida (niente
@@ -1349,7 +1356,12 @@ Nazionale ha invece un pulsante "Aggiorna".
 modelli nazionali: verbale dell'assemblea per punti all'ordine del giorno, con il numero
 dei presenti nella frase sul quorum e la frase di esito di ogni votazione calcolata;
 verbale per la variazione del rappresentante legale, se viene eletto un RdZ, con i dati
-del RL precompilati dall'anagrafica e modificabili.
+del RL precompilati dall'anagrafica e modificabili. L'ordine del giorno è libero, con i
+punti tipici del modello nazionale proposti. Presidenza, segretario, scrutatori, comitato
+mozioni e RdZ firmatari (uno o due: un posto può essere vacante) sono testo libero con
+suggerimenti dall'elenco, comuni ai due verbali della seduta. I numeri della frase sul
+quorum sono quelli fotografati alla dichiarazione di seduta costituita. Ordine del giorno
+e verbali sono riservati ad ADMIN, SEGRETERIA e RdZ (non agli operatori di voto).
 
 ---
 

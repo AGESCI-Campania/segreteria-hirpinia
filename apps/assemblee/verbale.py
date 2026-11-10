@@ -14,9 +14,11 @@ from apps.accounts.models import Utente
 from apps.core.pdf import contesto_carta_intestata
 
 from .models import (
+    AventeDiritto,
     Seduta,
     TipoAppello,
     TipoVotazione,
+    VariazioneRappresentante,
     VerbaleSeduta,
     Votazione,
 )
@@ -74,4 +76,57 @@ def genera_verbale_pdf(seduta: Seduta, utente: Utente) -> bytes:
     if not puo_gestire_assemblee(utente):
         raise PermissionDenied
     html = render_to_string("assemblee/verbale_pdf.html", contesto_verbale(seduta))
+    return HTML(string=html).write_pdf()
+
+
+# --- Variazione della rappresentanza legale ------------------------------------------
+
+
+def variazione_della_seduta(seduta: Seduta) -> VariazioneRappresentante:
+    variazione, _ = VariazioneRappresentante.objects.get_or_create(seduta=seduta)
+    return variazione
+
+
+def precompila_rappresentante(
+    variazione: VariazioneRappresentante, avente: AventeDiritto, utente: Utente
+) -> None:
+    """Copia nei campi del verbale i dati anagrafici del Responsabile di Zona
+    scelto. Il rappresentante si nomina fra i Responsabili di Zona (art. 24
+    dello Statuto). La provincia di nascita non è in anagrafica: resta da
+    scrivere a mano."""
+    if not puo_gestire_assemblee(utente):
+        raise PermissionDenied
+    if avente.assemblea_id != variazione.seduta.assemblea_id or not avente.rdz:
+        raise ValidationError("Il rappresentante legale si sceglie fra i Responsabili di Zona.")
+    variazione.rappresentante = avente
+    variazione.cognome = avente.cognome
+    variazione.nome = avente.nome
+    capo = avente.capo
+    if capo is not None:
+        variazione.codice_fiscale = capo.codice_fiscale
+        variazione.comune_nascita = capo.comune_nascita
+        variazione.data_nascita = capo.data_nascita
+        variazione.indirizzo = capo.indirizzo
+        variazione.civico = capo.civico
+        variazione.cap = capo.cap
+        variazione.comune_residenza = capo.comune_residenza
+        variazione.provincia_residenza = capo.provincia_residenza
+    variazione.save()
+
+
+def genera_variazione_pdf(seduta: Seduta, utente: Utente) -> bytes:
+    from weasyprint import HTML
+
+    if not puo_gestire_assemblee(utente):
+        raise PermissionDenied
+    if seduta.costituita is not True:
+        raise ValidationError("Il verbale si redige per una seduta validamente costituita.")
+    contesto = {
+        "assemblea": seduta.assemblea,
+        "seduta": seduta,
+        "verbale": verbale_della_seduta(seduta),
+        "variazione": variazione_della_seduta(seduta),
+        **contesto_carta_intestata(),
+    }
+    html = render_to_string("assemblee/variazione_rappresentante_pdf.html", contesto)
     return HTML(string=html).write_pdf()

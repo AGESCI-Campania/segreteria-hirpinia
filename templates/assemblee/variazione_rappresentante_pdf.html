@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Variazione del rappresentante legale — {{ assemblea }}</title>
+<style>
+  @page {
+    size: A4;
+    margin-top: 5cm;
+    margin-left: 2.5cm;
+    margin-right: 2cm;
+    margin-bottom: 3cm;
+    @top-center { content: element(intestazione); }
+    @bottom-center { content: element(piede); }
+    @bottom-right { content: "Pagina " counter(page) " di " counter(pages); font-family: sans-serif; font-size: 7.5pt; color: #555; }
+  }
+  body { font-family: sans-serif; font-size: 10.5pt; line-height: 1.45; color: #222; }
+  {% include "pdf/carta_intestata_stile.html" %}
+  h1 { font-size: 14pt; text-align: center; margin: 0 0 0.1cm 0; }
+  .sottotitolo { text-align: center; color: #555; margin: 0 0 0.6cm 0; }
+  h2 { font-size: 11.5pt; margin: 0.6cm 0 0.2cm 0; break-after: avoid; }
+  p { margin: 0 0 0.3cm 0; text-align: justify; }
+  ol.odg { margin: 0 0 0.4cm 0; }
+  ul.votazioni { margin: 0 0 0.3cm 0; padding-left: 0.6cm; }
+  .mancante { color: #b00; }
+  .firme { width: 100%; margin-top: 1.2cm; border-collapse: collapse; break-inside: avoid; }
+  .firme td { width: 50%; padding: 0 0.4cm 1.4cm 0; vertical-align: top; }
+  .firme .linea { border-bottom: 1px solid #333; height: 1cm; }
+</style>
+</head>
+<body>
+  {% include "pdf/carta_intestata.html" %}
+
+  <h1>Verbale dell'Assemblea di Zona</h1>
+  <p class="sottotitolo">Variazione della rappresentanza legale{% if variazione.varia_sede %} e della sede legale{% endif %} — {{ assemblea }}</p>
+
+  <p>
+    In data {{ seduta.data|date:"d/m/Y" }} alle ore {% if variazione.ora_apertura %}{{ variazione.ora_apertura|time:"H:i" }}{% else %}<span class="mancante">[…]</span>{% endif %}
+    presso {% if verbale.luogo %}{{ verbale.luogo }}{% else %}<span class="mancante">[…]</span>{% endif %} si è riunita in sessione {{ assemblea.get_sessione_display|lower }},
+    ai sensi degli artt. 21 e 32 dello Statuto, l'Assemblea di AGESCI {{ zona.nome }} (codice fiscale {{ zona.codice_fiscale }}), per deliberare sul seguente ordine del giorno:
+  </p>
+  <ol class="odg">
+    <li>variazione rappresentante legale;</li>
+    {% if variazione.varia_sede %}<li>variazione sede legale agli adempimenti fiscali;</li>{% endif %}
+    <li>varie ed eventuali.</li>
+  </ol>
+
+  <p>
+    Assume la Presidenza, ai sensi dell'art. 6 del Regolamento dell'Assemblea di Zona, {% if verbale.presidente %}{{ verbale.presidente }}{% else %}<span class="mancante">[…]</span>{% endif %}
+    che, constatata e fatta constatare la regolarità della convocazione come da Regolamento e la presenza del quorum
+    costitutivo, ai sensi dell'art. 4, dichiara l'Assemblea validamente costituita e atta ad assumere la delibera di cui
+    sopra, chiamando a fungere da Segretario {% if verbale.segretario %}{{ verbale.segretario }}{% else %}<span class="mancante">[…]</span>{% endif %}, che, ringraziando, accetta.
+  </p>
+  <p>
+    Il Presidente procede quindi con la nomina degli scrutatori in persona di
+    {% if verbale.scrutatore_1 or verbale.scrutatore_2 %}{{ verbale.scrutatore_1 }}{% if verbale.scrutatore_1 and verbale.scrutatore_2 %} e {% endif %}{{ verbale.scrutatore_2 }}{% else %}<span class="mancante">[…]</span>{% endif %}
+    e del Comitato mozioni formato da {% if verbale.comitato_mozioni %}{{ verbale.comitato_mozioni }}{% else %}<span class="mancante">[…]</span>{% endif %}.
+  </p>
+
+  <p>
+    L'Assemblea di AGESCI {{ zona.nome }} (codice fiscale {{ zona.codice_fiscale }}) nomina, tra i Responsabili di Zona,
+    {% if variazione.cognome or variazione.nome %}{{ variazione.cognome }} {{ variazione.nome }}{% else %}<span class="mancante">[…]</span>{% endif %}
+    (codice fiscale {% if variazione.codice_fiscale %}{{ variazione.codice_fiscale }}{% else %}<span class="mancante">[…]</span>{% endif %}) – nato/a a {% if variazione.comune_nascita %}{{ variazione.comune_nascita }}{% else %}<span class="mancante">[…]</span>{% endif %}
+    ({% if variazione.provincia_nascita %}{{ variazione.provincia_nascita }}{% else %}<span class="mancante">[…]</span>{% endif %}) il {% if variazione.data_nascita %}{{ variazione.data_nascita|date:"d/m/Y" }}{% else %}<span class="mancante">[…]</span>{% endif %}
+    e residente in {% if variazione.indirizzo %}{{ variazione.indirizzo }}{% else %}<span class="mancante">[…]</span>{% endif %}, n. {% if variazione.civico %}{{ variazione.civico }}{% else %}<span class="mancante">[…]</span>{% endif %}, CAP {% if variazione.cap %}{{ variazione.cap }}{% else %}<span class="mancante">[…]</span>{% endif %}
+    {% if variazione.comune_residenza %}{{ variazione.comune_residenza }}{% else %}<span class="mancante">[…]</span>{% endif %} ({% if variazione.provincia_residenza %}{{ variazione.provincia_residenza }}{% else %}<span class="mancante">[…]</span>{% endif %}) –,
+    ai sensi dell'art. 24 dello Statuto, Rappresentante legale delegato agli adempimenti fiscali di AGESCI {{ zona.nome }} (codice fiscale {{ zona.codice_fiscale }})
+    in parola con decorrenza immediata.
+  </p>
+  {% if variazione.varia_sede %}
+    <p>
+      L'Assemblea di AGESCI {{ zona.nome }} (codice fiscale {{ zona.codice_fiscale }}) inoltre delibera che la nuova sede legale di AGESCI {{ zona.nome }} (codice fiscale {{ zona.codice_fiscale }}) sarà in
+      {% if variazione.sede_indirizzo %}{{ variazione.sede_indirizzo }}{% else %}<span class="mancante">[…]</span>{% endif %}, n. {% if variazione.sede_civico %}{{ variazione.sede_civico }}{% else %}<span class="mancante">[…]</span>{% endif %}, CAP {% if variazione.sede_cap %}{{ variazione.sede_cap }}{% else %}<span class="mancante">[…]</span>{% endif %}
+      {% if variazione.sede_comune %}{{ variazione.sede_comune }}{% else %}<span class="mancante">[…]</span>{% endif %} ({% if variazione.sede_provincia %}{{ variazione.sede_provincia }}{% else %}<span class="mancante">[…]</span>{% endif %}).
+    </p>
+  {% endif %}
+
+  <h2>Varie ed eventuali</h2>
+  {% if variazione.varie %}{{ variazione.varie|linebreaks }}{% else %}<p>Nessuna.</p>{% endif %}
+
+  <p>
+    Null'altro essendovi da deliberare e nessuno chiedendo ulteriormente la parola, l'Assemblea di Zona viene chiusa alle ore
+    {% if variazione.ora_chiusura %}{{ variazione.ora_chiusura|time:"H:i" }}{% else %}<span class="mancante">[…]</span>{% endif %}.
+  </p>
+  <p>{% if verbale.luogo %}{{ verbale.luogo }}{% else %}<span class="mancante">[…]</span>{% endif %}, {{ seduta.data|date:"d/m/Y" }}</p>
+
+  <table class="firme">
+    <tr>
+      <td>Il Presidente<br>{{ verbale.presidente }}<div class="linea"></div></td>
+      <td>Il Segretario<br>{{ verbale.segretario }}<div class="linea"></div></td>
+    </tr>
+    {% if verbale.rdz_1 or verbale.rdz_2 %}
+      <tr>
+        {% if verbale.rdz_1 %}<td>Responsabile di Zona<br>{{ verbale.rdz_1 }}<div class="linea"></div></td>{% endif %}
+        {% if verbale.rdz_2 %}<td>Responsabile di Zona<br>{{ verbale.rdz_2 }}<div class="linea"></div></td>{% endif %}
+      </tr>
+    {% endif %}
+  </table>
+</body>
+</html>

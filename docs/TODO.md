@@ -101,7 +101,7 @@ Per l'Assemblea di Zona autunnale del 22/11/2026. Decisioni in D-70 di
 - [x] F1 — Elenco: import all'apertura (autunnale con anno per gruppo), aggiorna gruppo, eliminazioni, trasferimenti, nuovi capi con provenienza, voto app/carta e passaggio a carta
 - [x] F1 — File: tracciato `.xlsx` per l'app del Nazionale, PDF foglio presenze
 - [x] F2 — Presenze, deleghe AE, verifica del quorum, cruscotti in tempo reale, vista proiettore, elenco per l'abilitazione in app
-- [ ] F3 — Votazioni con le soglie del regolamento, verbale dell'assemblea e verbale del rappresentante legale
+- [x] F3 — Votazioni con le soglie del regolamento, ordine del giorno, verbale dell'assemblea e verbale del rappresentante legale
 
 ## Gap noti (scoperti in verifica, non da una milestone)
 - [ ] `apps/core/email/microsoft.py` (provider `microsoft_graph`) non è implementato:

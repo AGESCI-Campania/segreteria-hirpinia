@@ -141,3 +141,48 @@ class TestViste:
 
         pdf = client.get(f"{base}pdf/")
         assert pdf.status_code == 200 and pdf.content[:5] == b"%PDF-"
+
+
+class TestVariazioneRappresentante:
+    def test_precompila_solo_da_un_rdz(self, seduta, segreteria, assemblea):
+        avente = assemblea.aventi_diritto.get(codice_socio="0")
+        Capo.objects.filter(pk="0").update(codice_fiscale="RSSMRA80A01A509X", cap="83100")
+        variazione = verbale.variazione_della_seduta(seduta)
+        with pytest.raises(ValidationError):
+            verbale.precompila_rappresentante(variazione, avente, segreteria)
+        avente.rdz = True
+        avente.save()
+        avente.refresh_from_db()
+        verbale.precompila_rappresentante(variazione, avente, segreteria)
+        variazione.refresh_from_db()
+        assert (variazione.cognome, variazione.codice_fiscale, variazione.cap) == (
+            "Capo0",
+            "RSSMRA80A01A509X",
+            "83100",
+        )
+
+    def test_pdf_con_e_senza_sede(self, seduta, segreteria):
+        variazione = verbale.variazione_della_seduta(seduta)
+        variazione.cognome, variazione.nome = "Verdi", "Luca"
+        variazione.save()
+
+        def testo() -> str:
+            contenuto = verbale.genera_variazione_pdf(seduta, segreteria)
+            pagine = PdfReader(io.BytesIO(contenuto)).pages
+            return " ".join(p.extract_text() for p in pagine).replace("\n", " ")
+
+        senza = testo()
+        assert "Verdi Luca" in senza and "art. 24 dello Statuto" in senza
+        assert "nuova sede legale" not in senza
+        variazione.varia_sede = True
+        variazione.sede_comune = "Avellino"
+        variazione.save()
+        assert "nuova sede legale" in testo()
+
+    def test_dalle_pagine(self, client, seduta, segreteria, assemblea):
+        client.force_login(segreteria)
+        base = f"/assemblee/{assemblea.pk}/sedute/{seduta.pk}/verbale/rappresentante-legale/"
+        assert client.get(base).status_code == 200
+        client.post(base, {"cognome": "Verdi", "nome": "Luca", "provincia_nascita": "AV"})
+        assert verbale.variazione_della_seduta(seduta).provincia_nascita == "AV"
+        assert client.get(f"{base}pdf/").content[:5] == b"%PDF-"

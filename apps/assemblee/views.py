@@ -33,6 +33,7 @@ from .forms import (
     PuntoOdGForm,
     QualificheForm,
     TrasferisciForm,
+    VariazioneRappresentanteForm,
     VerbaleForm,
     VotazioneForm,
     form_risultati,
@@ -1165,5 +1166,84 @@ class VerbalePdfView(GestisceAssembleeMixin, View):
             return redirect(reverse("assemblee:seduta", args=[pk, seduta_pk]))
         risposta = HttpResponse(contenuto, content_type="application/pdf")
         nome = f"verbale-assemblea-{seduta.assemblea.anno_scout}-{seduta.data:%Y%m%d}.pdf"
+        risposta["Content-Disposition"] = f'attachment; filename="{nome}"'
+        return risposta
+
+
+class VariazioneRappresentanteView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+    template_name = "assemblee/variazione_rappresentante.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        kwargs = request.resolver_match.kwargs
+        return _breadcrumb_seduta(
+            request,
+            {
+                "label": "Verbale",
+                "url": reverse("assemblee:verbale", args=[kwargs["pk"], kwargs["seduta_pk"]]),
+            },
+            {"label": "Rappresentante legale"},
+        )
+
+    def _seduta(self, pk, seduta_pk) -> Seduta:
+        seduta = get_object_or_404(Seduta, pk=seduta_pk, assemblea_id=pk)
+        if seduta.costituita is not True:
+            raise PermissionDenied
+        return seduta
+
+    def _contesto(self, seduta, form):
+        return {
+            "assemblea": seduta.assemblea,
+            "seduta": seduta,
+            "form": form,
+            "variazione": verbale_assemblea.variazione_della_seduta(seduta),
+            "rdz": seduta.assemblea.aventi_diritto.nell_elenco()
+            .filter(rdz=True)
+            .order_by("cognome", "nome"),
+        }
+
+    def get(self, request, pk, seduta_pk):
+        seduta = self._seduta(pk, seduta_pk)
+        form = VariazioneRappresentanteForm(
+            instance=verbale_assemblea.variazione_della_seduta(seduta)
+        )
+        return render(request, self.template_name, self._contesto(seduta, form))
+
+    def post(self, request, pk, seduta_pk):
+        seduta = self._seduta(pk, seduta_pk)
+        variazione = verbale_assemblea.variazione_della_seduta(seduta)
+        url = reverse("assemblee:variazione_rappresentante", args=[pk, seduta_pk])
+        if request.POST.get("azione") == "precompila":
+            avente = get_object_or_404(
+                AventeDiritto, pk=request.POST.get("avente"), assemblea_id=pk
+            )
+            try:
+                verbale_assemblea.precompila_rappresentante(variazione, avente, request.user)
+            except ValidationError as errore:
+                messages.error(request, " ".join(errore.messages))
+            else:
+                messages.success(
+                    request,
+                    "Dati precompilati dall'anagrafica: controllali e completa la provincia di nascita.",
+                )
+            return redirect(url)
+        form = VariazioneRappresentanteForm(request.POST, instance=variazione)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Dati salvati.")
+            return redirect(url)
+        return render(request, self.template_name, self._contesto(seduta, form))
+
+
+class VariazioneRappresentantePdfView(GestisceAssembleeMixin, View):
+    def get(self, request, pk, seduta_pk):
+        seduta = get_object_or_404(Seduta, pk=seduta_pk, assemblea_id=pk)
+        try:
+            contenuto = verbale_assemblea.genera_variazione_pdf(seduta, request.user)
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+            return redirect(reverse("assemblee:seduta", args=[pk, seduta_pk]))
+        risposta = HttpResponse(contenuto, content_type="application/pdf")
+        nome = f"verbale-rappresentante-legale-{seduta.data:%Y%m%d}.pdf"
         risposta["Content-Disposition"] = f'attachment; filename="{nome}"'
         return risposta

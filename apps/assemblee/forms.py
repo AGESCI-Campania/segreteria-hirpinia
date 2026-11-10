@@ -16,6 +16,7 @@ from .models import (
     PuntoOdG,
     Seduta,
     TipoVotazione,
+    VariazioneRappresentante,
     VerbaleSeduta,
 )
 
@@ -275,4 +276,52 @@ class VerbaleForm(forms.ModelForm):
             "rdz_1": forms.TextInput(attrs={"list": "nomi-rdz"}),
             "rdz_2": forms.TextInput(attrs={"list": "nomi-rdz"}),
             "note_finali": forms.Textarea(attrs={"rows": 4}),
+        }
+
+
+class VariazioneRappresentanteForm(forms.ModelForm):
+    class Meta:
+        model = VariazioneRappresentante
+        fields = [
+            "ora_apertura",
+            "ora_chiusura",
+            "cognome",
+            "nome",
+            "codice_fiscale",
+            "comune_nascita",
+            "provincia_nascita",
+            "data_nascita",
+            "indirizzo",
+            "civico",
+            "cap",
+            "comune_residenza",
+            "provincia_residenza",
+            "varia_sede",
+            "sede_indirizzo",
+            "sede_civico",
+            "sede_cap",
+            "sede_comune",
+            "sede_provincia",
+            "varie",
+        ]
+        labels = {
+            "ora_apertura": "Ora di apertura di questa parte",
+            "ora_chiusura": "Ora di chiusura di questa parte",
+            "codice_fiscale": "Codice fiscale",
+            "comune_nascita": "Comune di nascita",
+            "provincia_nascita": "Provincia di nascita",
+            "data_nascita": "Data di nascita",
+            "comune_residenza": "Comune di residenza",
+            "provincia_residenza": "Provincia di residenza",
+            "sede_indirizzo": "Indirizzo della nuova sede",
+            "sede_civico": "Civico",
+            "sede_cap": "CAP",
+            "sede_comune": "Comune",
+            "sede_provincia": "Provincia",
+        }
+        widgets = {
+            "ora_apertura": forms.TimeInput(attrs={"type": "time"}),
+            "ora_chiusura": forms.TimeInput(attrs={"type": "time"}),
+            "data_nascita": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+            "varie": forms.Textarea(attrs={"rows": 3}),
         }

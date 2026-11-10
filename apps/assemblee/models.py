@@ -614,3 +614,45 @@ class VerbaleSeduta(models.Model):
 
     def __str__(self) -> str:
         return f"Verbale — {self.seduta}"
+
+
+class VariazioneRappresentante(models.Model):
+    """Dati del verbale di variazione della rappresentanza legale (e
+    dell'eventuale sede legale) della Zona, modello nazionale. Presidenza e
+    firmatari sono quelli di VerbaleSeduta: è la stessa seduta. I dati del
+    rappresentante si precompilano dall'anagrafica e restano modificabili."""
+
+    seduta = models.OneToOneField(
+        Seduta, on_delete=models.CASCADE, related_name="variazione_rappresentante"
+    )
+    ora_apertura = models.TimeField(null=True, blank=True)
+    ora_chiusura = models.TimeField(null=True, blank=True)
+    rappresentante = models.ForeignKey(
+        AventeDiritto, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    cognome = models.CharField(max_length=100, blank=True)
+    nome = models.CharField(max_length=100, blank=True)
+    codice_fiscale = models.CharField(max_length=16, blank=True)
+    comune_nascita = models.CharField(max_length=100, blank=True)
+    provincia_nascita = models.CharField(max_length=5, blank=True)
+    data_nascita = models.DateField(null=True, blank=True)
+    indirizzo = models.CharField(max_length=200, blank=True)
+    civico = models.CharField(max_length=10, blank=True)
+    cap = models.CharField(max_length=10, blank=True)
+    comune_residenza = models.CharField(max_length=100, blank=True)
+    provincia_residenza = models.CharField(max_length=5, blank=True)
+    varia_sede = models.BooleanField("Variazione della sede legale", default=False)
+    sede_indirizzo = models.CharField(max_length=200, blank=True)
+    sede_civico = models.CharField(max_length=10, blank=True)
+    sede_cap = models.CharField(max_length=10, blank=True)
+    sede_comune = models.CharField(max_length=100, blank=True)
+    sede_provincia = models.CharField(max_length=5, blank=True)
+    varie = models.TextField("Varie ed eventuali", blank=True)
+    aggiornato_il = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "variazione del rappresentante legale"
+        verbose_name_plural = "variazioni del rappresentante legale"
+
+    def __str__(self) -> str:
+        return f"Variazione rappresentante legale — {self.seduta}"

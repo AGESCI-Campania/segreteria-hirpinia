@@ -135,4 +135,14 @@ urlpatterns = [
         views.VerbalePdfView.as_view(),
         name="verbale_pdf",
     ),
+    path(
+        "<int:pk>/sedute/<int:seduta_pk>/verbale/rappresentante-legale/",
+        views.VariazioneRappresentanteView.as_view(),
+        name="variazione_rappresentante",
+    ),
+    path(
+        "<int:pk>/sedute/<int:seduta_pk>/verbale/rappresentante-legale/pdf/",
+        views.VariazioneRappresentantePdfView.as_view(),
+        name="variazione_rappresentante_pdf",
+    ),
 ]

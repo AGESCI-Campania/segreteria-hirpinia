@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block page_title %}Variazione del rappresentante legale — {{ seduta }}{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Variazione del rappresentante legale</h1>
+    <a href="{% url 'assemblee:variazione_rappresentante_pdf' assemblea.pk seduta.pk %}" class="btn-solid theme-primary">Scarica il verbale (PDF)</a>
+  </div>
+  <p class="fg-2 mb-5">
+    {{ seduta.get_convocazione_display }} — {{ assemblea }}. Presidente, segretario, scrutatori, comitato mozioni,
+    luogo e firmatari sono quelli del <a href="{% url 'assemblee:verbale' assemblea.pk seduta.pk %}">verbale della seduta</a>.
+    I dati mancanti compaiono in rosso come «[…]».
+  </p>
+
+  <h2 class="fs-xl">Responsabile di Zona nominato</h2>
+  {% if rdz %}
+    <form method="post" class="row g-3 align-items-end mb-7">
+      {% csrf_token %}<input type="hidden" name="azione" value="precompila">
+      <div class="md:col-6">
+        <div class="form-field">
+          <label for="id_avente">Responsabile di Zona</label>
+          <select name="avente" id="id_avente" class="form-control">
+            {% for avente in rdz %}<option value="{{ avente.pk }}"{% if avente.pk == variazione.rappresentante_id %} selected{% endif %}>{{ avente.cognome }} {{ avente.nome }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="md:col-auto"><button type="submit" class="btn-outline theme-primary">Precompila dall'anagrafica</button></div>
+    </form>
+  {% else %}
+    <div class="alert theme-warning mb-7" role="note"><p class="mb-0">Nell'elenco degli aventi diritto nessuno ha la qualifica di Responsabile di Zona: indicala nella gestione dell'elenco, oppure scrivi i dati a mano.</p></div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="row g-3">
+      {% for campo in form %}
+        {% if campo.name == "varia_sede" %}</div><h2 class="fs-xl mt-7">Sede legale</h2><div class="row g-3">{% endif %}
+        {% if campo.name == "varie" %}</div><h2 class="fs-xl mt-7">Varie ed eventuali</h2><div class="row g-3">{% endif %}
+        <div class="{% if campo.name == 'varie' or campo.name == 'varia_sede' %}col-12{% elif campo.name == 'indirizzo' or campo.name == 'sede_indirizzo' %}md:col-8{% else %}md:col-4{% endif %}">
+          <div class="form-field">{{ campo.label_tag }}{{ campo }}{{ campo.errors }}</div>
+        </div>
+      {% endfor %}
+    </div>
+    <button type="submit" class="btn-solid theme-primary mt-5">Salva</button>
+  </form>
+{% endblock %}
