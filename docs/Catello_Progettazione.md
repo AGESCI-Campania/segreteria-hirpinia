@@ -394,7 +394,7 @@ disponibili).
 
 ### D-15 — Tema e branding
 
-`django-agesci-campania-theme >= 2.3.0` (PyPI), installato con `uv add`.
+`django-agesci-campania-theme >= 3.0.0a3` (PyPI, serie 3.x su Bootstrap 6 alpha), installato con `uv add`.
 
 ```python
 AGESCI_THEME_BRANCA = "capi"           # viola, coerente con l'emblema di Zona
@@ -1286,7 +1286,7 @@ introducendo un service layer dedicato di revoca ruolo).
 | Macchine a stati | `django-fsm-2` |
 | Parsing autorizzazioni | `pdfplumber` (parser interno, D-07) |
 | Export | `openpyxl` (XLSX), `csv` stdlib, `WeasyPrint` (PDF report) |
-| Frontend | Bootstrap 5 via `django-agesci-campania-theme >= 2.3.0` |
+| Frontend | Bootstrap 6 (alpha) via `django-agesci-campania-theme >= 3.0.0a3` |
 | Qualità | `ruff`, `black`, `mypy`, `pytest` + `pytest-django` |
 | CI | GitHub Actions |
 | Invio email | SMTP, Gmail API (`google-auth`), Microsoft Graph (`msal`) — extra opzionali |

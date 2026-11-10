@@ -4,25 +4,25 @@
 {% block page_title %}Impostazioni{% endblock %}
 
 {% block content %}
-  <div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-5">
     <h1>Impostazioni di piattaforma</h1>
-    <a href="{% url 'core:template_email_lista' %}" class="btn btn-outline-secondary">
+    <a href="{% url 'core:template_email_lista' %}" class="btn-outline theme-secondary">
       Template email
     </a>
   </div>
 
   {% if form.non_field_errors %}
-    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {{ form.non_field_errors }}
   {% endif %}
 
   <form method="post">
     {% csrf_token %}
     {% for field in form %}
-      <div class="mb-3">
+      <div class="form-field mb-5">
         {{ field.label_tag }}
         {% if field.name == "firma_testo" %}
           <button type="button" id="genera-firma-testo-da-html"
-                  class="btn btn-outline-secondary btn-sm mb-1">
+                  class="btn-outline theme-secondary btn-sm mb-1 justify-self-start">
             Genera dalla firma HTML
           </button>
         {% endif %}
@@ -35,7 +35,7 @@
           </div>
         {% endif %}
         {% if field.name == "email_su_mailpit" %}
-          <div class="form-text text-warning">
+          <div class="form-text fg-warning">
             Attenzione: mentre è attivo, nessuna email (verifica registrazione, reset
             password, inviti, notifiche) raggiunge davvero i destinatari — finisce tutta
             su Mailpit. Ricordarsi di disattivarlo a test conclusi.
@@ -50,7 +50,7 @@
         {{ field.errors }}
       </div>
     {% endfor %}
-    <button type="submit" class="btn btn-primary">Salva</button>
+    <button type="submit" class="btn-solid theme-primary">Salva</button>
   </form>
 {% endblock %}
 

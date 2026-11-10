@@ -7,7 +7,7 @@
   <h1>Nuova nota spese</h1>
 
   {% if form.non_field_errors %}
-    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {{ form.non_field_errors }}
   {% endif %}
 
   <form method="post">
@@ -15,7 +15,8 @@
 
     {% for field in form %}
       {% if field.name != "beneficiario_codice_socio" or puo_gestire_note %}
-        <div class="mb-3{% if field.name == "beneficiario_codice_socio" %} position-relative{% endif %}">
+        {# Il campo con autocompletamento resta un blocco position-relative: in una .form-field (griglia) l'elenco assoluto finirebbe sopra la label. #}
+        <div class="{% if field.name == "beneficiario_codice_socio" %}mb-5 position-relative{% else %}form-field mb-5{% endif %}">
           {{ field.label_tag }}
           {{ field }}
           {% if field.name == "beneficiario_codice_socio" %}
@@ -37,7 +38,7 @@
       {% endif %}
     {% endfor %}
 
-    <button type="submit" class="btn btn-primary">Crea bozza</button>
+    <button type="submit" class="btn-solid theme-primary">Crea bozza</button>
   </form>
 {% endblock %}
 

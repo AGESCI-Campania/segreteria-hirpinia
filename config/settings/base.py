@@ -61,10 +61,6 @@ INSTALLED_APPS = [
     # sono trovati via APP_DIRS in ordine di INSTALLED_APPS, e vincono solo
     # se il tema è elencato prima delle app allauth (altrimenti i template
     # di default, non stilizzati, di allauth vengono trovati per primi).
-    # agesci_coreui estende agesci_theme (obbligatoria, system check
-    # agesci_coreui.E001) con il layout CoreUI: stesso motivo, va elencata
-    # prima delle app allauth.
-    "agesci_coreui",
     "agesci_theme",
     "django_bootstrap_icons",
     "allauth",
@@ -251,14 +247,13 @@ HIJACK_PERMISSION_CHECK = "apps.accounts.permessi.puo_impersonare"
 HIJACK_LOGIN_REDIRECT_URL = "/"
 HIJACK_LOGOUT_REDIRECT_URL = "/"
 
-# Layout CoreUI: la sidebar (`position: fixed`) e il footer possono trovarsi
-# molto più in basso nel documento rispetto al vecchio tema. Inserendo il
-# banner subito prima di `</body>` (default del pacchetto), il banner
-# `position: sticky` parte dalla sua posizione naturale a fine documento e
-# resta invisibile finché non si scorre oltre il footer. Va inserito come
-# primo elemento del `<body>`, prima della sidebar, perché lo sticky funzioni
-# fin dal caricamento della pagina.
-HIJACK_INSERT_BEFORE = '<div class="sidebar '
+# Banner di impersonificazione (`position: sticky`) come primo elemento del
+# `<body>`, prima dell'header del tema: inserito subito prima di `</body>`
+# (default del pacchetto) finirebbe dopo l'area scorrevole `.ag-scroll-area`
+# e resterebbe invisibile nel layout a viewport fisso del tema (>= 1024px).
+# Hijack inserisce prima dell'ULTIMA occorrenza: `<header>` compare una sola
+# volta, in agesci_theme/base.html.
+HIJACK_INSERT_BEFORE = "<header>"
 
 LOGIN_URL = "account_login"
 LOGIN_REDIRECT_URL = "core:home"

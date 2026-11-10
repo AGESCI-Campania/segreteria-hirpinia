@@ -6,7 +6,7 @@
 {% block content %}
   <h1>Template email — {{ template }}</h1>
 
-  <p class="text-muted">
+  <p class="fg-2">
     Variabili disponibili per questo template:
     {% for variabile in variabili %}
       <code>{% templatetag openvariable %} {{ variabile }} {% templatetag closevariable %}</code>{% if not forloop.last %}, {% endif %}
@@ -14,7 +14,7 @@
       nessuna
     {% endfor %}
   </p>
-  <p class="text-muted">
+  <p class="fg-2">
     Variabili globali, disponibili in corpo HTML e testo di ogni template (mai
     nell'oggetto):
     {% for variabile in variabili_globali %}
@@ -24,36 +24,36 @@
   </p>
 
   {% if form.non_field_errors %}
-    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {{ form.non_field_errors }}
   {% endif %}
 
   <form method="post">
     {% csrf_token %}
-    <div class="mb-3">
+    <div class="form-field mb-5">
       {{ form.oggetto.label_tag }}
       {{ form.oggetto }}
       {{ form.oggetto.errors }}
     </div>
-    <div class="mb-3">
+    <div class="form-field mb-5">
       {{ form.corpo_html.label_tag }}
       {{ form.corpo_html }}
       {{ form.corpo_html.errors }}
     </div>
-    <div class="mb-3">
+    <div class="form-field mb-5">
       {{ form.corpo_testo.label_tag }}
       <div class="form-text">Fallback testuale, sempre inviato insieme all'HTML.</div>
-      <button type="button" id="genera-testo-da-html" class="btn btn-outline-secondary btn-sm mb-1">
+      <button type="button" id="genera-testo-da-html" class="btn-outline theme-secondary btn-sm mb-1 justify-self-start">
         Genera dal contenuto HTML
       </button>
       {{ form.corpo_testo }}
       {{ form.corpo_testo.errors }}
     </div>
 
-    <button type="submit" name="azione" value="salva" class="btn btn-primary">Salva</button>
-    <button type="submit" name="azione" value="anteprima" class="btn btn-outline-secondary">
+    <button type="submit" name="azione" value="salva" class="btn-solid theme-primary">Salva</button>
+    <button type="submit" name="azione" value="anteprima" class="btn-outline theme-secondary">
       Anteprima
     </button>
-    <button type="submit" name="azione" value="test" class="btn btn-outline-secondary">
+    <button type="submit" name="azione" value="test" class="btn-outline theme-secondary">
       Invia email di test a me stesso
     </button>
   </form>
@@ -62,7 +62,7 @@
     <hr>
     <h2>Anteprima</h2>
     <p><strong>Oggetto:</strong> {{ anteprima.oggetto }}</p>
-    <div class="card mb-3">
+    <div class="card mb-5">
       <div class="card-header">HTML</div>
       <div class="card-body">{{ anteprima.corpo_html|safe }}</div>
     </div>

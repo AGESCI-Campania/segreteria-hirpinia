@@ -7,19 +7,19 @@
   <p>Transizione terminale: una nota liquidata non torna più indietro (D-40).</p>
 
   {% if form.non_field_errors %}
-    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {{ form.non_field_errors }}
   {% endif %}
 
   <form method="post">
     {% csrf_token %}
     {% for field in form %}
-      <div class="mb-3">
+      <div class="form-field mb-5">
         {{ field.label_tag }}
         {{ field }}
         {{ field.errors }}
       </div>
     {% endfor %}
-    <button type="submit" class="btn btn-danger">Liquida</button>
-    <a href="{% url 'note_spese:nota_dettaglio' nota.pk %}" class="btn btn-outline-secondary">Annulla</a>
+    <button type="submit" class="btn-solid theme-danger">Liquida</button>
+    <a href="{% url 'note_spese:nota_dettaglio' nota.pk %}" class="btn-outline theme-secondary">Annulla</a>
   </form>
 {% endblock %}

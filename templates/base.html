@@ -1,102 +1,32 @@
-{% extends "agesci_coreui/base.html" %}
+{% extends "agesci_theme/base.html" %}
 {% load static %}
 {% load bootstrap_icons %}
-{% load agesci_coreui %}
 
 {% block title %}{% block page_title %}{{ agesci_theme_nome }}{% endblock %}{% endblock %}
 
 {% block brand_url %}{% url 'core:home' %}{% endblock %}
 
-{% block sidebar_items %}
-  {% url 'core:home' as home_url %}
-  {% ag_nav_item "Home" home_url icon="house-fill" %}
+{# Drawer mobile dell'header: stesse voci della sidebar, appiattite. #}
+{% block offcanvas_nav %}
+  <li><a href="{% url 'core:home' %}" class="nav-link">{% bs_icon "house-fill" %} Home</a></li>
   {% for sezione in sezioni_menu %}
-    {% ag_nav_title sezione.etichetta %}
+    <li class="ag-sidebar__section-title fg-2">{{ sezione.etichetta }}</li>
     {% for voce in sezione.voci %}
       {% if voce.sottovoci %}
-        <li class="nav-group">
-          <a class="nav-link nav-group-toggle" href="#">
-            {% bs_icon voce.icona %} {{ voce.etichetta }}
-          </a>
-          <ul class="nav-group-items compact">
-            {% for sotto in voce.sottovoci %}
-              {% ag_nav_item sotto.etichetta sotto.url icon=sotto.icona %}
-            {% endfor %}
-          </ul>
-        </li>
+        {% for sotto in voce.sottovoci %}
+          <li><a href="{{ sotto.url }}" class="nav-link">{% bs_icon sotto.icona %} {{ sotto.etichetta }}</a></li>
+        {% endfor %}
       {% else %}
-        {% ag_nav_item voce.etichetta voce.url icon=voce.icona %}
+        <li><a href="{{ voce.url }}" class="nav-link">{% bs_icon voce.icona %} {{ voce.etichetta }}</a></li>
       {% endif %}
     {% endfor %}
   {% endfor %}
 {% endblock %}
 
-{% block sidebar_user %}
-{% if request.user.is_authenticated %}
-<div class="sidebar-footer border-top ag-sidebar-user">
-  <div class="dropdown dropup">
-    <a href="#"
-       class="d-flex align-items-center gap-2 text-decoration-none text-white dropdown-toggle"
-       data-coreui-toggle="dropdown"
-       aria-expanded="false">
-      {% ag_avatar name=request.user.get_full_name|default:request.user.username size="md" %}
-      <span class="text-truncate">{{ request.user.get_full_name|default:request.user.username }}</span>
-    </a>
-    <ul class="dropdown-menu dropdown-menu-dark shadow">
-      <li>
-        <span class="dropdown-item-text small">
-          <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
-          {% if request.user.email %}<br><span class="text-white-50">{{ request.user.email }}</span>{% endif %}
-        </span>
-      </li>
-      <li><hr class="dropdown-divider"></li>
-      <li><a class="dropdown-item" href="{% url 'account_change_password' %}">Cambia password</a></li>
-      <li><a class="dropdown-item" href="{% url 'accounts:preferenze' %}">Preferenze</a></li>
-      {% if puo_impersonare %}
-        <li><a class="dropdown-item" href="{% url 'accounts:impersona_lista' %}">Impersona un utente</a></li>
-      {% endif %}
-      <li><a class="dropdown-item" href="{% url 'account_logout' %}">Esci</a></li>
-    </ul>
-  </div>
-</div>
-{% endif %}
-{% endblock %}
+{% block sidebar %}{% include "partials/sidebar.html" %}{% endblock %}
 
 {% block footer %}
-<footer class="footer px-4 mt-4">
-  <div class="container-fluid">
-    <div class="row g-4 py-4">
-      <div class="col-12 col-md-3">
-        <a href="{% url 'core:home' %}" class="d-inline-block mb-2">
-          <img src="{% static agesci_theme_logo_navbar %}" alt="{{ agesci_theme_nome }}" style="height: 48px; width: auto;">
-        </a>
-        <p class="small">{{ agesci_theme_nome }}</p>
-      </div>
-      <div class="col-6 col-md-2">
-        <h5>Informazioni</h5>
-        <ul class="list-unstyled">
-          <li><a href="{% url 'core:privacy' %}">{% bs_icon "shield-lock" %} Privacy Policy</a></li>
-          <li><a href="https://segreteria-hirpinia.readthedocs.io" target="_blank" rel="noopener">{% bs_icon "book" %} Manuale d'uso</a></li>
-        </ul>
-      </div>
-      <div class="col-6 col-md-2">
-        <h5>Contatti</h5>
-        <ul class="list-unstyled">
-          <li><a href="mailto:zonahirpinia@campania.agesci.it">{% bs_icon "envelope" %} Responsabili di Zona</a></li>
-          <li><a href="https://www.instagram.com/agesci.zonahirpinia" target="_blank" rel="noopener">{% bs_icon "instagram" %} Instagram</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center pt-3 border-top gap-2">
-      <div>{% block footer_copyright %}© AGESCI Zona Hirpinia. Progetto con <a href="https://github.com/AGESCI-Campania/segreteria-hirpinia/blob/main/LICENSE" target="_blank" rel="noopener">Licenza MIT</a> realizzato da <a href="https://www.bruand81.it" target="_blank" rel="noopener">Andrea Bruno</a>{% endblock %}</div>
-      <ul class="ag-footer-links list-unstyled d-flex gap-3 mb-0">
-        {% block footer_links %}
-        <li><a href="https://www.agesci.it" target="_blank" rel="noopener">agesci.it</a></li>
-        {% endblock %}
-      </ul>
-    </div>
-  </div>
-</footer>
+{% include "partials/footer.html" %}
 {% include "agesci_theme/partials/cookie_banner.html" %}
 {% endblock %}
 

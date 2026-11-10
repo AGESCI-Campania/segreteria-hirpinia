@@ -5,16 +5,16 @@
 {% block content %}
   <h1>Import PDF di autorizzazione</h1>
 
-  <form method="post" enctype="multipart/form-data" class="mb-4">
+  <form method="post" enctype="multipart/form-data" class="mb-7">
     {% csrf_token %}
     {% for field in form %}
-      <div class="mb-3">
+      <div class="form-field mb-5">
         {{ field.label_tag }}
         {{ field }}
         {{ field.errors }}
       </div>
     {% endfor %}
-    <button type="submit" class="btn btn-primary">Analizza file</button>
+    <button type="submit" class="btn-solid theme-primary">Analizza file</button>
   </form>
 
   {% if piano %}
@@ -53,7 +53,7 @@
 
     <form method="post" action="{% url 'anagrafica:importazione_autorizzazioni_conferma' %}">
       {% csrf_token %}
-      <button type="submit" class="btn btn-success">Conferma importazione</button>
+      <button type="submit" class="btn-solid theme-success">Conferma importazione</button>
     </form>
   {% endif %}
 {% endblock %}

@@ -11,19 +11,19 @@
     — {{ nota.get_stato_display }}
   </h1>
 
-  <a href="{% url 'note_spese:nota_pdf' nota.pk %}" class="btn btn-sm btn-outline-secondary mb-3" target="_blank">
+  <a href="{% url 'note_spese:nota_pdf' nota.pk %}" class="btn-sm btn-outline theme-secondary mb-5" target="_blank">
     {% bs_icon "file-earmark-pdf" %} Scarica PDF
   </a>
 
-  <div class="mb-3">
+  <div class="mb-5">
     {% if nota.stato == "BOZZA" and agisce_come_capo %}
       <form method="post" action="{% url 'note_spese:nota_invia' nota.pk %}" class="d-inline">
         {% csrf_token %}
-        <button type="submit" class="btn btn-sm btn-primary">Invia</button>
+        <button type="submit" class="btn-sm btn-solid theme-primary">Invia</button>
       </form>
       <form method="post" action="{% url 'note_spese:nota_annulla' nota.pk %}" class="d-inline">
         {% csrf_token %}
-        <button type="submit" class="btn btn-sm btn-outline-danger">Annulla</button>
+        <button type="submit" class="btn-sm btn-outline theme-danger">Annulla</button>
       </form>
     {% endif %}
 
@@ -31,13 +31,13 @@
       {% if puo_gestire_note %}
         <form method="post" action="{% url 'note_spese:nota_prendi_in_carico' nota.pk %}" class="d-inline">
           {% csrf_token %}
-          <button type="submit" class="btn btn-sm btn-primary">Prendi in carico</button>
+          <button type="submit" class="btn-sm btn-solid theme-primary">Prendi in carico</button>
         </form>
       {% endif %}
       {% if agisce_come_capo %}
         <form method="post" action="{% url 'note_spese:nota_annulla' nota.pk %}" class="d-inline">
           {% csrf_token %}
-          <button type="submit" class="btn btn-sm btn-outline-danger">Annulla</button>
+          <button type="submit" class="btn-sm btn-outline theme-danger">Annulla</button>
         </form>
       {% endif %}
     {% endif %}
@@ -45,21 +45,21 @@
     {% if nota.stato == "IN_VERIFICA" and puo_gestire_note %}
       <form method="post" action="{% url 'note_spese:nota_approva' nota.pk %}" class="d-inline">
         {% csrf_token %}
-        <button type="submit" class="btn btn-sm btn-success">Approva</button>
+        <button type="submit" class="btn-sm btn-solid theme-success">Approva</button>
       </form>
-      <a href="{% url 'note_spese:nota_richiedi_integrazione' nota.pk %}" class="btn btn-sm btn-outline-warning">
+      <a href="{% url 'note_spese:nota_richiedi_integrazione' nota.pk %}" class="btn-sm btn-outline theme-warning">
         Richiedi integrazione
       </a>
-      <a href="{% url 'note_spese:nota_richiedi_conferma' nota.pk %}" class="btn btn-sm btn-outline-warning">
+      <a href="{% url 'note_spese:nota_richiedi_conferma' nota.pk %}" class="btn-sm btn-outline theme-warning">
         Richiedi conferma
       </a>
-      <a href="{% url 'note_spese:nota_respingi' nota.pk %}" class="btn btn-sm btn-danger">Respingi</a>
+      <a href="{% url 'note_spese:nota_respingi' nota.pk %}" class="btn-sm btn-solid theme-danger">Respingi</a>
     {% endif %}
 
     {% if nota.stato == "DA_INTEGRARE" and agisce_come_capo %}
       <form method="post" action="{% url 'note_spese:nota_conferma_integrazione' nota.pk %}" class="d-inline">
         {% csrf_token %}
-        <button type="submit" class="btn btn-sm btn-primary">
+        <button type="submit" class="btn-sm btn-solid theme-primary">
           Ho caricato il nuovo giustificativo
         </button>
       </form>
@@ -68,7 +68,7 @@
     {% if nota.stato == "DA_CONFERMARE" and agisce_come_capo %}
       <form method="post" action="{% url 'note_spese:nota_conferma_correzione' nota.pk %}" class="d-inline">
         {% csrf_token %}
-        <button type="submit" class="btn btn-sm btn-primary">Confermo la correzione</button>
+        <button type="submit" class="btn-sm btn-solid theme-primary">Confermo la correzione</button>
       </form>
     {% endif %}
 
@@ -76,15 +76,15 @@
       {% if richiede_autorizzazione_rdz and puo_autorizzare_rdz %}
         <form method="post" action="{% url 'note_spese:nota_autorizza_rdz' nota.pk %}" class="d-inline">
           {% csrf_token %}
-          <button type="submit" class="btn btn-sm btn-primary">Autorizza (RdZ)</button>
+          <button type="submit" class="btn-sm btn-solid theme-primary">Autorizza (RdZ)</button>
         </form>
       {% elif not richiede_autorizzazione_rdz and puo_gestire_note %}
-        <a href="{% url 'note_spese:nota_liquida' nota.pk %}" class="btn btn-sm btn-success">Liquida</a>
+        <a href="{% url 'note_spese:nota_liquida' nota.pk %}" class="btn-sm btn-solid theme-success">Liquida</a>
       {% endif %}
     {% endif %}
 
     {% if nota.stato == "AUTORIZZATA_RDZ" and puo_gestire_note %}
-      <a href="{% url 'note_spese:nota_liquida' nota.pk %}" class="btn btn-sm btn-success">Liquida</a>
+      <a href="{% url 'note_spese:nota_liquida' nota.pk %}" class="btn-sm btn-solid theme-success">Liquida</a>
     {% endif %}
   </div>
 
@@ -125,8 +125,8 @@
 
   <h2>Righe</h2>
   {% if puo_modificare %}
-    <a href="{% url 'note_spese:riga_crea' nota.pk %}" class="btn btn-sm btn-primary mb-2">Aggiungi riga</a>
-    <a href="{% url 'note_spese:riga_auto_crea' nota.pk %}" class="btn btn-sm btn-primary mb-2">Aggiungi riga auto</a>
+    <a href="{% url 'note_spese:riga_crea' nota.pk %}" class="btn-sm btn-solid theme-primary mb-3">Aggiungi riga</a>
+    <a href="{% url 'note_spese:riga_auto_crea' nota.pk %}" class="btn-sm btn-solid theme-primary mb-3">Aggiungi riga auto</a>
   {% endif %}
   <div class="table-responsive">
   <table class="table table-sm">
@@ -160,14 +160,14 @@
               <a href="{% url 'note_spese:allegato_scarica' allegato.pk %}">{% bs_icon "paperclip" %}</a>
             {% endfor %}
             {% if puo_modificare %}
-              <a href="{% url 'note_spese:allegato_carica' nota.pk riga.pk %}" class="btn btn-sm btn-outline-secondary">
+              <a href="{% url 'note_spese:allegato_carica' nota.pk riga.pk %}" class="btn-sm btn-outline theme-secondary">
                 Carica
               </a>
             {% endif %}
           </td>
           <td>
             {% if puo_modificare and riga.categoria.sottotipo_chilometrico == "ANDATA_RITORNO" %}
-              <a href="{% url 'note_spese:riga_duplica' nota.pk riga.pk %}" class="btn btn-sm btn-outline-secondary">
+              <a href="{% url 'note_spese:riga_duplica' nota.pk riga.pk %}" class="btn-sm btn-outline theme-secondary">
                 Duplica
               </a>
             {% endif %}

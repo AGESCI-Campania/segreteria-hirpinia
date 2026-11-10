@@ -1,6 +1,6 @@
 {% load i18n %}
 {% block content %}
-  <div class="alert alert-warning rounded-0 mb-0 d-flex justify-content-between align-items-center"
+  <div class="alert theme-warning rounded-0 mb-0 justify-content-between align-items-center"
        style="position: sticky; top: 0; z-index: 1050;">
     <div>
       {% blocktrans trimmed with user=request.user %}
@@ -14,7 +14,7 @@
     <form action="{% url 'hijack:release' %}" method="POST" class="mb-0">
       {% csrf_token %}
       <input type="hidden" name="next" value="{{ request.path }}">
-      <button class="btn btn-sm btn-dark" type="submit">
+      <button class="btn-solid theme-inverse btn-sm" type="submit">
         {% translate 'Termina impersonificazione' %}
       </button>
     </form>

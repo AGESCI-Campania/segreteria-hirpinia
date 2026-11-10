@@ -10,19 +10,20 @@ romperebbe silenziosamente), si carica direttamente il CSS del tema con
 utility già definite dal tema, nessun CSS custom.
 {% endcomment %}
 <!DOCTYPE html>
-<html lang="it" data-branca="capi">
+<html lang="it" data-bs-theme="light" data-branca="capi">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Errore imprevisto — Zona Hirpinia</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  {# Stessa versione e hash SRI di agesci_theme/base.html (tema 3.x, Bootstrap 6 alpha). #}
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
   <link href="{% static 'agesci_theme/css/agesci.min.css' %}" rel="stylesheet">
 </head>
 <body class="d-flex flex-column min-vh-100">
-  <main class="container py-5 text-center my-auto">
+  <main class="container py-12 text-center my-auto">
     <h1>Si è verificato un errore imprevisto</h1>
     <p>Il team è già stato avvisato. Riprova tra qualche minuto.</p>
-    <a href="/" class="btn btn-primary">Torna alla home</a>
+    <a href="/" class="btn-solid theme-primary">Torna alla home</a>
   </main>
 </body>
 </html>

@@ -5,22 +5,22 @@
 {% block content %}
   <h1>Import CSV "Ricerca Soci" di Buona Caccia</h1>
 
-  <form method="post" enctype="multipart/form-data" class="mb-4">
+  <form method="post" enctype="multipart/form-data" class="mb-7">
     {% csrf_token %}
     {% for field in form %}
-      <div class="mb-3">
+      <div class="form-field mb-5">
         {{ field.label_tag }}
         {{ field }}
         {{ field.errors }}
       </div>
     {% endfor %}
-    <button type="submit" class="btn btn-primary">Analizza file</button>
+    <button type="submit" class="btn-solid theme-primary">Analizza file</button>
   </form>
 
   {% if piano %}
     <h2>Anteprima</h2>
     {% if ultima_importazione %}
-      <p class="text-muted">
+      <p class="fg-2">
         Ultima importazione completata per l'anno {{ piano.anno_scout }}:
         {{ ultima_importazione.eseguita_il }}. Il CSV non contiene una data di
         aggiornamento: verifica che questo file sia il più recente prima di
@@ -67,7 +67,7 @@
 
     <form method="post" action="{% url 'anagrafica:importazione_conferma' %}">
       {% csrf_token %}
-      <button type="submit" class="btn btn-success">Conferma importazione</button>
+      <button type="submit" class="btn-solid theme-success">Conferma importazione</button>
     </form>
   {% endif %}
 {% endblock %}

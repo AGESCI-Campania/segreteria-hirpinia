@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% load agesci_coreui %}
+{% load agesci_components %}
 
 {% block page_title %}Le mie sessioni{% endblock %}
 
 {% block content %}
-  <h1 class="mb-3">Le mie sessioni</h1>
-  <p class="text-muted">
+  <h1 class="mb-5">Le mie sessioni</h1>
+  <p class="fg-2">
     Dispositivi/browser in cui hai effettuato l'accesso e la sessione è ancora
     valida. Termina una sessione se non la riconosci o non ti serve più.
   </p>
@@ -33,7 +33,7 @@
             {% else %}
               <form method="post" action="{% url 'accounts:sessione_termina' sessione.pk %}">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-sm btn-outline-danger">Termina</button>
+                <button type="submit" class="btn-outline theme-danger btn-sm">Termina</button>
               </form>
             {% endif %}
           </td>

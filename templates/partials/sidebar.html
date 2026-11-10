@@ -1,0 +1,84 @@
+{% extends "agesci_theme/partials/sidebar.html" %}
+{% load bootstrap_icons %}
+{% comment %}
+Sidebar del tema (agesci_theme/partials/sidebar.html) con il menu di Catello.
+Si estende il partial invece di sovrascrivere i blocchi da base.html: il
+partial è incluso con {% include %}, e i blocchi di un template incluso non
+sono sovrascrivibili dal template che estende base.html (verificato). Così
+struttura, pulsanti e script della sidebar restano quelli del tema e si
+aggiornano con lui; qui stanno solo le voci e il menu utente.
+{% endcomment %}
+
+{% block sidebar_items %}
+    {% url 'core:home' as home_url %}
+    <li>
+      <a href="{{ home_url }}" class="ag-sidebar__nav-link{% if request.path == home_url %} active{% endif %}"{% if request.path == home_url %} aria-current="page"{% endif %}>
+        {% bs_icon "house-fill" %}
+        <span class="ag-sidebar__label">Home</span>
+      </a>
+    </li>
+    {% for sezione in sezioni_menu %}
+      {# Il testo sta in .ag-sidebar__label perché il tema lo nasconda a sidebar compressa (resta lo spazio fra le sezioni). #}
+      <li class="ag-sidebar__section-title"><span class="ag-sidebar__label">{{ sezione.etichetta }}</span></li>
+      {% for voce in sezione.voci %}
+        {% if voce.sottovoci %}
+          {# Il gruppo nasce aperto se la pagina corrente è una delle sue sottovoci. #}
+          <li>
+            <a href="#ag-sidebar-voce-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
+               class="ag-sidebar__nav-link"
+               data-bs-toggle="collapse"
+               role="button"
+               aria-expanded="{% if request.path in voce.url_sottovoci %}true{% else %}false{% endif %}"
+               aria-controls="ag-sidebar-voce-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+              {% bs_icon voce.icona %}
+              <span class="ag-sidebar__label">{{ voce.etichetta }}</span>
+              <span class="ag-sidebar__label ms-auto">{% bs_icon "chevron-down" size="12" %}</span>
+            </a>
+            {# Rientro sul <ul>: sul link un ps-* perde contro il padding di .ag-sidebar__nav-link del tema. #}
+            <ul class="collapse list-unstyled ps-7{% if request.path in voce.url_sottovoci %} show{% endif %}" id="ag-sidebar-voce-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+              {% for sotto in voce.sottovoci %}
+                <li>
+                  <a href="{{ sotto.url }}" class="ag-sidebar__nav-link{% if request.path == sotto.url %} active{% endif %}"{% if request.path == sotto.url %} aria-current="page"{% endif %}>
+                    {% bs_icon sotto.icona %}
+                    <span class="ag-sidebar__label">{{ sotto.etichetta }}</span>
+                  </a>
+                </li>
+              {% endfor %}
+            </ul>
+          </li>
+        {% else %}
+          <li>
+            <a href="{{ voce.url }}" class="ag-sidebar__nav-link{% if request.path == voce.url %} active{% endif %}"{% if request.path == voce.url %} aria-current="page"{% endif %}>
+              {% bs_icon voce.icona %}
+              <span class="ag-sidebar__label">{{ voce.etichetta }}</span>
+            </a>
+          </li>
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+{% endblock %}
+
+{% block sidebar_user %}
+  {% if request.user.is_authenticated %}
+  <div class="ag-sidebar__user">
+    <a href="#" class="ag-sidebar__user-toggle" role="button"
+       data-bs-toggle="menu" data-bs-placement="top-start" data-bs-strategy="fixed" aria-expanded="false">
+      <span class="ag-sidebar__user-avatar" aria-hidden="true">{{ request.user.get_full_name|default:request.user.username|first|upper }}</span>
+      <span class="ag-sidebar__label">{{ request.user.get_full_name|default:request.user.username }}</span>
+    </a>
+    <div class="menu shadow" data-bs-theme="dark">
+      <span class="menu-text">
+        <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+        {% if request.user.email %}<br><small class="fg-2">{{ request.user.email }}</small>{% endif %}
+      </span>
+      <hr class="menu-divider">
+      <a class="menu-item" href="{% url 'account_change_password' %}">Cambia password</a>
+      <a class="menu-item" href="{% url 'accounts:preferenze' %}">Preferenze</a>
+      {% if puo_impersonare %}
+        <a class="menu-item" href="{% url 'accounts:impersona_lista' %}">Impersona un utente</a>
+      {% endif %}
+      <a class="menu-item" href="{% url 'account_logout' %}">Esci</a>
+    </div>
+  </div>
+  {% endif %}
+{% endblock %}

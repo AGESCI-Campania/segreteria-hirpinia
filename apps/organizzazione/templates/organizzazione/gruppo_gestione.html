@@ -3,25 +3,25 @@
 {% block page_title %}Gestione gruppo{% endblock %}
 
 {% block content %}
-  <div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-5">
     <h1>Gestione gruppo — {{ gruppo.nome }} ({{ gruppo.codice }})</h1>
-    <a href="{% url 'anagrafica:gruppo_incarichi' gruppo.codice %}" class="btn btn-outline-secondary">
+    <a href="{% url 'anagrafica:gruppo_incarichi' gruppo.codice %}" class="btn-outline theme-secondary">
       Incarichi del gruppo
     </a>
   </div>
-  <p class="text-muted">
+  <p class="fg-2">
     Email istituzionale: {{ gruppo.email_istituzionale|default:"—" }} (da import, non
     modificabile qui).
   </p>
 
   {% if form.non_field_errors %}
-    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {{ form.non_field_errors }}
   {% endif %}
 
   <form method="post">
     {% csrf_token %}
     {% for field in form %}
-      <div class="mb-3">
+      <div class="form-field mb-5">
         {{ field.label_tag }}
         {{ field }}
         {% if field.name == "iban" %}
@@ -33,6 +33,6 @@
         {{ field.errors }}
       </div>
     {% endfor %}
-    <button type="submit" class="btn btn-primary">Salva</button>
+    <button type="submit" class="btn-solid theme-primary">Salva</button>
   </form>
 {% endblock %}

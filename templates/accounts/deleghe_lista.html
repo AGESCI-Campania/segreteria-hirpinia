@@ -3,10 +3,10 @@
 {% block page_title %}Le mie deleghe{% endblock %}
 
 {% block content %}
-  <div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-5">
     <h1>Deleghe concesse</h1>
     {% if ruoli_delegabili %}
-      <a href="{% url 'accounts:delega_crea' %}" class="btn btn-primary">Nuova delega</a>
+      <a href="{% url 'accounts:delega_crea' %}" class="btn-solid theme-primary">Nuova delega</a>
     {% endif %}
   </div>
   <div class="table-responsive">
@@ -31,7 +31,7 @@
             {% if delega.attiva %}
               <form method="post" action="{% url 'accounts:delega_revoca' delega.pk %}">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-sm btn-outline-danger">Revoca</button>
+                <button type="submit" class="btn-outline theme-danger btn-sm">Revoca</button>
               </form>
             {% endif %}
           </td>

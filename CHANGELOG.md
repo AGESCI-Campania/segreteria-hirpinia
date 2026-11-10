@@ -8,6 +8,19 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [Non rilasciato]
+
+### Modificato
+
+- Nuova veste grafica basata sulla serie 3 del tema AGESCI Campania (Bootstrap 6):
+  menu laterale richiudibile, pulsanti, avvisi e moduli aggiornati in tutte le
+  pagine. Nel menu laterale le funzioni di un modulo (es. Nota Spese) si aprono
+  automaticamente quando si è su una di esse.
+- Il piè di pagina mostra ora anche il nome della Zona e dell'associazione.
+- Per usare la piattaforma servono browser recenti: Chrome/Edge 130, Firefox 132 o
+  Safari 18 (o versioni successive).
+- Aggiornati i componenti software della piattaforma.
+
 ## [1.1.22] - 2026-09-27
 
 ### Corretto

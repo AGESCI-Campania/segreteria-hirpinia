@@ -4,15 +4,15 @@
 
 {% block content %}
   <h1>Carica giustificativo</h1>
-  <p class="text-muted">Riga: {{ riga.categoria }} — {{ riga.data }}</p>
+  <p class="fg-2">Riga: {{ riga.categoria }} — {{ riga.data }}</p>
 
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
-    <div class="mb-3">
+    <div class="form-field mb-5">
       <label class="form-label" for="file">File (PDF, JPEG, PNG o HEIC, max 10 MB)</label>
       <input type="file" name="file" id="file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.heic" required>
     </div>
-    <button type="submit" class="btn btn-primary">Carica</button>
-    <a href="{% url 'note_spese:nota_dettaglio' nota.pk %}" class="btn btn-outline-secondary">Annulla</a>
+    <button type="submit" class="btn-solid theme-primary">Carica</button>
+    <a href="{% url 'note_spese:nota_dettaglio' nota.pk %}" class="btn-outline theme-secondary">Annulla</a>
   </form>
 {% endblock %}

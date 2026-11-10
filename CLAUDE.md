@@ -288,9 +288,42 @@ una funzione, non affiancare le funzioni come voci separate di "Moduli".
 
 ### Tema
 
-Usa `django-agesci-campania-theme`. **Non scrivere CSS custom** per i colori: usa le
-utility del tema (`bg-ag-viola`, `text-ag-*`, `{% branca_bg %}`) e i blocchi di
+Usa `django-agesci-campania-theme` **3.x, che è su Bootstrap 6 (alpha)**, non 5: niente
+variante CoreUI. **Non scrivere CSS custom** per i colori: usa le utility del tema
+(`bg-ag-viola`, `text-ag-*`, `{% branca_bg %}`, `theme-primary`) e i blocchi di
 `agesci_theme/base.html`. Se serve davvero una regola CSS nuova, chiedi prima.
+
+**Markup Bootstrap 6, non 5.** Il markup v5 non dà errori ma non ha stile o non
+funziona. Tabella completa nella guida del tema (`migrazione-bootstrap-6` su
+readthedocs); in questo progetto:
+- `btn-solid theme-primary` / `btn-outline theme-danger` (mai `btn btn-primary`),
+  `badge theme-success`, `alert theme-warning`; colori testo `fg-2` (ex `text-muted`),
+  `fg-danger`; `fs-lg fw-light` (ex `lead`).
+- Spaziature con la scala nuova a parità di rem: `mb-3` → `mb-5`, `mb-4` → `mb-7`,
+  `py-5` → `py-12`, `gap-2` → `gap-3`. Classi responsive con prefisso: `md:col-6`,
+  `lg:d-none` (`lg` = 1024px).
+- Modal/dropdown/offcanvas → `<dialog class="dialog">` / `.menu` / `drawer`
+  (`data-bs-toggle="dialog|menu|drawer"`); `window.bootstrap` non esiste (JS solo ESM).
+- Ogni campo di form sta in `<div class="form-field mb-5">` (checkbox compresi: niente
+  `form-check`). `.form-field` è una **griglia**: un bottone o badge dentro si allarga a
+  tutta la riga (serve `justify-self-start`), e un elenco `position-absolute` (gli
+  autocompletamenti) finirebbe sopra la label — quei campi restano in un
+  `<div class="mb-5 position-relative">` normale.
+- `.alert` è flex orizzontale: se ha più figli (testo + lista) vanno avvolti in un solo
+  `<div>`. `{{ form.non_field_errors }}` col renderer del tema è **già** un
+  `alert theme-danger`: non avvolgerlo in un altro alert.
+- `ag-btn-light` funziona solo insieme a `btn-solid`.
+
+**Layout: estendere i partial, non replicarli.** Sidebar e footer del tema sono partial
+inclusi con `{% include %}`: i loro blocchi interni (`sidebar_items`,
+`footer_col1_links`…) **non** si sovrascrivono da `base.html` (verificato, nonostante il
+README del tema li elenchi come blocchi di `base.html`). Si sovrascrivono estendendo il
+partial: `templates/partials/sidebar.html` e `templates/partials/footer.html` fanno
+`{% extends "agesci_theme/partials/..." %}` e definiscono solo voci di menu, menu
+utente, colonne e copyright. Non ricopiare la struttura del tema in `base.html`: non
+seguirebbe gli aggiornamenti del pacchetto. `templates/500.html` è l'unica pagina che
+non estende `base.html` (renderizzata senza context processor) e carica da sé il CSS di
+Bootstrap: se il tema cambia versione di Bootstrap, va allineato a mano.
 
 **Eccezione dichiarata**: TinyMCE (editor rich text di `TemplateEmail.corpo_html`, M8)
 porta il proprio CSS/JS di toolbar, vendorizzato in `static/vendor/tinymce/` (nessuna
@@ -317,10 +350,11 @@ esatta** del core, mai `latest`.
   (`CaricaImmagineTemplateEmailForm`), non nel model field: `Model.full_clean()` da
   solo non la esegue, è un comportamento di Django facilmente frainteso.
 
-**Footer e cookie banner**: `templates/agesci_theme/partials/footer.html` e
-`templates/agesci_theme/partials/cookie_banner.html` (incluso da `footer.html`) sono
-override locali del tema, stesso meccanismo già usato per `breadcrumb.html`
-(`TEMPLATES[0]["DIRS"]` ha priorità su `APP_DIRS`). Il cookie banner è **informativo**
+**Cookie banner**: `templates/agesci_theme/partials/cookie_banner.html` è un template
+del progetto (il tema non ne ha uno), incluso dal blocco `footer` di `templates/base.html`
+subito dopo il footer. Il banner di impersonificazione (`templates/hijack/notification.html`)
+è inserito prima di `<header>` (`HIJACK_INSERT_BEFORE`), per restare visibile nel layout a
+viewport fisso del tema. Il cookie banner è **informativo**
 (una sola presa visione "Ho capito", persistita in `localStorage`), non un gate di
 consenso a categorie: verificato che l'app imposta solo cookie tecnici necessari
 (`sessionid`, `csrftoken`), che `django-axes`/`django-hijack` non usano cookie propri e

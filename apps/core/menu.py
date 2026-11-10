@@ -40,6 +40,12 @@ class VoceMenu:
     # per una voce semplice (nessun sottomenu).
     sottovoci: tuple[VoceMenu, ...] = ()
 
+    @property
+    def url_sottovoci(self) -> tuple[str, ...]:
+        """URL della voce e delle sue sottovoci: la sidebar apre il gruppo se
+        la pagina corrente è una di queste."""
+        return (self.url, *(s.url for s in self.sottovoci))
+
 
 def _voce(
     etichetta: str,

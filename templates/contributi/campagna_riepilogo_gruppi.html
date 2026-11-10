@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load agesci_coreui %}
+{% load agesci_components %}
 
 {% block page_title %}Riepilogo gruppi — Campagna {{ campagna.anno }}{% endblock %}
 
@@ -67,14 +67,14 @@
                   {% csrf_token %}
                   <input type="hidden" name="gruppo" value="{{ riga.gruppo_codice }}">
                   <input type="hidden" name="azione" value="revoca">
-                  <button type="submit" class="btn btn-sm btn-outline-secondary">Revoca dichiarazione</button>
+                  <button type="submit" class="btn-sm btn-outline theme-secondary">Revoca dichiarazione</button>
                 </form>
               {% elif riga.capi_inseriti == 0 %}
                 <form method="post" class="d-inline">
                   {% csrf_token %}
                   <input type="hidden" name="gruppo" value="{{ riga.gruppo_codice }}">
                   <input type="hidden" name="azione" value="dichiara">
-                  <button type="submit" class="btn btn-sm btn-outline-secondary">Dichiara nessun rimborso</button>
+                  <button type="submit" class="btn-sm btn-outline theme-secondary">Dichiara nessun rimborso</button>
                 </form>
               {% endif %}
             {% endif %}
