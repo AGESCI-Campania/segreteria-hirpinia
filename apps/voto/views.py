@@ -97,8 +97,7 @@ class CodiceMostraView(LoginRequiredMixin, View):
             "avente": avente,
             "codice": codici.formatta(codice),
             "qr": segno.make(link, error="m").svg_inline(scale=6, dark="#000", light="#fff"),
-            "torna": request.POST.get("next")
-            or reverse("assemblee:presenze", args=[pk, seduta_pk]),
+            "torna": _torna(request, seduta).url,
         }
         return render(request, self.template_name, contesto)
 
@@ -264,7 +263,7 @@ class SeggiView(LoginRequiredMixin, BreadcrumbExtraMixin, View):
                     seduta, request.POST.get("nome", ""), request.user
                 )
                 # Stessa convenzione dei link nelle email: SITE_URL, mai build_absolute_uri.
-                link = f"{settings.SITE_URL}{reverse('voto:attiva_postazione', args=[segreto])}"
+                link = f"{settings.SITE_URL}{reverse('voto:attiva_postazione')}#s={segreto}"
                 extra = {
                     "nuova": postazione,
                     "link": link,

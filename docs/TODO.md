@@ -103,6 +103,22 @@ Per l'Assemblea di Zona autunnale del 22/11/2026. Decisioni in D-70 di
 - [x] F2 — Presenze, deleghe AE, verifica del quorum, cruscotti in tempo reale, vista proiettore, elenco per l'abilitazione in app
 - [x] F3 — Votazioni con le soglie del regolamento, ordine del giorno, verbale dell'assemblea e verbale del rappresentante legale
 
+## Voto elettronico (D-71)
+
+Per l'assemblea primaverile. Piano in `docs/plan_voto.md`, decisioni in D-71.
+
+- [x] V0 — Email degli aventi diritto, Excel per gruppo da far verificare ai capigruppo (export, import con anteprima e report anomalie)
+- [x] V1 — Sistema di voto per assemblea (app del Nazionale / voto di Catello), codici di voto (solo hash, email alla presenza, «Rigenera e mostra» al banco con QR)
+- [x] V2 — Urna e pagina pubblica di voto: deleghe a due schede, fino a N preferenze con nomi scritti, bianca e nulla, ricevute
+- [x] V3 — Apertura e chiusura dell'urna, rimescolamento, interpretazione dei nomi scritti, conteggio automatico, bacheca, verifica della ricevuta, impronta nel verbale
+- [x] V4 — Seggi (postazioni con link monouso), chiosco, modalità «solo seggi»
+- [x] V5 — Ballottaggio anche in app
+- [x] V6 — Prova di carico, revisione di sicurezza, documentazione
+- [ ] Verificare HTTPS su `segreteriahirpinia` (prerequisito bloccante per qualunque prova reale)
+- [ ] Ripetere la prova di carico sul server di produzione, con `GUNICORN_THREADS=4`
+- [ ] Assemblea simulata con alcuni capi prima della primaverile
+- [ ] Dalla prossima autunnale: import dell'Excel delle email da parte del capogruppo, preautorizzazioni con scadenza (da definire)
+
 ## Gap noti (scoperti in verifica, non da una milestone)
 - [ ] `apps/core/email/microsoft.py` (provider `microsoft_graph`) non è implementato:
   `apps/core/email/gmail.py` esiste ed è testato (implementato durante il deploy di
@@ -115,7 +131,8 @@ Per l'Assemblea di Zona autunnale del 22/11/2026. Decisioni in D-70 di
   (segreteria/RdZ/admin) li compila nel modulo di liquidazione
   (`LiquidaNotaForm`/`transizioni.py::liquida()`); `riferimento_tracciabilita` è
   obbligatorio solo per la modalità bonifico.
-- [ ] Migrazione delle impostazioni email a `MAILERS`: da Django 6.1 `EMAIL_HOST`,
+- [x] Migrazione delle impostazioni email a `MAILERS` (fatta il 2026-11-10, commit
+  «Email: migrazione a MAILERS di Django 6.1»): da Django 6.1 `EMAIL_HOST`,
   `EMAIL_PORT`, `EMAIL_USE_TLS`/`EMAIL_USE_SSL`, `EMAIL_TIMEOUT`, `EMAIL_HOST_USER`/
   `EMAIL_HOST_PASSWORD` sono deprecate (avviso `RemovedInDjango2028Warning` nei test,
   comparso con l'aggiornamento a Django 6.1.3 del 2026-11-10). Oggi funziona tutto, ma

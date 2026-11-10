@@ -209,3 +209,11 @@ class TestViste:
 
     def test_pagina_pubblica_senza_login(self, client):
         assert client.get("/voto/").status_code == 200
+
+
+def test_mostra_non_rimanda_fuori_dal_sito(client, seduta, assemblea, operatore):
+    client.force_login(operatore)
+    gialli = avente(assemblea, "Gialli")
+    url = f"/voto/gestione/{assemblea.pk}/sedute/{seduta.pk}/codici/{gialli.pk}/mostra/"
+    testo = client.post(url, {"next": "javascript:alert(1)"}).content.decode()
+    assert "javascript:" not in testo

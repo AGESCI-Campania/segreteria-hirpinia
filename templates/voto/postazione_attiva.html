@@ -1,4 +1,5 @@
 {% extends "voto/base_voto.html" %}
+{% load static %}
 
 {% block title %}Attiva il seggio{% endblock %}
 
@@ -10,11 +11,14 @@
         <div class="alert theme-danger" role="alert">Link non valido o già usato: chiedi al banco una nuova postazione.</div>
       {% else %}
         <p class="mb-5">Questo dispositivo diventerà un seggio di voto per la seduta. Il link vale una volta sola.</p>
-        <form method="post">
+        <form method="post" data-voto-seggio>
           {% csrf_token %}
+          <input type="hidden" name="segreto" value="">
           <button type="submit" class="btn-solid theme-primary w-100">Attiva questo dispositivo come seggio</button>
         </form>
       {% endif %}
     </div>
   </div>
 {% endblock %}
+
+{% block extra_js %}<script src="{% static 'js/voto-urna.js' %}" defer></script>{% endblock %}

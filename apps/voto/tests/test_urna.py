@@ -245,3 +245,19 @@ class TestPagine:
         client.post("/voto/accedi/", {"codice": codice})
         valori = " ".join(str(v) for v in client.session.values())
         assert codice not in valori
+
+
+def test_l_assemblea_con_voti_si_puo_eliminare(elezione, costituita, assemblea, segreteria):
+    codice = _codice(costituita, assemblea, "Rossi", segreteria)
+    urna.vota(codice.pk, elezione, [urna.Scelte(esito=urna.ESITO_BIANCA)])
+    assemblea.delete()
+    assert not Votante.objects.exists() and not Scheda.objects.exists()
+
+
+def test_l_avente_che_ha_votato_non_si_cancella(elezione, costituita, assemblea, segreteria):
+    from django.db.models import RestrictedError
+
+    codice = _codice(costituita, assemblea, "Rossi", segreteria)
+    urna.vota(codice.pk, elezione, [urna.Scelte(esito=urna.ESITO_BIANCA)])
+    with pytest.raises(RestrictedError):
+        avente(assemblea, "Rossi").delete()

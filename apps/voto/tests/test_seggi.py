@@ -39,7 +39,7 @@ def elezione(costituita, assemblea, segreteria):
 
 def _attiva(client, seduta, utente) -> Postazione:
     postazione, segreto = postazioni.crea(seduta, "Seggio 1", utente)
-    client.post(f"/voto/seggio/{segreto}/")
+    client.post("/voto/seggio/", {"segreto": segreto})
     postazione.refresh_from_db()
     return postazione
 
@@ -123,9 +123,25 @@ class TestChiosco:
         url = f"/voto/gestione/{assemblea.pk}/sedute/{costituita.pk}/seggi/"
         risposta = client.post(url, {"nome": "Seggio A"})
         testo = risposta.content.decode()
-        assert "/voto/seggio/" in testo and "<svg" in testo
+        assert "/voto/seggio/#s=" in testo and "<svg" in testo
         assert "no-store" in risposta["Cache-Control"]
         postazione = Postazione.objects.get()
         client.post(url, {"disattiva": postazione.pk})
         postazione.refresh_from_db()
         assert not postazione.attiva
+
+
+def test_al_seggio_l_accesso_scade(client, elezione, costituita, assemblea, segreteria):
+    from unittest.mock import patch
+
+    from apps.voto import views_urna
+
+    _attiva(client, costituita, segreteria)
+    codice = codici.emetti(costituita, avente(assemblea, "Rossi"), segreteria)
+    client.post("/voto/accedi/", {"codice": codice})
+    assert client.get("/voto/scheda/").status_code == 200
+    adesso = views_urna.time.time()
+    with patch.object(
+        views_urna.time, "time", return_value=adesso + views_urna.SECONDI_ACCESSO_SEGGIO + 1
+    ):
+        assert client.get("/voto/scheda/").url == "/voto/"

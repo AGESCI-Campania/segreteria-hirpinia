@@ -245,6 +245,7 @@ assenti da `.env.example` (aggiungerle solo se serve cambiare il default):
 | `DJANGO_CSRF_COOKIE_SECURE` | `False` | Cookie CSRF solo su HTTPS — stessa avvertenza |
 | `WEB_PORT` | `8000` | Porta host su cui `compose.prod.yaml` pubblica il servizio `web` (`127.0.0.1:${WEB_PORT}:8000`). Cambiarla solo se la 8000 è già occupata da un'altra applicazione sullo stesso host (es. server condiviso con più progetti): il reverse proxy va allineato alla stessa porta |
 | `GUNICORN_WORKERS` | `3` | Numero di worker Gunicorn (`docker/entrypoint.sh`) |
+| `GUNICORN_THREADS` | `1` | Thread per worker: con un valore maggiore di 1 Gunicorn usa i worker `gthread`. Per le assemblee con il voto elettronico si consiglia `4` (prova di carico in D-71) |
 | `GUNICORN_TIMEOUT` | `120` | Timeout per richiesta, in secondi |
 | `EMAIL_MAILPIT_HOST` / `EMAIL_MAILPIT_PORT` | Vuoto / `1025` | Endpoint di un Mailpit interno usato **solo** quando l'interruttore "Invia le email su Mailpit" in Impostazioni è attivo — vedi [`docs/email/mailpit-override-produzione.md`](email/mailpit-override-produzione.md) |
 | `DJANGO_ADMINS` | Vuoto | Destinatari della mail di errore 500 (`AdminEmailHandler` su `django.request`, livello `ERROR`), formato `Nome:email`, più voci separate da virgola (es. `Segreteria:segreteria@zonahirpinia.org,RDZ:rdz@zonahirpinia.org`). Vuoto = nessuna mail di errore inviata. Se "Invia le email su Mailpit" è attivo in Impostazioni, anche questa mail finisce su Mailpit come tutte le altre |
@@ -314,7 +315,7 @@ Al primo avvio, `docker/entrypoint.sh` esegue automaticamente, in quest'ordine:
 
 1. `manage.py migrate --noinput`
 2. `manage.py collectstatic --noinput`
-3. Avvio di `gunicorn` su `0.0.0.0:8000`, con `GUNICORN_WORKERS`/`GUNICORN_TIMEOUT`
+3. Avvio di `gunicorn` su `0.0.0.0:8000`, con `GUNICORN_WORKERS`/`GUNICORN_THREADS`/`GUNICORN_TIMEOUT`
 
 Nessuno di questi tre passi va eseguito a mano: succede ad ogni avvio del container,
 migrazioni comprese (idempotenti per costruzione).

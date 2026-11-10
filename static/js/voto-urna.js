@@ -20,6 +20,17 @@
     }
   }
 
+  // Attivazione del seggio: il segreto arriva nel fragment (#s=…), come il
+  // codice; si copia nel modulo e si toglie dalla barra degli indirizzi.
+  var seggio = document.querySelector("form[data-voto-seggio]");
+  if (seggio) {
+    var segreto = window.location.hash.match(/[#&]s=([A-Za-z0-9_-]+)/);
+    if (segreto) {
+      seggio.querySelector("input[name=segreto]").value = segreto[1];
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }
+
   var attesa = document.querySelector("[data-voto-stato]");
   if (attesa) {
     var url = attesa.dataset.votoStato;

@@ -75,12 +75,14 @@ class Votante(models.Model):
     votazione = models.ForeignKey(
         "assemblee.Votazione", on_delete=models.CASCADE, related_name="votanti_app"
     )
+    # RESTRICT: un avente che ha votato non si cancella da solo (si elimina
+    # dall'elenco, D-22), ma l'eliminazione dell'intera assemblea resta possibile.
     avente = models.ForeignKey(
-        "assemblee.AventeDiritto", on_delete=models.PROTECT, related_name="voti_app"
+        "assemblee.AventeDiritto", on_delete=models.RESTRICT, related_name="voti_app"
     )
     tramite = models.ForeignKey(
         "assemblee.AventeDiritto",
-        on_delete=models.PROTECT,
+        on_delete=models.RESTRICT,
         null=True,
         blank=True,
         related_name="voti_app_per_delega",

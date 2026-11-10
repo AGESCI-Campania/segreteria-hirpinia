@@ -29,7 +29,11 @@ from . import postazioni, scrutinio, urna
 from .models import CodiceVoto, Postazione
 
 SESSIONE_CODICE = "voto_codice"
+SESSIONE_ACCESSO = "voto_accesso_il"
 SESSIONE_TENTATIVI = "voto_tentativi"
+# Al seggio chi entra e se ne va senza votare non deve lasciare la scheda al
+# votante successivo: l'accesso scade da solo.
+SECONDI_ACCESSO_SEGGIO = 3 * 60
 MAX_TENTATIVI = 10
 # Al seggio la sessione è condivisa da tutti i votanti che passano.
 MAX_TENTATIVI_SEGGIO = 30
@@ -54,6 +58,11 @@ def _tentativi_recenti(request: HttpRequest) -> list[float]:
 def codice_della_sessione(request: HttpRequest) -> CodiceVoto | None:
     codice_id = request.session.get(SESSIONE_CODICE)
     if codice_id is None:
+        return None
+    accesso = request.session.get(SESSIONE_ACCESSO)
+    if accesso is not None and time.time() - accesso > SECONDI_ACCESSO_SEGGIO:
+        request.session.pop(SESSIONE_CODICE, None)
+        request.session.pop(SESSIONE_ACCESSO, None)
         return None
     codice = (
         CodiceVoto.objects.filter(pk=codice_id, revocato_il__isnull=True)
@@ -103,6 +112,9 @@ class AccediView(View):
         # dove la sessione serve a contare i tentativi della postazione).
         if postazione is None:
             request.session.cycle_key()
+            request.session.pop(SESSIONE_ACCESSO, None)
+        else:
+            request.session[SESSIONE_ACCESSO] = time.time()
         request.session[SESSIONE_CODICE] = codice.pk
         request.session.pop(SESSIONE_TENTATIVI, None)
         return redirect("voto:scheda")
@@ -198,6 +210,7 @@ class SchedaView(View):
             if al_seggio:
                 # Il prossimo votante non deve trovare la sessione di chi ha appena votato.
                 request.session.pop(SESSIONE_CODICE, None)
+                request.session.pop(SESSIONE_ACCESSO, None)
             return render(
                 request,
                 "voto/ricevuta.html",
@@ -294,13 +307,15 @@ class VerificaView(View):
 
 @method_decorator(never_cache, name="dispatch")
 class AttivaPostazioneView(View):
-    """Link monouso aperto sul tablet del seggio: lascia il cookie firmato."""
+    """Link monouso aperto sul tablet del seggio: lascia il cookie firmato. Il
+    segreto sta nel fragment (`/voto/seggio/#s=…`), come il codice di voto,
+    così non finisce nei log di accesso; lo script lo manda in POST."""
 
-    def get(self, request, segreto):
-        return render(request, "voto/postazione_attiva.html", {"segreto": segreto})
+    def get(self, request):
+        return render(request, "voto/postazione_attiva.html")
 
-    def post(self, request, segreto):
-        risultato = postazioni.attiva(segreto)
+    def post(self, request):
+        risultato = postazioni.attiva(request.POST.get("segreto", ""))
         if risultato is None:
             return render(request, "voto/postazione_attiva.html", {"non_valido": True})
         postazione, valore = risultato

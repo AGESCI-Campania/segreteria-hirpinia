@@ -1,6 +1,23 @@
 # Piano — Voto elettronico per le elezioni (branch `app-voto`)
 
-Bozza del 10/11/2026, da rivedere con Andrea prima di iniziare lo sviluppo.
+Bozza del 10/11/2026, rivista con Andrea. **Fasi V0–V6 implementate il 10/11/2026**: la
+decisione consolidata è D-71 in `docs/Catello_Progettazione.md`, i vincoli per il codice
+sono in `CLAUDE.md` (§ Voto elettronico).
+
+## Stato dell'implementazione e scostamenti dal piano
+
+| Punto del piano | Come è stato fatto | Perché |
+| --- | --- | --- |
+| Polling della pagina di voto a 5 s | 3 s, stato in cache per seduta 2 s | `CLAUDE.md` fissa il polling a 3 s (D-17); il carico è stato provato a 3 s |
+| Tagliando con `apps/core/pdf.py` | Stampa dal browser della pagina «Rigenera e mostra» | Il codice si vede una volta sola: un PDF chiesto con una seconda richiesta richiederebbe di conservarlo |
+| Limite ai tentativi per seduta e per postazione/sessione | Solo per sessione e per postazione | Un blocco per seduta permetterebbe a chiunque in sala di bloccare l'urna a tutti; a 50 bit la forza bruta online resta irrealistica |
+| Link monouso del seggio | Segreto nel fragment (`/voto/seggio/#s=…`) | Nel percorso finirebbe nei log del reverse proxy |
+| Interpretazione dei nomi scritti | Per testo (lo stesso testo vale per tutte le schede), in `InterpretazioneNome` | Coerenza fra schede uguali; nessun legame con la singola scheda |
+| Ballottaggio in app | Senza nomi scritti | Si sceglie fra i due candidati proposti (art. 18 c.3) |
+| Prova di carico su un ambiente di prova | Eseguita in locale (Mac di sviluppo); `GUNICORN_THREADS` aggiunto all'entrypoint (default 1, invariato) | Con 3 worker sync il p95 è al limite; con 4 thread rientra. Va ripetuta sul server |
+
+Restano da fare (fuori dal codice): verifica di HTTPS su `segreteriahirpinia`, prova di
+carico sul server, assemblea simulata.
 
 ## Contesto
 
