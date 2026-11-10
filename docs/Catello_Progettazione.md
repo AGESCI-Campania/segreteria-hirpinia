@@ -1310,9 +1310,10 @@ nessuno in 3ª. Le presenze si registrano solo all'ingresso; la **verifica del q
 (art. 4 c.5-6) è un nuovo appello, con ora e richiedente, i cui presenti valgono da quel
 momento; le votazioni precedenti restano valide.
 
-**Deleghe (art. 5)**, con controlli più stretti del testo, per scelta esplicita: l'AE
-di gruppo delega solo un altro capo del proprio gruppo, l'AE di Zona solo uno dei due RdZ;
-nessuno raccoglie più di una delega. Il voto dell'AE segue la sua modalità (app o carta).
+**Deleghe (art. 5), alla lettera.** Può delegare solo un AE. L'AE di gruppo delega un
+componente della propria Co.Ca. o un altro AE; l'AE di Zona delega un Responsabile di Zona
+o un membro del Comitato. Nessuno raccoglie più di una delega. Il voto dell'AE segue la sua
+modalità (app o carta).
 
 **Soglie di voto (alla lettera).**
 

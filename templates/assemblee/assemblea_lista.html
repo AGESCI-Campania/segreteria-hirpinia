@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block page_title %}Assemblee{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-5">
+    <h1>Assemblee</h1>
+    {% if puo_gestire %}
+      <a href="{% url 'assemblee:assemblea_crea' %}" class="btn-solid theme-primary">Nuova assemblea</a>
+    {% endif %}
+  </div>
+  <div class="table-responsive">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Assemblea</th>
+        <th>Sessione</th>
+        <th>Prima convocazione</th>
+        <th>Stato</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for assemblea in assemblee %}
+        {% with prima=assemblea.sedute.all.0 %}
+        <tr>
+          <td>{{ assemblea }}</td>
+          <td>{{ assemblea.get_sessione_display }}</td>
+          <td>{% if prima %}{{ prima.data|date:"d/m/Y" }}{% if prima.luogo %} — {{ prima.luogo }}{% endif %}{% else %}—{% endif %}</td>
+          <td>{% if assemblea.conclusa %}Conclusa{% else %}In preparazione{% endif %}</td>
+          <td><a href="{% url 'assemblee:assemblea_dettaglio' assemblea.pk %}" class="btn-outline theme-primary btn-sm">Apri</a></td>
+        </tr>
+        {% endwith %}
+      {% empty %}
+        <tr><td colspan="5">Nessuna assemblea.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+{% endblock %}

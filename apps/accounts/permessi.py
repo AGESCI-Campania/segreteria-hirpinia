@@ -68,6 +68,15 @@ def ruoli_effettivi(utente: Utente, *, alla_data: date | None = None) -> list[Ru
     return effettivi
 
 
+def tipi_ruolo_effettivi(utente: Utente) -> set[str]:
+    """Tipi dei ruoli effettivi (diretti e da delega) di `utente`; un
+    superuser vale come ADMIN anche senza `Ruolo` registrato. Unico punto per
+    i controlli "ha uno di questi ruoli" dei moduli (Nota Spese, Assemblee)."""
+    if utente.is_superuser:
+        return {Ruolo.Tipo.ADMIN}
+    return {r.tipo for r in ruoli_effettivi(utente)}
+
+
 def gruppi_visibili(utente: Utente, anno: int) -> QuerySet[Gruppo]:
     """Perimetro operativo dell'utente per `anno` (D-28): mai derivato da
     Utente.gruppo. Unione dei gruppi assegnati ai ruoli CG detenuti (diretti o

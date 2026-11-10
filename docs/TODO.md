@@ -97,7 +97,7 @@ Per l'Assemblea di Zona autunnale del 22/11/2026. Decisioni in D-70 di
 `docs/Catello_Progettazione.md`.
 
 - [x] Decisione e documentazione (D-70, `CLAUDE.md`)
-- [ ] F1 — Struttura: app `assemblee`, assemblea, sedute, elenco aventi diritto, operatori di voto, voce Moduli › Assemblee
+- [x] F1 — Struttura: app `assemblee`, assemblea, sedute, elenco aventi diritto, operatori di voto, voce Moduli › Assemblee
 - [ ] F1 — Elenco autunnale: import censiti 2025/26, eliminazioni, trasferimenti, nuovi capi con provenienza, voto app/carta
 - [ ] F1 — File: tracciato `.xlsx` per l'app del Nazionale, PDF foglio presenze
 - [ ] F2 — Presenze, deleghe AE, verifica del quorum, cruscotti in tempo reale, vista proiettore, elenco per l'abilitazione in app

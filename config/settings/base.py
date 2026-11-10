@@ -81,6 +81,7 @@ INSTALLED_APPS = [
     "apps.anagrafica",
     "apps.contributi",
     "apps.note_spese",
+    "apps.assemblee",
 ]
 
 MIDDLEWARE = [

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block page_title %}Nuova assemblea{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="md:col-6">
+      <h1>Nuova assemblea</h1>
+      <p class="fg-2">
+        Si crea con la prima convocazione. La seconda e la terza si aggiungono solo se la
+        precedente non raggiunge il quorum costitutivo.
+      </p>
+      <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn-solid theme-primary">Crea assemblea</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

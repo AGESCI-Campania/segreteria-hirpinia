@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load bootstrap_icons %}
+
+{% block page_title %}{{ assemblea }}{% endblock %}
+
+{% block content %}
+  <h1 class="mb-3">{{ assemblea }}</h1>
+  <p class="fg-2 mb-7">
+    Sessione {{ assemblea.get_sessione_display|lower }} —
+    {% if assemblea.conclusa %}conclusa il {{ assemblea.conclusa_il|date:"d/m/Y" }}{% else %}in preparazione{% endif %}
+  </p>
+
+  <div class="row row-cols-1 md:row-cols-3 g-7 mb-7">
+    <div class="col">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="fs-lg">{% bs_icon "people" %} Aventi diritto</h2>
+          <p class="fs-2xl mb-0">{{ totale_aventi_diritto }}</p>
+          <p class="fg-2 mb-0">di cui {{ totale_app }} con voto in app</p>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="fs-lg">{% bs_icon "calendar-event" %} Convocazioni</h2>
+          <ul class="list-unstyled mb-0">
+            {% for seduta in sedute %}
+              <li>{{ seduta }}{% if seduta.ora %} ore {{ seduta.ora|time:"H:i" }}{% endif %}{% if seduta.luogo %} — {{ seduta.luogo }}{% endif %}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="fs-lg">{% bs_icon "person-check" %} Operatori di voto</h2>
+          <p class="fs-2xl mb-0">{{ operatori|length }}</p>
+          <p class="fg-2 mb-0">registrano presenze e risultati</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="fs-xl">Operatori di voto</h2>
+  <p class="fg-2">
+    Registrano presenze, deleghe e risultati delle votazioni di questa assemblea, ma non
+    modificano l'elenco degli aventi diritto. Gli operatori che sono capi fanno parte del
+    comitato elettorale.
+  </p>
+  <div class="table-responsive mb-5">
+  <table class="table table-sm">
+    <thead>
+      <tr><th>Utente</th><th>Nominato il</th>{% if puo_gestire %}<th></th>{% endif %}</tr>
+    </thead>
+    <tbody>
+      {% for operatore in operatori %}
+        <tr>
+          <td>{{ operatore.utente }}</td>
+          <td>{{ operatore.nominato_il|date:"d/m/Y H:i" }}</td>
+          {% if puo_gestire %}
+            <td>
+              {% if not assemblea.conclusa %}
+                <form method="post" action="{% url 'assemblee:operatore_rimuovi' assemblea.pk operatore.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn-outline theme-danger btn-sm">Rimuovi</button>
+                </form>
+              {% endif %}
+            </td>
+          {% endif %}
+        </tr>
+      {% empty %}
+        <tr><td colspan="3">Nessun operatore nominato.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+
+  {% if puo_gestire and not assemblea.conclusa %}
+    <form method="post" action="{% url 'assemblee:operatore_aggiungi' assemblea.pk %}" class="row g-3 align-items-end">
+      {% csrf_token %}
+      <div class="md:col-6">
+        <div class="form-field">
+          {{ form_operatore.utente.label_tag }}
+          {{ form_operatore.utente }}
+        </div>
+      </div>
+      <div class="md:col-auto">
+        <button type="submit" class="btn-solid theme-primary">Nomina operatore</button>
+      </div>
+    </form>
+  {% endif %}
+{% endblock %}

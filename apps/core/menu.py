@@ -18,6 +18,7 @@ from apps.accounts.sessioni import RUOLI_GESTIONE_SESSIONI
 from apps.anagrafica.esportazione import RUOLI_EXPORT_ANAGRAFICA, RUOLI_VISUALIZZAZIONE_ESPORTAZIONI
 from apps.anagrafica.importazione import RUOLI_IMPORT_ANAGRAFICA
 from apps.anagrafica.incarichi import RUOLI_RICERCA_CAPO
+from apps.assemblee.permessi import accede_assemblee
 from apps.contributi.inserimento import RUOLI_GESTIONE_PARTECIPAZIONI
 from apps.core.views import RUOLI_GESTIONE_IMPOSTAZIONI
 from apps.note_spese.permessi import accede_note_spese, puo_gestire_note
@@ -174,6 +175,11 @@ def sezioni_menu(utente: Utente | AnonymousUser) -> list[SezioneMenu]:
                 sottovoci=tuple(sottovoci_note_spese),
             )
         )
+    if accede_assemblee(utente):
+        # Per ora una voce semplice: le funzioni di ogni assemblea (aventi
+        # diritto, presenze, votazioni, verbali) si raggiungono dalla sua
+        # pagina di riepilogo; diventeranno sottovoci quando saranno pronte.
+        voci_contributi.append(_voce("Assemblee", "assemblee:assemblea_lista", "megaphone"))
     if voci_contributi:
         sezioni.append(SezioneMenu("Moduli", "cash-coin", voci_contributi))
 
