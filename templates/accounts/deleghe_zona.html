@@ -28,7 +28,7 @@
             {% if delega.attiva %}
               <form method="post" action="{% url 'accounts:delega_revoca' delega.pk %}">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-sm btn-outline-danger">Revoca</button>
+                <button type="submit" class="btn-outline theme-danger btn-sm">Revoca</button>
               </form>
             {% endif %}
           </td>

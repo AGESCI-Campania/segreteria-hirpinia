@@ -4,19 +4,19 @@
 
 {% block content %}
   <div class="row justify-content-center">
-    <div class="col-md-6">
+    <div class="md:col-6">
       <h1>Codice scaduto?</h1>
       <p>Inserisci l'indirizzo email: se censito, riceverai un nuovo codice.</p>
       <form method="post">
         {% csrf_token %}
         {% for field in form %}
-          <div class="mb-3">
+          <div class="form-field mb-5">
             {{ field.label_tag }}
             {{ field }}
             {{ field.errors }}
           </div>
         {% endfor %}
-        <button type="submit" class="btn btn-primary">Invia nuovo codice</button>
+        <button type="submit" class="btn-solid theme-primary">Invia nuovo codice</button>
       </form>
     </div>
   </div>

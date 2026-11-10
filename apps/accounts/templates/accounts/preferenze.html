@@ -6,13 +6,13 @@
   <h1>Preferenze personali</h1>
 
   {% if form.non_field_errors %}
-    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {{ form.non_field_errors }}
   {% endif %}
 
   <form method="post">
     {% csrf_token %}
     {% for field in form %}
-      <div class="mb-3">
+      <div class="form-field mb-5">
         {{ field.label_tag }}
         {{ field }}
         {{ field.errors }}
@@ -21,6 +21,6 @@
         {% endif %}
       </div>
     {% endfor %}
-    <button type="submit" class="btn btn-primary">Salva</button>
+    <button type="submit" class="btn-solid theme-primary">Salva</button>
   </form>
 {% endblock %}

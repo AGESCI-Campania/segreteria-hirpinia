@@ -4,15 +4,15 @@
 
 {% block content %}
   <h1>Assegna ruolo — cerca utente</h1>
-  <p class="text-muted">
+  <p class="fg-2">
     Solo per utenti già attivi sulla piattaforma. Per un nuovo utente usa
     "Nuovo invito" invece.
   </p>
 
-  <form method="get" class="mb-4 d-flex gap-2">
+  <form method="get" class="mb-7 d-flex gap-3">
     <input type="search" name="q" value="{{ query }}" class="form-control"
            placeholder="Email, username o codice socio" aria-label="Cerca utente">
-    <button type="submit" class="btn btn-primary">Cerca</button>
+    <button type="submit" class="btn-solid theme-primary">Cerca</button>
   </form>
 
   {% if query %}
@@ -36,7 +36,7 @@
             <td>{{ utente.get_stato_display }}</td>
             <td>
               <a href="{% url 'accounts:ruolo_assegna' %}?utente_id={{ utente.pk }}"
-                 class="btn btn-sm btn-outline-primary">
+                 class="btn-outline theme-primary btn-sm">
                 Assegna ruolo
               </a>
             </td>

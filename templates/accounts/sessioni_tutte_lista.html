@@ -4,8 +4,8 @@
 {% block page_title %}Sessioni utente{% endblock %}
 
 {% block content %}
-  <h1 class="mb-3">Sessioni utente</h1>
-  <p class="text-muted">
+  <h1 class="mb-5">Sessioni utente</h1>
+  <p class="fg-2">
     Tutte le sessioni ancora valide di tutti gli utenti della piattaforma.
   </p>
   <div class="table-responsive">
@@ -35,7 +35,7 @@
             <form method="post" action="{% url 'accounts:sessione_termina_altrui' sessione.pk %}"
                   class="d-inline">
               {% csrf_token %}
-              <button type="submit" class="btn btn-sm btn-outline-danger">Termina</button>
+              <button type="submit" class="btn-outline theme-danger btn-sm">Termina</button>
             </form>
           </td>
         </tr>

@@ -7,10 +7,10 @@
   <h1>Impersona un utente</h1>
   <div class="alert theme-warning" role="note"><p class="mb-0">Solo per amministratori diretti. Ogni azione compiuta in impersonificazione resta tracciata con entrambe le identità.</p></div>
 
-  <form method="get" class="mb-4 d-flex gap-2">
+  <form method="get" class="mb-7 d-flex gap-3">
     <input type="search" name="q" value="{{ query }}" class="form-control"
            placeholder="Email, username o codice socio" aria-label="Cerca utente">
-    <button type="submit" class="btn btn-primary">Cerca</button>
+    <button type="submit" class="btn-solid theme-primary">Cerca</button>
   </form>
 
   <div class="table-responsive">
@@ -37,7 +37,7 @@
                 {% csrf_token %}
                 <input type="hidden" name="user_pk" value="{{ utente.pk }}">
                 <input type="hidden" name="next" value="{% url 'core:home' %}">
-                <button type="submit" class="btn btn-sm btn-outline-primary">Impersona</button>
+                <button type="submit" class="btn-outline theme-primary btn-sm">Impersona</button>
               </form>
             {% endif %}
           </td>
