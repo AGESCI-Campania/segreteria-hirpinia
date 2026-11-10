@@ -8,7 +8,7 @@
     <div class="md:col-6">
       <p class="fs-lg mb-3">Codice di voto di <strong>{{ avente.cognome }} {{ avente.nome }}</strong></p>
       <p class="fs-4xl fw-bold font-monospace mb-5">{{ codice }}</p>
-      <div class="d-flex justify-content-center mb-5">{{ qr|safe }}</div>
+      <div class="d-flex justify-content-center mb-5"><img src="{{ qr }}" alt="QR del codice di voto"></div>
       <p class="fg-2 mb-7">
         Copialo o inquadra il QR con il telefono. Vale per tutte le votazioni segrete di
         questa seduta. Il codice si vede solo adesso: chiudendo la pagina non si può più

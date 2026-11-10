@@ -96,7 +96,8 @@ class CodiceMostraView(LoginRequiredMixin, View):
             "assemblea": seduta.assemblea,
             "avente": avente,
             "codice": codici.formatta(codice),
-            "qr": segno.make(link, error="m").svg_inline(scale=6, dark="#000", light="#fff"),
+            # Immagine data: invece di SVG inline, così il template non usa |safe.
+            "qr": segno.make(link, error="m").svg_data_uri(scale=6, dark="#000", light="#fff"),
             "torna": _torna(request, seduta).url,
         }
         return render(request, self.template_name, contesto)
@@ -267,7 +268,7 @@ class SeggiView(LoginRequiredMixin, BreadcrumbExtraMixin, View):
                 extra = {
                     "nuova": postazione,
                     "link": link,
-                    "qr": segno.make(link, error="m").svg_inline(scale=5),
+                    "qr": segno.make(link, error="m").svg_data_uri(scale=5),
                 }
         except ValidationError as errore:
             messages.error(request, " ".join(errore.messages))

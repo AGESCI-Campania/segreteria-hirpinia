@@ -123,7 +123,7 @@ class TestChiosco:
         url = f"/voto/gestione/{assemblea.pk}/sedute/{costituita.pk}/seggi/"
         risposta = client.post(url, {"nome": "Seggio A"})
         testo = risposta.content.decode()
-        assert "/voto/seggio/#s=" in testo and "<svg" in testo
+        assert "/voto/seggio/#s=" in testo and 'src="data:image/svg+xml' in testo
         assert "no-store" in risposta["Cache-Control"]
         postazione = Postazione.objects.get()
         client.post(url, {"disattiva": postazione.pk})

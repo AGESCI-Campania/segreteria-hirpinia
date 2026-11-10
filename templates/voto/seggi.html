@@ -18,7 +18,7 @@
         <h2 class="fs-lg">Link di attivazione di «{{ nuova.nome }}»</h2>
         <p class="fg-2">Aprilo sul dispositivo del seggio (o inquadra il QR). Vale una volta sola e non si potrà rivedere.</p>
         <p class="font-monospace text-break">{{ link }}</p>
-        <div>{{ qr|safe }}</div>
+        <div><img src="{{ qr }}" alt="QR del link di attivazione"></div>
       </div>
     </div>
   {% endif %}

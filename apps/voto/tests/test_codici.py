@@ -175,7 +175,7 @@ class TestViste:
         assert risposta.status_code == 200
         assert "no-store" in risposta["Cache-Control"]
         testo = risposta.content.decode()
-        assert "<svg" in testo
+        assert 'src="data:image/svg+xml' in testo
         registrato = CodiceVoto.objects.get(avente=gialli)
         mostrati = re.findall(r"[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{2}", testo)
         assert any(codici.calcola_hash(c) == registrato.hash for c in mostrati)

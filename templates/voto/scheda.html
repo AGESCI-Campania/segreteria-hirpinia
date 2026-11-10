@@ -17,8 +17,8 @@
           {% for spettante in spettanti %}
             {% with indice=forloop.counter0 %}
               <fieldset class="card mb-7">
+                <legend class="card-header fs-lg">{% if spettante.per_delega %}Scheda per delega di {{ spettante.avente.cognome }} {{ spettante.avente.nome }}{% else %}La tua scheda{% endif %}</legend>
                 <div class="card-body">
-                  <legend class="fs-lg mb-5">{% if spettante.per_delega %}Scheda per delega di {{ spettante.avente.cognome }} {{ spettante.avente.nome }}{% else %}La tua scheda{% endif %}</legend>
                   {% for candidato in candidati %}
                     <div class="form-field mb-3">
                       <input id="c{{ indice }}-{{ candidato.pk }}" type="checkbox" name="candidati_{{ indice }}" value="{{ candidato.pk }}" class="check">

@@ -35,7 +35,7 @@
   if (attesa) {
     var url = attesa.dataset.votoStato;
     var attuale = attesa.dataset.votazione || null;
-    var intervallo = parseInt(attesa.dataset.intervallo, 10) || 3000;
+    var intervallo = Number.parseInt(attesa.dataset.intervallo, 10) || 3000;
 
     var controlla = function () {
       fetch(url, { credentials: "same-origin", cache: "no-store" })

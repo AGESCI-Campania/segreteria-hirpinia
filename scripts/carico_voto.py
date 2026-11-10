@@ -5,13 +5,15 @@ giro di polling, apre la scheda, rivede e conferma. I codici vengono da
 `manage.py prova_carico_voto prepara`. Criteri: p95 sotto 500 ms, nessun
 errore, schede = votanti (verificato a parte con `prova_carico_voto verifica`).
 
-    python scripts/carico_voto.py http://[::1]:8765 /tmp/codici.txt --host localhost:8765
+    python scripts/carico_voto.py http://[::1]:8765 codici.txt --cartella /tmp/prova \
+        --host localhost:8765
 """
 
 from __future__ import annotations
 
 import argparse
 import http.cookiejar
+import os
 import re
 import statistics
 import sys
@@ -20,8 +22,35 @@ import urllib.parse
 import urllib.request
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 SOGLIA_P95_MS = 500
+DIMENSIONE_MASSIMA = 1024 * 1024
+RIGA_CODICE = re.compile(r"^[A-Z0-9]{10}$")
+
+
+def leggi_codici(percorso: str, cartella: str) -> list[str]:
+    """Legge il file dei codici solo dentro `cartella` (default: la directory
+    corrente): niente percorsi che ne escono, né link simbolici, né file
+    diversi da un file regolare di testo con un codice per riga."""
+    base = Path(cartella).resolve(strict=True)
+    richiesto = Path(percorso)
+    if not richiesto.is_absolute():
+        richiesto = base / richiesto
+    if richiesto.is_symlink():
+        raise SystemExit("Il file dei codici non può essere un link simbolico.")
+    try:
+        file = richiesto.resolve(strict=True)
+    except OSError:
+        raise SystemExit(f"File dei codici non trovato: {percorso}") from None
+    if not file.is_relative_to(base):
+        raise SystemExit(f"Il file dei codici deve stare dentro {base}.")
+    if not file.is_file() or file.stat().st_size > DIMENSIONE_MASSIMA:
+        raise SystemExit("Il file dei codici deve essere un file regolare di al massimo 1 MB.")
+    righe = [r.strip() for r in file.read_text(encoding="utf-8").splitlines() if r.strip()]
+    if not righe or not all(RIGA_CODICE.match(r) for r in righe):
+        raise SystemExit("Il file deve contenere solo codici di voto, uno per riga.")
+    return righe
 
 
 class Votante:
@@ -85,13 +114,18 @@ def percentile(valori: list[float], p: float) -> float:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("base")
-    parser.add_argument("codici")
+    parser.add_argument("codici", help="File dei codici, dentro --cartella.")
+    parser.add_argument(
+        "--cartella",
+        default=os.getcwd(),
+        help="Unica directory da cui si legge il file dei codici (default: quella corrente).",
+    )
     parser.add_argument("--host", help="Intestazione Host da inviare (es. localhost:8765).")
     parser.add_argument("--concorrenza", type=int, default=200)
     parser.add_argument("--polling", type=int, default=5, help="Giri di polling per votante.")
     argomenti = parser.parse_args()
 
-    codici = [r.strip() for r in open(argomenti.codici, encoding="utf-8") if r.strip()]
+    codici = leggi_codici(argomenti.codici, argomenti.cartella)
     votanti = [Votante(argomenti.base, argomenti.host, c, argomenti.polling) for c in codici]
     errori: list[str] = []
 
