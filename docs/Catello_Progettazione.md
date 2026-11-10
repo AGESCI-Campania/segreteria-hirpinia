@@ -1285,17 +1285,29 @@ elenco, copiato dall'anagrafica al momento dell'import e poi modificato solo lì
 `Capo`, `CensimentoCapo` e `IncaricoUnita` non vengono mai scritti dal modulo. Motivo: i
 capi da aggiungere in autunno spesso non hanno ancora un codice socio (che è la PK di
 `Capo`, D-02), e le eliminazioni dall'elenco non sono uscite dall'associazione (D-22).
-- **Autunnale**: import di tutti i censiti dell'anno scout precedente (Comitato compreso,
-  con o senza incarico). Poi: eliminazioni (reversibili, tracciate, senza motivazione),
+- **Import all'apertura**: creando l'assemblea l'elenco si importa subito da tutti i
+  censiti (Comitato compreso, con o senza incarico). Primaverile: anno scout corrente.
+  Autunnale: anno scelto **gruppo per gruppo** (autorizzazioni parziali): un gruppo che
+  ha già censiti dell'anno corrente in Catello usa quelli, gli altri l'anno precedente.
+  Ogni riga ricorda l'anno da cui arriva.
+- **Aggiorna gruppo**: quando i dati dell'anno corrente di un gruppo arrivano dopo
+  l'apertura, il gruppo si riallinea a quel censimento, con anteprima prima di applicare:
+  chi è censito entra o resta, chi non lo è più esce dall'elenco come "non censito"
+  (ripristinabile), i capi inseriti a mano ritrovati nel censimento (stesso codice socio,
+  o stesso nome e cognome da confermare) diventano importati; i trasferimenti verso
+  altri gruppi restano.
+- **Modifiche manuali**: eliminazioni (reversibili, tracciate, senza motivazione),
   trasferimenti di gruppo (si conserva il gruppo di provenienza), nuovi capi con nome,
   cognome, gruppo e provenienza obbligatori (passaggio dal clan / nuovo ingresso /
   rientro / non nota), codice socio e incarichi facoltativi.
-- **Primaverile**: import dei censiti dell'anno scout corrente, con le stesse modifiche
-  manuali possibili.
-- **Voto in app o su carta**: vota nell'app del Nazionale (alimentata da BuonaStrada) chi,
-  per codice socio, risulta tra i censiti della Zona dell'anno precedente (autunnale) o
-  corrente (primaverile) e non è stato eliminato; tutti gli altri votano su carta. Nel
-  tracciato il gruppo è quello del censimento di origine, anche dopo un trasferimento.
+- **Voto in app o su carta**: vota nell'app del Nazionale chi ha dati da BuonaStrada,
+  cioè chi per codice socio risulta tra i censiti della Zona dell'anno da cui è importato
+  il suo gruppo, e non è stato eliminato; tutti gli altri votano su carta. Nel tracciato
+  il gruppo è quello del censimento di origine, anche dopo un trasferimento.
+- **Passaggio a carta**: gestori e operatori possono segnare che un votante in app vota
+  su carta (reversibile, con chi e quando). Conta tra i cartacei, esce dal tracciato
+  rigenerato e compare fra i "da rimuovere dall'app nazionale": toglierlo dall'app e
+  verificare che non vi abbia già votato spetta a chi gestisce l'app.
 
 **Permessi.** Gestiscono l'elenco e scaricano i file ADMIN, SEGRETERIA e RdZ. Per ogni
 assemblea possono nominare **operatori di voto** (utenti di Catello) che registrano

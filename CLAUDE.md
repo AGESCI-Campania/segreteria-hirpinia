@@ -289,8 +289,9 @@ deve violare:
   cartaceo. Il calcolo vive in un'unica funzione di service layer: view, PDF e verbali la
   chiamano, non la reimplementano.
 - **Voto in app o su carta** si decide in un solo punto, per codice socio contro i
-  censiti della Zona dell'anno di riferimento; nel tracciato il gruppo è quello di
-  origine, anche dopo un trasferimento.
+  censiti della Zona dell'anno da cui è importato il gruppo (autunnale: anno scelto
+  gruppo per gruppo), più il passaggio manuale a carta; nel tracciato il gruppo è quello
+  di origine, anche dopo un trasferimento.
 - **Tempo reale = polling ogni 3 secondi**, nessuna infrastruttura nuova (D-17 vale
   ancora).
 
