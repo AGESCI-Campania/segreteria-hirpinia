@@ -85,16 +85,36 @@ def annulla_presenza(seduta: Seduta, avente: AventeDiritto, utente: Utente) -> N
     Presenza.objects.filter(appello=appello, avente=avente).delete()
 
 
+CAMPI_COSTITUZIONE = [
+    "costituita_il",
+    "aventi_alla_costituzione",
+    "presenti_alla_costituzione",
+    "presenti_app_alla_costituzione",
+    "presenti_carta_alla_costituzione",
+]
+
+
+def _fotografa_costituzione(seduta: Seduta, stato) -> None:
+    """Numeri del quorum al momento dell'esito: li riporta il verbale."""
+    seduta.costituita_il = timezone.now()
+    seduta.aventi_alla_costituzione = stato.aventi_diritto
+    seduta.presenti_alla_costituzione = stato.presenti
+    seduta.presenti_app_alla_costituzione = stato.presenti_app
+    seduta.presenti_carta_alla_costituzione = stato.presenti_carta
+
+
 @transaction.atomic
 def dichiara_costituita(seduta: Seduta, utente: Utente) -> None:
     _verifica_operatore(utente, seduta)
     _verifica_aperta(seduta)
     if seduta.costituita is not None:
         raise ValidationError("L'esito della seduta è già stato dichiarato.")
-    if not stato_quorum(seduta).raggiunto:
+    stato = stato_quorum(seduta)
+    if not stato.raggiunto:
         raise ValidationError("Il quorum costitutivo non è raggiunto.")
     seduta.costituita = True
-    seduta.save(update_fields=["costituita"])
+    _fotografa_costituzione(seduta, stato)
+    seduta.save(update_fields=["costituita", *CAMPI_COSTITUZIONE])
 
 
 @transaction.atomic
@@ -105,11 +125,13 @@ def dichiara_non_costituita(seduta: Seduta, utente: Utente) -> None:
     _verifica_aperta(seduta)
     if seduta.costituita is not None:
         raise ValidationError("L'esito della seduta è già stato dichiarato.")
-    if stato_quorum(seduta).raggiunto:
+    stato = stato_quorum(seduta)
+    if stato.raggiunto:
         raise ValidationError("Il quorum costitutivo è raggiunto: la seduta è costituita.")
     seduta.costituita = False
     seduta.chiusa_il = timezone.now()
-    seduta.save(update_fields=["costituita", "chiusa_il"])
+    _fotografa_costituzione(seduta, stato)
+    seduta.save(update_fields=["costituita", "chiusa_il", *CAMPI_COSTITUZIONE])
 
 
 @transaction.atomic

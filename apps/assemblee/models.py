@@ -89,6 +89,12 @@ class Seduta(models.Model):
     aperta_il = models.DateTimeField(null=True, blank=True)
     costituita = models.BooleanField(null=True, blank=True)
     chiusa_il = models.DateTimeField(null=True, blank=True)
+    # Fotografia alla dichiarazione dell'esito, per la frase sul quorum del verbale.
+    costituita_il = models.DateTimeField(null=True, blank=True)
+    aventi_alla_costituzione = models.PositiveIntegerField(null=True, blank=True)
+    presenti_alla_costituzione = models.PositiveIntegerField(null=True, blank=True)
+    presenti_app_alla_costituzione = models.PositiveIntegerField(null=True, blank=True)
+    presenti_carta_alla_costituzione = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
         verbose_name = "seduta"
@@ -576,3 +582,35 @@ class Candidato(models.Model):
     @property
     def voti(self) -> int:
         return self.voti_app + self.voti_carta
+
+
+class VerbaleSeduta(models.Model):
+    """Dati del verbale dell'assemblea (modello nazionale) per la seduta
+    costituita: ufficio di presidenza, orari e firmatari. I nomi sono testo:
+    si scelgono fra i suggerimenti dell'elenco o si scrivono a mano."""
+
+    seduta = models.OneToOneField(Seduta, on_delete=models.CASCADE, related_name="verbale")
+    ora_apertura = models.TimeField(null=True, blank=True)
+    ora_chiusura = models.TimeField(null=True, blank=True)
+    luogo = models.CharField(max_length=255, blank=True)
+    presidente = models.CharField(max_length=300, blank=True)
+    segretario = models.CharField(max_length=200, blank=True)
+    scrutatore_1 = models.CharField(max_length=200, blank=True)
+    scrutatore_2 = models.CharField(max_length=200, blank=True)
+    comitato_mozioni = models.CharField(
+        max_length=500, blank=True, help_text="I tre membri, separati da virgola."
+    )
+    # Uno o due: un posto di Responsabile di Zona può essere vacante.
+    rdz_1 = models.CharField("Responsabile di Zona", max_length=200, blank=True)
+    rdz_2 = models.CharField("Secondo Responsabile di Zona", max_length=200, blank=True)
+    note_finali = models.TextField(
+        blank=True, help_text="Testo libero prima della chiusura (es. dichiarazioni a verbale)."
+    )
+    aggiornato_il = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "verbale della seduta"
+        verbose_name_plural = "verbali delle sedute"
+
+    def __str__(self) -> str:
+        return f"Verbale — {self.seduta}"

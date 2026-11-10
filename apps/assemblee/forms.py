@@ -16,6 +16,7 @@ from .models import (
     PuntoOdG,
     Seduta,
     TipoVotazione,
+    VerbaleSeduta,
 )
 
 
@@ -225,3 +226,53 @@ def form_risultati(votazione, canali_voto: list[str], data=None) -> forms.Form:
             )
     classe = type("RisultatiForm", (forms.Form,), campi)
     return classe(data)
+
+
+class PuntoOdGForm(forms.Form):
+    titolo = forms.CharField(label="Titolo", max_length=500)
+    testo = forms.CharField(
+        label="Discussione (per il verbale)",
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 10}),
+        help_text="Breve cenno dei fatti e delle questioni proposte (art. 8 del regolamento).",
+    )
+
+
+class VerbaleForm(forms.ModelForm):
+    class Meta:
+        model = VerbaleSeduta
+        fields = [
+            "ora_apertura",
+            "ora_chiusura",
+            "luogo",
+            "presidente",
+            "segretario",
+            "scrutatore_1",
+            "scrutatore_2",
+            "comitato_mozioni",
+            "rdz_1",
+            "rdz_2",
+            "note_finali",
+        ]
+        labels = {
+            "ora_apertura": "Ora di apertura",
+            "ora_chiusura": "Ora di chiusura",
+            "scrutatore_1": "Primo scrutatore",
+            "scrutatore_2": "Secondo scrutatore",
+            "comitato_mozioni": "Comitato mozioni",
+        }
+        help_texts = {
+            "rdz_2": "Lascia vuoto se il posto è vacante.",
+        }
+        widgets = {
+            "ora_apertura": forms.TimeInput(attrs={"type": "time"}),
+            "ora_chiusura": forms.TimeInput(attrs={"type": "time"}),
+            # Suggerimenti dall'elenco (datalist nel template), testo libero ammesso.
+            "presidente": forms.TextInput(attrs={"list": "nomi-aventi"}),
+            "segretario": forms.TextInput(attrs={"list": "nomi-aventi"}),
+            "scrutatore_1": forms.TextInput(attrs={"list": "nomi-scrutatori"}),
+            "scrutatore_2": forms.TextInput(attrs={"list": "nomi-scrutatori"}),
+            "rdz_1": forms.TextInput(attrs={"list": "nomi-rdz"}),
+            "rdz_2": forms.TextInput(attrs={"list": "nomi-rdz"}),
+            "note_finali": forms.Textarea(attrs={"rows": 4}),
+        }

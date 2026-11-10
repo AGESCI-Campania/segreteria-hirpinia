@@ -123,4 +123,16 @@ urlpatterns = [
         views.VotazioneAzioneView.as_view(),
         name="votazione_azione",
     ),
+    path("<int:pk>/odg/", views.OdgView.as_view(), name="odg"),
+    path("<int:pk>/odg/<int:punto_pk>/", views.PuntoModificaView.as_view(), name="punto"),
+    path(
+        "<int:pk>/sedute/<int:seduta_pk>/verbale/",
+        views.VerbaleView.as_view(),
+        name="verbale",
+    ),
+    path(
+        "<int:pk>/sedute/<int:seduta_pk>/verbale/pdf/",
+        views.VerbalePdfView.as_view(),
+        name="verbale_pdf",
+    ),
 ]

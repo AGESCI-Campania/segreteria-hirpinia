@@ -12,7 +12,7 @@ from django.utils import timezone
 from openpyxl import Workbook
 
 from apps.accounts.models import Utente
-from apps.core.pdf import percorsi_carta_intestata
+from apps.core.pdf import contesto_carta_intestata
 
 from . import quorum
 from .models import Assemblea, AventeDiritto, ScaricamentoFile, TipoFile
@@ -164,7 +164,7 @@ def genera_foglio_presenze_pdf(assemblea: Assemblea, utente: Utente) -> bytes:
         "totale_app": sum(a.vota_in_app for _, righe in gruppi for _, a in righe),
         "righe_vuote": range(2),
         "generato_il": timezone.localtime(),
-        **percorsi_carta_intestata(),
+        **contesto_carta_intestata(),
     }
     pdf = HTML(string=render_to_string("assemblee/foglio_presenze_pdf.html", contesto)).write_pdf()
     _traccia(assemblea, TipoFile.FOGLIO_PRESENZE, utente, totale)

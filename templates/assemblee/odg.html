@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block page_title %}Ordine del giorno — {{ assemblea }}{% endblock %}
+
+{% block content %}
+  <h1 class="mb-3">Ordine del giorno</h1>
+  <p class="fg-2 mb-5">{{ assemblea }}. Per ogni punto si scrive la discussione per il verbale; le votazioni si collegano al punto quando si aprono.</p>
+
+  <div class="table-responsive mb-7">
+  <table class="table">
+    <tbody>
+      {% for punto in punti %}
+        <tr>
+          <td class="fs-lg">{{ punto.ordine }}.</td>
+          <td>
+            <strong>{{ punto.titolo }}</strong><br>
+            <small class="fg-2">{% if punto.testo %}Discussione scritta{% else %}Discussione da scrivere{% endif %} — {{ punto.votazioni.count }} votazioni collegate</small>
+          </td>
+          <td class="text-nowrap">
+            <a href="{% url 'assemblee:punto' assemblea.pk punto.pk %}" class="btn-outline theme-primary btn-sm">Modifica</a>
+            <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="punto" value="{{ punto.pk }}"><button type="submit" name="azione" value="su" class="btn-outline theme-secondary btn-sm" aria-label="Sposta su"{% if forloop.first %} disabled{% endif %}>↑</button></form>
+            <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="punto" value="{{ punto.pk }}"><button type="submit" name="azione" value="giu" class="btn-outline theme-secondary btn-sm" aria-label="Sposta giù"{% if forloop.last %} disabled{% endif %}>↓</button></form>
+            <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="punto" value="{{ punto.pk }}"><button type="submit" name="azione" value="elimina" class="btn-outline theme-danger btn-sm">Elimina</button></form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td>Nessun punto all'ordine del giorno.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+
+  <h2 class="fs-xl">Aggiungi un punto</h2>
+  <form method="post" class="row g-3 align-items-end mb-5">
+    {% csrf_token %}<input type="hidden" name="azione" value="aggiungi">
+    <div class="md:col-8"><div class="form-field"><label for="nuovo-punto">Titolo</label><input id="nuovo-punto" name="titolo" class="form-control" maxlength="500" required></div></div>
+    <div class="md:col-auto"><button type="submit" class="btn-solid theme-primary">Aggiungi</button></div>
+  </form>
+
+  {% if proposte %}
+    <h2 class="fs-lg">Punti tipici del modello nazionale</h2>
+    <div class="d-flex flex-wrap gap-3">
+      {% for titolo in proposte %}
+        <form method="post">
+          {% csrf_token %}<input type="hidden" name="azione" value="aggiungi"><input type="hidden" name="titolo" value="{{ titolo }}">
+          <button type="submit" class="btn-outline theme-primary btn-sm">+ {{ titolo }}</button>
+        </form>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}

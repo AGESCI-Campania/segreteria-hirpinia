@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block page_title %}Verbale — {{ seduta }}{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Verbale</h1>
+    <a href="{% url 'assemblee:verbale_pdf' assemblea.pk seduta.pk %}" class="btn-solid theme-primary">Scarica il verbale (PDF)</a>
+  </div>
+  <p class="fg-2 mb-5">
+    {{ seduta.get_convocazione_display }} — {{ assemblea }}. Il PDF segue il modello nazionale: frasi fisse con
+    questi dati, la discussione di ogni punto dell'<a href="{% url 'assemblee:odg' assemblea.pk %}">ordine del giorno</a>
+    ({{ punti }} punti) e l'esito delle {{ votazioni_chiuse }} votazioni concluse. I dati mancanti compaiono in rosso come «[…]».
+  </p>
+  {% if votazioni_aperte %}
+    <div class="alert theme-warning" role="note"><p class="mb-0">{{ votazioni_aperte }} votazioni non hanno ancora i risultati: nel verbale non compaiono.</p></div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="row g-3">
+      {% for campo in form %}
+        <div class="{% if campo.name == 'note_finali' or campo.name == 'comitato_mozioni' or campo.name == 'luogo' %}col-12{% else %}md:col-6{% endif %}">
+          <div class="form-field">{{ campo.label_tag }}{{ campo }}{% if campo.help_text %}<span class="form-text">{{ campo.help_text }}</span>{% endif %}{{ campo.errors }}</div>
+        </div>
+      {% endfor %}
+    </div>
+    <button type="submit" class="btn-solid theme-primary mt-5">Salva</button>
+  </form>
+
+  <datalist id="nomi-aventi">{% for nome in nomi_aventi %}<option value="{{ nome }}">{% endfor %}</datalist>
+  <datalist id="nomi-scrutatori">{% for nome in nomi_scrutatori %}<option value="{{ nome }}">{% endfor %}</datalist>
+  <datalist id="nomi-rdz">{% for nome in nomi_rdz %}<option value="{{ nome }}">{% endfor %}</datalist>
+{% endblock %}

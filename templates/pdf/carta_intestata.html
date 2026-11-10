@@ -1,15 +1,15 @@
-{# Intestazione e piè di pagina della Zona ripetuti su ogni pagina (running elements); contesto da apps/core/pdf.py::percorsi_carta_intestata(). #}
+{# Intestazione e piè di pagina della Zona ripetuti su ogni pagina (running elements); contesto da apps/core/pdf.py::contesto_carta_intestata(). #}
   <div class="intestazione">
     <div class="banda">
       {% if logo_zona_path %}
-        <img class="logo" src="file://{{ logo_zona_path }}" alt="Zona Hirpinia">
+        <img class="logo" src="file://{{ logo_zona_path }}" alt="{{ zona.nome }}">
       {% endif %}
       <div class="testo">
-        <strong>Zona Hirpinia - Regione Campania</strong><br>
+        <strong>{{ zona.nome }} - Regione {{ zona.regione }}</strong><br>
         Associazione Guide e Scouts Cattolici Italiani<br>
-        Via Episcopio SNC, 83100 Avellino<br>
-        Codice Fiscale: 92048600644<br>
-        Mail: zonahirpinia@campania.agesci.it — Pec: zonahirpinia@pec.agesci.it
+        {{ zona.indirizzo }}<br>
+        Codice Fiscale: {{ zona.codice_fiscale }}<br>
+        Mail: {{ zona.email }} — Pec: {{ zona.pec }}
       </div>
     </div>
     <div class="segmento-giallo"></div>
@@ -19,5 +19,5 @@
     {% if loghi_piede_path %}
       <img class="loghi" src="file://{{ loghi_piede_path }}" alt="WOSM / WAGGGS">
     {% endif %}
-    <p>Iscritta al Registro Unico Nazionale del Terzo Settore – repertorio n. 66955 del 07/11/2022</p>
+    <p>{{ zona.runts }}</p>
   </div>

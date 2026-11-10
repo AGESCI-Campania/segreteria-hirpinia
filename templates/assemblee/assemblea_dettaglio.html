@@ -56,6 +56,7 @@
     <div class="d-flex flex-wrap gap-3 mb-7">
       <a href="{% url 'assemblee:tracciato' assemblea.pk %}" class="btn-outline theme-primary">{% bs_icon "file-earmark-spreadsheet" %} Tracciato per l'app di voto (.xlsx)</a>
       <a href="{% url 'assemblee:foglio_presenze' assemblea.pk %}" class="btn-outline theme-primary">{% bs_icon "file-earmark-pdf" %} Foglio presenze (PDF)</a>
+      <a href="{% url 'assemblee:odg' assemblea.pk %}" class="btn-outline theme-primary">{% bs_icon "list-ol" %} Ordine del giorno</a>
     </div>
   {% endif %}
 

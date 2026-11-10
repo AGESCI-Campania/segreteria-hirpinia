@@ -17,10 +17,11 @@ from apps.accounts.models import Utente
 from apps.core.mixins import BreadcrumbExtraMixin
 from apps.organizzazione.models import Gruppo
 
-from . import cruscotto, elenco, sedute
+from . import cruscotto, elenco, odg, sedute
 from . import deleghe as deleghe_ae
 from . import file as file_assemblea
 from . import quorum as quorum_assemblea
+from . import verbale as verbale_assemblea
 from . import votazioni as voto
 from .forms import (
     AssembleaCreaForm,
@@ -29,8 +30,10 @@ from .forms import (
     DelegaForm,
     IncaricoDichiaratoFormSet,
     OperatoreAggiungiForm,
+    PuntoOdGForm,
     QualificheForm,
     TrasferisciForm,
+    VerbaleForm,
     VotazioneForm,
     form_risultati,
 )
@@ -39,6 +42,7 @@ from .models import (
     AventeDiritto,
     DelegaAE,
     OperatoreVoto,
+    PuntoOdG,
     RichiedenteVerifica,
     Seduta,
     TipoAppello,
@@ -474,6 +478,7 @@ class SedutaView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             "seduta": seduta,
             "quorum": stato_quorum(seduta),
             "verifica": verifica,
+            "puo_gestire": puo_gestire_assemblee(request.user),
             "stato_verifica": stato_quorum(seduta, verifica) if verifica else None,
             "verifiche_chiuse": seduta.appelli.filter(
                 tipo=TipoAppello.VERIFICA, chiuso_il__isnull=False
@@ -1013,3 +1018,152 @@ class VotazioneAzioneView(LoginRequiredMixin, View):
         except ValidationError as errore:
             messages.error(request, " ".join(errore.messages))
         return redirect(reverse("assemblee:votazione", args=[pk, seduta_pk, votazione_pk]))
+
+
+# --- Ordine del giorno e verbale ---------------------------------------------------
+
+
+class OdgView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+    template_name = "assemblee/odg.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_assemblea(request, {"label": "Ordine del giorno"})
+
+    def get(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        titoli = set(assemblea.punti_odg.values_list("titolo", flat=True))
+        contesto = {
+            "assemblea": assemblea,
+            "punti": assemblea.punti_odg.order_by("ordine"),
+            "proposte": [t for t in odg.PUNTI_TIPICI if t not in titoli],
+        }
+        return render(request, self.template_name, contesto)
+
+    def post(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        azione = request.POST.get("azione")
+        try:
+            if azione == "aggiungi":
+                odg.aggiungi_punto(assemblea, request.user, request.POST.get("titolo", ""))
+            elif azione in ("su", "giu", "elimina"):
+                punto = get_object_or_404(
+                    PuntoOdG, pk=request.POST.get("punto"), assemblea=assemblea
+                )
+                if azione == "elimina":
+                    odg.elimina_punto(punto, request.user)
+                else:
+                    odg.sposta_punto(punto, request.user, su=azione == "su")
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+        return redirect(reverse("assemblee:odg", args=[pk]))
+
+
+class PuntoModificaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+    template_name = "assemblee/punto_modifica.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_assemblea(
+            request,
+            {
+                "label": "Ordine del giorno",
+                "url": reverse("assemblee:odg", args=[request.resolver_match.kwargs["pk"]]),
+            },
+            {"label": "Punto"},
+        )
+
+    def get(self, request, pk, punto_pk):
+        punto = get_object_or_404(PuntoOdG, pk=punto_pk, assemblea_id=pk)
+        form = PuntoOdGForm(initial={"titolo": punto.titolo, "testo": punto.testo})
+        return render(
+            request,
+            self.template_name,
+            {"punto": punto, "assemblea": punto.assemblea, "form": form},
+        )
+
+    def post(self, request, pk, punto_pk):
+        punto = get_object_or_404(PuntoOdG, pk=punto_pk, assemblea_id=pk)
+        form = PuntoOdGForm(request.POST)
+        if form.is_valid():
+            try:
+                odg.modifica_punto(punto, request.user, **form.cleaned_data)
+            except ValidationError as errore:
+                form.add_error(None, errore)
+            else:
+                messages.success(request, "Punto salvato.")
+                return redirect(reverse("assemblee:odg", args=[pk]))
+        return render(
+            request,
+            self.template_name,
+            {"punto": punto, "assemblea": punto.assemblea, "form": form},
+        )
+
+
+def _suggerimenti_verbale(seduta: Seduta) -> dict:
+    """Nomi proposti nei campi del verbale (testo libero comunque ammesso)."""
+    elenco_qs = seduta.assemblea.aventi_diritto.nell_elenco().order_by("cognome", "nome")
+    codici_operatori = seduta.assemblea.operatori.exclude(utente__codice_socio=None).values_list(
+        "utente__codice_socio", flat=True
+    )
+
+    def nomi(qs) -> list[str]:
+        return [f"{a.cognome} {a.nome}" for a in qs]
+
+    return {
+        "nomi_aventi": nomi(elenco_qs),
+        "nomi_scrutatori": nomi(elenco_qs.filter(codice_socio__in=list(codici_operatori))),
+        "nomi_rdz": nomi(elenco_qs.filter(rdz=True)),
+    }
+
+
+class VerbaleView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+    template_name = "assemblee/verbale.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_seduta(request, {"label": "Verbale"})
+
+    def _contesto(self, seduta, form):
+        return {
+            "assemblea": seduta.assemblea,
+            "seduta": seduta,
+            "form": form,
+            "punti": seduta.assemblea.punti_odg.count(),
+            "votazioni_chiuse": seduta.votazioni.filter(chiusa_il__isnull=False).count(),
+            "votazioni_aperte": seduta.votazioni.filter(chiusa_il__isnull=True).count(),
+            **_suggerimenti_verbale(seduta),
+        }
+
+    def get(self, request, pk, seduta_pk):
+        seduta = get_object_or_404(Seduta, pk=seduta_pk, assemblea_id=pk)
+        if seduta.costituita is not True:
+            messages.error(request, "Il verbale si redige per una seduta validamente costituita.")
+            return redirect(reverse("assemblee:seduta", args=[pk, seduta_pk]))
+        form = VerbaleForm(instance=verbale_assemblea.verbale_della_seduta(seduta))
+        return render(request, self.template_name, self._contesto(seduta, form))
+
+    def post(self, request, pk, seduta_pk):
+        seduta = get_object_or_404(Seduta, pk=seduta_pk, assemblea_id=pk)
+        if seduta.costituita is not True:
+            raise PermissionDenied
+        form = VerbaleForm(request.POST, instance=verbale_assemblea.verbale_della_seduta(seduta))
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Dati del verbale salvati.")
+            return redirect(reverse("assemblee:verbale", args=[pk, seduta_pk]))
+        return render(request, self.template_name, self._contesto(seduta, form))
+
+
+class VerbalePdfView(GestisceAssembleeMixin, View):
+    def get(self, request, pk, seduta_pk):
+        seduta = get_object_or_404(Seduta, pk=seduta_pk, assemblea_id=pk)
+        try:
+            contenuto = verbale_assemblea.genera_verbale_pdf(seduta, request.user)
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+            return redirect(reverse("assemblee:seduta", args=[pk, seduta_pk]))
+        risposta = HttpResponse(contenuto, content_type="application/pdf")
+        nome = f"verbale-assemblea-{seduta.assemblea.anno_scout}-{seduta.data:%Y%m%d}.pdf"
+        risposta["Content-Disposition"] = f'attachment; filename="{nome}"'
+        return risposta

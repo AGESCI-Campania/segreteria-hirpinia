@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block page_title %}Punto {{ punto.ordine }} — {{ assemblea }}{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="lg:col-8">
+      <h1>Punto {{ punto.ordine }}</h1>
+      <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="d-flex gap-3">
+          <button type="submit" class="btn-solid theme-primary">Salva</button>
+          <a href="{% url 'assemblee:odg' assemblea.pk %}" class="btn-outline theme-secondary">Annulla</a>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

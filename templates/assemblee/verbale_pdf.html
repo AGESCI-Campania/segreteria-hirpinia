@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Verbale — {{ assemblea }}</title>
+<style>
+  @page {
+    size: A4;
+    margin-top: 5cm;
+    margin-left: 2.5cm;
+    margin-right: 2cm;
+    margin-bottom: 3cm;
+    @top-center { content: element(intestazione); }
+    @bottom-center { content: element(piede); }
+    @bottom-right { content: "Pagina " counter(page) " di " counter(pages); font-family: sans-serif; font-size: 7.5pt; color: #555; }
+  }
+  body { font-family: sans-serif; font-size: 10.5pt; line-height: 1.45; color: #222; }
+  {% include "pdf/carta_intestata_stile.html" %}
+  h1 { font-size: 14pt; text-align: center; margin: 0 0 0.1cm 0; }
+  .sottotitolo { text-align: center; color: #555; margin: 0 0 0.6cm 0; }
+  h2 { font-size: 11.5pt; margin: 0.6cm 0 0.2cm 0; break-after: avoid; }
+  p { margin: 0 0 0.3cm 0; text-align: justify; }
+  ol.odg { margin: 0 0 0.4cm 0; }
+  ul.votazioni { margin: 0 0 0.3cm 0; padding-left: 0.6cm; }
+  .mancante { color: #b00; }
+  .firme { width: 100%; margin-top: 1.2cm; border-collapse: collapse; break-inside: avoid; }
+  .firme td { width: 50%; padding: 0 0.4cm 1.4cm 0; vertical-align: top; }
+  .firme .linea { border-bottom: 1px solid #333; height: 1cm; }
+</style>
+</head>
+<body>
+  {% include "pdf/carta_intestata.html" %}
+
+  <h1>Verbale dell'Assemblea di Zona</h1>
+  <p class="sottotitolo">{{ assemblea }} — {{ seduta.get_convocazione_display }}</p>
+
+  <p>
+    In data {{ seduta.data|date:"d/m/Y" }} alle ore {% if verbale.ora_apertura %}{{ verbale.ora_apertura|time:"H:i" }}{% else %}<span class="mancante">[…]</span>{% endif %}
+    presso {% if verbale.luogo %}{{ verbale.luogo }}{% else %}<span class="mancante">[…]</span>{% endif %}
+    si è riunita in sessione {{ assemblea.get_sessione_display|lower }}, in {{ seduta.get_convocazione_display|lower }},
+    ai sensi dell'art. 32 dello Statuto, l'Assemblea di AGESCI {{ zona.nome }} (codice fiscale {{ zona.codice_fiscale }}),
+    per deliberare sul seguente ordine del giorno:
+  </p>
+  <ol class="odg">
+    {% for punto, votazioni in punti %}<li>{{ punto.titolo }};</li>{% empty %}<li class="mancante">[ordine del giorno da compilare]</li>{% endfor %}
+  </ol>
+
+  <p>
+    Assume la Presidenza, ai sensi dell'art. 6 del Regolamento dell'Assemblea di Zona,
+    {% if verbale.presidente %}{{ verbale.presidente }}{% else %}<span class="mancante">[…]</span>{% endif %}
+    che, constatata e fatta constatare la regolarità della convocazione come da Regolamento
+    {% if seduta.senza_quorum %}
+      e trattandosi di terza convocazione, valida indipendentemente dal numero dei presenti ai sensi dell'art. 4 comma 3
+      ({{ seduta.presenti_alla_costituzione|default_if_none:"[…]" }} presenti su {{ seduta.aventi_alla_costituzione|default_if_none:"[…]" }} aventi diritto al voto,
+    {% else %}
+      e la presenza del quorum costitutivo ai sensi dell'art. 4
+      ({{ seduta.presenti_alla_costituzione|default_if_none:"[…]" }} presenti su {{ seduta.aventi_alla_costituzione|default_if_none:"[…]" }} aventi diritto al voto,
+    {% endif %}
+    di cui {{ seduta.presenti_app_alla_costituzione|default_if_none:"[…]" }} con voto elettronico e {{ seduta.presenti_carta_alla_costituzione|default_if_none:"[…]" }} con voto cartaceo),
+    dichiara l'Assemblea validamente costituita e atta ad assumere le delibere di cui sopra, chiamando a fungere da Segretario
+    {% if verbale.segretario %}{{ verbale.segretario }}{% else %}<span class="mancante">[…]</span>{% endif %}, che, ringraziando, accetta.
+  </p>
+  <p>
+    Il Presidente procede quindi con la nomina degli scrutatori in persona di
+    {% if verbale.scrutatore_1 or verbale.scrutatore_2 %}{{ verbale.scrutatore_1 }}{% if verbale.scrutatore_1 and verbale.scrutatore_2 %} e {% endif %}{{ verbale.scrutatore_2 }}{% else %}<span class="mancante">[…]</span>{% endif %}
+    e del Comitato mozioni formato da {% if verbale.comitato_mozioni %}{{ verbale.comitato_mozioni }}{% else %}<span class="mancante">[…]</span>{% endif %}.
+  </p>
+
+  {% for verifica in verifiche %}
+    <p>
+      Alle ore {{ verifica.aperto_il|time:"H:i" }}, su richiesta di: {{ verifica.get_richiedente_display|lower }},
+      si procede alla verifica del quorum (art. 4 comma 5): risultano presenti {{ verifica.presenti_rilevati }}
+      aventi diritto{% if verifica.soglia is not None %} a fronte di un quorum di {{ verifica.soglia }}{% endif %};
+      {% if verifica.quorum_raggiunto %}il quorum è confermato{% else %}il quorum non è raggiunto{% endif %}.
+    </p>
+  {% endfor %}
+
+  {% for punto, votazioni in punti %}
+    <h2>{{ punto.ordine }}. {{ punto.titolo }}</h2>
+    {% if punto.testo %}{{ punto.testo|linebreaks }}{% endif %}
+    {% if votazioni %}
+      <ul class="votazioni">
+        {% for v in votazioni %}<li>{{ v.votazione.get_tipo_display }}{% if v.votazione.incarico %} — {{ v.votazione.incarico }}{% endif %}: {{ v.votazione.oggetto }}. {{ v.frase }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+  {% endfor %}
+
+  {% if senza_punto %}
+    <h2>Altre votazioni</h2>
+    <ul class="votazioni">
+      {% for v in senza_punto %}<li>{{ v.votazione.get_tipo_display }}{% if v.votazione.incarico %} — {{ v.votazione.incarico }}{% endif %}: {{ v.votazione.oggetto }}. {{ v.frase }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if ci_sono_mozioni %}
+    <p>Tutte le mozioni e le raccomandazioni sono allegate al presente verbale, di cui costituiscono parte integrante.</p>
+  {% endif %}
+  {% if verbale.note_finali %}{{ verbale.note_finali|linebreaks }}{% endif %}
+
+  <p>
+    Null'altro essendovi da deliberare e nessuno chiedendo ulteriormente la parola, l'Assemblea di Zona viene chiusa alle ore
+    {% if verbale.ora_chiusura %}{{ verbale.ora_chiusura|time:"H:i" }}{% else %}<span class="mancante">[…]</span>{% endif %}.
+  </p>
+  <p>{% if verbale.luogo %}{{ verbale.luogo }}{% else %}<span class="mancante">[…]</span>{% endif %}, {{ seduta.data|date:"d/m/Y" }}</p>
+
+  <table class="firme">
+    <tr>
+      <td>Il Presidente<br>{{ verbale.presidente }}<div class="linea"></div></td>
+      <td>Il Segretario<br>{{ verbale.segretario }}<div class="linea"></div></td>
+    </tr>
+    {% if verbale.rdz_1 or verbale.rdz_2 %}
+      <tr>
+        {% if verbale.rdz_1 %}<td>Responsabile di Zona<br>{{ verbale.rdz_1 }}<div class="linea"></div></td>{% endif %}
+        {% if verbale.rdz_2 %}<td>Responsabile di Zona<br>{{ verbale.rdz_2 }}<div class="linea"></div></td>{% endif %}
+      </tr>
+    {% endif %}
+  </table>
+</body>
+</html>
