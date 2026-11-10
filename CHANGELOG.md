@@ -8,6 +8,16 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [Non rilasciato]
+
+### Modificato
+
+- Nel menu laterale le sezioni (Anagrafica, Moduli, Account, Amministrazione) sono
+  ora richiudibili e partono chiuse, così il menu occupa meno spazio: si apre da sola
+  la sezione della pagina in cui ci si trova, e aprirne un'altra chiude la precedente.
+- Con il menu laterale ridotto alle sole icone, sono ora visibili anche le icone delle
+  funzioni di Nota Spese.
+
 ## [1.2.0] - 2026-11-10
 
 ### Modificato

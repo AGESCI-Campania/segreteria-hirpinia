@@ -3,13 +3,21 @@ from django.urls import reverse
 
 from apps.accounts.permessi import puo_impersonare_qualcuno
 
-from .menu import sezioni_menu
+from .menu import sezioni_menu, voce_della_pagina
 from .models import ImpostazioniPiattaforma
 
 
 def menu_principale(request: HttpRequest) -> dict:
     puo_impersonare = request.user.is_authenticated and puo_impersonare_qualcuno(request.user)
-    return {"sezioni_menu": sezioni_menu(request.user), "puo_impersonare": puo_impersonare}
+    sezioni = sezioni_menu(request.user)
+    aperta = voce_della_pagina(sezioni, request.path)
+    return {
+        "sezioni_menu": sezioni,
+        "puo_impersonare": puo_impersonare,
+        # Gruppi della sidebar aperti al caricamento (gli altri partono chiusi).
+        "sezione_menu_aperta": aperta[0].etichetta if aperta else None,
+        "voce_menu_aperta": aperta[1].url if aperta else None,
+    }
 
 
 def tema_branca(request: HttpRequest) -> dict:

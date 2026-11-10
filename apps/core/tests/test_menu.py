@@ -8,7 +8,7 @@ import datetime
 import pytest
 
 from apps.accounts.models import Delega, Ruolo, StatoUtente, TipoUtente, Utente
-from apps.core.menu import sezioni_menu
+from apps.core.menu import SezioneMenu, VoceMenu, sezioni_menu, voce_della_pagina
 
 pytestmark = pytest.mark.django_db
 
@@ -205,3 +205,45 @@ class TestAssegnaIncaricoNonPiuInMenu:
         sezioni = sezioni_menu(utente)
 
         assert "Assegna incarico" not in _etichette(sezioni, "Anagrafica")
+
+
+class TestVoceDellaPagina:
+    """apps.core.menu.voce_della_pagina: prefisso di URL più lungo fra voci e
+    sottovoci, su un menu costruito a mano (nessun accesso al database)."""
+
+    NOTA_SPESE = VoceMenu(
+        "Nota Spese",
+        "/note-spese/",
+        "x",
+        (
+            VoceMenu("Panoramica", "/note-spese/", "x"),
+            VoceMenu("Elenco", "/note-spese/elenco/", "x"),
+        ),
+    )
+    CAMPAGNE = VoceMenu("Contributo", "/contributi/campagne/", "x")
+    IMPOSTAZIONI_NS = VoceMenu("Impostazioni NS", "/note-spese/impostazioni/", "x")
+    SEZIONI = [
+        SezioneMenu("Moduli", "x", [CAMPAGNE, NOTA_SPESE]),
+        SezioneMenu("Amministrazione", "x", [IMPOSTAZIONI_NS]),
+    ]
+
+    def test_corrispondenza_esatta(self):
+        assert voce_della_pagina(self.SEZIONI, "/contributi/campagne/") == (
+            self.SEZIONI[0],
+            self.CAMPAGNE,
+        )
+
+    def test_pagina_sotto_una_voce(self):
+        assert voce_della_pagina(self.SEZIONI, "/contributi/campagne/7/")[1] == self.CAMPAGNE
+
+    def test_sottovoce_restituisce_la_voce_che_la_contiene(self):
+        assert voce_della_pagina(self.SEZIONI, "/note-spese/elenco/")[1] == self.NOTA_SPESE
+
+    def test_vince_il_prefisso_piu_lungo(self):
+        sezione, voce = voce_della_pagina(self.SEZIONI, "/note-spese/impostazioni/")
+        assert sezione.etichetta == "Amministrazione"
+        assert voce == self.IMPOSTAZIONI_NS
+
+    def test_pagina_fuori_menu(self):
+        assert voce_della_pagina(self.SEZIONI, "/") is None
+        assert voce_della_pagina(self.SEZIONI, "/anagrafica/") is None

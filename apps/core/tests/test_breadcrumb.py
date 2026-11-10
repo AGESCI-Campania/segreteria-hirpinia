@@ -95,19 +95,34 @@ class TestMarkupBreadcrumb:
         assert 'class="breadcrumb' in response.content.decode()
 
 
-class TestSidebarSottovoci:
-    """Il gruppo di sottovoci di un modulo (es. Nota Spese) nella sidebar nasce
-    aperto se la pagina corrente è una delle sue sottovoci, chiuso altrimenti
-    (VoceMenu.url_sottovoci)."""
+class TestSidebarFisarmonica:
+    """Sidebar a fisarmonica: le sezioni partono chiuse, si apre quella della
+    pagina corrente (anche per una pagina sotto una voce) e il sottogruppo del
+    modulo che la contiene; aprirne una chiude le altre (data-bs-parent)."""
 
-    def test_gruppo_aperto_sulla_pagina_di_una_sottovoce(self, client, segreteria):
+    def test_sottovoce_apre_sezione_e_modulo(self, client, segreteria):
         client.force_login(segreteria)
-        html = client.get("/note-spese/elenco/").content.decode()
-        assert 'class="collapse list-unstyled ps-7 show"' in html
+        response = client.get("/note-spese/elenco/")
+        assert response.context["sezione_menu_aperta"] == "Moduli"
+        assert response.context["voce_menu_aperta"] == "/note-spese/"
+        html = response.content.decode()
+        assert html.count('class="collapse list-unstyled ps-7 show"') == 2
         assert 'href="/note-spese/elenco/" class="ag-sidebar__nav-link active"' in html
 
-    def test_gruppo_chiuso_su_altre_pagine(self, client, segreteria):
+    def test_impostazioni_nota_spese_aprono_amministrazione(self, client):
+        # La voce "Impostazioni Nota spese" è solo di ADMIN/RdZ: per loro
+        # /note-spese/impostazioni/ vince su /note-spese/ (Moduli).
+        admin = _persona("admin@campania.agesci.it")
+        Ruolo.objects.create(utente=admin, tipo=Ruolo.Tipo.ADMIN)
+        client.force_login(_con_mfa_configurata(admin))
+        response = client.get("/note-spese/impostazioni/")
+        assert response.context["sezione_menu_aperta"] == "Amministrazione"
+        assert response.context["voce_menu_aperta"] == "/note-spese/impostazioni/"
+
+    def test_home_tutte_chiuse(self, client, segreteria):
         client.force_login(segreteria)
-        html = client.get("/").content.decode()
-        assert 'class="collapse list-unstyled ps-7"' in html
-        assert 'class="collapse list-unstyled ps-7 show"' not in html
+        response = client.get("/")
+        assert response.context["sezione_menu_aperta"] is None
+        html = response.content.decode()
+        assert 'list-unstyled ps-7 show"' not in html
+        assert 'data-bs-parent="#agSidebar"' in html

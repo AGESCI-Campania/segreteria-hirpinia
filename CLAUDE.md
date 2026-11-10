@@ -321,9 +321,22 @@ README del tema li elenchi come blocchi di `base.html`). Si sovrascrivono estend
 partial: `templates/partials/sidebar.html` e `templates/partials/footer.html` fanno
 `{% extends "agesci_theme/partials/..." %}` e definiscono solo voci di menu, menu
 utente, colonne e copyright. Non ricopiare la struttura del tema in `base.html`: non
-seguirebbe gli aggiornamenti del pacchetto. `templates/500.html` è l'unica pagina che
+seguirebbe gli aggiornamenti del pacchetto. Le sezioni della sidebar sono una
+fisarmonica (Collapse con `data-bs-parent="#agSidebar"`): partono chiuse, si apre da
+sola quella della pagina corrente, calcolata da
+`apps/core/menu.py::voce_della_pagina()` (prefisso di URL più lungo, così anche le
+pagine "sotto" una voce aprono il loro gruppo). È una regola diversa, di proposito, da
+quella del breadcrumb, che usa solo la corrispondenza esatta: non unificarle.
+`templates/500.html` è l'unica pagina che
 non estende `base.html` (renderizzata senza context processor) e carica da sé il CSS di
 Bootstrap: se il tema cambia versione di Bootstrap, va allineato a mano.
+
+**Eccezione dichiarata (CSS del progetto)**: `static/css/catello.css`, collegato da
+`templates/base.html` (blocco `extra_head`), contiene **una sola** regola approvata: a
+sidebar compressa (`.ag-sidebar--collapsed`) i gruppi del menu non hanno rientro,
+altrimenti le icone di voci e sottovoci finiscono fuori dalla colonna di 64px. Sta fuori
+dai `@layer` di Bootstrap 6, quindi vince sulle utility come `ps-7`. Non aggiungere altre
+regole lì senza chiedere.
 
 **Eccezione dichiarata**: TinyMCE (editor rich text di `TemplateEmail.corpo_html`, M8)
 porta il proprio CSS/JS di toolbar, vendorizzato in `static/vendor/tinymce/` (nessuna

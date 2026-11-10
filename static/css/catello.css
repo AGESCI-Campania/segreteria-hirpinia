@@ -1,0 +1,11 @@
+/*
+ * CSS del progetto: eccezione dichiarata in CLAUDE.md § Tema, da non estendere
+ * senza chiedere. Fuori dai @layer di Bootstrap 6, quindi vince sulle utility.
+ */
+
+/* Sidebar compressa (64px, solo icone, classe messa da agesci_theme/js/sidebar.js):
+   niente rientro dei gruppi (ps-7 in templates/partials/sidebar.html), altrimenti
+   le icone di voci e sottovoci finiscono fuori dalla colonna. */
+.ag-sidebar--collapsed .ag-sidebar__nav ul {
+  padding-inline-start: 0;
+}

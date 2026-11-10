@@ -40,12 +40,6 @@ class VoceMenu:
     # per una voce semplice (nessun sottomenu).
     sottovoci: tuple[VoceMenu, ...] = ()
 
-    @property
-    def url_sottovoci(self) -> tuple[str, ...]:
-        """URL della voce e delle sue sottovoci: la sidebar apre il gruppo se
-        la pagina corrente è una di queste."""
-        return (self.url, *(s.url for s in self.sottovoci))
-
 
 def _voce(
     etichetta: str,
@@ -62,6 +56,28 @@ class SezioneMenu:
     etichetta: str
     icona: str
     voci: list[VoceMenu]
+
+
+def voce_della_pagina(
+    sezioni: list[SezioneMenu], percorso: str
+) -> tuple[SezioneMenu, VoceMenu] | None:
+    """Sezione e voce di primo livello da tenere aperte nella sidebar per la
+    pagina `percorso`: quella col prefisso di URL più lungo fra voci e
+    sottovoci, così anche una pagina "sotto" una voce (dettaglio,
+    creazione…) apre il suo gruppo, e `/note-spese/impostazioni/`
+    (Amministrazione) vince su `/note-spese/` (Moduli). Per una sottovoce si
+    restituisce la voce che la contiene.
+
+    Regola diversa, di proposito, da quella del breadcrumb
+    (`context_processors.breadcrumb`), che usa solo la corrispondenza esatta."""
+    migliore: tuple[int, SezioneMenu, VoceMenu] | None = None
+    for sezione in sezioni:
+        for voce in sezione.voci:
+            for url in (voce.url, *(s.url for s in voce.sottovoci)):
+                if url != "/" and percorso.startswith(url):
+                    if migliore is None or len(url) > migliore[0]:
+                        migliore = (len(url), sezione, voce)
+    return (migliore[1], migliore[2]) if migliore else None
 
 
 def sezioni_menu(utente: Utente | AnonymousUser) -> list[SezioneMenu]:

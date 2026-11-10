@@ -17,44 +17,66 @@ aggiornano con lui; qui stanno solo le voci e il menu utente.
         <span class="ag-sidebar__label">Home</span>
       </a>
     </li>
+    {% comment %}
+    Ogni sezione è un gruppo a fisarmonica (come il menu del Quaderno di Caccia):
+    tutti chiusi, si apre da solo quello della pagina corrente
+    (sezione_menu_aperta, da apps/core/menu.py::voce_della_pagina), e aprirne uno
+    chiude gli altri tramite data-bs-parent. Il collapse annidato di un modulo con
+    più funzioni (Nota Spese) non è toccato dalla fisarmonica: Bootstrap esclude
+    i .collapse annidati. Il rientro sta sui <ul>: un ps-* sul link perde contro
+    il padding di .ag-sidebar__nav-link del tema.
+    {% endcomment %}
     {% for sezione in sezioni_menu %}
-      {# Il testo sta in .ag-sidebar__label perché il tema lo nasconda a sidebar compressa (resta lo spazio fra le sezioni). #}
-      <li class="ag-sidebar__section-title"><span class="ag-sidebar__label">{{ sezione.etichetta }}</span></li>
-      {% for voce in sezione.voci %}
-        {% if voce.sottovoci %}
-          {# Il gruppo nasce aperto se la pagina corrente è una delle sue sottovoci. #}
-          <li>
-            <a href="#ag-sidebar-voce-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
-               class="ag-sidebar__nav-link"
-               data-bs-toggle="collapse"
-               role="button"
-               aria-expanded="{% if request.path in voce.url_sottovoci %}true{% else %}false{% endif %}"
-               aria-controls="ag-sidebar-voce-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
-              {% bs_icon voce.icona %}
-              <span class="ag-sidebar__label">{{ voce.etichetta }}</span>
-              <span class="ag-sidebar__label ms-auto">{% bs_icon "chevron-down" size="12" %}</span>
-            </a>
-            {# Rientro sul <ul>: sul link un ps-* perde contro il padding di .ag-sidebar__nav-link del tema. #}
-            <ul class="collapse list-unstyled ps-7{% if request.path in voce.url_sottovoci %} show{% endif %}" id="ag-sidebar-voce-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
-              {% for sotto in voce.sottovoci %}
-                <li>
-                  <a href="{{ sotto.url }}" class="ag-sidebar__nav-link{% if request.path == sotto.url %} active{% endif %}"{% if request.path == sotto.url %} aria-current="page"{% endif %}>
-                    {% bs_icon sotto.icona %}
-                    <span class="ag-sidebar__label">{{ sotto.etichetta }}</span>
-                  </a>
-                </li>
-              {% endfor %}
-            </ul>
-          </li>
-        {% else %}
-          <li>
-            <a href="{{ voce.url }}" class="ag-sidebar__nav-link{% if request.path == voce.url %} active{% endif %}"{% if request.path == voce.url %} aria-current="page"{% endif %}>
-              {% bs_icon voce.icona %}
-              <span class="ag-sidebar__label">{{ voce.etichetta }}</span>
-            </a>
-          </li>
-        {% endif %}
-      {% endfor %}
+      <li>
+        <a href="#ag-sidebar-sezione-{{ forloop.counter }}"
+           class="ag-sidebar__nav-link"
+           data-bs-toggle="collapse"
+           role="button"
+           title="{{ sezione.etichetta }}"
+           aria-expanded="{% if sezione.etichetta == sezione_menu_aperta %}true{% else %}false{% endif %}"
+           aria-controls="ag-sidebar-sezione-{{ forloop.counter }}">
+          {% bs_icon sezione.icona %}
+          <span class="ag-sidebar__label">{{ sezione.etichetta }}</span>
+          <span class="ag-sidebar__label ms-auto">{% bs_icon "chevron-down" size="12" %}</span>
+        </a>
+        <ul class="collapse list-unstyled ps-7{% if sezione.etichetta == sezione_menu_aperta %} show{% endif %}"
+            id="ag-sidebar-sezione-{{ forloop.counter }}"
+            data-bs-parent="#agSidebar">
+          {% for voce in sezione.voci %}
+            {% if voce.sottovoci %}
+              <li>
+                <a href="#ag-sidebar-voce-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
+                   class="ag-sidebar__nav-link"
+                   data-bs-toggle="collapse"
+                   role="button"
+                   aria-expanded="{% if voce.url == voce_menu_aperta %}true{% else %}false{% endif %}"
+                   aria-controls="ag-sidebar-voce-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                  {% bs_icon voce.icona %}
+                  <span class="ag-sidebar__label">{{ voce.etichetta }}</span>
+                  <span class="ag-sidebar__label ms-auto">{% bs_icon "chevron-down" size="12" %}</span>
+                </a>
+                <ul class="collapse list-unstyled ps-7{% if voce.url == voce_menu_aperta %} show{% endif %}" id="ag-sidebar-voce-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                  {% for sotto in voce.sottovoci %}
+                    <li>
+                      <a href="{{ sotto.url }}" class="ag-sidebar__nav-link{% if request.path == sotto.url %} active{% endif %}"{% if request.path == sotto.url %} aria-current="page"{% endif %}>
+                        {% bs_icon sotto.icona %}
+                        <span class="ag-sidebar__label">{{ sotto.etichetta }}</span>
+                      </a>
+                    </li>
+                  {% endfor %}
+                </ul>
+              </li>
+            {% else %}
+              <li>
+                <a href="{{ voce.url }}" class="ag-sidebar__nav-link{% if request.path == voce.url %} active{% endif %}"{% if request.path == voce.url %} aria-current="page"{% endif %}>
+                  {% bs_icon voce.icona %}
+                  <span class="ag-sidebar__label">{{ voce.etichetta }}</span>
+                </a>
+              </li>
+            {% endif %}
+          {% endfor %}
+        </ul>
+      </li>
     {% endfor %}
 {% endblock %}
 
