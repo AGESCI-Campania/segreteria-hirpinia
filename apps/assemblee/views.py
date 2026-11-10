@@ -5,9 +5,10 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Q
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django.views.generic import ListView
@@ -16,8 +17,8 @@ from apps.accounts.models import Utente
 from apps.core.mixins import BreadcrumbExtraMixin
 from apps.organizzazione.models import Gruppo
 
+from . import cruscotto, elenco, sedute
 from . import deleghe as deleghe_ae
-from . import elenco, sedute
 from . import file as file_assemblea
 from . import quorum as quorum_assemblea
 from .forms import (
@@ -759,5 +760,75 @@ class QualificheView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
             "assemblea": avente.assemblea,
             "form": form,
             "ae_gruppo": deleghe_ae.e_ae_gruppo(avente),
+        }
+        return render(request, self.template_name, contesto)
+
+
+# --- Cruscotto in tempo reale, proiettore, abilitazione app ----------------------
+
+
+class StatoSedutaView(AccedeAssembleeMixin, View):
+    """JSON per l'aggiornamento automatico (polling): l'elenco nominativo solo
+    con ?elenco=1, mai per la vista proiettore."""
+
+    def get(self, request, pk, seduta_pk):
+        seduta = _seduta_visibile(request, pk, seduta_pk)
+        dati = cruscotto.stato_seduta(seduta, con_elenco=request.GET.get("elenco") == "1")
+        risposta = JsonResponse(dati)
+        risposta["Cache-Control"] = "no-store"
+        return risposta
+
+
+class CruscottoView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
+    template_name = "assemblee/cruscotto.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_seduta(request, {"label": "Cruscotto"})
+
+    def get(self, request, pk, seduta_pk):
+        seduta = _seduta_visibile(request, pk, seduta_pk)
+        contesto = {
+            "assemblea": seduta.assemblea,
+            "seduta": seduta,
+            "stato": cruscotto.stato_seduta(seduta, con_elenco=True),
+            "intervallo_ms": cruscotto.INTERVALLO_AGGIORNAMENTO_MS,
+        }
+        return render(request, self.template_name, contesto)
+
+
+class ProiettoreView(AccedeAssembleeMixin, View):
+    """Schermo intero da proiettare in sala: solo numeri, nessun dato personale."""
+
+    template_name = "assemblee/proiettore.html"
+
+    def get(self, request, pk, seduta_pk):
+        seduta = _seduta_visibile(request, pk, seduta_pk)
+        contesto = {
+            "assemblea": seduta.assemblea,
+            "seduta": seduta,
+            "stato": cruscotto.stato_seduta(seduta),
+            "intervallo_ms": cruscotto.INTERVALLO_AGGIORNAMENTO_MS,
+        }
+        return render(request, self.template_name, contesto)
+
+
+class AbilitazioneAppView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
+    """Presenti che votano in app, per chi li abilita sull'app nazionale:
+    pulsante "Aggiorna", nessun aggiornamento automatico."""
+
+    template_name = "assemblee/abilitazione_app.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_seduta(request, {"label": "Abilitazione app"})
+
+    def get(self, request, pk, seduta_pk):
+        seduta = _seduta_visibile(request, pk, seduta_pk)
+        contesto = {
+            "assemblea": seduta.assemblea,
+            "seduta": seduta,
+            "presenti": cruscotto.presenti_in_app(seduta),
+            "aggiornato_il": timezone.localtime(),
         }
         return render(request, self.template_name, contesto)

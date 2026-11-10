@@ -44,6 +44,8 @@
           <div class="d-flex flex-wrap gap-3">
             <a href="{% url 'assemblee:presenze' assemblea.pk seduta.pk %}" class="btn-solid theme-primary">{% if seduta.aperta %}Registra presenze{% else %}Vedi presenze{% endif %}</a>
             <a href="{% url 'assemblee:deleghe' assemblea.pk seduta.pk %}" class="btn-outline theme-primary">Deleghe AE</a>
+            <a href="{% url 'assemblee:cruscotto' assemblea.pk seduta.pk %}" class="btn-outline theme-primary">Cruscotto</a>
+            <a href="{% url 'assemblee:abilitazione_app' assemblea.pk seduta.pk %}" class="btn-outline theme-primary">Abilitazione app</a>
           </div>
         {% endif %}
       </div></div>

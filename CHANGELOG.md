@@ -8,6 +8,22 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [Non rilasciato]
+
+### Aggiunto
+
+- Assemblee, il giorno dell'assemblea:
+  - apertura della seduta e registrazione delle presenze all'ingresso, anche da
+    smartphone, con calcolo del quorum costitutivo; dichiarazione di seduta
+    costituita o non costituita e, se serve, seconda e terza convocazione;
+  - deleghe degli Assistenti Ecclesiastici con le regole del regolamento
+    dell'Assemblea;
+  - verifica del quorum durante i lavori con un nuovo appello;
+  - cruscotto che si aggiorna da solo con presenti, quorum e votanti in app e su
+    carta, vista da proiettare in sala ed elenco dei presenti da abilitare
+    nell'app di voto;
+  - nel tracciato per l'app di voto, presenza e codice del delegato compilati.
+
 ## [1.3.0] - 2026-11-10
 
 ### Aggiunto

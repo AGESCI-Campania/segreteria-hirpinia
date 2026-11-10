@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block page_title %}Abilitazione app — {{ seduta }}{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Abilitazione app</h1>
+    <a href="{{ request.get_full_path }}" class="btn-solid theme-primary">Aggiorna</a>
+  </div>
+  <p class="fg-2 mb-5">
+    Presenti che votano nell'app nazionale, dall'ultimo arrivato: {{ presenti|length }}.
+    Elenco alle {{ aggiornato_il|time:"H:i:s" }}. Per gli AE che hanno delegato, la colonna
+    «Delegato» riporta il codice socio di chi li rappresenta.
+  </p>
+
+  <div class="table-responsive">
+  <table class="table table-sm">
+    <thead><tr><th>Codice socio</th><th>Nome</th><th>Cognome</th><th>Gruppo</th><th>Delegato</th></tr></thead>
+    <tbody>
+      {% for p in presenti %}
+        <tr>
+          <td>{{ p.avente.codice_socio }}</td>
+          <td>{{ p.avente.nome }}</td>
+          <td>{{ p.avente.cognome }}</td>
+          <td>{{ p.avente.gruppo_origine.nome|default:p.avente.gruppo.nome }}</td>
+          <td>{% if p.delegato and p.delegato.pk != p.avente.pk %}{{ p.delegato.codice_socio|default:"—" }}{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">Nessun presente con voto in app.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+{% endblock %}

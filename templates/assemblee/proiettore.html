@@ -1,0 +1,39 @@
+{% load static %}
+{% comment %}
+Vista da proiettare in sala: schermo intero, senza menu, solo numeri e nessun
+dato personale (lo stato arriva senza elenco nominativo). Pagina autonoma come
+templates/500.html: Bootstrap 6 con la stessa versione e SRI del tema.
+{% endcomment %}
+<!DOCTYPE html>
+<html lang="it" data-bs-theme="light" data-branca="{{ agesci_theme_branca|default:'capi' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ assemblea }} — {{ seduta.get_convocazione_display }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
+  <link href="{% static 'agesci_theme/css/agesci.min.css' %}" rel="stylesheet">
+</head>
+<body class="bg-ag-viola fg-white d-flex flex-column min-vh-100">
+  <main class="container py-7 flex-grow-1 d-flex flex-column justify-content-center text-center">
+    <p class="fs-2xl mb-3">{{ assemblea }} — {{ seduta.get_convocazione_display }}</p>
+    <p class="fs-6xl fw-bold mb-0"><span data-campo="presenti">{{ stato.presenti }}</span> / <span data-campo="aventi_diritto">{{ stato.aventi_diritto }}</span></p>
+    <p class="fs-2xl mb-7">presenti / aventi diritto</p>
+
+    <div class="row g-7 mb-7">
+      <div class="md:col-4"><p class="fs-5xl fw-bold mb-0" data-campo="soglia">{% if stato.soglia is None %}—{% else %}{{ stato.soglia }}{% endif %}</p><p class="fs-xl">quorum costitutivo</p></div>
+      <div class="md:col-4"><p class="fs-5xl fw-bold mb-0" data-campo="presenti_app">{{ stato.presenti_app }}</p><p class="fs-xl">votanti in app</p></div>
+      <div class="md:col-4"><p class="fs-5xl fw-bold mb-0" data-campo="presenti_carta">{{ stato.presenti_carta }}</p><p class="fs-xl">votanti su carta</p></div>
+    </div>
+
+    <p class="fs-3xl fw-bold" data-campo="stato_quorum">{% if stato.soglia is None %}Quorum non richiesto{% elif stato.raggiunto %}Quorum raggiunto{% else %}Mancano {{ stato.mancanti }} presenti{% endif %}</p>
+    <p class="fs-xl{% if not stato.verifica %} d-none{% endif %}" data-verifica>
+      Verifica del quorum in corso: rilevati <span data-campo="verifica_presenti">{{ stato.verifica.presenti }}</span>
+    </p>
+  </main>
+  <p class="text-center small mb-3">
+    Aggiornato alle <span data-campo="aggiornato_il">{{ stato.aggiornato_il }}</span>
+    <span class="d-none" data-connessione> — aggiornamento non riuscito</span>
+  </p>
+  <script src="{% static 'js/assemblea-cruscotto.js' %}" data-url-stato="{% url 'assemblee:stato_seduta' assemblea.pk seduta.pk %}" data-intervallo="{{ intervallo_ms }}" defer></script>
+</body>
+</html>

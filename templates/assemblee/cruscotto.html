@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load static bootstrap_icons %}
+
+{% block page_title %}Cruscotto — {{ seduta }}{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Cruscotto</h1>
+    <a href="{% url 'assemblee:proiettore' assemblea.pk seduta.pk %}" class="btn-outline theme-primary" target="_blank" rel="noopener">{% bs_icon "display" %} Vista proiettore</a>
+  </div>
+  <p class="fg-2 mb-5">
+    {{ seduta.get_convocazione_display }} — {{ assemblea }}. Si aggiorna da solo: ultimo aggiornamento alle
+    <span data-campo="aggiornato_il">{{ stato.aggiornato_il }}</span>.
+    <span class="fg-danger d-none" data-connessione>Aggiornamento non riuscito: controlla la connessione.</span>
+  </p>
+
+  <div class="row row-cols-1 md:row-cols-4 g-7 mb-7">
+    <div class="col"><div class="card h-100"><div class="card-body">
+      <h2 class="fs-lg">Aventi diritto</h2>
+      <p class="fs-3xl mb-0" data-campo="aventi_diritto">{{ stato.aventi_diritto }}</p>
+    </div></div></div>
+    <div class="col"><div class="card h-100"><div class="card-body">
+      <h2 class="fs-lg">Presenti</h2>
+      <p class="fs-3xl mb-0" data-campo="presenti">{{ stato.presenti }}</p>
+    </div></div></div>
+    <div class="col"><div class="card h-100"><div class="card-body">
+      <h2 class="fs-lg">Votanti in app / su carta</h2>
+      <p class="fs-3xl mb-0"><span data-campo="presenti_app">{{ stato.presenti_app }}</span> / <span data-campo="presenti_carta">{{ stato.presenti_carta }}</span></p>
+    </div></div></div>
+    <div class="col"><div class="card h-100"><div class="card-body">
+      <h2 class="fs-lg">Quorum costitutivo</h2>
+      <p class="fs-3xl mb-0" data-campo="soglia">{% if stato.soglia is None %}—{% else %}{{ stato.soglia }}{% endif %}</p>
+    </div></div></div>
+  </div>
+
+  <div class="alert {% if stato.raggiunto %}theme-success{% else %}theme-warning{% endif %} mb-5" role="status" data-esito-quorum>
+    <p class="mb-0 fs-lg" data-campo="stato_quorum">{% if stato.soglia is None %}Quorum non richiesto{% elif stato.raggiunto %}Quorum raggiunto{% else %}Mancano {{ stato.mancanti }} presenti{% endif %}</p>
+  </div>
+
+  <div class="alert theme-info mb-5{% if not stato.verifica %} d-none{% endif %}" role="status" data-verifica>
+    <p class="mb-0">
+      <strong>Verifica del quorum in corso</strong> (<span data-campo="verifica_richiedente">{{ stato.verifica.richiedente }}</span>):
+      rilevati <span data-campo="verifica_presenti">{{ stato.verifica.presenti }}</span> su una soglia di
+      <span data-campo="verifica_soglia">{{ stato.verifica.soglia|default:"—" }}</span>.
+    </p>
+  </div>
+
+  <div class="d-flex flex-wrap gap-3 mb-5">
+    <a href="{% url 'assemblee:presenze' assemblea.pk seduta.pk %}" class="btn-outline theme-primary btn-sm">Registra presenze</a>
+    <a href="{% url 'assemblee:abilitazione_app' assemblea.pk seduta.pk %}" class="btn-outline theme-primary btn-sm">Abilitazione app</a>
+    <a href="{% url 'assemblee:elenco' assemblea.pk %}" class="btn-outline theme-secondary btn-sm">Aventi diritto</a>
+  </div>
+
+  <h2 class="fs-xl">Presenze</h2>
+  <div class="table-responsive">
+  <table class="table table-sm">
+    <thead><tr><th>Ora</th><th>Cognome e nome</th><th>Gruppo</th><th>Voto</th><th>Per delega a</th></tr></thead>
+    <tbody data-elenco>
+      {% for p in stato.elenco %}
+        <tr><td>{{ p.ora }}</td><td>{{ p.cognome }} {{ p.nome }}</td><td>{{ p.gruppo }}</td><td>{{ p.voto }}</td><td>{{ p.delegato }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script src="{% static 'js/assemblea-cruscotto.js' %}" data-url-stato="{% url 'assemblee:stato_seduta' assemblea.pk seduta.pk %}?elenco=1" data-intervallo="{{ intervallo_ms }}" defer></script>
+{% endblock %}

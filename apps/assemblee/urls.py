@@ -83,4 +83,24 @@ urlpatterns = [
         views.QualificheView.as_view(),
         name="qualifiche",
     ),
+    path(
+        "<int:pk>/sedute/<int:seduta_pk>/stato.json",
+        views.StatoSedutaView.as_view(),
+        name="stato_seduta",
+    ),
+    path(
+        "<int:pk>/sedute/<int:seduta_pk>/cruscotto/",
+        views.CruscottoView.as_view(),
+        name="cruscotto",
+    ),
+    path(
+        "<int:pk>/sedute/<int:seduta_pk>/proiettore/",
+        views.ProiettoreView.as_view(),
+        name="proiettore",
+    ),
+    path(
+        "<int:pk>/sedute/<int:seduta_pk>/abilitazione-app/",
+        views.AbilitazioneAppView.as_view(),
+        name="abilitazione_app",
+    ),
 ]
