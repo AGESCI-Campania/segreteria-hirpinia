@@ -15,7 +15,7 @@ from apps.anagrafica.models import Capo, CensimentoCapo
 from apps.contributi.models import Campagna, ImportazionePartecipazioni, TipologiaCampo
 from apps.organizzazione.models import Gruppo
 
-pytestmark = pytest.mark.django_db
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("finestra_inserimento_aperta")]
 
 ANNO = 2026
 
