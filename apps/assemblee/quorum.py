@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 
 from .models import Appello, AventeDiritto, Seduta, TipoAppello
 
@@ -31,11 +31,17 @@ def appello_effettivo(seduta: Seduta) -> Appello | None:
 
 
 def presenti(seduta: Seduta) -> QuerySet[AventeDiritto]:
-    """Aventi diritto presenti per il quorum, ancora nell'elenco."""
+    """Aventi diritto presenti per il quorum, ancora nell'elenco: chi è
+    registrato di persona nell'appello effettivo e gli AE che hanno delegato
+    un presente (art. 4 c.2: "registrati personalmente o per delega"). Chi è
+    sia presente sia delegante conta una volta sola."""
     appello = appello_effettivo(seduta)
     if appello is None:
         return AventeDiritto.objects.none()
-    return seduta.assemblea.aventi_diritto.nell_elenco().filter(presenze__appello=appello)
+    elenco = seduta.assemblea.aventi_diritto.nell_elenco()
+    di_persona = elenco.filter(presenze__appello=appello)
+    deleganti = seduta.deleghe.filter(delegato__in=di_persona).values("delegante_id")
+    return elenco.filter(Q(pk__in=di_persona.values("pk")) | Q(pk__in=deleganti))
 
 
 @dataclass(frozen=True)

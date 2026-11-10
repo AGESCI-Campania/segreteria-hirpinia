@@ -8,7 +8,7 @@ from apps.accounts.models import StatoUtente, TipoUtente, Utente
 from apps.anagrafica.models import BrancaUnita, FunzioneIncarico
 from apps.organizzazione.models import Gruppo, anno_scout_corrente
 
-from .models import Assemblea, Provenienza, Seduta
+from .models import Assemblea, AventeDiritto, Provenienza, Seduta
 
 
 class AssembleaCreaForm(forms.ModelForm):
@@ -115,3 +115,32 @@ class ConvocazioneForm(forms.Form):
         label="Ora", required=False, widget=forms.TimeInput(attrs={"type": "time"})
     )
     luogo = forms.CharField(label="Luogo", max_length=255, required=False)
+
+
+class _AventeChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return f"{obj.cognome} {obj.nome} — {obj.gruppo.nome}"
+
+
+class DelegaForm(forms.Form):
+    delegante = _AventeChoiceField(queryset=AventeDiritto.objects.none(), label="AE che delega")
+    delegato = _AventeChoiceField(queryset=AventeDiritto.objects.none(), label="Delegato")
+
+    def __init__(self, *args, deleganti: list[AventeDiritto], aventi, **kwargs):
+        super().__init__(*args, **kwargs)
+        cast(forms.ModelChoiceField, self.fields["delegante"]).queryset = (
+            AventeDiritto.objects.filter(pk__in=[a.pk for a in deleganti])
+            .select_related("gruppo")
+            .order_by("cognome", "nome")
+        )
+        cast(forms.ModelChoiceField, self.fields["delegato"]).queryset = aventi
+
+
+class QualificheForm(forms.Form):
+    ae_zona = forms.BooleanField(label="AE di Zona", required=False)
+    rdz = forms.BooleanField(label="Responsabile di Zona", required=False)
+    comitato = forms.BooleanField(
+        label="Membro del Comitato di Zona",
+        required=False,
+        help_text="Un Responsabile di Zona è sempre anche membro del Comitato.",
+    )

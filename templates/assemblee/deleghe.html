@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block page_title %}Deleghe AE — {{ seduta }}{% endblock %}
+
+{% block content %}
+  <h1 class="mb-3">Deleghe degli AE</h1>
+  <p class="fg-2 mb-5">
+    {{ seduta.get_convocazione_display }} — {{ assemblea }}. Le deleghe valgono solo per questa seduta.
+    L'AE di gruppo delega un capo del proprio gruppo o un altro AE; l'AE di Zona un Responsabile
+    di Zona o un membro del Comitato. Nessuno raccoglie più di una delega. L'AE delegante conta
+    come presente se il delegato è presente.
+  </p>
+
+  <div class="table-responsive mb-7">
+  <table class="table">
+    <thead><tr><th>AE che delega</th><th>Delegato</th><th>Registrata</th>{% if puo_operare %}<th></th>{% endif %}</tr></thead>
+    <tbody>
+      {% for delega in deleghe %}
+        <tr>
+          <td>{{ delega.delegante.cognome }} {{ delega.delegante.nome }}<br><small class="fg-2">{{ delega.delegante.gruppo.nome }}{% if delega.delegante.codice_socio %} — {{ delega.delegante.codice_socio }}{% endif %}</small></td>
+          <td>{{ delega.delegato.cognome }} {{ delega.delegato.nome }}<br><small class="fg-2">{{ delega.delegato.gruppo.nome }}{% if delega.delegato.codice_socio %} — {{ delega.delegato.codice_socio }}{% endif %}</small></td>
+          <td>{{ delega.registrata_il|date:"d/m/Y H:i" }}</td>
+          {% if puo_operare %}
+            <td>
+              <form method="post" action="{% url 'assemblee:delega_revoca' assemblea.pk seduta.pk delega.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn-outline theme-danger btn-sm">Revoca</button>
+              </form>
+            </td>
+          {% endif %}
+        </tr>
+      {% empty %}
+        <tr><td colspan="4">Nessuna delega registrata per questa seduta.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+
+  {% if puo_operare %}
+    <h2 class="fs-xl">Registra una delega</h2>
+    {% if nessun_ae %}
+      <div class="alert theme-info" role="note"><p class="mb-0">Nessun AE nell'elenco: l'AE di gruppo si ricava dagli incarichi, l'AE di Zona si segna nelle qualifiche dell'elenco.</p></div>
+    {% else %}
+      <form method="post" class="row g-3 align-items-end">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div class="md:col-5"><div class="form-field">{{ form.delegante.label_tag }}{{ form.delegante }}{{ form.delegante.errors }}</div></div>
+        <div class="md:col-5"><div class="form-field">{{ form.delegato.label_tag }}{{ form.delegato }}{{ form.delegato.errors }}</div></div>
+        <div class="md:col-auto"><button type="submit" class="btn-solid theme-primary">Registra</button></div>
+      </form>
+    {% endif %}
+  {% endif %}
+
+  <p class="mt-7"><a href="{% url 'assemblee:seduta' assemblea.pk seduta.pk %}">Torna alla seduta</a></p>
+{% endblock %}

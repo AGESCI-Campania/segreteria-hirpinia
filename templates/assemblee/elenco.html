@@ -96,7 +96,12 @@
           {% if puo_gestire %}
             <td>{% if not riga.eliminato %}<input type="checkbox" name="aventi" value="{{ riga.pk }}" form="form-elimina" class="check" aria-label="Seleziona {{ riga }}">{% endif %}</td>
           {% endif %}
-          <td>{{ riga.cognome }} {{ riga.nome }}</td>
+          <td>
+            {{ riga.cognome }} {{ riga.nome }}
+            {% if riga.pk in ae_gruppo_ids %}{% ag_chip "AE" variant="info" %}{% endif %}
+            {% if riga.ae_zona %}{% ag_chip "AE di Zona" variant="info" %}{% endif %}
+            {% if riga.rdz %}{% ag_chip "RdZ" variant="primary" %}{% elif riga.comitato %}{% ag_chip "Comitato" variant="primary" %}{% endif %}
+          </td>
           <td>{{ riga.codice_socio|default:"—" }}</td>
           <td>
             {{ riga.gruppo.nome }}
@@ -128,6 +133,7 @@
             {% else %}
               {% if puo_gestire %}
                 <a href="{% url 'assemblee:trasferisci' assemblea.pk riga.pk %}" class="btn-outline theme-secondary btn-sm">Trasferisci</a>
+                <a href="{% url 'assemblee:qualifiche' assemblea.pk riga.pk %}" class="btn-outline theme-secondary btn-sm">Qualifiche</a>
               {% endif %}
               {% if puo_operare %}
                 {% if riga.vota_in_app %}

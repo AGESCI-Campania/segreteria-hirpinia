@@ -41,7 +41,10 @@
         <h2 class="fs-lg">{% bs_icon "person-check" %} Presenze</h2>
         <p class="fg-2 flex-grow-1">Registrazione all'ingresso, anche da smartphone.</p>
         {% if seduta.aperta_il %}
-          <a href="{% url 'assemblee:presenze' assemblea.pk seduta.pk %}" class="btn-solid theme-primary align-self-start">{% if seduta.aperta %}Registra presenze{% else %}Vedi presenze{% endif %}</a>
+          <div class="d-flex flex-wrap gap-3">
+            <a href="{% url 'assemblee:presenze' assemblea.pk seduta.pk %}" class="btn-solid theme-primary">{% if seduta.aperta %}Registra presenze{% else %}Vedi presenze{% endif %}</a>
+            <a href="{% url 'assemblee:deleghe' assemblea.pk seduta.pk %}" class="btn-outline theme-primary">Deleghe AE</a>
+          </div>
         {% endif %}
       </div></div>
     </div>

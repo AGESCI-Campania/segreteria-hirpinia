@@ -16,6 +16,7 @@ from apps.accounts.models import Utente
 from apps.core.mixins import BreadcrumbExtraMixin
 from apps.organizzazione.models import Gruppo
 
+from . import deleghe as deleghe_ae
 from . import elenco, sedute
 from . import file as file_assemblea
 from . import quorum as quorum_assemblea
@@ -23,11 +24,13 @@ from .forms import (
     AssembleaCreaForm,
     AventeInserisciForm,
     ConvocazioneForm,
+    DelegaForm,
     IncaricoDichiaratoFormSet,
     OperatoreAggiungiForm,
+    QualificheForm,
     TrasferisciForm,
 )
-from .models import Assemblea, AventeDiritto, OperatoreVoto, Seduta
+from .models import Assemblea, AventeDiritto, DelegaAE, OperatoreVoto, Seduta
 from .permessi import accede_assemblee, assemblee_visibili, puo_gestire_assemblee, puo_operare
 from .quorum import stato_quorum
 
@@ -202,6 +205,7 @@ class ElencoView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
         contesto = {
             "assemblea": assemblea,
             "righe": righe,
+            "ae_gruppo_ids": deleghe_ae.ae_gruppo_ids(righe),
             "gruppi": Gruppo.objects.filter(
                 pk__in=tutti.values_list("gruppo_id", flat=True)
             ).order_by("nome"),
@@ -595,3 +599,123 @@ class PresenzaView(LoginRequiredMixin, View):
         except ValidationError as errore:
             messages.error(request, " ".join(errore.messages))
         return _torna_all_elenco(request, seduta.assemblea)
+
+
+# --- Deleghe AE e qualifiche -----------------------------------------------------
+
+
+class DelegheView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
+    """Deleghe degli AE per una seduta (art. 5), registrate al banco."""
+
+    template_name = "assemblee/deleghe.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_seduta(request, {"label": "Deleghe AE"})
+
+    def _contesto(self, request, seduta, form=None):
+        assemblea = seduta.assemblea
+        elenco_qs = assemblea.aventi_diritto.nell_elenco().select_related("gruppo")
+        gia_deleganti = seduta.deleghe.values_list("delegante_id", flat=True)
+        deleganti = deleghe_ae.possono_delegare(elenco_qs.exclude(pk__in=gia_deleganti))
+        if form is None:
+            form = DelegaForm(deleganti=deleganti, aventi=elenco_qs.order_by("cognome", "nome"))
+        return {
+            "assemblea": assemblea,
+            "seduta": seduta,
+            "deleghe": seduta.deleghe.select_related(
+                "delegante__gruppo", "delegato__gruppo"
+            ).order_by("delegante__cognome"),
+            "form": form,
+            "puo_operare": puo_operare(request.user, assemblea) and seduta.chiusa_il is None,
+            "nessun_ae": not deleghe_ae.possono_delegare(elenco_qs),
+        }
+
+    def get(self, request, pk, seduta_pk):
+        seduta = _seduta_visibile(request, pk, seduta_pk)
+        return render(request, self.template_name, self._contesto(request, seduta))
+
+    def post(self, request, pk, seduta_pk):
+        seduta = _seduta_visibile(request, pk, seduta_pk)
+        contesto = self._contesto(request, seduta)
+        form = DelegaForm(
+            request.POST,
+            deleganti=list(contesto["form"].fields["delegante"].queryset),
+            aventi=contesto["form"].fields["delegato"].queryset,
+        )
+        if form.is_valid():
+            try:
+                delega = deleghe_ae.registra_delega(
+                    seduta,
+                    form.cleaned_data["delegante"],
+                    form.cleaned_data["delegato"],
+                    request.user,
+                )
+            except ValidationError as errore:
+                form.add_error(None, errore)
+            else:
+                messages.success(request, f"Delega registrata: {delega}.")
+                return redirect(reverse("assemblee:deleghe", args=[pk, seduta_pk]))
+        return render(request, self.template_name, self._contesto(request, seduta, form))
+
+
+class DelegaRevocaView(LoginRequiredMixin, View):
+    def post(self, request, pk, seduta_pk, delega_pk):
+        seduta = _seduta_visibile(request, pk, seduta_pk)
+        delega = get_object_or_404(DelegaAE, pk=delega_pk, seduta=seduta)
+        try:
+            deleghe_ae.revoca_delega(delega, request.user)
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+        else:
+            messages.success(request, f"Delega revocata: {delega}.")
+        return redirect(reverse("assemblee:deleghe", args=[pk, seduta_pk]))
+
+
+class QualificheView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+    template_name = "assemblee/avente_qualifiche.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_assemblea(
+            request,
+            {
+                "label": "Aventi diritto",
+                "url": reverse("assemblee:elenco", args=[request.resolver_match.kwargs["pk"]]),
+            },
+            {"label": "Qualifiche"},
+        )
+
+    def get(self, request, pk, avente_pk):
+        avente = get_object_or_404(AventeDiritto, pk=avente_pk, assemblea_id=pk)
+        form = QualificheForm(
+            initial={"ae_zona": avente.ae_zona, "rdz": avente.rdz, "comitato": avente.comitato}
+        )
+        contesto = {
+            "avente": avente,
+            "assemblea": avente.assemblea,
+            "form": form,
+            "ae_gruppo": deleghe_ae.e_ae_gruppo(avente),
+        }
+        return render(request, self.template_name, contesto)
+
+    def post(self, request, pk, avente_pk):
+        avente = get_object_or_404(AventeDiritto, pk=avente_pk, assemblea_id=pk)
+        form = QualificheForm(request.POST)
+        if form.is_valid():
+            try:
+                deleghe_ae.aggiorna_qualifiche(avente, request.user, **form.cleaned_data)
+            except ValidationError as errore:
+                form.add_error(None, errore)
+            else:
+                messages.success(request, f"Qualifiche di {avente} aggiornate.")
+                return redirect(
+                    reverse("assemblee:elenco", args=[pk]) + f"?gruppo={avente.gruppo_id}"
+                )
+        contesto = {
+            "avente": avente,
+            "assemblea": avente.assemblea,
+            "form": form,
+            "ae_gruppo": deleghe_ae.e_ae_gruppo(avente),
+        }
+        return render(request, self.template_name, contesto)

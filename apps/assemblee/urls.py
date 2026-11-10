@@ -68,4 +68,19 @@ urlpatterns = [
         views.PresenzaView.as_view(),
         name="presenza",
     ),
+    path(
+        "<int:pk>/sedute/<int:seduta_pk>/deleghe/",
+        views.DelegheView.as_view(),
+        name="deleghe",
+    ),
+    path(
+        "<int:pk>/sedute/<int:seduta_pk>/deleghe/<int:delega_pk>/revoca/",
+        views.DelegaRevocaView.as_view(),
+        name="delega_revoca",
+    ),
+    path(
+        "<int:pk>/elenco/<int:avente_pk>/qualifiche/",
+        views.QualificheView.as_view(),
+        name="qualifiche",
+    ),
 ]

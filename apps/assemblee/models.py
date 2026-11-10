@@ -254,6 +254,11 @@ class AventeDiritto(models.Model):
         related_name="+",
     )
     uscita = models.CharField(max_length=15, choices=MotivoUscita.choices, blank=True)
+    # Qualifiche per le deleghe (art. 5), segnate a mano da chi gestisce
+    # l'elenco: l'AE di gruppo invece si ricava dagli incarichi (elenco.py).
+    ae_zona = models.BooleanField("AE di Zona", default=False)
+    rdz = models.BooleanField("Responsabile di Zona", default=False)
+    comitato = models.BooleanField("Membro del Comitato di Zona", default=False)
     eliminato_il = models.DateTimeField(null=True, blank=True)
     eliminato_da = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -287,6 +292,12 @@ class AventeDiritto(models.Model):
             models.CheckConstraint(
                 condition=Q(origine=OrigineAvente.IMPORT) | ~Q(provenienza=""),
                 name="avente_manuale_con_provenienza",
+            ),
+            # Un solo AE di Zona per assemblea.
+            models.UniqueConstraint(
+                fields=["assemblea"],
+                condition=Q(ae_zona=True),
+                name="un_ae_di_zona_per_assemblea",
             ),
             # Uscito dall'elenco se e solo se ha un motivo di uscita.
             models.CheckConstraint(
@@ -388,3 +399,39 @@ class ScaricamentoFile(models.Model):
 
     def __str__(self) -> str:
         return f"{self.get_tipo_display()} — {self.scaricato_il:%d/%m/%Y %H:%M}"
+
+
+class DelegaAE(models.Model):
+    """Delega di un AE a un altro avente diritto per una seduta (art. 5, D-70):
+    si registra al banco seduta per seduta. Le regole sono in deleghe.py."""
+
+    seduta = models.ForeignKey(Seduta, on_delete=models.CASCADE, related_name="deleghe")
+    delegante = models.ForeignKey(
+        AventeDiritto, on_delete=models.CASCADE, related_name="deleghe_date"
+    )
+    delegato = models.ForeignKey(
+        AventeDiritto, on_delete=models.CASCADE, related_name="deleghe_ricevute"
+    )
+    registrata_il = models.DateTimeField(auto_now_add=True)
+    registrata_da = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+
+    class Meta:
+        verbose_name = "delega AE"
+        verbose_name_plural = "deleghe AE"
+        constraints = [
+            models.UniqueConstraint(fields=["seduta", "delegante"], name="una_delega_per_ae"),
+            # Nessuno raccoglie più di una delega (art. 5 c.2).
+            models.UniqueConstraint(fields=["seduta", "delegato"], name="una_delega_per_delegato"),
+            models.CheckConstraint(
+                condition=~Q(delegante=models.F("delegato")), name="delega_non_a_se_stessi"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.delegante} → {self.delegato}"

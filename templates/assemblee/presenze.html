@@ -5,7 +5,7 @@
 
 {% block content %}
   <h1 class="mb-3">Presenze</h1>
-  <p class="fg-2 mb-3">{{ seduta.get_convocazione_display }} — {{ assemblea }}</p>
+  <p class="fg-2 mb-3">{{ seduta.get_convocazione_display }} — {{ assemblea }} — <a href="{% url 'assemblee:deleghe' assemblea.pk seduta.pk %}">deleghe AE</a></p>
 
   <div class="alert {% if quorum.raggiunto %}theme-success{% else %}theme-warning{% endif %} mb-5" role="status">
     <div>

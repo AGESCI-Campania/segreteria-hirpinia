@@ -13,6 +13,7 @@ class AssembleeConfig(AppConfig):
             Appello,
             Assemblea,
             AventeDiritto,
+            DelegaAE,
             IncaricoDichiarato,
             OperatoreVoto,
             Presenza,
@@ -28,3 +29,4 @@ class AssembleeConfig(AppConfig):
         auditlog.register(OperatoreVoto)
         auditlog.register(Appello)
         auditlog.register(Presenza)
+        auditlog.register(DelegaAE)

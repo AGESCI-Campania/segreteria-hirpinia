@@ -77,6 +77,11 @@ def righe_tracciato(assemblea: Assemblea) -> list[list]:
     )
     seduta = seduta_corrente(assemblea)
     presenti = set(quorum.presenti(seduta).values_list("pk", flat=True)) if seduta else set()
+    delegati = (
+        {d.delegante_id: d.delegato.codice_socio for d in seduta.deleghe.select_related("delegato")}
+        if seduta
+        else {}
+    )
     righe = []
     for pic, avente in enumerate(aventi, start=1):
         gruppo = avente.gruppo_origine or avente.gruppo
@@ -101,7 +106,7 @@ def righe_tracciato(assemblea: Assemblea) -> list[list]:
                 None,
                 "SI" if avente.pk in presenti else "NO",
                 "SI",
-                None,
+                _codice(delegati[avente.pk]) if delegati.get(avente.pk) else None,
             ]
         )
     return righe
