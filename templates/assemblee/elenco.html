@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% load agesci_components %}
+
+{% block page_title %}Aventi diritto — {{ assemblea }}{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Aventi diritto</h1>
+    {% if puo_gestire %}
+      <a href="{% url 'assemblee:inserisci' assemblea.pk %}{% if filtro_gruppo %}?gruppo={{ filtro_gruppo }}{% endif %}" class="btn-solid theme-primary">Nuovo capo</a>
+    {% endif %}
+  </div>
+  <p class="fg-2 mb-5">
+    {{ assemblea }} — {{ totale }} nell'elenco: {{ totale_app }} votano in app, {{ totale_carta }} su carta{% if totale_usciti %}; {{ totale_usciti }} usciti{% endif %}.
+  </p>
+
+  {% if gruppi_da_aggiornare %}
+    <div class="alert theme-info" role="note">
+      <div>
+        <p class="mb-1"><strong>Dati {{ assemblea.anno_scout|add:"-1" }}/{{ assemblea.anno_scout }} disponibili</strong> per gruppi ancora fermi all'anno precedente:</p>
+        <ul class="mb-0">
+          {% for gruppo in gruppi_da_aggiornare %}
+            <li>{{ gruppo.nome }} — <a href="{% url 'assemblee:aggiorna_gruppo' assemblea.pk gruppo.pk %}">aggiorna il gruppo</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if da_togliere_dall_app %}
+    <div class="alert theme-warning" role="note">
+      <div>
+        <p class="mb-1"><strong>Da togliere dall'app nazionale</strong>: votano su carta, verifica che non abbiano già votato in app.</p>
+        <ul class="mb-0">
+          {% for avente in da_togliere_dall_app %}
+            <li>{{ avente.cognome }} {{ avente.nome }} ({{ avente.codice_socio }}) — {{ avente.gruppo_origine.nome|default:avente.gruppo.nome }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  {% endif %}
+
+  <form method="get" class="row g-3 align-items-end mb-5">
+    <div class="md:col-4">
+      <div class="form-field">
+        <label for="filtro-gruppo">Gruppo</label>
+        <select id="filtro-gruppo" name="gruppo" class="form-control">
+          <option value="">Tutti i gruppi</option>
+          {% for gruppo in gruppi %}
+            <option value="{{ gruppo.pk }}"{% if gruppo.pk == filtro_gruppo %} selected{% endif %}>{{ gruppo.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="md:col-4">
+      <div class="form-field">
+        <label for="filtro-q">Cerca</label>
+        <input id="filtro-q" type="search" name="q" value="{{ cerca }}" class="form-control" placeholder="Cognome, nome o codice socio">
+      </div>
+    </div>
+    <div class="md:col-auto">
+      <div class="form-field">
+        <input id="filtro-usciti" type="checkbox" name="usciti" value="1" class="check"{% if mostra_usciti %} checked{% endif %}>
+        <label for="filtro-usciti">Mostra anche gli usciti</label>
+      </div>
+    </div>
+    <div class="md:col-auto">
+      <button type="submit" class="btn-outline theme-primary">Filtra</button>
+    </div>
+  </form>
+
+  {% if puo_gestire %}
+    <form method="post" action="{% url 'assemblee:elimina' assemblea.pk %}" id="form-elimina" class="mb-3">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button type="submit" class="btn-outline theme-danger btn-sm">Elimina i selezionati</button>
+    </form>
+  {% endif %}
+
+  <div class="table-responsive">
+  <table class="table table-sm">
+    <thead>
+      <tr>
+        {% if puo_gestire %}<th></th>{% endif %}
+        <th>Cognome e nome</th>
+        <th>Codice socio</th>
+        <th>Gruppo</th>
+        <th>Dati</th>
+        <th>Voto</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for riga in righe %}
+        <tr>
+          {% if puo_gestire %}
+            <td>{% if not riga.eliminato %}<input type="checkbox" name="aventi" value="{{ riga.pk }}" form="form-elimina" class="check" aria-label="Seleziona {{ riga }}">{% endif %}</td>
+          {% endif %}
+          <td>{{ riga.cognome }} {{ riga.nome }}</td>
+          <td>{{ riga.codice_socio|default:"—" }}</td>
+          <td>
+            {{ riga.gruppo.nome }}
+            {% if riga.trasferito %}<br><small class="fg-2">da {{ riga.gruppo_origine.nome }}</small>{% endif %}
+          </td>
+          <td>
+            {% if riga.origine == "IMPORT" %}Censimento {{ riga.anno_censimento|add:"-1" }}/{{ riga.anno_censimento }}{% else %}Inserito a mano<br><small class="fg-2">{{ riga.get_provenienza_display }}</small>{% endif %}
+          </td>
+          <td>
+            {% if riga.eliminato %}
+              {% ag_chip riga.get_uscita_display variant="secondary" %}
+            {% elif riga.vota_in_app %}
+              {% ag_chip "App" variant="success" %}
+            {% elif riga.passato_a_carta %}
+              {% ag_chip "Carta (da app)" variant="warning" %}
+            {% else %}
+              {% ag_chip "Carta" variant="secondary" %}
+            {% endif %}
+          </td>
+          <td class="text-nowrap">
+            {% if riga.eliminato %}
+              {% if puo_gestire %}
+                <form method="post" action="{% url 'assemblee:ripristina' assemblea.pk riga.pk %}" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  <button type="submit" class="btn-outline theme-primary btn-sm">Ripristina</button>
+                </form>
+              {% endif %}
+            {% else %}
+              {% if puo_gestire %}
+                <a href="{% url 'assemblee:trasferisci' assemblea.pk riga.pk %}" class="btn-outline theme-secondary btn-sm">Trasferisci</a>
+              {% endif %}
+              {% if puo_operare %}
+                {% if riga.vota_in_app %}
+                  <form method="post" action="{% url 'assemblee:passa_a_carta' assemblea.pk riga.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="btn-outline theme-warning btn-sm">Passa a carta</button>
+                  </form>
+                {% elif riga.passato_a_carta %}
+                  <form method="post" action="{% url 'assemblee:passa_a_carta' assemblea.pk riga.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <input type="hidden" name="annulla" value="1">
+                    <button type="submit" class="btn-outline theme-secondary btn-sm">Torna in app</button>
+                  </form>
+                {% endif %}
+              {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7">Nessun capo corrisponde ai filtri.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+{% endblock %}

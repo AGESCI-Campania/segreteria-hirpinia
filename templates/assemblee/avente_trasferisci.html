@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block page_title %}Trasferimento — {{ avente }}{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="md:col-6">
+      <h1>Trasferisci {{ avente.cognome }} {{ avente.nome }}</h1>
+      <p class="fg-2">
+        Gruppo attuale: {{ avente.gruppo.nome }}.
+        Nel file per l'app resta il gruppo del censimento{% if avente.gruppo_origine %} ({{ avente.gruppo_origine.nome }}){% endif %}, e il voto in app non cambia.
+      </p>
+      <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="d-flex gap-3">
+          <button type="submit" class="btn-solid theme-primary">Trasferisci</button>
+          <a href="{% url 'assemblee:elenco' assemblea.pk %}?gruppo={{ avente.gruppo_id }}" class="btn-outline theme-secondary">Annulla</a>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

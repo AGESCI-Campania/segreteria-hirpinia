@@ -54,10 +54,11 @@ class Assemblea(models.Model):
         )
 
     @property
-    def anno_censimento(self) -> int:
-        """Anno dei censiti da cui parte l'elenco e contro cui si decide il voto
-        in app (D-70): in autunno i censimenti dell'anno in corso non sono
-        ancora completi, quindi vale l'anno precedente."""
+    def anno_censimento_base(self) -> int:
+        """Anno dei censiti da cui parte l'elenco (D-70): in autunno i
+        censimenti dell'anno in corso non sono ancora completi, quindi vale
+        l'anno precedente, salvo i gruppi che hanno già i dati dell'anno in
+        corso (`elenco.anno_per_gruppo`)."""
         if self.tipo == TipoAssemblea.AUTUNNALE:
             return self.anno_scout - 1
         return self.anno_scout
@@ -109,6 +110,11 @@ class Provenienza(models.TextChoices):
     NON_NOTA = "NON_NOTA", "Non nota"
 
 
+class MotivoUscita(models.TextChoices):
+    ELIMINATO = "ELIMINATO", "Eliminato"
+    NON_CENSITO = "NON_CENSITO", "Non più censito"
+
+
 class AventeDirittoQuerySet(models.QuerySet):
     def nell_elenco(self):
         """Aventi diritto non eliminati: gli unici che contano per quorum,
@@ -148,9 +154,23 @@ class AventeDiritto(models.Model):
     )
     origine = models.CharField(max_length=10, choices=OrigineAvente.choices)
     provenienza = models.CharField(max_length=20, choices=Provenienza.choices, blank=True)
+    # Anno dei censiti (BuonaStrada) usato per il gruppo di questo capo: nelle
+    # autunnali cambia gruppo per gruppo (D-70, autorizzazioni parziali).
+    anno_censimento = models.PositiveIntegerField()
     # Calcolato da un solo punto del service layer (CLAUDE.md § Assemblee),
     # mai impostato a mano da una view.
     vota_in_app = models.BooleanField(default=False)
+    # Passaggio a carta di un votante in app (D-70): va poi tolto dall'app
+    # nazionale da chi la gestisce.
+    voto_cartaceo_il = models.DateTimeField(null=True, blank=True)
+    voto_cartaceo_da = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    uscita = models.CharField(max_length=15, choices=MotivoUscita.choices, blank=True)
     eliminato_il = models.DateTimeField(null=True, blank=True)
     eliminato_da = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -185,6 +205,12 @@ class AventeDiritto(models.Model):
                 condition=Q(origine=OrigineAvente.IMPORT) | ~Q(provenienza=""),
                 name="avente_manuale_con_provenienza",
             ),
+            # Uscito dall'elenco se e solo se ha un motivo di uscita.
+            models.CheckConstraint(
+                condition=(Q(eliminato_il__isnull=True) & Q(uscita=""))
+                | (Q(eliminato_il__isnull=False) & ~Q(uscita="")),
+                name="avente_uscita_coerente",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -193,6 +219,10 @@ class AventeDiritto(models.Model):
     @property
     def eliminato(self) -> bool:
         return self.eliminato_il is not None
+
+    @property
+    def passato_a_carta(self) -> bool:
+        return self.voto_cartaceo_il is not None
 
     @property
     def trasferito(self) -> bool:

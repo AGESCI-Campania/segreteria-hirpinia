@@ -16,7 +16,8 @@
         <div class="card-body">
           <h2 class="fs-lg">{% bs_icon "people" %} Aventi diritto</h2>
           <p class="fs-2xl mb-0">{{ totale_aventi_diritto }}</p>
-          <p class="fg-2 mb-0">di cui {{ totale_app }} con voto in app</p>
+          <p class="fg-2">di cui {{ totale_app }} con voto in app</p>
+          <a href="{% url 'assemblee:elenco' assemblea.pk %}" class="btn-solid theme-primary btn-sm">Apri l'elenco</a>
         </div>
       </div>
     </div>

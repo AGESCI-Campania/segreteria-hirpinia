@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block page_title %}Aggiorna {{ anteprima.gruppo.nome }}{% endblock %}
+
+{% block content %}
+  <h1>Aggiorna {{ anteprima.gruppo.nome }}</h1>
+  <p class="fg-2 mb-5">
+    Riallinea il gruppo ai censiti {{ anteprima.anno|add:"-1" }}/{{ anteprima.anno }} già in Catello.
+    Controlla le modifiche e conferma.
+  </p>
+
+  {% if anteprima.vuota %}
+    <div class="alert theme-info" role="note"><p class="mb-0">Il gruppo è già allineato: non c'è niente da aggiornare.</p></div>
+    <a href="{% url 'assemblee:elenco' assemblea.pk %}?gruppo={{ anteprima.gruppo.pk }}" class="btn-outline theme-secondary">Torna all'elenco</a>
+  {% else %}
+    <form method="post">
+      {% csrf_token %}
+
+      {% if anteprima.entrano %}
+        <h2 class="fs-lg">Entrano nell'elenco ({{ anteprima.entrano|length }})</h2>
+        <ul>{% for c in anteprima.entrano %}<li>{{ c.capo.cognome }} {{ c.capo.nome }} ({{ c.capo_id }})</li>{% endfor %}</ul>
+      {% endif %}
+
+      {% if anteprima.aggiornati %}
+        <h2 class="fs-lg">Passano ai dati {{ anteprima.anno|add:"-1" }}/{{ anteprima.anno }} ({{ anteprima.aggiornati|length }})</h2>
+        <ul>{% for a in anteprima.aggiornati %}<li>{{ a.cognome }} {{ a.nome }} ({{ a.codice_socio }}){% if a.gruppo_origine_id != anteprima.gruppo.pk %} — prima in {{ a.gruppo_origine.nome }}{% endif %}{% if a.uscita %} — torna nell'elenco{% endif %}</li>{% endfor %}</ul>
+      {% endif %}
+
+      {% if anteprima.da_manuale %}
+        <h2 class="fs-lg">Inseriti a mano, ritrovati nel censimento ({{ anteprima.da_manuale|length }})</h2>
+        <ul>{% for a, c in anteprima.da_manuale %}<li>{{ a.cognome }} {{ a.nome }} ({{ c.capo_id }}) — diventa importato e vota in app</li>{% endfor %}</ul>
+      {% endif %}
+
+      {% if anteprima.omonimi %}
+        <h2 class="fs-lg">Possibili corrispondenze per nome ({{ anteprima.omonimi|length }})</h2>
+        <p class="fg-2">Capi inseriti a mano senza codice socio con lo stesso nome e cognome di un censito. Spunta quelli che sono la stessa persona: verranno uniti; gli altri entrano come capi distinti.</p>
+        {% for a, c in anteprima.omonimi %}
+          <div class="form-field mb-3">
+            <input type="checkbox" name="omonimi" value="{{ a.pk }}" id="omonimo-{{ a.pk }}" class="check" checked>
+            <label for="omonimo-{{ a.pk }}">{{ a.cognome }} {{ a.nome }} (inserito a mano) = {{ c.capo.cognome }} {{ c.capo.nome }} ({{ c.capo_id }})</label>
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      {% if anteprima.escono %}
+        <h2 class="fs-lg">Escono come «non più censiti» ({{ anteprima.escono|length }})</h2>
+        <p class="fg-2">Non compaiono fra i censiti {{ anteprima.anno|add:"-1" }}/{{ anteprima.anno }} del gruppo. Si possono ripristinare dall'elenco.</p>
+        <ul>{% for a in anteprima.escono %}<li>{{ a.cognome }} {{ a.nome }} ({{ a.codice_socio }})</li>{% endfor %}</ul>
+      {% endif %}
+
+      {% if anteprima.restano_eliminati %}
+        <h2 class="fs-lg">Censiti ma eliminati a mano ({{ anteprima.restano_eliminati|length }})</h2>
+        <p class="fg-2">Restano eliminati: se serve, ripristinali dall'elenco.</p>
+        <ul>{% for a in anteprima.restano_eliminati %}<li>{{ a.cognome }} {{ a.nome }} ({{ a.codice_socio }})</li>{% endfor %}</ul>
+      {% endif %}
+
+      <div class="d-flex gap-3 mt-5">
+        <button type="submit" class="btn-solid theme-primary">Applica</button>
+        <a href="{% url 'assemblee:elenco' assemblea.pk %}?gruppo={{ anteprima.gruppo.pk }}" class="btn-outline theme-secondary">Annulla</a>
+      </div>
+    </form>
+  {% endif %}
+{% endblock %}

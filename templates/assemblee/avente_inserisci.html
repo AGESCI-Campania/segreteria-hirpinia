@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block page_title %}Nuovo capo — {{ assemblea }}{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="lg:col-8">
+      <h1>Nuovo capo</h1>
+      <p class="fg-2">
+        Per i capi non ancora censiti. Vota in app solo se il codice socio è fra i censiti già
+        presenti in Catello; altrimenti vota su carta.
+      </p>
+      <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+
+        <h2 class="fs-lg mt-7">Incarichi (facoltativi)</h2>
+        <p class="fg-2">Lascia vuoto se non sono noti.</p>
+        {{ incarichi.management_form }}
+        {% for incarico in incarichi %}
+          <div class="row g-3 mb-3">
+            <div class="md:col-4"><div class="form-field">{{ incarico.funzione.label_tag }}{{ incarico.funzione }}</div></div>
+            <div class="md:col-4"><div class="form-field">{{ incarico.branca.label_tag }}{{ incarico.branca }}</div></div>
+            <div class="md:col-4"><div class="form-field">{{ incarico.nome_unita.label_tag }}{{ incarico.nome_unita }}</div></div>
+          </div>
+        {% endfor %}
+
+        <div class="d-flex gap-3 mt-5">
+          <button type="submit" class="btn-solid theme-primary">Aggiungi</button>
+          <button type="submit" name="altro" value="1" class="btn-outline theme-primary">Aggiungi e inseriscine un altro</button>
+          <a href="{% url 'assemblee:elenco' assemblea.pk %}" class="btn-outline theme-secondary">Annulla</a>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

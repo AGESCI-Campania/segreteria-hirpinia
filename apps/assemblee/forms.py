@@ -5,9 +5,10 @@ from typing import cast
 from django import forms
 
 from apps.accounts.models import StatoUtente, TipoUtente, Utente
-from apps.organizzazione.models import anno_scout_corrente
+from apps.anagrafica.models import BrancaUnita, FunzioneIncarico
+from apps.organizzazione.models import Gruppo, anno_scout_corrente
 
-from .models import Assemblea, Seduta
+from .models import Assemblea, Provenienza, Seduta
 
 
 class AssembleaCreaForm(forms.ModelForm):
@@ -57,4 +58,48 @@ class OperatoreAggiungiForm(forms.Form):
             Utente.objects.filter(tipo=TipoUtente.PERSONA, stato=StatoUtente.ATTIVO)
             .exclude(operatore_assemblee__assemblea=assemblea)
             .order_by("last_name", "first_name", "email")
+        )
+
+
+class AventeInserisciForm(forms.Form):
+    """Nuovo capo nell'elenco (D-70): nome, cognome, gruppo e provenienza
+    obbligatori; codice socio facoltativo."""
+
+    cognome = forms.CharField(max_length=100)
+    nome = forms.CharField(max_length=100)
+    gruppo = forms.ModelChoiceField(queryset=Gruppo.objects.none())
+    provenienza = forms.ChoiceField(choices=Provenienza.choices, initial=Provenienza.NON_NOTA)
+    codice_socio = forms.CharField(
+        max_length=20,
+        required=False,
+        help_text="Facoltativo. Se è fra i censiti già in Catello, il capo vota in app.",
+    )
+
+    def __init__(self, *args, assemblea: Assemblea, **kwargs):
+        super().__init__(*args, **kwargs)
+        cast(forms.ModelChoiceField, self.fields["gruppo"]).queryset = Gruppo.objects.attivi(
+            assemblea.anno_scout
+        ).order_by("nome")
+
+
+class IncaricoDichiaratoForm(forms.Form):
+    funzione = forms.ChoiceField(
+        choices=[("", "—"), *FunzioneIncarico.choices], required=False, label="Funzione"
+    )
+    branca = forms.ChoiceField(
+        choices=[("", "—"), *BrancaUnita.choices], required=False, label="Branca"
+    )
+    nome_unita = forms.CharField(max_length=100, required=False, label="Unità")
+
+
+IncaricoDichiaratoFormSet = forms.formset_factory(IncaricoDichiaratoForm, extra=3)
+
+
+class TrasferisciForm(forms.Form):
+    gruppo = forms.ModelChoiceField(queryset=Gruppo.objects.none(), label="Nuovo gruppo")
+
+    def __init__(self, *args, assemblea: Assemblea, attuale: Gruppo, **kwargs):
+        super().__init__(*args, **kwargs)
+        cast(forms.ModelChoiceField, self.fields["gruppo"]).queryset = (
+            Gruppo.objects.attivi(assemblea.anno_scout).exclude(pk=attuale.pk).order_by("nome")
         )

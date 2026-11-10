@@ -18,4 +18,27 @@ urlpatterns = [
         views.OperatoreRimuoviView.as_view(),
         name="operatore_rimuovi",
     ),
+    path("<int:pk>/elenco/", views.ElencoView.as_view(), name="elenco"),
+    path("<int:pk>/elenco/elimina/", views.EliminaView.as_view(), name="elimina"),
+    path("<int:pk>/elenco/nuovo/", views.InserisciView.as_view(), name="inserisci"),
+    path(
+        "<int:pk>/elenco/<int:avente_pk>/ripristina/",
+        views.RipristinaView.as_view(),
+        name="ripristina",
+    ),
+    path(
+        "<int:pk>/elenco/<int:avente_pk>/trasferisci/",
+        views.TrasferisciView.as_view(),
+        name="trasferisci",
+    ),
+    path(
+        "<int:pk>/elenco/<int:avente_pk>/voto-cartaceo/",
+        views.PassaACartaView.as_view(),
+        name="passa_a_carta",
+    ),
+    path(
+        "<int:pk>/elenco/gruppi/<str:codice>/aggiorna/",
+        views.AggiornaGruppoView.as_view(),
+        name="aggiorna_gruppo",
+    ),
 ]

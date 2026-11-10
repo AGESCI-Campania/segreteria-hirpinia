@@ -9,6 +9,7 @@ from django.utils import timezone
 from apps.assemblee.models import (
     Assemblea,
     AventeDiritto,
+    MotivoUscita,
     OrigineAvente,
     Provenienza,
     Seduta,
@@ -38,16 +39,17 @@ def _avente(assemblea, gruppo, **kwargs) -> AventeDiritto:
     kwargs.setdefault("nome", "Mario")
     kwargs.setdefault("cognome", "Rossi")
     kwargs.setdefault("origine", OrigineAvente.IMPORT)
+    kwargs.setdefault("anno_censimento", 2026)
     return AventeDiritto.objects.create(assemblea=assemblea, gruppo=gruppo, **kwargs)
 
 
 class TestAssemblea:
     def test_autunnale_usa_i_censiti_dell_anno_precedente(self, assemblea):
-        assert assemblea.anno_censimento == 2026
+        assert assemblea.anno_censimento_base == 2026
 
     def test_primaverile_usa_i_censiti_dell_anno_corrente(self):
         primaverile = Assemblea.objects.create(tipo=TipoAssemblea.PRIMAVERILE, anno_scout=2027)
-        assert primaverile.anno_censimento == 2027
+        assert primaverile.anno_censimento_base == 2027
 
     def test_nome_con_anno_associativo(self, assemblea):
         assert str(assemblea) == "Assemblea autunnale 2026/2027"
@@ -94,7 +96,13 @@ class TestAventeDiritto:
 
     def test_nell_elenco_esclude_gli_eliminati(self, assemblea, gruppo):
         resta = _avente(assemblea, gruppo, codice_socio="1")
-        _avente(assemblea, gruppo, codice_socio="2", eliminato_il=timezone.now())
+        _avente(
+            assemblea,
+            gruppo,
+            codice_socio="2",
+            eliminato_il=timezone.now(),
+            uscita=MotivoUscita.ELIMINATO,
+        )
         assert list(assemblea.aventi_diritto.nell_elenco()) == [resta]
 
     def test_trasferito(self, assemblea, gruppo, altro_gruppo):
@@ -106,3 +114,9 @@ class TestAventeDiritto:
         assert not rimasto.trasferito
         assert trasferito.trasferito
         assert not nuovo.trasferito
+
+    def test_uscita_coerente_con_eliminazione(self, assemblea, gruppo):
+        with pytest.raises(IntegrityError), transaction.atomic():
+            _avente(assemblea, gruppo, codice_socio="3", eliminato_il=timezone.now())
+        with pytest.raises(IntegrityError), transaction.atomic():
+            _avente(assemblea, gruppo, codice_socio="4", uscita=MotivoUscita.ELIMINATO)
