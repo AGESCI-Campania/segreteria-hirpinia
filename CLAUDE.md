@@ -294,6 +294,10 @@ deve violare:
   di origine, anche dopo un trasferimento.
 - **Tempo reale = polling ogni 3 secondi**, nessuna infrastruttura nuova (D-17 vale
   ancora).
+- **Carta intestata dei PDF** (nota spese, foglio presenze, verbali): un solo partial,
+  `templates/pdf/carta_intestata.html` + `carta_intestata_stile.html`, con i percorsi dei
+  loghi da `apps/core/pdf.py::percorsi_carta_intestata()`. Non ricopiarla in un nuovo
+  template.
 
 ### Menu: un modulo con più funzioni è una voce sola
 

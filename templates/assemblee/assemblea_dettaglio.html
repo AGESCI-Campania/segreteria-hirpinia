@@ -44,6 +44,18 @@
     </div>
   </div>
 
+  {% if puo_gestire %}
+    <h2 class="fs-xl">File</h2>
+    <p class="fg-2">
+      Generati dall'elenco così com'è in questo momento: si possono riscaricare ogni volta che
+      l'elenco cambia. Il tracciato contiene solo chi vota in app, con il gruppo del censimento.
+    </p>
+    <div class="d-flex flex-wrap gap-3 mb-7">
+      <a href="{% url 'assemblee:tracciato' assemblea.pk %}" class="btn-outline theme-primary">{% bs_icon "file-earmark-spreadsheet" %} Tracciato per l'app di voto (.xlsx)</a>
+      <a href="{% url 'assemblee:foglio_presenze' assemblea.pk %}" class="btn-outline theme-primary">{% bs_icon "file-earmark-pdf" %} Foglio presenze (PDF)</a>
+    </div>
+  {% endif %}
+
   <h2 class="fs-xl">Operatori di voto</h2>
   <p class="fg-2">
     Registrano presenze, deleghe e risultati delle votazioni di questa assemblea, ma non

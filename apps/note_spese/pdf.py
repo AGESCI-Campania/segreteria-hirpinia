@@ -27,9 +27,10 @@ import base64
 import io
 from decimal import Decimal
 
-from django.contrib.staticfiles import finders
 from django.template.loader import render_to_string
 from pypdf import PdfReader, PdfWriter
+
+from apps.core.pdf import percorsi_carta_intestata
 
 from .categorie import mappa_categoria_principale
 from .iban import maschera_iban
@@ -69,8 +70,7 @@ def contesto_pdf_nota(nota: NotaSpese) -> dict:
             ImpostazioniNoteSpese.corrente().autorizzazione_rdz == AutorizzazioneRdzConfig.DOPPIA
         ),
         "autorizzazioni_rdz": nota.autorizzazioni_rdz.select_related("utente"),
-        "logo_zona_path": finders.find("note_spese/img/logo_zona.png"),
-        "loghi_piede_path": finders.find("note_spese/img/loghi_wosm_waggs.png"),
+        **percorsi_carta_intestata(),
     }
 
 

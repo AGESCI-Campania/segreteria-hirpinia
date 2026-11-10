@@ -274,3 +274,34 @@ class OperatoreVoto(models.Model):
 
     def __str__(self) -> str:
         return str(self.utente)
+
+
+class TipoFile(models.TextChoices):
+    TRACCIATO_APP = "TRACCIATO_APP", "Tracciato per l'app di voto"
+    FOGLIO_PRESENZE = "FOGLIO_PRESENZE", "Foglio presenze"
+
+
+class ScaricamentoFile(models.Model):
+    """Traccia di ogni file scaricato (D-70): il tracciato contiene email e
+    cellulari dei capi. Solo i metadati, mai il file, come gli export
+    dell'anagrafica (D-23)."""
+
+    assemblea = models.ForeignKey(Assemblea, on_delete=models.CASCADE, related_name="scaricamenti")
+    tipo = models.CharField(max_length=20, choices=TipoFile.choices)
+    utente = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    numero_righe = models.PositiveIntegerField()
+    scaricato_il = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "file scaricato"
+        verbose_name_plural = "file scaricati"
+        ordering = ["-scaricato_il"]
+
+    def __str__(self) -> str:
+        return f"{self.get_tipo_display()} — {self.scaricato_il:%d/%m/%Y %H:%M}"

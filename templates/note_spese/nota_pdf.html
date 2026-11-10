@@ -20,55 +20,7 @@
     color: #222;
   }
 
-  /* Intestazione ripetuta su ogni pagina (D-67): banda viola ricostruita
-     come gradiente CSS, non il JPEG originale (sgrana in stampa), con
-     segmento giallo. */
-  .intestazione {
-    position: running(intestazione);
-    width: 100%;
-  }
-  .intestazione .banda {
-    display: flex;
-    align-items: center;
-    background: linear-gradient(90deg, #5C5291 0%, #746BA4 100%);
-    color: #fff;
-    padding: 0.3cm 0.5cm;
-    box-sizing: border-box;
-  }
-  .intestazione .segmento-giallo {
-    height: 0.25cm;
-    background: #EBC43B;
-  }
-  .intestazione .logo {
-    height: 2.2cm;
-    width: 2.2cm;
-    margin-right: 0.5cm;
-  }
-  .intestazione .testo {
-    font-size: 8.5pt;
-    line-height: 1.35;
-  }
-  .intestazione .testo strong {
-    font-size: 10pt;
-  }
-  .intestazione .testo a {
-    color: #fff;
-  }
-
-  /* Piè di pagina ripetuto (D-67): loghi WOSM/WAGGGS + iscrizione RUNTS. */
-  .piede {
-    position: running(piede);
-    width: 100%;
-    text-align: center;
-    font-size: 7.5pt;
-    color: #555;
-    border-top: 1px solid #ccc;
-    padding-top: 0.2cm;
-  }
-  .piede .loghi {
-    height: 0.9cm;
-    margin-bottom: 0.15cm;
-  }
+  {% include "pdf/carta_intestata_stile.html" %}
 
   h1 { font-size: 14pt; margin-bottom: 0.2cm; }
   .stato-data { color: #555; margin-bottom: 0.6cm; }
@@ -124,28 +76,7 @@
 </head>
 <body>
 
-  <div class="intestazione">
-    <div class="banda">
-      {% if logo_zona_path %}
-        <img class="logo" src="file://{{ logo_zona_path }}" alt="Zona Hirpinia">
-      {% endif %}
-      <div class="testo">
-        <strong>Zona Hirpinia - Regione Campania</strong><br>
-        Associazione Guide e Scouts Cattolici Italiani<br>
-        Via Episcopio SNC, 83100 Avellino<br>
-        Codice Fiscale: 92048600644<br>
-        Mail: zonahirpinia@campania.agesci.it — Pec: zonahirpinia@pec.agesci.it
-      </div>
-    </div>
-    <div class="segmento-giallo"></div>
-  </div>
-
-  <div class="piede">
-    {% if loghi_piede_path %}
-      <img class="loghi" src="file://{{ loghi_piede_path }}" alt="WOSM / WAGGGS">
-    {% endif %}
-    <p>Iscritta al Registro Unico Nazionale del Terzo Settore – repertorio n. 66955 del 07/11/2022</p>
-  </div>
+  {% include "pdf/carta_intestata.html" %}
 
   <h1>Nota spese n. {{ nota.numero|default:"(bozza)" }}</h1>
   <p class="stato-data">

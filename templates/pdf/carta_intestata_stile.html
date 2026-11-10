@@ -1,0 +1,50 @@
+{# Regole CSS della carta intestata della Zona per i PDF WeasyPrint: da includere dentro <style>. #}
+  /* Intestazione ripetuta su ogni pagina (D-67): banda viola ricostruita
+     come gradiente CSS, non il JPEG originale (sgrana in stampa), con
+     segmento giallo. */
+  .intestazione {
+    position: running(intestazione);
+    width: 100%;
+  }
+  .intestazione .banda {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(90deg, #5C5291 0%, #746BA4 100%);
+    color: #fff;
+    padding: 0.3cm 0.5cm;
+    box-sizing: border-box;
+  }
+  .intestazione .segmento-giallo {
+    height: 0.25cm;
+    background: #EBC43B;
+  }
+  .intestazione .logo {
+    height: 2.2cm;
+    width: 2.2cm;
+    margin-right: 0.5cm;
+  }
+  .intestazione .testo {
+    font-size: 8.5pt;
+    line-height: 1.35;
+  }
+  .intestazione .testo strong {
+    font-size: 10pt;
+  }
+  .intestazione .testo a {
+    color: #fff;
+  }
+
+  /* Piè di pagina ripetuto (D-67): loghi WOSM/WAGGGS + iscrizione RUNTS. */
+  .piede {
+    position: running(piede);
+    width: 100%;
+    text-align: center;
+    font-size: 7.5pt;
+    color: #555;
+    border-top: 1px solid #ccc;
+    padding-top: 0.2cm;
+  }
+  .piede .loghi {
+    height: 0.9cm;
+    margin-bottom: 0.15cm;
+  }

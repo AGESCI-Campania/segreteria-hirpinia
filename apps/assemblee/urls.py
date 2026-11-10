@@ -41,4 +41,10 @@ urlpatterns = [
         views.AggiornaGruppoView.as_view(),
         name="aggiorna_gruppo",
     ),
+    path("<int:pk>/file/tracciato-app/", views.TracciatoView.as_view(), name="tracciato"),
+    path(
+        "<int:pk>/file/foglio-presenze/",
+        views.FoglioPresenzeView.as_view(),
+        name="foglio_presenze",
+    ),
 ]

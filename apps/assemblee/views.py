@@ -5,7 +5,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Q
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -17,6 +17,7 @@ from apps.core.mixins import BreadcrumbExtraMixin
 from apps.organizzazione.models import Gruppo
 
 from . import elenco
+from . import file as file_assemblea
 from .forms import (
     AssembleaCreaForm,
     AventeInserisciForm,
@@ -393,3 +394,32 @@ class AggiornaGruppoView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
         else:
             messages.success(request, f"{gruppo} aggiornato ai censiti {assemblea.anno_scout}.")
         return redirect(reverse("assemblee:elenco", args=[pk]) + f"?gruppo={gruppo.pk}")
+
+
+# --- File -----------------------------------------------------------------------
+
+
+class TracciatoView(GestisceAssembleeMixin, View):
+    """Tracciato .xlsx per l'app di voto del Nazionale: rigenerabile in
+    qualsiasi momento, ogni download è tracciato."""
+
+    def get(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        contenuto = file_assemblea.genera_tracciato_xlsx(assemblea, request.user)
+        risposta = HttpResponse(
+            contenuto,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        nome = f"tracciato-app-voto-{assemblea.anno_scout}-{assemblea.pk}.xlsx"
+        risposta["Content-Disposition"] = f'attachment; filename="{nome}"'
+        return risposta
+
+
+class FoglioPresenzeView(GestisceAssembleeMixin, View):
+    def get(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        contenuto = file_assemblea.genera_foglio_presenze_pdf(assemblea, request.user)
+        risposta = HttpResponse(contenuto, content_type="application/pdf")
+        nome = f"foglio-presenze-{assemblea.anno_scout}-{assemblea.pk}.pdf"
+        risposta["Content-Disposition"] = f'attachment; filename="{nome}"'
+        return risposta

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Foglio presenze — {{ assemblea }}</title>
+<style>
+  @page {
+    size: A4;
+    margin-top: 4.3cm;
+    margin-left: 1.5cm;
+    margin-right: 1.5cm;
+    margin-bottom: 2.6cm;
+    @top-center { content: element(intestazione); }
+    @bottom-center { content: element(piede); }
+    @bottom-right { content: "Pagina " counter(page) " di " counter(pages); font-family: sans-serif; font-size: 7.5pt; color: #555; }
+  }
+
+  body {
+    font-family: sans-serif;
+    font-size: 9.5pt;
+    color: #222;
+  }
+
+  {% include "pdf/carta_intestata_stile.html" %}
+
+  h1 { font-size: 14pt; margin: 0 0 0.15cm 0; }
+  .sottotitolo { color: #555; margin: 0 0 0.4cm 0; }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead { display: table-header-group; }
+  th {
+    text-align: left;
+    font-size: 8.5pt;
+    border-bottom: 1.5px solid #333;
+    padding: 0.12cm 0.15cm;
+  }
+  td {
+    border-bottom: 1px solid #bbb;
+    padding: 0.18cm 0.15cm;
+    height: 0.55cm;
+    vertical-align: middle;
+  }
+  tr { break-inside: avoid; }
+  tr.gruppo td {
+    background: #ece9f4;
+    font-weight: bold;
+    border-bottom: 1px solid #5C5291;
+    padding-top: 0.25cm;
+    break-after: avoid;
+  }
+  .num { width: 0.9cm; text-align: right; color: #555; }
+  .nome { width: 5.8cm; }
+  .codice { width: 2.2cm; }
+  .voto { width: 1.3cm; }
+  .presente { width: 1.5cm; text-align: center; }
+  .casella {
+    display: inline-block;
+    width: 0.38cm;
+    height: 0.38cm;
+    border: 1px solid #333;
+  }
+  .vuota td { color: #999; }
+</style>
+</head>
+<body>
+
+  {% include "pdf/carta_intestata.html" %}
+
+  <h1>Foglio presenze — {{ assemblea }}</h1>
+  <p class="sottotitolo">
+    {% if seduta %}{{ seduta.get_convocazione_display }} del {{ seduta.data|date:"d/m/Y" }}{% if seduta.ora %} ore {{ seduta.ora|time:"H:i" }}{% endif %}{% if seduta.luogo %} — {{ seduta.luogo }}{% endif %}<br>{% endif %}
+    Aventi diritto: {{ totale }} ({{ totale_app }} con voto in app) — elenco del {{ generato_il|date:"d/m/Y H:i" }}
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th class="num">N°</th>
+        <th class="nome">Cognome e nome</th>
+        <th class="codice">Codice socio</th>
+        <th class="voto">Voto</th>
+        <th class="presente">Presente</th>
+        <th>Firma</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for nome_gruppo, righe in gruppi %}
+        <tr class="gruppo"><td colspan="6">{{ nome_gruppo }} ({{ righe|length }})</td></tr>
+        {% for numero, avente in righe %}
+          <tr>
+            <td class="num">{{ numero }}</td>
+            <td class="nome">{{ avente.cognome }} {{ avente.nome }}</td>
+            <td class="codice">{{ avente.codice_socio|default:"—" }}</td>
+            <td class="voto">{% if avente.vota_in_app %}App{% else %}Carta{% endif %}</td>
+            <td class="presente"><span class="casella"></span></td>
+            <td></td>
+          </tr>
+        {% endfor %}
+        {% for vuota in righe_vuote %}
+          <tr class="vuota">
+            <td class="num"></td>
+            <td class="nome"></td>
+            <td class="codice"></td>
+            <td class="voto"></td>
+            <td class="presente"><span class="casella"></span></td>
+            <td></td>
+          </tr>
+        {% endfor %}
+      {% empty %}
+        <tr><td colspan="6">Nessun avente diritto nell'elenco.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</body>
+</html>
