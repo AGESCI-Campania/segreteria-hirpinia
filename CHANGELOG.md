@@ -8,6 +8,29 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.5.0] - 2026-11-10
+
+### Aggiunto
+
+- Assemblee, votazioni e verbali:
+  - votazioni con le maggioranze del regolamento dell'Assemblea: deliberazioni
+    ed elezioni sui presenti, mozioni d'ordine e nuovi punti all'ordine del
+    giorno sui votanti, revoca sugli aventi diritto; voto palese per alzata di
+    mano, scrutinio segreto in app e su carta per elezioni e revoca;
+  - elezioni per incarico con più posti, ballottaggio fra i due più votati
+    (solo su carta) e posti vacanti come da regolamento;
+  - maggioranze richieste in tempo reale nel cruscotto e nella vista proiettore;
+  - ordine del giorno con i punti tipici del modello nazionale;
+  - verbale dell'assemblea in PDF sul modello nazionale, con presidenza,
+    numeri del quorum, verifiche, discussione ed esito delle votazioni;
+  - verbale di variazione del rappresentante legale (ed eventualmente della
+    sede legale) in PDF, con i dati precompilati dall'anagrafica.
+
+### Modificato
+
+- Assemblee: se una verifica non conferma il quorum costitutivo l'Assemblea
+  viene dichiarata chiusa; le votazioni precedenti restano valide.
+
 ## [1.4.0] - 2026-11-10
 
 ### Aggiunto
