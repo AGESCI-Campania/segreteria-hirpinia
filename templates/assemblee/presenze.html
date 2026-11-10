@@ -15,6 +15,16 @@
     </div>
   </div>
 
+  {% if verifica %}
+    <div class="alert theme-warning mb-5" role="status">
+      <div>
+        <strong>Verifica del quorum in corso</strong>: si registrano i presenti in questo momento.
+        Rilevati {{ stato_verifica.presenti }}{% if stato_verifica.soglia is not None %} su una soglia di {{ stato_verifica.soglia }}{% endif %}.
+        Fino alla chiusura della verifica, quorum e votazioni usano i presenti precedenti.
+      </div>
+    </div>
+  {% endif %}
+
   {% if not seduta.aperta %}
     <div class="alert theme-info" role="note"><p class="mb-0">La seduta non è aperta: le presenze sono in sola lettura.</p></div>
   {% endif %}
@@ -43,6 +53,14 @@
         <label for="presenze-assenti">Solo non ancora presenti</label>
       </div>
     </div>
+    {% if verifica %}
+      <div class="md:col-auto">
+        <div class="form-field">
+          <input id="presenze-precedenti" type="checkbox" name="precedenti" value="1" class="check"{% if solo_precedenti %} checked{% endif %}>
+          <label for="presenze-precedenti">Presenti prima, non ancora rispuntati</label>
+        </div>
+      </div>
+    {% endif %}
     <div class="md:col-auto">
       <button type="submit" class="btn-outline theme-primary">Cerca</button>
     </div>
@@ -55,7 +73,7 @@
         <tr id="avente-{{ riga.pk }}">
           <td>
             <strong>{{ riga.cognome }} {{ riga.nome }}</strong><br>
-            <small class="fg-2">{{ riga.gruppo.nome }}{% if riga.codice_socio %} — {{ riga.codice_socio }}{% endif %}</small>
+            <small class="fg-2">{{ riga.gruppo.nome }}{% if riga.codice_socio %} — {{ riga.codice_socio }}{% endif %}{% if verifica and riga.pk in precedenti_ids and riga.pk not in presenti_ids %} — era presente{% endif %}</small>
           </td>
           <td>{% if riga.vota_in_app %}{% ag_chip "App" variant="success" %}{% else %}{% ag_chip "Carta" variant="secondary" %}{% endif %}</td>
           <td class="text-end">

@@ -30,7 +30,15 @@ from .forms import (
     QualificheForm,
     TrasferisciForm,
 )
-from .models import Assemblea, AventeDiritto, DelegaAE, OperatoreVoto, Seduta
+from .models import (
+    Assemblea,
+    AventeDiritto,
+    DelegaAE,
+    OperatoreVoto,
+    RichiedenteVerifica,
+    Seduta,
+    TipoAppello,
+)
 from .permessi import accede_assemblee, assemblee_visibili, puo_gestire_assemblee, puo_operare
 from .quorum import stato_quorum
 
@@ -455,10 +463,17 @@ class SedutaView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
     def get(self, request, pk, seduta_pk):
         seduta = _seduta_visibile(request, pk, seduta_pk)
         assemblea = seduta.assemblea
+        verifica = quorum_assemblea.verifica_in_corso(seduta)
         contesto = {
             "assemblea": assemblea,
             "seduta": seduta,
             "quorum": stato_quorum(seduta),
+            "verifica": verifica,
+            "stato_verifica": stato_quorum(seduta, verifica) if verifica else None,
+            "verifiche_chiuse": seduta.appelli.filter(
+                tipo=TipoAppello.VERIFICA, chiuso_il__isnull=False
+            ).order_by("numero"),
+            "richiedenti": RichiedenteVerifica.choices,
             "puo_operare": puo_operare(request.user, assemblea) and not assemblea.conclusa,
             "puo_nuova_convocazione": (
                 puo_gestire_assemblee(request.user)
@@ -478,12 +493,17 @@ AZIONI_SEDUTA = {
         "Seduta chiusa: quorum costitutivo non raggiunto.",
     ),
     "chiudi": (sedute.chiudi_lavori, "Lavori chiusi."),
+    "chiudi_verifica": (
+        sedute.chiudi_verifica,
+        "Verifica chiusa: da ora contano i presenti rilevati.",
+    ),
+    "annulla_verifica": (sedute.annulla_verifica, "Verifica del quorum annullata."),
 }
 
 
 # Azioni che chiudono la seduta e non si possono annullare: richiedono la
 # conferma esplicita anche lato server, non solo la casella `required` nel form.
-AZIONI_DA_CONFERMARE = {"non_costituita", "chiudi"}
+AZIONI_DA_CONFERMARE = {"non_costituita", "chiudi", "chiudi_verifica", "annulla_verifica"}
 
 
 class SedutaAzioneView(LoginRequiredMixin, View):
@@ -493,7 +513,16 @@ class SedutaAzioneView(LoginRequiredMixin, View):
         seduta = _seduta_visibile(request, pk, seduta_pk)
         nome_azione = request.POST.get("azione", "")
         azione = AZIONI_SEDUTA.get(nome_azione)
-        if azione is None:
+        if nome_azione == "apri_verifica":
+            try:
+                sedute.apri_verifica(seduta, request.POST.get("richiedente", ""), request.user)
+            except ValidationError as errore:
+                messages.error(request, " ".join(errore.messages))
+            else:
+                messages.success(
+                    request, "Verifica del quorum aperta: rifate l'appello dalla pagina presenze."
+                )
+        elif azione is None:
             messages.error(request, "Azione non riconosciuta.")
         elif nome_azione in AZIONI_DA_CONFERMARE and request.POST.get("conferma") != "1":
             messages.error(request, "Spunta la conferma prima di chiudere la seduta.")
@@ -561,6 +590,15 @@ class PresenzeView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
         filtro_gruppo = request.GET.get("gruppo", "")
         cerca = request.GET.get("q", "").strip()
         solo_assenti = request.GET.get("assenti") == "1"
+        verifica = quorum_assemblea.verifica_in_corso(seduta)
+        # Durante una verifica: chi era presente all'appello precedente e non è
+        # ancora stato rispuntato, per rifare l'appello partendo da loro.
+        precedenti_ids: set[int] = set()
+        if verifica is not None:
+            precedenti_ids = set(quorum_assemblea.presenti(seduta).values_list("pk", flat=True))
+        solo_precedenti = verifica is not None and request.GET.get("precedenti") == "1"
+        if solo_precedenti:
+            righe = righe.filter(pk__in=precedenti_ids).exclude(pk__in=presenti_ids)
         if filtro_gruppo:
             righe = righe.filter(gruppo_id=filtro_gruppo)
         if cerca:
@@ -576,6 +614,10 @@ class PresenzeView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             "righe": righe.order_by("cognome", "nome"),
             "presenti_ids": presenti_ids,
             "quorum": stato_quorum(seduta),
+            "verifica": verifica,
+            "stato_verifica": stato_quorum(seduta, verifica) if verifica else None,
+            "precedenti_ids": precedenti_ids,
+            "solo_precedenti": solo_precedenti,
             "gruppi": Gruppo.objects.filter(
                 pk__in=assemblea.aventi_diritto.nell_elenco().values_list("gruppo_id", flat=True)
             ).order_by("nome"),

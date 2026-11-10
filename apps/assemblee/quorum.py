@@ -30,14 +30,26 @@ def appello_effettivo(seduta: Seduta) -> Appello | None:
     return validi.order_by("-numero").first()
 
 
+def verifica_in_corso(seduta: Seduta) -> Appello | None:
+    """La verifica del quorum aperta e non ancora chiusa, se c'è."""
+    return seduta.appelli.filter(tipo=TipoAppello.VERIFICA, chiuso_il__isnull=True).first()
+
+
 def presenti(seduta: Seduta) -> QuerySet[AventeDiritto]:
-    """Aventi diritto presenti per il quorum, ancora nell'elenco: chi è
-    registrato di persona nell'appello effettivo e gli AE che hanno delegato
-    un presente (art. 4 c.2: "registrati personalmente o per delega"). Chi è
-    sia presente sia delegante conta una volta sola."""
+    """Presenti che contano ora per quorum e votazioni: quelli dell'appello
+    effettivo (art. 4 c.6: durante una verifica valgono ancora i precedenti)."""
     appello = appello_effettivo(seduta)
     if appello is None:
         return AventeDiritto.objects.none()
+    return presenti_nell_appello(appello)
+
+
+def presenti_nell_appello(appello: Appello) -> QuerySet[AventeDiritto]:
+    """Aventi diritto ancora nell'elenco registrati di persona in `appello`,
+    più gli AE che hanno delegato uno di loro (art. 4 c.2: "registrati
+    personalmente o per delega"). Chi è sia presente sia delegante conta una
+    volta sola."""
+    seduta = appello.seduta
     elenco = seduta.assemblea.aventi_diritto.nell_elenco()
     di_persona = elenco.filter(presenze__appello=appello)
     deleganti = seduta.deleghe.filter(delegato__in=di_persona).values("delegante_id")
@@ -64,10 +76,11 @@ class StatoQuorum:
         return max(self.soglia - self.presenti, 0)
 
 
-def stato_quorum(seduta: Seduta) -> StatoQuorum:
-    """Quorum costitutivo: metà degli aventi diritto + 1 (art. 4 c.1)."""
+def stato_quorum(seduta: Seduta, appello: Appello | None = None) -> StatoQuorum:
+    """Quorum costitutivo: metà degli aventi diritto + 1 (art. 4 c.1), sui
+    presenti dell'appello effettivo o di `appello` (es. una verifica in corso)."""
     aventi = seduta.assemblea.aventi_diritto.nell_elenco().count()
-    qs = presenti(seduta)
+    qs = presenti_nell_appello(appello) if appello is not None else presenti(seduta)
     totale = qs.count()
     app = qs.filter(vota_in_app=True).count()
     return StatoQuorum(

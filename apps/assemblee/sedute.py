@@ -12,9 +12,17 @@ from django.utils import timezone
 
 from apps.accounts.models import Utente
 
-from .models import Appello, Assemblea, AventeDiritto, Presenza, Seduta, TipoAppello
+from .models import (
+    Appello,
+    Assemblea,
+    AventeDiritto,
+    Presenza,
+    RichiedenteVerifica,
+    Seduta,
+    TipoAppello,
+)
 from .permessi import puo_gestire_assemblee, puo_operare
-from .quorum import appello_attivo, stato_quorum
+from .quorum import appello_attivo, stato_quorum, verifica_in_corso
 
 
 def _verifica_operatore(utente: Utente, seduta: Seduta) -> None:
@@ -141,3 +149,60 @@ def crea_convocazione_successiva(
         ora=ora,
         luogo=luogo,
     )
+
+
+# --- Verifica del quorum (art. 4 c.5-6) -------------------------------------------
+
+
+@transaction.atomic
+def apri_verifica(seduta: Seduta, richiedente: str, utente: Utente) -> Appello:
+    """Nuovo appello durante i lavori: le presenze si registrano da capo in
+    questo appello; finché è aperto quorum e votazioni usano i presenti
+    precedenti (art. 4 c.6)."""
+    _verifica_operatore(utente, seduta)
+    _verifica_aperta(seduta)
+    if seduta.costituita is not True:
+        raise ValidationError("La verifica del quorum si chiede durante i lavori.")
+    if richiedente not in RichiedenteVerifica.values:
+        raise ValidationError("Indica chi ha chiesto la verifica.")
+    if verifica_in_corso(seduta) is not None:
+        raise ValidationError("C'è già una verifica del quorum in corso.")
+    ultimo = appello_attivo(seduta)
+    assert ultimo is not None
+    return Appello.objects.create(
+        seduta=seduta,
+        numero=ultimo.numero + 1,
+        tipo=TipoAppello.VERIFICA,
+        richiedente=richiedente,
+        aperto_da=utente,
+    )
+
+
+@transaction.atomic
+def chiudi_verifica(seduta: Seduta, utente: Utente) -> Appello:
+    """Chiude la verifica: da qui contano i suoi presenti. L'esito resta
+    registrato sull'appello; cosa fare se il quorum manca lo decide la
+    Presidenza."""
+    _verifica_operatore(utente, seduta)
+    _verifica_aperta(seduta)
+    verifica = verifica_in_corso(seduta)
+    if verifica is None:
+        raise ValidationError("Nessuna verifica del quorum in corso.")
+    stato = stato_quorum(seduta, verifica)
+    verifica.chiuso_il = timezone.now()
+    verifica.presenti_rilevati = stato.presenti
+    verifica.soglia = stato.soglia
+    verifica.quorum_raggiunto = stato.raggiunto
+    verifica.save(update_fields=["chiuso_il", "presenti_rilevati", "soglia", "quorum_raggiunto"])
+    return verifica
+
+
+@transaction.atomic
+def annulla_verifica(seduta: Seduta, utente: Utente) -> None:
+    """Per una verifica aperta per errore: si elimina con le sue presenze."""
+    _verifica_operatore(utente, seduta)
+    _verifica_aperta(seduta)
+    verifica = verifica_in_corso(seduta)
+    if verifica is None:
+        raise ValidationError("Nessuna verifica del quorum in corso.")
+    verifica.delete()

@@ -147,6 +147,10 @@ class Appello(models.Model):
         related_name="+",
     )
     chiuso_il = models.DateTimeField(null=True, blank=True)
+    # Esito fotografato alla chiusura di una verifica (per il verbale).
+    presenti_rilevati = models.PositiveIntegerField(null=True, blank=True)
+    soglia = models.PositiveIntegerField(null=True, blank=True)
+    quorum_raggiunto = models.BooleanField(null=True, blank=True)
 
     class Meta:
         verbose_name = "appello"
