@@ -8,6 +8,27 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.3.0] - 2026-11-10
+
+### Aggiunto
+
+- Nuovo modulo **Assemblee** (Moduli › Assemblee), per amministratori, segreteria e
+  Responsabili di Zona:
+  - creazione di un'assemblea autunnale o primaverile con la prima convocazione;
+    l'elenco degli aventi diritto si riempie subito dai censiti già in Catello (in
+    autunno, per ogni gruppo, i dati dell'anno in corso se già disponibili, altrimenti
+    quelli dell'anno precedente);
+  - gestione dell'elenco: filtro per gruppo, eliminazione anche di più capi insieme e
+    ripristino, trasferimento di gruppo, inserimento dei capi mancanti con provenienza
+    (passaggio dal clan, nuovo ingresso, rientro, non nota) ed eventuali incarichi;
+  - "Aggiorna gruppo" per allineare un gruppo quando arrivano i suoi dati dell'anno in
+    corso, con anteprima delle modifiche;
+  - per ogni capo, voto nell'app nazionale o su carta, con la possibilità di passare a
+    carta chi era previsto in app e l'elenco di chi va tolto dall'app;
+  - tracciato da importare nell'app di voto del Nazionale e foglio presenze in PDF da
+    stampare;
+  - nomina degli operatori di voto dell'assemblea.
+
 ## [1.2.1] - 2026-11-10
 
 ### Modificato
