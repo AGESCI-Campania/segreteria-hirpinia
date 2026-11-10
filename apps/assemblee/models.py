@@ -25,6 +25,20 @@ class SessioneAssemblea(models.TextChoices):
     STRAORDINARIA = "STRAORDINARIA", "Straordinaria"
 
 
+class SistemaVoto(models.TextChoices):
+    """Come si vota a scrutinio segreto (docs/plan_voto.md): con l'app del
+    Nazionale (tracciato, risultati copiati a mano, D-70) o con il voto
+    elettronico di Catello (`apps/voto`)."""
+
+    NAZIONALE = "NAZIONALE", "App del Nazionale"
+    CATELLO = "CATELLO", "Voto elettronico di Catello"
+
+
+class ModalitaVoto(models.TextChoices):
+    PERSONALE_E_SEGGIO = "PERSONALE_E_SEGGIO", "Dispositivi personali e seggi"
+    SOLO_SEGGIO = "SOLO_SEGGIO", "Solo seggi"
+
+
 class Assemblea(models.Model):
     tipo = models.CharField(max_length=20, choices=TipoAssemblea.choices)
     anno_scout = models.PositiveIntegerField(
@@ -32,6 +46,20 @@ class Assemblea(models.Model):
     )
     sessione = models.CharField(
         max_length=20, choices=SessioneAssemblea.choices, default=SessioneAssemblea.ORDINARIA
+    )
+    # Si cambia solo fino all'apertura della prima votazione (apps/voto/sistema.py).
+    sistema_voto = models.CharField(
+        "Sistema di voto",
+        max_length=10,
+        choices=SistemaVoto.choices,
+        default=SistemaVoto.NAZIONALE,
+    )
+    # Solo con il voto di Catello; modificabile anche il giorno stesso.
+    modalita_voto = models.CharField(
+        "Modalità di voto",
+        max_length=20,
+        choices=ModalitaVoto.choices,
+        default=ModalitaVoto.PERSONALE_E_SEGGIO,
     )
     conclusa_il = models.DateTimeField(null=True, blank=True)
     creata_il = models.DateTimeField(auto_now_add=True)
@@ -66,6 +94,10 @@ class Assemblea(models.Model):
     @property
     def conclusa(self) -> bool:
         return self.conclusa_il is not None
+
+    @property
+    def voto_catello(self) -> bool:
+        return self.sistema_voto == SistemaVoto.CATELLO
 
 
 class Seduta(models.Model):

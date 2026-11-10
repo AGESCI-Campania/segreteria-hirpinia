@@ -18,6 +18,8 @@ from django.views.generic import ListView
 from apps.accounts.models import Utente
 from apps.core.mixins import BreadcrumbExtraMixin
 from apps.organizzazione.models import Gruppo
+from apps.voto import codici as codici_voto
+from apps.voto import views as voto_banco
 
 from . import cruscotto, elenco, email_aventi, odg, sedute
 from . import deleghe as deleghe_ae
@@ -47,10 +49,12 @@ from .models import (
     AventeDiritto,
     DelegaAE,
     ImportazioneEmail,
+    ModalitaVoto,
     OperatoreVoto,
     PuntoOdG,
     RichiedenteVerifica,
     Seduta,
+    SistemaVoto,
     TipoAppello,
     Votazione,
 )
@@ -144,6 +148,11 @@ class AssembleaDettaglioView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             "totale_aventi_diritto": elenco.count(),
             "totale_app": elenco.filter(vota_in_app=True).count(),
             "form_operatore": OperatoreAggiungiForm(assemblea=assemblea) if puo_gestire else None,
+            "sistemi_voto": SistemaVoto.choices,
+            "modalita_voto": ModalitaVoto.choices,
+            "sistema_modificabile": puo_gestire
+            and not assemblea.conclusa
+            and not Votazione.objects.filter(seduta__assemblea=assemblea).exists(),
         }
         return render(request, self.template_name, contesto)
 
@@ -642,8 +651,20 @@ class PresenzeView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             "cerca": cerca,
             "solo_assenti": solo_assenti,
             "puo_operare": puo_operare(request.user, assemblea) and seduta.aperta,
+            **_stato_codici(seduta),
         }
         return render(request, self.template_name, contesto)
+
+
+def _stato_codici(seduta: Seduta) -> dict:
+    """Chi ha già un codice di voto attivo, e come l'ha avuto (solo voto di Catello)."""
+    if not seduta.assemblea.voto_catello:
+        return {"codici_email": set(), "codici_banco": set()}
+    attivi = codici_voto.aventi_con_codice(seduta)
+    return {
+        "codici_email": {a for a, c in attivi.items() if c.inviato_per_email},
+        "codici_banco": {a for a, c in attivi.items() if not c.inviato_per_email},
+    }
 
 
 class PresenzaView(LoginRequiredMixin, View):
@@ -655,6 +676,10 @@ class PresenzaView(LoginRequiredMixin, View):
                 sedute.annulla_presenza(seduta, avente, request.user)
             else:
                 sedute.registra_presenza(seduta, avente, request.user)
+                # Voto di Catello: il codice parte subito per email (plan_voto, flusso 1).
+                voto_banco.messaggio_invio(
+                    request, avente, codici_voto.dopo_la_presenza(seduta, avente, request.user)
+                )
         except ValidationError as errore:
             messages.error(request, " ".join(errore.messages))
         return _torna_all_elenco(request, seduta.assemblea)

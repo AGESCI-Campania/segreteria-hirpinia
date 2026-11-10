@@ -35,12 +35,32 @@ class AssembleaCreaForm(forms.ModelForm):
 
     class Meta:
         model = Assemblea
-        fields = ["tipo", "anno_scout", "sessione"]
+        fields = ["tipo", "anno_scout", "sessione", "sistema_voto", "modalita_voto"]
         labels = {"anno_scout": "Anno associativo"}
+        help_texts = {
+            "sistema_voto": (
+                "Per le votazioni a scrutinio segreto. Si può cambiare fino all'apertura della "
+                "prima votazione."
+            ),
+            "modalita_voto": (
+                "Solo per il voto elettronico di Catello; si può cambiare anche il giorno "
+                "stesso."
+            ),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["anno_scout"].initial = anno_scout_corrente()
+        # Se non indicati valgono i default del modello (app del Nazionale).
+        for nome in ("sistema_voto", "modalita_voto"):
+            self.fields[nome].required = False
+
+    def clean(self):
+        dati = super().clean()
+        for nome in ("sistema_voto", "modalita_voto"):
+            if not dati.get(nome):
+                dati[nome] = Assemblea._meta.get_field(nome).get_default()
+        return dati
 
     def save(self, commit: bool = True) -> Assemblea:
         assemblea = super().save(commit=commit)

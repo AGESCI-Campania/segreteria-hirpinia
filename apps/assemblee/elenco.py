@@ -55,11 +55,16 @@ def anno_per_gruppo(assemblea: Assemblea, gruppo: Gruppo) -> int:
 
 
 def calcola_vota_in_app(avente: AventeDiritto) -> bool:
-    """Unico punto della regola (CLAUDE.md § Assemblee): vota nell'app del
-    Nazionale chi ha dati da BuonaStrada, cioè chi per codice socio è fra i
-    censiti della Zona dell'anno usato per il suo gruppo, e non è passato a
-    carta."""
-    if avente.voto_cartaceo_il is not None or not avente.codice_socio:
+    """Unico punto della regola (CLAUDE.md § Assemblee). Chi è passato a carta
+    vota su carta. Con il voto di Catello vota in app chiunque altro, con il
+    codice di voto (deviazione da D-70 dichiarata in docs/plan_voto.md). Con
+    l'app del Nazionale vota in app chi ha dati da BuonaStrada, cioè chi per
+    codice socio è fra i censiti della Zona dell'anno usato per il suo gruppo."""
+    if avente.voto_cartaceo_il is not None:
+        return False
+    if avente.assemblea.voto_catello:
+        return True
+    if not avente.codice_socio:
         return False
     return CensimentoCapo.objects.filter(
         anno_scout=avente.anno_censimento, capo_id=avente.codice_socio
@@ -68,6 +73,16 @@ def calcola_vota_in_app(avente: AventeDiritto) -> bool:
 
 def _aggiorna_voto(avente: AventeDiritto) -> None:
     avente.vota_in_app = calcola_vota_in_app(avente)
+
+
+def ricalcola_voto(assemblea: Assemblea) -> None:
+    """Riapplica la regola a tutto l'elenco: serve quando cambia il sistema di
+    voto dell'assemblea."""
+    for avente in assemblea.aventi_diritto.all():
+        nuovo = calcola_vota_in_app(avente)
+        if nuovo != avente.vota_in_app:
+            avente.vota_in_app = nuovo
+            avente.save(update_fields=["vota_in_app"])
 
 
 # --- Import all'apertura ------------------------------------------------------
@@ -249,6 +264,11 @@ def passa_a_carta(avente: AventeDiritto, utente: Utente) -> None:
     _verifica_modificabile(avente.assemblea)
     if not avente.vota_in_app:
         raise ValidationError("Questo capo vota già su carta.")
+    if avente.assemblea.voto_catello:
+        # Lazy: apps.voto dipende da questo modulo, non il contrario.
+        from apps.voto.codici import verifica_passaggio_a_carta
+
+        verifica_passaggio_a_carta(avente)
     avente.voto_cartaceo_il = timezone.now()
     avente.voto_cartaceo_da = utente
     _aggiorna_voto(avente)

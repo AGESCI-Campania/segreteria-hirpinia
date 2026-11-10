@@ -27,7 +27,7 @@
     </div>
   {% endif %}
 
-  {% if da_togliere_dall_app %}
+  {% if da_togliere_dall_app and not assemblea.voto_catello %}
     <div class="alert theme-warning" role="note">
       <div>
         <p class="mb-1"><strong>Da togliere dall'app nazionale</strong>: votano su carta, verifica che non abbiano già votato in app.</p>

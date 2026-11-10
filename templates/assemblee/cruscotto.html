@@ -59,7 +59,7 @@
 
   <div class="d-flex flex-wrap gap-3 mb-5">
     <a href="{% url 'assemblee:presenze' assemblea.pk seduta.pk %}" class="btn-outline theme-primary btn-sm">Registra presenze</a>
-    <a href="{% url 'assemblee:abilitazione_app' assemblea.pk seduta.pk %}" class="btn-outline theme-primary btn-sm">Abilitazione app</a>
+    {% if not assemblea.voto_catello %}<a href="{% url 'assemblee:abilitazione_app' assemblea.pk seduta.pk %}" class="btn-outline theme-primary btn-sm">Abilitazione app</a>{% endif %}
     <a href="{% url 'assemblee:elenco' assemblea.pk %}" class="btn-outline theme-secondary btn-sm">Aventi diritto</a>
   </div>
 

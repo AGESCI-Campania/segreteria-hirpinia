@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     "apps.contributi",
     "apps.note_spese",
     "apps.assemblee",
+    "apps.voto",
 ]
 
 MIDDLEWARE = [
