@@ -1,12 +1,16 @@
 from django.urls import path
 
-from . import views
+from . import views, views_urna
 
 app_name = "voto"
 
 urlpatterns = [
     # Pubbliche, senza login.
-    path("", views.UrnaView.as_view(), name="urna"),
+    path("", views_urna.UrnaView.as_view(), name="urna"),
+    path("accedi/", views_urna.AccediView.as_view(), name="accedi"),
+    path("scheda/", views_urna.SchedaView.as_view(), name="scheda"),
+    path("stato.json", views_urna.StatoView.as_view(), name="stato"),
+    path("esci/", views_urna.EsciView.as_view(), name="esci"),
     # Banco e gestione (login): stessa struttura di URL delle assemblee.
     path(
         "gestione/<int:pk>/sistema/",

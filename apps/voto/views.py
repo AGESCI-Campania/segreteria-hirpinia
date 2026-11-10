@@ -116,12 +116,3 @@ class SistemaVotoView(LoginRequiredMixin, View):
         else:
             messages.success(request, "Sistema di voto aggiornato.")
         return redirect(reverse("assemblee:assemblea_dettaglio", args=[pk]))
-
-
-class UrnaView(View):
-    """Pagina pubblica di voto: senza login, il codice arriva nel fragment."""
-
-    template_name = "voto/urna.html"
-
-    def get(self, request):
-        return render(request, self.template_name)

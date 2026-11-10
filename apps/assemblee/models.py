@@ -586,6 +586,12 @@ class Votazione(models.Model):
         related_name="+",
     )
     chiusa_il = models.DateTimeField(null=True, blank=True)
+    # Urna elettronica (voto di Catello, apps/voto): aperta e chiusa a parte
+    # rispetto alla votazione, che si chiude solo con i risultati registrati.
+    aperta_in_app_il = models.DateTimeField(null=True, blank=True)
+    chiusa_in_app_il = models.DateTimeField(null=True, blank=True)
+    # SHA-256 dell'elenco ordinato delle schede pubblicato in bacheca: va nel verbale.
+    hash_bacheca = models.CharField(max_length=64, blank=True)
 
     class Meta:
         verbose_name = "votazione"
@@ -602,6 +608,14 @@ class Votazione(models.Model):
     @property
     def chiusa(self) -> bool:
         return self.chiusa_il is not None
+
+    @property
+    def urna_aperta(self) -> bool:
+        return (
+            self.aperta_in_app_il is not None
+            and self.chiusa_in_app_il is None
+            and self.chiusa_il is None
+        )
 
 
 class RisultatoCanale(models.Model):

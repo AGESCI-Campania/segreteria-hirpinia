@@ -164,8 +164,15 @@ def dopo_la_presenza(seduta: Seduta, avente: AventeDiritto, utente: Utente) -> E
 
 
 def verifica_passaggio_a_carta(avente: AventeDiritto) -> None:
-    """Chiamata da `elenco.passa_a_carta()`: chi passa a carta perde i codici
-    attivi. Il controllo su chi ha già votato in app arriva con l'urna."""
+    """Chiamata da `elenco.passa_a_carta()`: rifiuta il passaggio di chi ha già
+    votato in app in una votazione non ancora scrutinata (voterebbe due
+    volte), poi revoca i codici attivi."""
+    from .urna import ha_votato_in_app_in_corso
+
+    if ha_votato_in_app_in_corso(avente):
+        raise ValidationError(
+            f"{avente} ha già votato in app in una votazione in corso: non può passare a carta."
+        )
     CodiceVoto.objects.filter(avente=avente, revocato_il__isnull=True).update(
         revocato_il=timezone.now()
     )

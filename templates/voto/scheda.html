@@ -1,0 +1,68 @@
+{% extends "voto/base_voto.html" %}
+{% load static %}
+
+{% block title %}Scheda{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="md:col-8">
+      {% include "voto/_messaggi.html" %}
+      {% if votazione and spettanti %}
+        {% include "voto/_testata_scheda.html" %}
+        {% if errore %}<div class="alert theme-danger mb-5" role="alert">{{ errore }}</div>{% endif %}
+        <form method="post" action="{% url 'voto:scheda' %}">
+          {% csrf_token %}
+          <input type="hidden" name="votazione" value="{{ votazione.pk }}">
+          <input type="hidden" name="azione" value="rivedi">
+          {% for spettante in spettanti %}
+            {% with indice=forloop.counter0 %}
+              <fieldset class="card mb-7">
+                <div class="card-body">
+                  <legend class="fs-lg mb-5">{% if spettante.per_delega %}Scheda per delega di {{ spettante.avente.cognome }} {{ spettante.avente.nome }}{% else %}La tua scheda{% endif %}</legend>
+                  {% for candidato in candidati %}
+                    <div class="form-field mb-3">
+                      <input id="c{{ indice }}-{{ candidato.pk }}" type="checkbox" name="candidati_{{ indice }}" value="{{ candidato.pk }}" class="check">
+                      <label for="c{{ indice }}-{{ candidato.pk }}" class="fs-lg">{{ candidato.nome }}</label>
+                    </div>
+                  {% endfor %}
+                  {% for _ in posti %}
+                    <div class="form-field mb-3">
+                      <label for="l{{ indice }}-{{ forloop.counter }}">Altro nome (facoltativo)</label>
+                      <input id="l{{ indice }}-{{ forloop.counter }}" type="text" name="liberi_{{ indice }}" maxlength="100" class="form-control" autocomplete="off">
+                    </div>
+                  {% endfor %}
+                  <div class="form-field mt-5 mb-3">
+                    <input id="e{{ indice }}-voto" type="radio" name="esito_{{ indice }}" value="VOTO" class="check" checked>
+                    <label for="e{{ indice }}-voto">Voto le preferenze indicate</label>
+                  </div>
+                  <div class="form-field mb-3">
+                    <input id="e{{ indice }}-bianca" type="radio" name="esito_{{ indice }}" value="BIANCA" class="check">
+                    <label for="e{{ indice }}-bianca">Scheda bianca</label>
+                  </div>
+                  <div class="form-field mb-0">
+                    <input id="e{{ indice }}-nulla" type="radio" name="esito_{{ indice }}" value="NULLA" class="check">
+                    <label for="e{{ indice }}-nulla">Annullo la scheda</label>
+                  </div>
+                </div>
+              </fieldset>
+            {% endwith %}
+          {% endfor %}
+          <button type="submit" class="btn-solid theme-primary w-100 mb-5">Rivedi prima di votare</button>
+        </form>
+      {% else %}
+        <h1 class="mb-5">{% if votazione %}Hai votato{% else %}In attesa{% endif %}</h1>
+        <p class="mb-5" data-voto-stato="{% url 'voto:stato' %}" data-votazione="{{ votazione.pk|default:'' }}" data-intervallo="3000">
+          {% if votazione %}Il tuo voto per «{{ votazione.oggetto }}» è nell'urna.{% endif %}
+          Tieni aperta questa pagina: quando si apre una votazione la scheda compare da sola.
+        </p>
+        <p class="fg-2">{{ codice.avente.cognome }} {{ codice.avente.nome }} — {{ assemblea }}</p>
+      {% endif %}
+      <form method="post" action="{% url 'voto:esci' %}" class="mt-7">
+        {% csrf_token %}
+        <button type="submit" class="btn-outline theme-secondary btn-sm">Esci</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}<script src="{% static 'js/voto-urna.js' %}" defer></script>{% endblock %}

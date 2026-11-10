@@ -7,6 +7,8 @@ Emissione e revoca dei codici restano tracciate dai campi del modello."""
 
 from __future__ import annotations
 
+import uuid
+
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
@@ -61,3 +63,60 @@ class CodiceVoto(models.Model):
     @property
     def attivo(self) -> bool:
         return self.revocato_il is None
+
+
+class Votante(models.Model):
+    """«Chi ha votato» in app: pubblico per regolamento, a differenza di cosa
+    ha votato. **Nessun timestamp** e nessun legame con la `Scheda`: insieme
+    all'ordine casuale delle schede alla chiusura è ciò che impedisce di
+    ricollegare un voto a chi l'ha espresso. `tramite` è il delegato che ha
+    votato per conto di un AE (art. 5)."""
+
+    votazione = models.ForeignKey(
+        "assemblee.Votazione", on_delete=models.CASCADE, related_name="votanti_app"
+    )
+    avente = models.ForeignKey(
+        "assemblee.AventeDiritto", on_delete=models.PROTECT, related_name="voti_app"
+    )
+    tramite = models.ForeignKey(
+        "assemblee.AventeDiritto",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="voti_app_per_delega",
+    )
+
+    class Meta:
+        verbose_name = "votante in app"
+        verbose_name_plural = "votanti in app"
+        constraints = [
+            models.UniqueConstraint(fields=["votazione", "avente"], name="un_voto_per_avente")
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.avente} — {self.votazione}"
+
+
+class Scheda(models.Model):
+    """Una scheda nell'urna elettronica. **Nessuna FK** ad avente, codice o
+    votante e **nessun timestamp**: id casuale, ricevuta casuale. `scelte`:
+    {"esito": "VOTO"|"BIANCA"|"NULLA", "candidati": [id], "liberi": [testo]}.
+    `interpretazione` (dalla chiusura): per ogni nome libero, l'id del
+    candidato a cui la commissione lo attribuisce, oppure null se nullo."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    votazione = models.ForeignKey(
+        "assemblee.Votazione", on_delete=models.CASCADE, related_name="schede_app"
+    )
+    ricevuta = models.CharField(max_length=20, unique=True)
+    scelte = models.JSONField()
+    interpretazione = models.JSONField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "scheda"
+        verbose_name_plural = "schede"
+        # Nessun ordinamento significativo: l'ordine non deve dire nulla.
+        ordering = ["ricevuta"]
+
+    def __str__(self) -> str:
+        return f"Scheda {self.ricevuta}"

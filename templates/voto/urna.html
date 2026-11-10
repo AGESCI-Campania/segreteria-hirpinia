@@ -1,4 +1,5 @@
 {% extends "voto/base_voto.html" %}
+{% load static %}
 
 {% block title %}Voto{% endblock %}
 
@@ -6,8 +7,18 @@
   <div class="row justify-content-center">
     <div class="md:col-6">
       <h1 class="mb-5">Voto</h1>
-      <p>Non ci sono votazioni aperte. Tieni questa pagina aperta: quando si vota in sala, la
-        scheda compare qui.</p>
+      {% include "voto/_messaggi.html" %}
+      <p class="mb-5">Inserisci il codice di voto che hai ricevuto per email o al banco.</p>
+      <form method="post" action="{% url 'voto:accedi' %}" data-voto-accesso>
+        {% csrf_token %}
+        <div class="form-field mb-5">
+          <label for="codice">Codice di voto</label>
+          <input id="codice" name="codice" class="form-control fs-xl font-monospace" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XX" required>
+        </div>
+        <button type="submit" class="btn-solid theme-primary w-100">Entra</button>
+      </form>
     </div>
   </div>
 {% endblock %}
+
+{% block extra_js %}<script src="{% static 'js/voto-urna.js' %}" defer></script>{% endblock %}
