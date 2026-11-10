@@ -4,25 +4,25 @@
 {% block page_title %}Campagne{% endblock %}
 
 {% block content %}
-  <div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-5">
     <h1>Campagne contributo formazione capi</h1>
     <div>
       {% if puo_gestire_impostazioni %}
-        <a href="{% url 'core:impostazioni' %}" class="btn btn-outline-secondary">Impostazioni</a>
+        <a href="{% url 'core:impostazioni' %}" class="btn-outline theme-secondary">Impostazioni</a>
       {% endif %}
       {% if puo_gestire_campagna %}
-        <a href="{% url 'contributi:campagna_crea' %}" class="btn btn-primary">Nuova campagna</a>
+        <a href="{% url 'contributi:campagna_crea' %}" class="btn-solid theme-primary">Nuova campagna</a>
       {% endif %}
     </div>
   </div>
   {% if ultima_campagna %}
     {% blocktranslate asvar titolo_ultima_campagna with anno=ultima_campagna.anno %}Campagna {{ anno }}{% endblocktranslate %}
     {% blocktranslate asvar stato_ultima_campagna with stato=ultima_campagna.get_stato_display %}Stato: {{ stato }}{% endblocktranslate %}
-    <div class="d-flex justify-content-between align-items-center gap-3 mb-4">
+    <div class="d-flex justify-content-between align-items-center gap-5 mb-7">
       <div class="flex-grow-1">
         <div class="alert theme-primary mb-0" role="note"><div><strong class="alert-heading">{{ titolo_ultima_campagna }}</strong><p class="mb-0">{{ stato_ultima_campagna }}</p></div></div>
       </div>
-      <a href="{% url 'contributi:campagna_dettaglio' ultima_campagna.pk %}" class="btn btn-primary">
+      <a href="{% url 'contributi:campagna_dettaglio' ultima_campagna.pk %}" class="btn-solid theme-primary">
         Vai alla campagna
       </a>
     </div>

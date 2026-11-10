@@ -4,14 +4,14 @@
 {% block page_title %}Verifica note spese{% endblock %}
 
 {% block content %}
-  <div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-5">
     <h1 class="mb-0">Verifica note spese</h1>
     {% if solo_eccezioni %}
-      <a href="{% url 'note_spese:nota_verifica_lista' %}" class="btn btn-outline-secondary">
+      <a href="{% url 'note_spese:nota_verifica_lista' %}" class="btn-outline theme-secondary">
         Mostra tutte
       </a>
     {% else %}
-      <a href="?solo_eccezioni=1" class="btn btn-outline-secondary">Solo con eccezioni</a>
+      <a href="?solo_eccezioni=1" class="btn-outline theme-secondary">Solo con eccezioni</a>
     {% endif %}
   </div>
 
@@ -51,12 +51,12 @@
                  semplice, non ag_chip — l'etichetta del componente è una stringa
                  singola valutata come espressione, concatenarci un valore
                  calcolato a runtime è più fragile del guadagno visivo. #}
-              <span class="badge bg-danger">
+              <span class="badge theme-danger">
                 Capienza sforata (residuo indicativo {{ riga.capienza.residuo_indicativo }})
               </span>
             {% endif %}
             {% if not riga.ha_eccezioni %}
-              <span class="text-muted">—</span>
+              <span class="fg-2">—</span>
             {% endif %}
           </td>
         </tr>

@@ -11,7 +11,7 @@
     }
 
     var contenitore = document.createElement("div");
-    contenitore.className = "mb-2";
+    contenitore.className = "mb-3";
 
     var input = document.createElement("input");
     input.type = "search";

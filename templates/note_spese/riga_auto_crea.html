@@ -5,13 +5,13 @@
 
 {% block content %}
   <h1>Aggiungi riga auto</h1>
-  <p class="text-muted">
+  <p class="fg-2">
     Per le altre spese (treno, alloggio, vitto, …) torna al
     <a href="{% url 'note_spese:nota_dettaglio' nota.pk %}">dettaglio della nota</a>.
   </p>
 
   {% if form.non_field_errors %}
-    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {{ form.non_field_errors }}
   {% endif %}
 
   <form method="post">
@@ -19,7 +19,7 @@
 
     {% for field in form %}
       {% if field.name == "localita_partenza" %}
-        <div class="mb-3 position-relative">
+        <div class="mb-5 position-relative">
           <label class="form-label" for="ricerca-localita-partenza">Partenza</label>
           <input type="text" id="ricerca-localita-partenza" class="form-control" autocomplete="off"
                  value="{{ etichette_localita.localita_partenza }}"
@@ -30,7 +30,7 @@
         </div>
         {{ field }}
       {% elif field.name == "localita_arrivo" %}
-        <div class="mb-3 position-relative">
+        <div class="mb-5 position-relative">
           <label class="form-label" for="ricerca-localita-arrivo">Arrivo</label>
           <input type="text" id="ricerca-localita-arrivo" class="form-control" autocomplete="off"
                  value="{{ etichette_localita.localita_arrivo }}"
@@ -41,7 +41,7 @@
         </div>
         {{ field }}
       {% else %}
-        <div class="mb-3">
+        <div class="form-field mb-5">
           {{ field.label_tag }}
           {{ field }}
           {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
@@ -50,8 +50,8 @@
       {% endif %}
     {% endfor %}
 
-    <button type="submit" class="btn btn-primary">Aggiungi</button>
-    <a href="{% url 'note_spese:nota_dettaglio' nota.pk %}" class="btn btn-outline-secondary">Annulla</a>
+    <button type="submit" class="btn-solid theme-primary">Aggiungi</button>
+    <a href="{% url 'note_spese:nota_dettaglio' nota.pk %}" class="btn-outline theme-secondary">Annulla</a>
   </form>
 {% endblock %}
 

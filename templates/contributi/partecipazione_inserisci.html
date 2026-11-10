@@ -7,13 +7,13 @@
   <h1>Inserisci partecipazione — campagna {{ campagna.anno }}</h1>
 
   {% if form.non_field_errors %}
-    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {{ form.non_field_errors }}
   {% endif %}
 
   <form method="post">
     {% csrf_token %}
 
-    <div class="mb-3 position-relative">
+    <div class="mb-5 position-relative">
       <label for="ricerca-socio" class="form-label">
         Cerca socio (nome, cognome, gruppo o codice socio)
       </label>
@@ -36,14 +36,14 @@
 
     {% for field in form %}
       {% if field.name != "codice_socio" %}
-        <div class="mb-3"{% if field.name == "descrizione_altro" %} id="campo-descrizione-altro"{% endif %}>
+        <div class="form-field mb-5"{% if field.name == "descrizione_altro" %} id="campo-descrizione-altro"{% endif %}>
           {{ field.label_tag }}
           {% if field.name == "quota_versata" %}
             <div class="input-group">
               {{ field }}
               <span class="input-group-text">€</span>
             </div>
-            <span class="badge text-bg-secondary d-none" id="quota-badge-precompilato">
+            <span class="badge theme-secondary d-none justify-self-start" id="quota-badge-precompilato">
               Precompilato, modificabile
             </span>
           {% else %}
@@ -53,7 +53,7 @@
         </div>
       {% endif %}
     {% endfor %}
-    <button type="submit" class="btn btn-primary">Inserisci</button>
+    <button type="submit" class="btn-solid theme-primary">Inserisci</button>
   </form>
 {% endblock %}
 

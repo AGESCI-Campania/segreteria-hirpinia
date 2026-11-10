@@ -29,7 +29,7 @@
             {% if incarico.origine == "MANUALE" and not incarico.cessato_il %}
               <form method="post" action="{% url 'anagrafica:cessa_incarico' incarico.pk %}">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-sm btn-outline-danger">Cessa</button>
+                <button type="submit" class="btn-sm btn-outline theme-danger">Cessa</button>
               </form>
             {% endif %}
           </td>
@@ -41,7 +41,7 @@
   </table>
   </div>
 
-  <a href="{% url 'anagrafica:assegna_incarico' %}?codice_socio={{ codice_socio }}" class="btn btn-primary">
+  <a href="{% url 'anagrafica:assegna_incarico' %}?codice_socio={{ codice_socio }}" class="btn-solid theme-primary">
     Assegna nuovo incarico
   </a>
 {% endblock %}
