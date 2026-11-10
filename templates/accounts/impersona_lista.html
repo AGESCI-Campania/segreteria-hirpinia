@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% load agesci_coreui hijack %}
+{% load agesci_components hijack %}
 
 {% block page_title %}Impersona un utente{% endblock %}
 
 {% block content %}
   <h1>Impersona un utente</h1>
-  {% ag_callout variant="warning" text="Solo per amministratori diretti. Ogni azione compiuta in impersonificazione resta tracciata con entrambe le identità." %}
+  <div class="alert theme-warning" role="note"><p class="mb-0">Solo per amministratori diretti. Ogni azione compiuta in impersonificazione resta tracciata con entrambe le identità.</p></div>
 
   <form method="get" class="mb-4 d-flex gap-2">
     <input type="search" name="q" value="{{ query }}" class="form-control"

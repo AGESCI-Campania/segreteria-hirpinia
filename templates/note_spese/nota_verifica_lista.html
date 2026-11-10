@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load agesci_coreui %}
+{% load agesci_components %}
 
 {% block page_title %}Verifica note spese{% endblock %}
 
@@ -15,7 +15,7 @@
     {% endif %}
   </div>
 
-  {% ag_callout variant="info" text="Le eccezioni sono segnalazioni, non blocchi: approvazione e liquidazione restano possibili anche in loro presenza." %}
+  <div class="alert theme-info" role="note"><p class="mb-0">Le eccezioni sono segnalazioni, non blocchi: approvazione e liquidazione restano possibili anche in loro presenza.</p></div>
 
   <div class="table-responsive">
   <table class="table table-sm">

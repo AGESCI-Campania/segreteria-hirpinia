@@ -79,10 +79,10 @@ def test_sottovoce_di_modulo_ha_sezione_voce_e_sottovoce(client, segreteria):
 
 
 class TestMarkupBreadcrumb:
-    """Migrazione a django-agesci-campania-coreui-theme: il breadcrumb non è
-    più un partial separato con override locale (icona Home rimossa insieme
-    all'override), ma markup nativo inline in agesci_coreui/base.html,
-    pilotato dalla stessa variabile di contesto `breadcrumb_items`."""
+    """Il breadcrumb è il partial nativo del tema (agesci_theme/partials/
+    breadcrumb.html, incluso nella barra inferiore dell'header di
+    agesci_theme/base.html), senza override locale, pilotato dalla variabile
+    di contesto `breadcrumb_items`."""
 
     def test_breadcrumb_nativo_presente(self, client, segreteria):
         client.force_login(segreteria)
@@ -93,3 +93,21 @@ class TestMarkupBreadcrumb:
         client.force_login(segreteria)
         response = client.get("/gruppi/nuovo/")
         assert 'class="breadcrumb' in response.content.decode()
+
+
+class TestSidebarSottovoci:
+    """Il gruppo di sottovoci di un modulo (es. Nota Spese) nella sidebar nasce
+    aperto se la pagina corrente è una delle sue sottovoci, chiuso altrimenti
+    (VoceMenu.url_sottovoci)."""
+
+    def test_gruppo_aperto_sulla_pagina_di_una_sottovoce(self, client, segreteria):
+        client.force_login(segreteria)
+        html = client.get("/note-spese/elenco/").content.decode()
+        assert 'class="collapse list-unstyled ps-7 show"' in html
+        assert 'href="/note-spese/elenco/" class="ag-sidebar__nav-link active"' in html
+
+    def test_gruppo_chiuso_su_altre_pagine(self, client, segreteria):
+        client.force_login(segreteria)
+        html = client.get("/").content.decode()
+        assert 'class="collapse list-unstyled ps-7"' in html
+        assert 'class="collapse list-unstyled ps-7 show"' not in html
