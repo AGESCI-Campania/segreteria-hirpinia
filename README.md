@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/python-3.14%2B-blue.svg)](https://www.python.org/)
 [![Django](https://img.shields.io/badge/Django-6.0%2B-092E20.svg?logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17%2B-4169E1.svg?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3.svg?logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
+[![Bootstrap](https://img.shields.io/badge/Bootstrap-6.0%20alpha-7952B3.svg?logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
 [![uv](https://img.shields.io/badge/packaged%20with-uv-DE5FE9.svg?logo=uv&logoColor=white)](https://github.com/astral-sh/uv)
 [![Code style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Version](https://img.shields.io/badge/version-1.1.18-informational.svg)](pyproject.toml)

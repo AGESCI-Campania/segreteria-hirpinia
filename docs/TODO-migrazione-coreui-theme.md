@@ -1,5 +1,10 @@
 # Migrazione a django-agesci-campania-coreui-theme
 
+> **Superato (2026-11-10).** Il progetto è tornato al tema base
+> `django-agesci-campania-theme` 3.x (Bootstrap 6 alpha) e non usa più
+> `django-agesci-campania-coreui-theme`: vedi la sezione Tema di `CLAUDE.md`. Questo
+> documento resta solo come traccia storica della migrazione a CoreUI.
+
 ## Contesto
 
 `django-agesci-campania-theme` (Bootstrap 5) è il pacchetto tema attualmente in uso.
