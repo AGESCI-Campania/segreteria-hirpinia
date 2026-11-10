@@ -103,3 +103,13 @@ progettazione, non dati personali).
   (segreteria/RdZ/admin) li compila nel modulo di liquidazione
   (`LiquidaNotaForm`/`transizioni.py::liquida()`); `riferimento_tracciabilita` è
   obbligatorio solo per la modalità bonifico.
+- [ ] Migrazione delle impostazioni email a `MAILERS`: da Django 6.1 `EMAIL_HOST`,
+  `EMAIL_PORT`, `EMAIL_USE_TLS`/`EMAIL_USE_SSL`, `EMAIL_TIMEOUT`, `EMAIL_HOST_USER`/
+  `EMAIL_HOST_PASSWORD` sono deprecate (avviso `RemovedInDjango2028Warning` nei test,
+  comparso con l'aggiornamento a Django 6.1.3 del 2026-11-10). Oggi funziona tutto, ma
+  vanno riscritti su `MAILERS` prima di Django 2028: la selezione del provider da
+  `EMAIL_PROVIDER` (`apps/core/email/__init__.py`, `config/settings/base.py`), i controlli
+  TLS/SSL di `base.py` e il blocco `console`/`locmem` di `prod.py` (con
+  `apps/core/tests/test_settings_prod.py`), `config/settings/test.py`, il backend Gmail e
+  il reindirizzamento Mailpit di `apps/core/email/override.py`. Nel frattempo non
+  aggiungere nuovo codice che dipenda da `EMAIL_*`.
