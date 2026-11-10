@@ -274,6 +274,26 @@ nelle fixture di test.
   un vincolo distinto, non rimuoverlo né spostarlo in `base.py` (dev/test lo usano
   legittimamente). Test in `apps/core/tests/test_settings_prod.py`.
 
+### Assemblee (D-70)
+
+Regole complete in D-70 del documento di progettazione. Qui solo ciò che il codice non
+deve violare:
+- **L'elenco degli aventi diritto è separato dall'anagrafica**: il modulo non scrive mai
+  `Capo`, `CensimentoCapo` o `IncaricoUnita`. Un capo dell'elenco può non avere codice
+  socio. Le eliminazioni dall'elenco sono reversibili e tracciate, non sono uscite
+  dall'associazione (D-22).
+- **Le soglie di voto si applicano alla lettera dal regolamento** (tabella in D-70): non
+  "migliorarle", non renderle configurabili. Base delle elezioni e delle deliberazioni
+  sono i **presenti** (art. 14 e 18), non i votanti; solo le mozioni d'ordine usano i
+  votanti (art. 13), solo la revoca gli aventi diritto (art. 19). Il ballottaggio è solo
+  cartaceo. Il calcolo vive in un'unica funzione di service layer: view, PDF e verbali la
+  chiamano, non la reimplementano.
+- **Voto in app o su carta** si decide in un solo punto, per codice socio contro i
+  censiti della Zona dell'anno di riferimento; nel tracciato il gruppo è quello di
+  origine, anche dopo un trasferimento.
+- **Tempo reale = polling ogni 3 secondi**, nessuna infrastruttura nuova (D-17 vale
+  ancora).
+
 ### Menu: un modulo con più funzioni è una voce sola
 
 Un modulo con più funzioni (es. Nota Spese: elenco, verifica, eventi, esportazione)
@@ -455,8 +475,9 @@ Docker/deploy non deve violare:
 
 ## Cosa NON fare
 
-- Non portare `assemblee`, riunioni di pattuglia, verbali o `templates_verbali/` da
-  `Dashboard_Zona`: fuori scope v1.
+- Non portare nulla da `Dashboard_Zona` per assemblee, riunioni di pattuglia, verbali o
+  `templates_verbali/`: le riunioni di pattuglia sono fuori scope, il modulo Assemblee
+  (D-70) è scritto da zero.
 - Non introdurre Celery, Redis o un broker (D-17).
 - Non reintrodurre `autorizzazioni-agesci` come dipendenza esterna: il codice è
   internalizzato per scelta (D-07).

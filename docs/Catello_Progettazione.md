@@ -31,7 +31,9 @@ Catello nasce da un audit di due progetti preesistenti:
 | `autorizzazioni-agesci` v1.0.1 | Parser dei PDF di autorizzazione. Il codice è **incorporato** in Catello (D-07). |
 
 `Dashboard_Zona` contiene anche i moduli `assemblee` e `pattuglie/riunioni` (verbali,
-presenze, statistiche). **Non rientrano nella v1** di Catello e non vanno portati.
+presenze, statistiche). Le riunioni di pattuglia **non rientrano** in Catello e non vanno
+portate. Le assemblee di Zona sono invece in scope dal 2026-11 (D-70), ma con un modulo
+**scritto da zero**: nulla viene portato da `Dashboard_Zona`.
 
 ---
 
@@ -55,7 +57,8 @@ soggetto dell'applicazione, che è cambiato.
 | `accounts.Ruolo`, `accounts.Delega` | Porting |
 | `accounts.backends.EmailOrCodiceBackend`, login/reset custom | **Riscrittura** con allauth (D-05) |
 | View, form, template, CSS custom (`bg-zona`, `card-header-zona`) | **Riscrittura** sul tema regionale (D-15) |
-| `assemblee`, riunioni pattuglia, verbali, `templates_verbali/` | **Fuori scope v1** |
+| `assemblee` | **Non portato**: modulo Assemblee riscritto da zero (D-70) |
+| riunioni pattuglia, relativi verbali, `templates_verbali/` | **Fuori scope** |
 
 ### D-02 — `Gruppo` ha per chiave primaria il codice ordinale
 
@@ -1268,6 +1271,72 @@ richiede un percorso applicativo di revoca per i ruoli non derivati da incarico 
 assente: la sola via era la modifica diretta dei campi da Django admin, senza cascata
 sulle deleghe collegate — gap preesistente, colmato da questa stessa decisione
 introducendo un service layer dedicato di revoca ruolo).
+
+### D-70 — Modulo Assemblee di Zona
+
+Decisione del 2026-11-10, per l'Assemblea di Zona autunnale del 22/11/2026 (anno scout
+2027). Il modulo genera l'elenco degli aventi diritto al voto, il tracciato per l'app di
+voto del Nazionale, il foglio presenze cartaceo, gestisce presenze e votazioni durante la
+seduta e produce i verbali. Fonte delle regole di voto: *Regolamento dell'Assemblea di
+Zona Hirpinia* approvato il 12/11/2023, **applicato alla lettera**.
+
+**Elenco degli aventi diritto separato dall'anagrafica.** Ogni assemblea ha un proprio
+elenco, copiato dall'anagrafica al momento dell'import e poi modificato solo lì:
+`Capo`, `CensimentoCapo` e `IncaricoUnita` non vengono mai scritti dal modulo. Motivo: i
+capi da aggiungere in autunno spesso non hanno ancora un codice socio (che è la PK di
+`Capo`, D-02), e le eliminazioni dall'elenco non sono uscite dall'associazione (D-22).
+- **Autunnale**: import di tutti i censiti dell'anno scout precedente (Comitato compreso,
+  con o senza incarico). Poi: eliminazioni (reversibili, tracciate, senza motivazione),
+  trasferimenti di gruppo (si conserva il gruppo di provenienza), nuovi capi con nome,
+  cognome, gruppo e provenienza obbligatori (passaggio dal clan / nuovo ingresso /
+  rientro / non nota), codice socio e incarichi facoltativi.
+- **Primaverile**: import dei censiti dell'anno scout corrente, con le stesse modifiche
+  manuali possibili.
+- **Voto in app o su carta**: vota nell'app del Nazionale (alimentata da BuonaStrada) chi,
+  per codice socio, risulta tra i censiti della Zona dell'anno precedente (autunnale) o
+  corrente (primaverile) e non è stato eliminato; tutti gli altri votano su carta. Nel
+  tracciato il gruppo è quello del censimento di origine, anche dopo un trasferimento.
+
+**Permessi.** Gestiscono l'elenco e scaricano i file ADMIN, SEGRETERIA e RdZ. Per ogni
+assemblea possono nominare **operatori di voto** (utenti di Catello) che registrano
+presenze, deleghe e risultati ma non modificano l'elenco; gli operatori che sono capi
+fanno anche parte del comitato elettorale (scrutatori). Un capo che si presenta senza
+essere in elenco lo inseriscono solo ADMIN, SEGRETERIA o RdZ.
+
+**Sedute e quorum costitutivo (art. 4).** Ogni convocazione (1ª, 2ª, 3ª) è una seduta
+separata, con data, luogo e presenze proprie; l'elenco degli aventi diritto è unico per
+l'assemblea. Quorum costitutivo: metà degli aventi diritto + 1 in 1ª e 2ª convocazione,
+nessuno in 3ª. Le presenze si registrano solo all'ingresso; la **verifica del quorum**
+(art. 4 c.5-6) è un nuovo appello, con ora e richiedente, i cui presenti valgono da quel
+momento; le votazioni precedenti restano valide.
+
+**Deleghe (art. 5)**, con controlli più stretti del testo, per scelta esplicita: l'AE
+di gruppo delega solo un altro capo del proprio gruppo, l'AE di Zona solo uno dei due RdZ;
+nessuno raccoglie più di una delega. Il voto dell'AE segue la sua modalità (app o carta).
+
+**Soglie di voto (alla lettera).**
+
+| Votazione | Base | Soglia |
+| --- | --- | --- |
+| Deliberazioni: mozioni, raccomandazioni, bilanci, regolamento (art. 14) | presenti aventi diritto | favorevoli ≥ metà dei presenti + 1 |
+| Elezioni: RdZ, Comitato, Consigliere generale (art. 18 c.1-2) | presenti aventi diritto | voti al candidato ≥ metà dei presenti + 1 |
+| Ballottaggio fra i primi due (art. 18 c.3-5) | presenti all'Assemblea | maggioranza assoluta; **solo voto cartaceo** (l'app non lo supporta); nessun ballottaggio con candidatura unica |
+| Mozione d'ordine, nuovi punti all'OdG (art. 13) | votanti (favorevoli + contrari + astenuti) | metà dei votanti + 1 |
+| Revoca di un mandato (art. 19 c.3) | aventi diritto | metà degli aventi diritto + 1, indipendentemente dai presenti |
+
+"Metà + 1" si calcola come `n // 2 + 1`. I risultati si inseriscono a mano, separati fra
+app e carta; i presenti di riferimento sono fotografati all'apertura della votazione.
+
+**Tempo reale senza infrastruttura nuova.** Cruscotti di presenze, quorum e votanti
+app/carta si aggiornano interrogando il server ogni 3 secondi: D-17 resta valida (niente
+Redis, broker, Channels). L'elenco dei presenti in app per chi li abilita sull'app del
+Nazionale ha invece un pulsante "Aggiorna".
+
+**Verbali** in PDF (WeasyPrint), generati interamente da Catello sulla struttura dei
+modelli nazionali: verbale dell'assemblea per punti all'ordine del giorno, con il numero
+dei presenti nella frase sul quorum e la frase di esito di ogni votazione calcolata;
+verbale per la variazione del rappresentante legale, se viene eletto un RdZ, con i dati
+del RL precompilati dall'anagrafica e modificabili.
 
 ---
 
