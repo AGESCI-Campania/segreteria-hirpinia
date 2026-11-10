@@ -30,6 +30,18 @@ def appello_effettivo(seduta: Seduta) -> Appello | None:
     return validi.order_by("-numero").first()
 
 
+def verifica_senza_quorum(seduta: Seduta) -> Appello | None:
+    """La verifica che non ha confermato il quorum costitutivo e con cui la
+    seduta è stata chiusa (art. 4 c.5-6), se c'è."""
+    return (
+        seduta.appelli.filter(
+            tipo=TipoAppello.VERIFICA, chiuso_il__isnull=False, quorum_raggiunto=False
+        )
+        .order_by("-numero")
+        .first()
+    )
+
+
 def verifica_in_corso(seduta: Seduta) -> Appello | None:
     """La verifica del quorum aperta e non ancora chiusa, se c'è."""
     return seduta.appelli.filter(tipo=TipoAppello.VERIFICA, chiuso_il__isnull=True).first()

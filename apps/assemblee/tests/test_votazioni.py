@@ -12,6 +12,7 @@ from apps.assemblee import elenco, sedute, votazioni
 from apps.assemblee.models import (
     Assemblea,
     CanaleVoto,
+    RichiedenteVerifica,
     Seduta,
     TipoAssemblea,
     TipoVotazione,
@@ -265,3 +266,35 @@ def test_flusso_dalle_pagine(client, seduta, segreteria):
     assert votazioni.esito(v).approvata
     pagina = client.get(base)
     assert "Approvata con 2 voti favorevoli" in pagina.content.decode()
+
+
+def _verifica(seduta, utente, codici):
+    sedute.apri_verifica(seduta, RichiedenteVerifica.COMITATO, utente)
+    for codice in codici:
+        sedute.registra_presenza(
+            seduta, seduta.assemblea.aventi_diritto.get(codice_socio=codice), utente
+        )
+    return sedute.chiudi_verifica(seduta, utente)
+
+
+class TestVerificaDelQuorum:
+    def test_quorum_venuto_meno_chiude_la_seduta(self, seduta, segreteria):
+        prima = votazioni.apri_votazione(
+            seduta, segreteria, tipo=TipoVotazione.MOZIONE, oggetto="Prima"
+        )
+        _palese(prima, segreteria, 2, 1, 0)
+        assert not _verifica(seduta, segreteria, ["0"]).quorum_raggiunto
+        seduta.refresh_from_db()
+        assert not seduta.aperta
+        with pytest.raises(ValidationError):
+            votazioni.apri_votazione(seduta, segreteria, tipo=TipoVotazione.MOZIONE, oggetto="X")
+        # Art. 4 c.6: quanto fatto prima della verifica resta valido.
+        assert votazioni.esito(prima).approvata
+
+    def test_verifica_confermata_cambia_la_maggioranza(self, seduta, segreteria):
+        _verifica(seduta, segreteria, ["0", "1", "2", "3"])
+        seduta.refresh_from_db()
+        assert seduta.aperta
+        v = votazioni.apri_votazione(seduta, segreteria, tipo=TipoVotazione.MOZIONE, oggetto="X")
+        assert v.presenti == 4
+        assert _palese(v, segreteria, 2, 2, 0).soglia == 3

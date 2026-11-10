@@ -10,7 +10,7 @@
     {% endif %}
   </div>
   <p class="fg-2 mb-5">{{ seduta.get_convocazione_display }} — {{ assemblea }}</p>
-  {% if not puo_votare and seduta.costituita is not True %}
+  {% if seduta.costituita is not True %}
     <div class="alert theme-info" role="note"><p class="mb-0">Si vota solo dopo aver dichiarato la seduta validamente costituita.</p></div>
   {% endif %}
 

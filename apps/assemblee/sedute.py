@@ -202,9 +202,9 @@ def apri_verifica(seduta: Seduta, richiedente: str, utente: Utente) -> Appello:
 
 @transaction.atomic
 def chiudi_verifica(seduta: Seduta, utente: Utente) -> Appello:
-    """Chiude la verifica: da qui contano i suoi presenti. L'esito resta
-    registrato sull'appello; cosa fare se il quorum manca lo decide la
-    Presidenza."""
+    """Chiude la verifica: da qui contano i suoi presenti. Se il quorum
+    costitutivo non è più raggiunto la seduta si chiude (art. 4 c.5-6): le
+    attività e le votazioni precedenti restano valide."""
     _verifica_operatore(utente, seduta)
     _verifica_aperta(seduta)
     verifica = verifica_in_corso(seduta)
@@ -216,6 +216,9 @@ def chiudi_verifica(seduta: Seduta, utente: Utente) -> Appello:
     verifica.soglia = stato.soglia
     verifica.quorum_raggiunto = stato.raggiunto
     verifica.save(update_fields=["chiuso_il", "presenti_rilevati", "soglia", "quorum_raggiunto"])
+    if not stato.raggiunto:
+        seduta.chiusa_il = verifica.chiuso_il
+        seduta.save(update_fields=["chiusa_il"])
     return verifica
 
 

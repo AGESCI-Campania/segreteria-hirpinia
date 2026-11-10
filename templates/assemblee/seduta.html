@@ -92,6 +92,9 @@
 
   {% if seduta.costituita %}
     <h2 class="fs-xl mt-7">Verifica del quorum</h2>
+    {% if verifica_senza_quorum %}
+      <div class="alert theme-danger" role="alert"><p class="mb-0">La verifica delle {{ verifica_senza_quorum.chiuso_il|time:"H:i" }} non ha confermato il quorum costitutivo ({{ verifica_senza_quorum.presenti_rilevati }} presenti su una soglia di {{ verifica_senza_quorum.soglia }}): l'Assemblea è stata dichiarata chiusa. Le votazioni precedenti restano valide.</p></div>
+    {% endif %}
     <p class="fg-2">
       Si può chiedere in qualsiasi momento (art. 4 c.5). Durante la verifica si rifà l'appello
       dalla pagina presenze; fino alla chiusura valgono i presenti precedenti, e le votazioni già
@@ -111,7 +114,7 @@
             {% csrf_token %}<input type="hidden" name="azione" value="chiudi_verifica">
             <div class="form-field mb-0">
               <input type="checkbox" name="conferma" value="1" id="conferma-chiudi-verifica" class="check" required>
-              <label for="conferma-chiudi-verifica">Appello concluso</label>
+              <label for="conferma-chiudi-verifica">Appello concluso: se il quorum costitutivo manca, l'Assemblea si chiude</label>
             </div>
             <button type="submit" class="btn-solid theme-primary">Chiudi la verifica</button>
           </form>

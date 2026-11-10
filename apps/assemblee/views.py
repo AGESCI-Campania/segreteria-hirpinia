@@ -479,6 +479,7 @@ class SedutaView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             "seduta": seduta,
             "quorum": stato_quorum(seduta),
             "verifica": verifica,
+            "verifica_senza_quorum": quorum_assemblea.verifica_senza_quorum(seduta),
             "puo_gestire": puo_gestire_assemblee(request.user),
             "stato_verifica": stato_quorum(seduta, verifica) if verifica else None,
             "verifiche_chiuse": seduta.appelli.filter(
@@ -953,6 +954,7 @@ class VotazioneView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
                 esito is not None
                 and esito.ballottaggio_proposto
                 and not votazione.ballottaggi.exists()
+                and votazione.seduta.aperta
             ),
             "ballottaggio": votazione.ballottaggi.first(),
         }

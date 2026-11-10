@@ -23,7 +23,8 @@ from .models import (
     Votazione,
 )
 from .permessi import puo_gestire_assemblee
-from .votazioni import frase_esito
+from .quorum import verifica_senza_quorum
+from .votazioni import frase_esito, soglie_correnti
 
 
 @dataclass(frozen=True)
@@ -54,7 +55,13 @@ def contesto_verbale(seduta: Seduta) -> dict:
         (punto, _votazioni(chiuse.filter(punto=punto)))
         for punto in assemblea.punti_odg.order_by("ordine")
     ]
-    verifiche = seduta.appelli.filter(tipo=TipoAppello.VERIFICA, chiuso_il__isnull=False)
+    aventi = seduta.aventi_alla_costituzione or 0
+    verifiche = [
+        (verifica, soglie_correnti(verifica.presenti_rilevati or 0, aventi)["deliberazioni"])
+        for verifica in seduta.appelli.filter(
+            tipo=TipoAppello.VERIFICA, chiuso_il__isnull=False
+        ).order_by("numero")
+    ]
     mozioni = chiuse.filter(
         tipo__in=[TipoVotazione.MOZIONE, TipoVotazione.RACCOMANDAZIONE]
     ).exists()
@@ -64,7 +71,8 @@ def contesto_verbale(seduta: Seduta) -> dict:
         "verbale": verbale_della_seduta(seduta),
         "punti": punti,
         "senza_punto": _votazioni(chiuse.filter(punto__isnull=True)),
-        "verifiche": verifiche.order_by("numero"),
+        "verifiche": verifiche,
+        "verifica_senza_quorum": verifica_senza_quorum(seduta),
         "ci_sono_mozioni": mozioni,
         **contesto_carta_intestata(),
     }

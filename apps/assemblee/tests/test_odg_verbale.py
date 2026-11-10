@@ -186,3 +186,28 @@ class TestVariazioneRappresentante:
         client.post(base, {"cognome": "Verdi", "nome": "Luca", "provincia_nascita": "AV"})
         assert verbale.variazione_della_seduta(seduta).provincia_nascita == "AV"
         assert client.get(f"{base}pdf/").content[:5] == b"%PDF-"
+
+
+def test_verifiche_nel_verbale(seduta, segreteria):
+    sedute.apri_verifica(seduta, "PRESIDENZA", segreteria)
+    for avente in seduta.assemblea.aventi_diritto.all()[:3]:
+        sedute.registra_presenza(seduta, avente, segreteria)
+    sedute.chiudi_verifica(seduta, segreteria)
+    ((verifica, maggioranza),) = verbale.contesto_verbale(seduta)["verifiche"]
+    assert (verifica.presenti_rilevati, verifica.quorum_raggiunto, maggioranza) == (3, True, 2)
+    contenuto = verbale.genera_verbale_pdf(seduta, segreteria)
+    testo = " ".join(p.extract_text() for p in PdfReader(io.BytesIO(contenuto)).pages)
+    assert "la maggioranza per le deliberazioni e le elezioni è di 2 voti" in testo.replace(
+        "\n", " "
+    )
+
+
+def test_verbale_chiusura_per_mancanza_di_quorum(seduta, segreteria):
+    sedute.apri_verifica(seduta, "CAPI", segreteria)
+    sedute.registra_presenza(seduta, seduta.assemblea.aventi_diritto.first(), segreteria)
+    sedute.chiudi_verifica(seduta, segreteria)
+    contenuto = verbale.genera_verbale_pdf(seduta, segreteria)
+    testo = " ".join(p.extract_text() for p in PdfReader(io.BytesIO(contenuto)).pages)
+    testo = testo.replace("\n", " ")
+    assert "la Presidenza dichiara chiusa l'Assemblea" in testo
+    assert "Null'altro essendovi da deliberare" not in testo

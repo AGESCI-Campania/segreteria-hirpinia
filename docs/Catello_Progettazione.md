@@ -1320,7 +1320,11 @@ separata, con data, luogo e presenze proprie; l'elenco degli aventi diritto è u
 l'assemblea. Quorum costitutivo: metà degli aventi diritto + 1 in 1ª e 2ª convocazione,
 nessuno in 3ª. Le presenze si registrano solo all'ingresso; la **verifica del quorum**
 (art. 4 c.5-6) è un nuovo appello, con ora e richiedente, i cui presenti valgono da quel
-momento; le votazioni precedenti restano valide.
+momento (anche per la maggioranza delle votazioni); le votazioni precedenti restano valide.
+Se la verifica non conferma il quorum costitutivo l'Assemblea è dichiarata chiusa: la
+seduta si chiude alla chiusura della verifica (`sedute.py::chiudi_verifica()`). Il verbale riporta ogni verifica
+chiusa, con richiedente, orari, presenti ed esito; la frase di costituzione resta sui numeri
+alla dichiarazione di seduta costituita.
 
 **Deleghe (art. 5), alla lettera.** Può delegare solo un AE. L'AE di gruppo delega un
 componente della propria Co.Ca. o un altro AE; l'AE di Zona delega un Responsabile di Zona

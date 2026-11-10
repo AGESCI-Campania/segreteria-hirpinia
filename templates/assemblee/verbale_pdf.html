@@ -66,12 +66,19 @@
     e del Comitato mozioni formato da {% if verbale.comitato_mozioni %}{{ verbale.comitato_mozioni }}{% else %}<span class="mancante">[…]</span>{% endif %}.
   </p>
 
-  {% for verifica in verifiche %}
+  {% for verifica, maggioranza in verifiche %}
     <p>
       Alle ore {{ verifica.aperto_il|time:"H:i" }}, su richiesta di: {{ verifica.get_richiedente_display|lower }},
-      si procede alla verifica del quorum (art. 4 comma 5): risultano presenti {{ verifica.presenti_rilevati }}
-      aventi diritto{% if verifica.soglia is not None %} a fronte di un quorum di {{ verifica.soglia }}{% endif %};
-      {% if verifica.quorum_raggiunto %}il quorum è confermato{% else %}il quorum non è raggiunto{% endif %}.
+      la Presidenza procede alla verifica del quorum ai sensi dell'art. 4 commi 5 e 6. Concluso l'appello alle ore
+      {{ verifica.chiuso_il|time:"H:i" }}, risultano presenti {{ verifica.presenti_rilevati }} aventi diritto al voto
+      {% if verifica.soglia is not None %}(quorum costitutivo {{ verifica.soglia }}){% endif %}.
+      {% if verifica.quorum_raggiunto %}
+        Il quorum costitutivo è confermato; da questo momento la maggioranza per le deliberazioni e le elezioni è di
+        {{ maggioranza }} voti (metà dei presenti più uno).
+      {% else %}
+        Il quorum costitutivo non è più raggiunto: la Presidenza dichiara chiusa l'Assemblea alle ore
+        {{ verifica.chiuso_il|time:"H:i" }}. Le attività e le votazioni svolte in precedenza restano valide a tutti gli effetti.
+      {% endif %}
     </p>
   {% endfor %}
 
@@ -97,10 +104,12 @@
   {% endif %}
   {% if verbale.note_finali %}{{ verbale.note_finali|linebreaks }}{% endif %}
 
-  <p>
-    Null'altro essendovi da deliberare e nessuno chiedendo ulteriormente la parola, l'Assemblea di Zona viene chiusa alle ore
-    {% if verbale.ora_chiusura %}{{ verbale.ora_chiusura|time:"H:i" }}{% else %}<span class="mancante">[…]</span>{% endif %}.
-  </p>
+  {% if not verifica_senza_quorum %}
+    <p>
+      Null'altro essendovi da deliberare e nessuno chiedendo ulteriormente la parola, l'Assemblea di Zona viene chiusa alle ore
+      {% if verbale.ora_chiusura %}{{ verbale.ora_chiusura|time:"H:i" }}{% else %}<span class="mancante">[…]</span>{% endif %}.
+    </p>
+  {% endif %}
   <p>{% if verbale.luogo %}{{ verbale.luogo }}{% else %}<span class="mancante">[…]</span>{% endif %}, {{ seduta.data|date:"d/m/Y" }}</p>
 
   <table class="firme">
