@@ -47,4 +47,25 @@ urlpatterns = [
         views.FoglioPresenzeView.as_view(),
         name="foglio_presenze",
     ),
+    path(
+        "<int:pk>/convocazioni/nuova/",
+        views.NuovaConvocazioneView.as_view(),
+        name="convocazione_nuova",
+    ),
+    path("<int:pk>/sedute/<int:seduta_pk>/", views.SedutaView.as_view(), name="seduta"),
+    path(
+        "<int:pk>/sedute/<int:seduta_pk>/azione/",
+        views.SedutaAzioneView.as_view(),
+        name="seduta_azione",
+    ),
+    path(
+        "<int:pk>/sedute/<int:seduta_pk>/presenze/",
+        views.PresenzeView.as_view(),
+        name="presenze",
+    ),
+    path(
+        "<int:pk>/sedute/<int:seduta_pk>/presenze/<int:avente_pk>/",
+        views.PresenzaView.as_view(),
+        name="presenza",
+    ),
 ]

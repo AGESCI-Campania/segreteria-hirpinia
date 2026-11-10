@@ -16,17 +16,20 @@ from apps.accounts.models import Utente
 from apps.core.mixins import BreadcrumbExtraMixin
 from apps.organizzazione.models import Gruppo
 
-from . import elenco
+from . import elenco, sedute
 from . import file as file_assemblea
+from . import quorum as quorum_assemblea
 from .forms import (
     AssembleaCreaForm,
     AventeInserisciForm,
+    ConvocazioneForm,
     IncaricoDichiaratoFormSet,
     OperatoreAggiungiForm,
     TrasferisciForm,
 )
-from .models import Assemblea, AventeDiritto, OperatoreVoto
+from .models import Assemblea, AventeDiritto, OperatoreVoto, Seduta
 from .permessi import accede_assemblee, assemblee_visibili, puo_gestire_assemblee, puo_operare
+from .quorum import stato_quorum
 
 
 def _breadcrumb_assemblee() -> list[dict]:
@@ -423,3 +426,172 @@ class FoglioPresenzeView(GestisceAssembleeMixin, View):
         nome = f"foglio-presenze-{assemblea.anno_scout}-{assemblea.pk}.pdf"
         risposta["Content-Disposition"] = f'attachment; filename="{nome}"'
         return risposta
+
+
+# --- Sedute e presenze -----------------------------------------------------------
+
+
+def _seduta_visibile(request: HttpRequest, pk: int, seduta_pk: int) -> Seduta:
+    assemblea = _assemblea_visibile(request, pk)
+    return get_object_or_404(Seduta, pk=seduta_pk, assemblea=assemblea)
+
+
+def _breadcrumb_seduta(request, *ultimi: dict) -> list[dict]:
+    seduta = Seduta.objects.filter(pk=request.resolver_match.kwargs.get("seduta_pk")).first()
+    return _breadcrumb_assemblea(request, {"label": str(seduta) if seduta else ""}, *ultimi)
+
+
+class SedutaView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
+    template_name = "assemblee/seduta.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_seduta(request)
+
+    def get(self, request, pk, seduta_pk):
+        seduta = _seduta_visibile(request, pk, seduta_pk)
+        assemblea = seduta.assemblea
+        contesto = {
+            "assemblea": assemblea,
+            "seduta": seduta,
+            "quorum": stato_quorum(seduta),
+            "puo_operare": puo_operare(request.user, assemblea) and not assemblea.conclusa,
+            "puo_nuova_convocazione": (
+                puo_gestire_assemblee(request.user)
+                and seduta.costituita is False
+                and seduta == sedute.seduta_corrente(assemblea)
+                and seduta.convocazione < Seduta.Convocazione.TERZA
+            ),
+        }
+        return render(request, self.template_name, contesto)
+
+
+AZIONI_SEDUTA = {
+    "apri": (sedute.apri_seduta, "Seduta aperta: si possono registrare le presenze."),
+    "costituita": (sedute.dichiara_costituita, "Seduta dichiarata validamente costituita."),
+    "non_costituita": (
+        sedute.dichiara_non_costituita,
+        "Seduta chiusa: quorum costitutivo non raggiunto.",
+    ),
+    "chiudi": (sedute.chiudi_lavori, "Lavori chiusi."),
+}
+
+
+# Azioni che chiudono la seduta e non si possono annullare: richiedono la
+# conferma esplicita anche lato server, non solo la casella `required` nel form.
+AZIONI_DA_CONFERMARE = {"non_costituita", "chiudi"}
+
+
+class SedutaAzioneView(LoginRequiredMixin, View):
+    """I permessi li controlla il service layer (gestori e operatori)."""
+
+    def post(self, request, pk, seduta_pk):
+        seduta = _seduta_visibile(request, pk, seduta_pk)
+        nome_azione = request.POST.get("azione", "")
+        azione = AZIONI_SEDUTA.get(nome_azione)
+        if azione is None:
+            messages.error(request, "Azione non riconosciuta.")
+        elif nome_azione in AZIONI_DA_CONFERMARE and request.POST.get("conferma") != "1":
+            messages.error(request, "Spunta la conferma prima di chiudere la seduta.")
+        else:
+            funzione, messaggio = azione
+            try:
+                funzione(seduta, request.user)
+            except ValidationError as errore:
+                messages.error(request, " ".join(errore.messages))
+            else:
+                messages.success(request, messaggio)
+        return redirect(reverse("assemblee:seduta", args=[pk, seduta_pk]))
+
+
+class NuovaConvocazioneView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+    template_name = "assemblee/convocazione_nuova.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_assemblea(request, {"label": "Nuova convocazione"})
+
+    def get(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        return render(
+            request, self.template_name, {"assemblea": assemblea, "form": ConvocazioneForm()}
+        )
+
+    def post(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        form = ConvocazioneForm(request.POST)
+        if form.is_valid():
+            try:
+                seduta = sedute.crea_convocazione_successiva(
+                    assemblea,
+                    request.user,
+                    data=form.cleaned_data["data_convocazione"],
+                    ora=form.cleaned_data["ora_convocazione"],
+                    luogo=form.cleaned_data["luogo"],
+                )
+            except ValidationError as errore:
+                form.add_error(None, errore)
+            else:
+                messages.success(request, f"{seduta} creata.")
+                return redirect(reverse("assemblee:seduta", args=[pk, seduta.pk]))
+        return render(request, self.template_name, {"assemblea": assemblea, "form": form})
+
+
+class PresenzeView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
+    """Registrazione delle presenze all'ingresso, pensata per lo smartphone."""
+
+    template_name = "assemblee/presenze.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_seduta(request, {"label": "Presenze"})
+
+    def get(self, request, pk, seduta_pk):
+        seduta = _seduta_visibile(request, pk, seduta_pk)
+        assemblea = seduta.assemblea
+        appello = quorum_assemblea.appello_attivo(seduta)
+        presenti_ids = (
+            set(appello.presenze.values_list("avente_id", flat=True)) if appello else set()
+        )
+        righe = assemblea.aventi_diritto.nell_elenco().select_related("gruppo")
+        filtro_gruppo = request.GET.get("gruppo", "")
+        cerca = request.GET.get("q", "").strip()
+        solo_assenti = request.GET.get("assenti") == "1"
+        if filtro_gruppo:
+            righe = righe.filter(gruppo_id=filtro_gruppo)
+        if cerca:
+            righe = righe.filter(
+                Q(cognome__icontains=cerca) | Q(nome__icontains=cerca) | Q(codice_socio=cerca)
+            )
+        if solo_assenti:
+            righe = righe.exclude(pk__in=presenti_ids)
+        contesto = {
+            "assemblea": assemblea,
+            "seduta": seduta,
+            "appello": appello,
+            "righe": righe.order_by("cognome", "nome"),
+            "presenti_ids": presenti_ids,
+            "quorum": stato_quorum(seduta),
+            "gruppi": Gruppo.objects.filter(
+                pk__in=assemblea.aventi_diritto.nell_elenco().values_list("gruppo_id", flat=True)
+            ).order_by("nome"),
+            "filtro_gruppo": filtro_gruppo,
+            "cerca": cerca,
+            "solo_assenti": solo_assenti,
+            "puo_operare": puo_operare(request.user, assemblea) and seduta.aperta,
+        }
+        return render(request, self.template_name, contesto)
+
+
+class PresenzaView(LoginRequiredMixin, View):
+    def post(self, request, pk, seduta_pk, avente_pk):
+        seduta = _seduta_visibile(request, pk, seduta_pk)
+        avente = get_object_or_404(AventeDiritto, pk=avente_pk, assemblea_id=pk)
+        try:
+            if request.POST.get("annulla") == "1":
+                sedute.annulla_presenza(seduta, avente, request.user)
+            else:
+                sedute.registra_presenza(seduta, avente, request.user)
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+        return _torna_all_elenco(request, seduta.assemblea)

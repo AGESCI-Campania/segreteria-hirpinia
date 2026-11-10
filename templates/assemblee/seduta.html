@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load bootstrap_icons %}
+
+{% block page_title %}{{ seduta }} — {{ assemblea }}{% endblock %}
+
+{% block content %}
+  <h1 class="mb-3">{{ seduta.get_convocazione_display }}</h1>
+  <p class="fg-2 mb-5">
+    {{ assemblea }} — {{ seduta.data|date:"d/m/Y" }}{% if seduta.ora %} ore {{ seduta.ora|time:"H:i" }}{% endif %}{% if seduta.luogo %} — {{ seduta.luogo }}{% endif %}<br>
+    {% if seduta.chiusa_il %}
+      {% if seduta.costituita %}Lavori chiusi il {{ seduta.chiusa_il|date:"d/m/Y H:i" }}{% else %}Non costituita: quorum non raggiunto{% endif %}
+    {% elif seduta.aperta_il %}
+      Aperta dalle {{ seduta.aperta_il|time:"H:i" }}{% if seduta.costituita %} — validamente costituita{% endif %}
+    {% else %}
+      Non ancora aperta
+    {% endif %}
+  </p>
+
+  <div class="row row-cols-1 md:row-cols-3 g-7 mb-7">
+    <div class="col">
+      <div class="card h-100"><div class="card-body">
+        <h2 class="fs-lg">{% bs_icon "people" %} Presenti</h2>
+        <p class="fs-2xl mb-0">{{ quorum.presenti }} <span class="fs-lg fg-2">su {{ quorum.aventi_diritto }}</span></p>
+        <p class="fg-2 mb-0">{{ quorum.presenti_app }} in app, {{ quorum.presenti_carta }} su carta</p>
+      </div></div>
+    </div>
+    <div class="col">
+      <div class="card h-100"><div class="card-body">
+        <h2 class="fs-lg">{% bs_icon "check2-circle" %} Quorum costitutivo</h2>
+        {% if quorum.soglia is None %}
+          <p class="fs-xl mb-0">Non richiesto</p>
+          <p class="fg-2 mb-0">Terza convocazione: valida con qualsiasi numero di presenti.</p>
+        {% else %}
+          <p class="fs-2xl mb-0">{{ quorum.soglia }}</p>
+          <p class="fg-2 mb-0">{% if quorum.raggiunto %}Raggiunto{% else %}Mancano {{ quorum.mancanti }} presenti{% endif %}</p>
+        {% endif %}
+      </div></div>
+    </div>
+    <div class="col">
+      <div class="card h-100"><div class="card-body d-flex flex-column">
+        <h2 class="fs-lg">{% bs_icon "person-check" %} Presenze</h2>
+        <p class="fg-2 flex-grow-1">Registrazione all'ingresso, anche da smartphone.</p>
+        {% if seduta.aperta_il %}
+          <a href="{% url 'assemblee:presenze' assemblea.pk seduta.pk %}" class="btn-solid theme-primary align-self-start">{% if seduta.aperta %}Registra presenze{% else %}Vedi presenze{% endif %}</a>
+        {% endif %}
+      </div></div>
+    </div>
+  </div>
+
+  {% if puo_operare %}
+    <div class="d-flex flex-wrap gap-3">
+      {% if not seduta.aperta_il %}
+        <form method="post" action="{% url 'assemblee:seduta_azione' assemblea.pk seduta.pk %}">
+          {% csrf_token %}<input type="hidden" name="azione" value="apri">
+          <button type="submit" class="btn-solid theme-primary">Apri la seduta</button>
+        </form>
+      {% elif seduta.aperta and seduta.costituita is None %}
+        {% if quorum.raggiunto %}
+          <form method="post" action="{% url 'assemblee:seduta_azione' assemblea.pk seduta.pk %}">
+            {% csrf_token %}<input type="hidden" name="azione" value="costituita">
+            <button type="submit" class="btn-solid theme-success">Dichiara validamente costituita</button>
+          </form>
+        {% else %}
+          <form method="post" action="{% url 'assemblee:seduta_azione' assemblea.pk seduta.pk %}" class="d-flex flex-wrap align-items-center gap-3">
+            {% csrf_token %}<input type="hidden" name="azione" value="non_costituita">
+            <div class="form-field mb-0">
+              <input type="checkbox" name="conferma" value="1" id="conferma-non-costituita" class="check" required>
+              <label for="conferma-non-costituita">Confermo: la seduta si chiude e non si riapre</label>
+            </div>
+            <button type="submit" class="btn-outline theme-danger">Chiudi: quorum non raggiunto</button>
+          </form>
+        {% endif %}
+      {% elif seduta.aperta and seduta.costituita %}
+        <form method="post" action="{% url 'assemblee:seduta_azione' assemblea.pk seduta.pk %}" class="d-flex flex-wrap align-items-center gap-3">
+          {% csrf_token %}<input type="hidden" name="azione" value="chiudi">
+          <div class="form-field mb-0">
+            <input type="checkbox" name="conferma" value="1" id="conferma-chiudi" class="check" required>
+            <label for="conferma-chiudi">Confermo la chiusura dei lavori</label>
+          </div>
+          <button type="submit" class="btn-outline theme-secondary">Chiudi i lavori</button>
+        </form>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if puo_nuova_convocazione %}
+    <div class="alert theme-info mt-7" role="note">
+      <div>
+        <p>La seduta non ha raggiunto il quorum. Il Consiglio di Zona può fissare la convocazione successiva.</p>
+        <a href="{% url 'assemblee:convocazione_nuova' assemblea.pk %}" class="btn-solid theme-primary btn-sm">Crea la {{ seduta.convocazione|add:"1" }}ª convocazione</a>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}

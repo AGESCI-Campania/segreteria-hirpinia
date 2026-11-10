@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% load agesci_components %}
+
+{% block page_title %}Presenze — {{ seduta }}{% endblock %}
+
+{% block content %}
+  <h1 class="mb-3">Presenze</h1>
+  <p class="fg-2 mb-3">{{ seduta.get_convocazione_display }} — {{ assemblea }}</p>
+
+  <div class="alert {% if quorum.raggiunto %}theme-success{% else %}theme-warning{% endif %} mb-5" role="status">
+    <div>
+      <strong>{{ quorum.presenti }} presenti su {{ quorum.aventi_diritto }}</strong>
+      ({{ quorum.presenti_app }} in app, {{ quorum.presenti_carta }} su carta) —
+      {% if quorum.soglia is None %}quorum non richiesto{% elif quorum.raggiunto %}quorum di {{ quorum.soglia }} raggiunto{% else %}quorum {{ quorum.soglia }}: mancano {{ quorum.mancanti }}{% endif %}
+    </div>
+  </div>
+
+  {% if not seduta.aperta %}
+    <div class="alert theme-info" role="note"><p class="mb-0">La seduta non è aperta: le presenze sono in sola lettura.</p></div>
+  {% endif %}
+
+  <form method="get" class="row g-3 align-items-end mb-5">
+    <div class="md:col-5">
+      <div class="form-field">
+        <label for="presenze-q">Cerca</label>
+        <input id="presenze-q" type="search" name="q" value="{{ cerca }}" class="form-control" placeholder="Cognome, nome o codice socio" autofocus>
+      </div>
+    </div>
+    <div class="md:col-4">
+      <div class="form-field">
+        <label for="presenze-gruppo">Gruppo</label>
+        <select id="presenze-gruppo" name="gruppo" class="form-control">
+          <option value="">Tutti i gruppi</option>
+          {% for gruppo in gruppi %}
+            <option value="{{ gruppo.pk }}"{% if gruppo.pk == filtro_gruppo %} selected{% endif %}>{{ gruppo.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="md:col-auto">
+      <div class="form-field">
+        <input id="presenze-assenti" type="checkbox" name="assenti" value="1" class="check"{% if solo_assenti %} checked{% endif %}>
+        <label for="presenze-assenti">Solo non ancora presenti</label>
+      </div>
+    </div>
+    <div class="md:col-auto">
+      <button type="submit" class="btn-outline theme-primary">Cerca</button>
+    </div>
+  </form>
+
+  <div class="table-responsive">
+  <table class="table">
+    <tbody>
+      {% for riga in righe %}
+        <tr id="avente-{{ riga.pk }}">
+          <td>
+            <strong>{{ riga.cognome }} {{ riga.nome }}</strong><br>
+            <small class="fg-2">{{ riga.gruppo.nome }}{% if riga.codice_socio %} — {{ riga.codice_socio }}{% endif %}</small>
+          </td>
+          <td>{% if riga.vota_in_app %}{% ag_chip "App" variant="success" %}{% else %}{% ag_chip "Carta" variant="secondary" %}{% endif %}</td>
+          <td class="text-end">
+            {% if riga.pk in presenti_ids %}
+              {% ag_chip "Presente" variant="success" %}
+              {% if puo_operare %}
+                <form method="post" action="{% url 'assemblee:presenza' assemblea.pk seduta.pk riga.pk %}" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}#avente-{{ riga.pk }}">
+                  <input type="hidden" name="annulla" value="1">
+                  <button type="submit" class="btn-outline theme-secondary btn-sm">Annulla</button>
+                </form>
+              {% endif %}
+            {% elif puo_operare %}
+              <form method="post" action="{% url 'assemblee:presenza' assemblea.pk seduta.pk riga.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}#avente-{{ riga.pk }}">
+                <button type="submit" class="btn-solid theme-success">Presente</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td>Nessun capo corrisponde alla ricerca.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+
+  <p class="fg-2 mt-5">
+    Un capo che non compare nell'elenco lo aggiungono amministratori, segreteria o RdZ dall'elenco degli aventi diritto.
+    «Annulla» corregge un errore di registrazione: le uscite non si registrano, i presenti si aggiornano con la verifica del quorum.
+  </p>
+{% endblock %}

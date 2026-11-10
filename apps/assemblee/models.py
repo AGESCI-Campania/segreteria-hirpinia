@@ -83,6 +83,12 @@ class Seduta(models.Model):
     data = models.DateField()
     ora = models.TimeField(null=True, blank=True)
     luogo = models.CharField(max_length=255, blank=True)
+    # Apertura della registrazione delle presenze; esito sul quorum costitutivo
+    # (null finché non dichiarato); chiusura: fine lavori, o subito se la
+    # seduta non è costituita.
+    aperta_il = models.DateTimeField(null=True, blank=True)
+    costituita = models.BooleanField(null=True, blank=True)
+    chiusa_il = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = "seduta"
@@ -96,6 +102,83 @@ class Seduta(models.Model):
 
     def __str__(self) -> str:
         return f"{self.get_convocazione_display()} del {self.data:%d/%m/%Y}"
+
+    @property
+    def aperta(self) -> bool:
+        return self.aperta_il is not None and self.chiusa_il is None
+
+    @property
+    def senza_quorum(self) -> bool:
+        """In terza convocazione l'assemblea è valida qualunque sia il numero
+        dei presenti (art. 4 c.3)."""
+        return self.convocazione == Seduta.Convocazione.TERZA
+
+
+class TipoAppello(models.TextChoices):
+    INGRESSO = "INGRESSO", "Registrazione all'ingresso"
+    VERIFICA = "VERIFICA", "Verifica del quorum"
+
+
+class RichiedenteVerifica(models.TextChoices):
+    """Chi può chiedere la verifica del quorum (art. 4 c.5)."""
+
+    PRESIDENZA = "PRESIDENZA", "Presidenza dell'Assemblea"
+    GRUPPI = "GRUPPI", "Almeno 1/3 dei gruppi, tramite i capigruppo"
+    COMITATO = "COMITATO", "Due membri del Comitato di Zona"
+    CAPI = "CAPI", "Almeno 1/3 dei capi presenti"
+
+
+class Appello(models.Model):
+    """Una rilevazione dei presenti di una seduta (D-70): quella all'ingresso e
+    ogni verifica del quorum. Le presenze si registrano sempre nell'ultimo
+    appello; il quorum si calcola sull'ultimo appello valido (l'ingresso, o una
+    verifica chiusa) — vedi `apps/assemblee/quorum.py`."""
+
+    seduta = models.ForeignKey(Seduta, on_delete=models.CASCADE, related_name="appelli")
+    numero = models.PositiveSmallIntegerField()
+    tipo = models.CharField(max_length=10, choices=TipoAppello.choices)
+    richiedente = models.CharField(max_length=15, choices=RichiedenteVerifica.choices, blank=True)
+    aperto_il = models.DateTimeField(auto_now_add=True)
+    aperto_da = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    chiuso_il = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "appello"
+        verbose_name_plural = "appelli"
+        ordering = ["seduta", "numero"]
+        constraints = [
+            models.UniqueConstraint(fields=["seduta", "numero"], name="appello_unico_per_numero")
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.get_tipo_display()} n. {self.numero}"
+
+
+class Presenza(models.Model):
+    appello = models.ForeignKey(Appello, on_delete=models.CASCADE, related_name="presenze")
+    avente = models.ForeignKey("AventeDiritto", on_delete=models.CASCADE, related_name="presenze")
+    registrata_il = models.DateTimeField(auto_now_add=True)
+    registrata_da = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+
+    class Meta:
+        verbose_name = "presenza"
+        verbose_name_plural = "presenze"
+        constraints = [models.UniqueConstraint(fields=["appello", "avente"], name="presenza_unica")]
+
+    def __str__(self) -> str:
+        return f"{self.avente} — {self.appello}"
 
 
 class OrigineAvente(models.TextChoices):

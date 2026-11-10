@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block page_title %}Nuova convocazione — {{ assemblea }}{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="md:col-6">
+      <h1>Nuova convocazione</h1>
+      <p class="fg-2">
+        {{ assemblea }}: data, ora e luogo decisi dal Consiglio di Zona. L'elenco degli aventi
+        diritto resta lo stesso; le presenze si registrano da capo.
+      </p>
+      <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="d-flex gap-3">
+          <button type="submit" class="btn-solid theme-primary">Crea convocazione</button>
+          <a href="{% url 'assemblee:assemblea_dettaglio' assemblea.pk %}" class="btn-outline theme-secondary">Annulla</a>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

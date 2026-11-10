@@ -9,7 +9,15 @@ class AssembleeConfig(AppConfig):
     def ready(self):
         from auditlog.registry import auditlog
 
-        from .models import Assemblea, AventeDiritto, IncaricoDichiarato, OperatoreVoto, Seduta
+        from .models import (
+            Appello,
+            Assemblea,
+            AventeDiritto,
+            IncaricoDichiarato,
+            OperatoreVoto,
+            Presenza,
+            Seduta,
+        )
 
         # Eliminazioni, trasferimenti e nomine di operatori vanno tracciati (D-70):
         # la storia delle modifiche all'elenco sta nel log, non in campi duplicati.
@@ -18,3 +26,5 @@ class AssembleeConfig(AppConfig):
         auditlog.register(AventeDiritto)
         auditlog.register(IncaricoDichiarato)
         auditlog.register(OperatoreVoto)
+        auditlog.register(Appello)
+        auditlog.register(Presenza)

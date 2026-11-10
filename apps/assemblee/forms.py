@@ -103,3 +103,15 @@ class TrasferisciForm(forms.Form):
         cast(forms.ModelChoiceField, self.fields["gruppo"]).queryset = (
             Gruppo.objects.attivi(assemblea.anno_scout).exclude(pk=attuale.pk).order_by("nome")
         )
+
+
+class ConvocazioneForm(forms.Form):
+    """Seconda o terza convocazione: data, ora e luogo decisi dal Consiglio di Zona."""
+
+    data_convocazione = forms.DateField(
+        label="Data", widget=forms.DateInput(attrs={"type": "date"})
+    )
+    ora_convocazione = forms.TimeField(
+        label="Ora", required=False, widget=forms.TimeInput(attrs={"type": "time"})
+    )
+    luogo = forms.CharField(label="Luogo", max_length=255, required=False)

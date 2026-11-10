@@ -14,8 +14,10 @@ from openpyxl import Workbook
 from apps.accounts.models import Utente
 from apps.core.pdf import percorsi_carta_intestata
 
-from .models import Assemblea, AventeDiritto, ScaricamentoFile, Seduta, TipoFile
+from . import quorum
+from .models import Assemblea, AventeDiritto, ScaricamentoFile, TipoFile
 from .permessi import puo_gestire_assemblee
+from .sedute import seduta_corrente
 
 # Tracciato dell'app di voto: intestazione alla riga 6 (5 righe vuote prima),
 # foglio "Sheet1", come il modello fornito dal Nazionale.
@@ -59,11 +61,6 @@ def _traccia(assemblea: Assemblea, tipo: str, utente: Utente, righe: int) -> Non
     )
 
 
-def seduta_in_corso(assemblea: Assemblea) -> Seduta | None:
-    """L'ultima convocazione creata: quella a cui si riferiscono presenze e file."""
-    return assemblea.sedute.order_by("-convocazione").first()
-
-
 def _codice(codice_socio: str) -> int | str:
     # Nel modello il codice socio è un numero; un codice non numerico resta testo.
     return int(codice_socio) if codice_socio.isdigit() else codice_socio
@@ -78,6 +75,8 @@ def righe_tracciato(assemblea: Assemblea) -> list[list]:
         .select_related("capo", "gruppo", "gruppo_origine")
         .order_by("cognome", "nome")
     )
+    seduta = seduta_corrente(assemblea)
+    presenti = set(quorum.presenti(seduta).values_list("pk", flat=True)) if seduta else set()
     righe = []
     for pic, avente in enumerate(aventi, start=1):
         gruppo = avente.gruppo_origine or avente.gruppo
@@ -100,8 +99,7 @@ def righe_tracciato(assemblea: Assemblea) -> list[list]:
                 None,
                 None,
                 None,
-                # Presenze e deleghe arrivano con la registrazione in sala (Fase 2).
-                "NO",
+                "SI" if avente.pk in presenti else "NO",
                 "SI",
                 None,
             ]
@@ -155,7 +153,7 @@ def genera_foglio_presenze_pdf(assemblea: Assemblea, utente: Utente) -> bytes:
     totale = sum(len(righe) for _, righe in gruppi)
     contesto = {
         "assemblea": assemblea,
-        "seduta": seduta_in_corso(assemblea),
+        "seduta": seduta_corrente(assemblea),
         "gruppi": gruppi,
         "totale": totale,
         "totale_app": sum(a.vota_in_app for _, righe in gruppi for _, a in righe),

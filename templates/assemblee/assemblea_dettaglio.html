@@ -27,7 +27,10 @@
           <h2 class="fs-lg">{% bs_icon "calendar-event" %} Convocazioni</h2>
           <ul class="list-unstyled mb-0">
             {% for seduta in sedute %}
-              <li>{{ seduta }}{% if seduta.ora %} ore {{ seduta.ora|time:"H:i" }}{% endif %}{% if seduta.luogo %} — {{ seduta.luogo }}{% endif %}</li>
+              <li class="mb-3">
+                <a href="{% url 'assemblee:seduta' assemblea.pk seduta.pk %}">{{ seduta }}</a>{% if seduta.ora %} ore {{ seduta.ora|time:"H:i" }}{% endif %}{% if seduta.luogo %} — {{ seduta.luogo }}{% endif %}<br>
+                <small class="fg-2">{% if seduta.chiusa_il %}{% if seduta.costituita %}lavori chiusi{% else %}non costituita{% endif %}{% elif seduta.costituita %}costituita, in corso{% elif seduta.aperta_il %}aperta, registrazione presenze{% else %}da aprire{% endif %}</small>
+              </li>
             {% endfor %}
           </ul>
         </div>
