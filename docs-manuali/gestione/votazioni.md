@@ -56,6 +56,11 @@ In **Registra i voti** si inseriscono solo i voti **su carta** (e schede bianche
 quelli in app si contano da soli. **Registra e chiudi la votazione** calcola l'esito,
 pubblica la bacheca e ne fissa l'impronta per il verbale.
 
+Nelle votazioni per **alzata di mano** (mozioni, bilanci, mozioni d'ordine…) si chiedono
+prima i contrari, poi gli astenuti: se non ce ne sono, premi **Palese**. La votazione è
+approvata senza contare i favorevoli e l'esito, anche nel verbale, è «Approvata a voto
+palese».
+
 ![Esito della votazione](img/votazione-esito.jpg)
 
 Il **punto all'ordine del giorno** di una votazione si cambia dalla sua pagina in

@@ -846,6 +846,13 @@ class Votazione(models.Model):
     chiusa_in_app_il = models.DateTimeField(null=True, blank=True)
     # SHA-256 dell'elenco ordinato delle schede pubblicato in bacheca: va nel verbale.
     hash_bacheca = models.CharField(max_length=64, blank=True)
+    # Alzata di mano senza contrari né astenuti: approvata «palese», senza
+    # contare i favorevoli (votazioni.registra_palese()).
+    esito_palese = models.BooleanField(
+        "approvata palese",
+        default=False,
+        help_text="Approvata per alzata di mano: nessun contrario né astenuto.",
+    )
 
     class Meta:
         verbose_name = "votazione"

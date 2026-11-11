@@ -1938,6 +1938,10 @@ class VotazioneAzioneView(LoginRequiredMixin, View):
                 return redirect(
                     reverse("assemblee:votazione", args=[pk, seduta_pk, ballottaggio.pk])
                 )
+            if azione == "palese":
+                voto.registra_palese(votazione, request.user)
+                messages.success(request, "Approvata a voto palese.")
+                return redirect(reverse("assemblee:votazione", args=[pk, seduta_pk, votazione_pk]))
             if azione == "punto":
                 valore = request.POST.get("punto", "")
                 punto = (

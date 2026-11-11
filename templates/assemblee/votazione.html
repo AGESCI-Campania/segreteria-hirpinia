@@ -119,6 +119,14 @@
       <button type="submit" class="btn-solid theme-primary mt-5">Registra e chiudi la votazione</button>
     </form>
 
+    {% if not votazione.segreta %}
+      <form method="post" action="{% url 'assemblee:votazione_azione' assemblea.pk seduta.pk votazione.pk %}" class="d-flex flex-wrap align-items-center gap-3 mt-5">
+        {% csrf_token %}<input type="hidden" name="azione" value="palese">
+        <button type="submit" class="btn-solid theme-success">Palese</button>
+        <span class="fg-2">Approvata senza contare: alla richiesta nessun contrario e nessun astenuto.</span>
+      </form>
+    {% endif %}
+
     <form method="post" action="{% url 'assemblee:votazione_azione' assemblea.pk seduta.pk votazione.pk %}" class="d-flex flex-wrap align-items-center gap-3 mt-7">
       {% csrf_token %}<input type="hidden" name="azione" value="annulla">
       <div class="form-field mb-0">

@@ -402,6 +402,24 @@ def registra_risultati(
     return esito(votazione)
 
 
+@transaction.atomic
+def registra_palese(votazione: Votazione, utente: Utente) -> Esito:
+    """Alzata di mano senza contrari né astenuti (chiesti per primi): approvata
+    «palese». I favorevoli sono tutti i presenti della votazione, così soglie,
+    totali e verbale restano coerenti; nel verbale l'esito dice «palese»."""
+    if votazione.segreta:
+        raise ValidationError("Solo le votazioni per alzata di mano si approvano palese.")
+    canale = canali(votazione)[0]
+    risultato = registra_risultati(
+        votazione,
+        utente,
+        per_canale={canale: {"favorevoli": votazione.presenti, "contrari": 0, "astenuti": 0}},
+    )
+    votazione.esito_palese = True
+    votazione.save(update_fields=["esito_palese"])
+    return risultato
+
+
 def _verifica_coerenza(votazione: Votazione) -> None:
     """Le schede o le alzate di mano non possono superare i presenti."""
     tot = totali(votazione)
@@ -498,6 +516,8 @@ def frase_esito(votazione: Votazione) -> str:
         return "Votazione in corso."
     e = esito(votazione)
     base = f"su {e.base} {e.base_nome}, soglia {e.soglia}"
+    if e.approvata is not None and votazione.esito_palese:
+        return f"Approvata a voto palese: nessun contrario né astenuto ({base})."
     if e.approvata is not None:
         t = e.totali
         dettaglio = ", ".join(

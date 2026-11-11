@@ -390,3 +390,26 @@ class TestPuntoOdG:
         capo = Utente.objects.create(username="capo-punto", email="cp@example.it")
         with pytest.raises(PermissionDenied):
             votazioni.collega_punto(votazione, capo, punto)
+
+
+class TestPalese:
+    def test_approvata_palese(self, client, seduta, segreteria):
+        v = votazioni.apri_votazione(
+            seduta, segreteria, tipo=TipoVotazione.MOZIONE, oggetto="Mozione"
+        )
+        client.force_login(segreteria)
+        base = f"/assemblee/{seduta.assemblea_id}/sedute/{seduta.pk}/votazioni/{v.pk}/"
+        assert 'value="palese"' in client.get(base).content.decode()
+        client.post(base + "azione/", {"azione": "palese"})
+        v.refresh_from_db()
+        assert v.chiusa and v.esito_palese
+        esito = votazioni.esito(v)
+        assert esito.approvata and esito.totali.favorevoli == v.presenti
+        assert esito.totali.contrari == esito.totali.astenuti == 0
+        assert votazioni.frase_esito(v).startswith("Approvata a voto palese")
+
+    def test_non_per_le_segrete(self, seduta, segreteria):
+        v = _votazione(seduta, TipoVotazione.ELEZIONE, candidati=["Anna"])
+        with pytest.raises(ValidationError):
+            votazioni.registra_palese(v, segreteria)
+        assert not v.chiusa
