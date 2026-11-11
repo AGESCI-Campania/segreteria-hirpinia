@@ -133,6 +133,12 @@ class Assemblea(models.Model):
     def voto_catello(self) -> bool:
         return self.sistema_voto == SistemaVoto.CATELLO
 
+    @property
+    def seduta_aperta(self) -> Seduta | None:
+        """La seduta aperta in questo momento, se c'è (una alla volta). Usa le
+        sedute già caricate con prefetch_related, se ci sono."""
+        return next((s for s in self.sedute.all() if s.aperta), None)
+
 
 class Seduta(models.Model):
     """Una convocazione dell'assemblea (D-70): la 2ª e la 3ª esistono solo se la

@@ -50,6 +50,11 @@
             {% if not assemblea.voto_catello %}<a href="{% url 'assemblee:abilitazione_app' assemblea.pk seduta.pk %}" class="btn-outline theme-primary">Abilitazione app</a>{% else %}<a href="{% url 'voto:seggi' assemblea.pk seduta.pk %}" class="btn-outline theme-primary">Seggi</a>{% endif %}
           </div>
         {% endif %}
+        {% if puo_gestire and not assemblea.conclusa %}
+          <div class="mt-3">
+            <a href="{% url 'assemblee:elenco' assemblea.pk %}" class="btn-outline theme-secondary">Modifica l'elenco degli aventi diritto</a>
+          </div>
+        {% endif %}
       </div></div>
     </div>
   </div>

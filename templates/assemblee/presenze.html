@@ -5,7 +5,7 @@
 
 {% block content %}
   <h1 class="mb-3">Presenze</h1>
-  <p class="fg-2 mb-3">{{ seduta.get_convocazione_display }} — {{ assemblea }} — <a href="{% url 'assemblee:deleghe' assemblea.pk seduta.pk %}">deleghe AE</a></p>
+  <p class="fg-2 mb-3">{{ seduta.get_convocazione_display }} — {{ assemblea }} — <a href="{% url 'assemblee:seduta' assemblea.pk seduta.pk %}">seduta</a> — <a href="{% url 'assemblee:deleghe' assemblea.pk seduta.pk %}">deleghe AE</a>{% if puo_gestire %} — <a href="{% url 'assemblee:elenco' assemblea.pk %}">elenco degli aventi diritto</a>{% endif %}</p>
 
   <div class="alert {% if quorum.raggiunto %}theme-success{% else %}theme-warning{% endif %} mb-5" role="status">
     <div>
@@ -122,7 +122,7 @@
   </div>
 
   <p class="fg-2 mt-5">
-    Un capo che non compare nell'elenco lo aggiungono amministratori, segreteria o RdZ dall'elenco degli aventi diritto.
+    Un capo che non compare nell'elenco lo aggiungono amministratori, segreteria o RdZ dall'{% if puo_gestire %}<a href="{% url 'assemblee:elenco' assemblea.pk %}">elenco degli aventi diritto</a>{% else %}elenco degli aventi diritto{% endif %}.
     «Annulla» corregge un errore di registrazione: le uscite non si registrano, i presenti si aggiornano con la verifica del quorum.
   </p>
 {% endblock %}

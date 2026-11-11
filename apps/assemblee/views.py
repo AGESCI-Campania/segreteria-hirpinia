@@ -425,6 +425,7 @@ class AssembleaDettaglioView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
         contesto = {
             "assemblea": assemblea,
             "sedute": assemblea.sedute.all(),
+            "seduta_aperta": assemblea.seduta_aperta,
             "operatori": comitato.componenti(assemblea),
             "puo_gestire": puo_gestire,
             "totale_aventi_diritto": elenco.count(),
@@ -1220,6 +1221,7 @@ class PresenzeView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             "verifica": verifica,
             "stato_verifica": stato_quorum(seduta, verifica) if verifica else None,
             "precedenti_ids": precedenti_ids,
+            "puo_gestire": puo_gestire_assemblee(request.user) and not assemblea.conclusa,
             "solo_precedenti": solo_precedenti,
             "gruppi": Gruppo.objects.filter(
                 pk__in=assemblea.aventi_diritto.nell_elenco().values_list("gruppo_id", flat=True)

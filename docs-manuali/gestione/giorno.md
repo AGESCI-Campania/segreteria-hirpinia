@@ -3,7 +3,8 @@
 ## La seduta
 
 Dalla pagina dell'assemblea apri la convocazione. **Apri la seduta** abilita la
-registrazione delle presenze.
+registrazione delle presenze. Finché la seduta è aperta, la pagina dell'assemblea e
+l'elenco delle assemblee mostrano **Vai alla seduta** per arrivarci subito.
 
 ![Seduta da aprire](img/seduta-da-aprire.jpg)
 
@@ -16,7 +17,9 @@ rifà l'appello dalla pagina delle presenze.
 
 ## Presenze e codici
 
-**Registra presenze**: si cerca il capo e si preme **Presente**. Con il voto in app il
+**Registra presenze**: si cerca il capo e si preme **Presente**. Se un capo non è
+nell'elenco, i gestori lo aggiungono da **Modifica l'elenco degli aventi diritto** (nella
+seduta) o dal collegamento in cima alla pagina delle presenze. Con il voto in app il
 codice di voto parte subito per email; in alternativa **Rigenera e mostra** lo mostra a
 schermo, con l'etichetta da stampare. I dettagli sono nel manuale per il banco e i seggi.
 

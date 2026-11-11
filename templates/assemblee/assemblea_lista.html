@@ -27,7 +27,11 @@
           <td>{{ assemblea }}</td>
           <td>{{ assemblea.get_sessione_display }}</td>
           <td>{% if prima %}{{ prima.data|date:"d/m/Y" }}{% if prima.luogo %} — {{ prima.luogo }}{% endif %}{% else %}—{% endif %}</td>
-          <td>{% if assemblea.conclusa %}Conclusa{% else %}In preparazione{% endif %}</td>
+          <td>
+            {% if assemblea.conclusa %}Conclusa{% elif assemblea.seduta_aperta %}
+              <a href="{% url 'assemblee:seduta' assemblea.pk assemblea.seduta_aperta.pk %}" class="btn-solid theme-success btn-sm">{{ assemblea.seduta_aperta.get_convocazione_display }} aperta: vai</a>
+            {% else %}In preparazione{% endif %}
+          </td>
           <td><a href="{% url 'assemblee:assemblea_dettaglio' assemblea.pk %}" class="btn-outline theme-primary btn-sm">Apri</a></td>
         </tr>
         {% endwith %}

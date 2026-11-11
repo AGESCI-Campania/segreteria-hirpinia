@@ -181,3 +181,41 @@ class TestTitolo:
         OperatoreVoto.objects.create(assemblea=assemblea, utente=capo)
         client.force_login(capo)
         assert client.post(f"/assemblee/{assemblea.pk}/titolo/", {"titolo": "X"}).status_code == 403
+
+
+class TestSedutaAperta:
+    def test_collegamento_alla_seduta_aperta(self, client, segreteria, assemblea):
+        from apps.assemblee import sedute
+
+        seduta = assemblea.sedute.get()
+        client.force_login(segreteria)
+        assert "Vai alla seduta" not in client.get(f"/assemblee/{assemblea.pk}/").content.decode()
+        sedute.apri_seduta(seduta, segreteria)
+        url = f"/assemblee/{assemblea.pk}/sedute/{seduta.pk}/"
+        dettaglio = client.get(f"/assemblee/{assemblea.pk}/").content.decode()
+        assert "Vai alla seduta" in dettaglio and url in dettaglio
+        assert url in client.get("/assemblee/").content.decode()
+
+    def test_elenco_raggiungibile_dalla_seduta_solo_per_i_gestori(
+        self, client, segreteria, capo, assemblea
+    ):
+        from apps.assemblee import sedute
+
+        seduta = assemblea.sedute.get()
+        sedute.apri_seduta(seduta, segreteria)
+        elenco_url = f"/assemblee/{assemblea.pk}/elenco/"
+        client.force_login(segreteria)
+        assert (
+            elenco_url
+            in client.get(f"/assemblee/{assemblea.pk}/sedute/{seduta.pk}/").content.decode()
+        )
+        assert (
+            elenco_url
+            in client.get(
+                f"/assemblee/{assemblea.pk}/sedute/{seduta.pk}/presenze/"
+            ).content.decode()
+        )
+        OperatoreVoto.objects.create(assemblea=assemblea, utente=capo)
+        client.force_login(capo)
+        pagina = client.get(f"/assemblee/{assemblea.pk}/sedute/{seduta.pk}/").content.decode()
+        assert "Modifica l'elenco" not in pagina

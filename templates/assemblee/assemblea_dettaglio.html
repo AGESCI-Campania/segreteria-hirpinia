@@ -15,6 +15,12 @@
       </div>
     {% endif %}
   </div>
+  {% if seduta_aperta %}
+    <div class="alert theme-success d-flex flex-wrap justify-content-between align-items-center gap-3" role="status">
+      <p class="mb-0"><strong>{{ seduta_aperta.get_convocazione_display }} aperta</strong> dalle {{ seduta_aperta.aperta_il|time:"H:i" }}{% if seduta_aperta.costituita %}, validamente costituita{% endif %}.</p>
+      <a href="{% url 'assemblee:seduta' assemblea.pk seduta_aperta.pk %}" class="btn-solid theme-success">Vai alla seduta</a>
+    </div>
+  {% endif %}
   {% if assemblea.di_prova %}
     <div class="alert theme-warning" role="note">
       <div>
