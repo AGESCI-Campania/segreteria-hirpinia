@@ -1,0 +1,17 @@
+{# Collegamenti della seduta, nella pagina della seduta e nel cruscotto (nel_cruscotto: senza cruscotto e verbale). #}
+{% load bootstrap_icons %}
+{% if seduta.aperta_il %}
+  <div class="d-flex flex-wrap gap-3">
+    <a href="{% url 'assemblee:presenze' assemblea.pk seduta.pk %}" class="btn-solid theme-primary">{% if seduta.aperta %}Registra presenze{% else %}Vedi presenze{% endif %}</a>
+    <a href="{% url 'assemblee:deleghe' assemblea.pk seduta.pk %}" class="btn-outline theme-primary">Deleghe AE</a>
+    {% if not nel_cruscotto %}<a href="{% url 'assemblee:cruscotto' assemblea.pk seduta.pk %}" class="btn-outline theme-primary">Cruscotto</a>{% endif %}
+    <a href="{% url 'assemblee:votazioni' assemblea.pk seduta.pk %}" class="btn-outline theme-primary">Votazioni</a>
+    {% if not nel_cruscotto and puo_compilare and seduta.costituita %}<a href="{% url 'assemblee:verbale' assemblea.pk seduta.pk %}" class="btn-outline theme-primary">Verbale</a>{% endif %}
+    {% if not assemblea.voto_catello %}<a href="{% url 'assemblee:abilitazione_app' assemblea.pk seduta.pk %}" class="btn-outline theme-primary">Abilitazione app</a>{% else %}<a href="{% url 'voto:seggi' assemblea.pk seduta.pk %}" class="btn-outline theme-primary">Seggi</a>{% endif %}
+  </div>
+{% endif %}
+{% if puo_gestire and not assemblea.conclusa %}
+  <div class="mt-3">
+    <a href="{% url 'assemblee:elenco' assemblea.pk %}" class="btn-outline theme-secondary">Modifica l'elenco degli aventi diritto</a>
+  </div>
+{% endif %}

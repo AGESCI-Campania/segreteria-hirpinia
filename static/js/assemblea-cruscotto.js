@@ -58,9 +58,14 @@
       el.classList.toggle("bg-subtle-success", dati.raggiunto);
       el.classList.toggle("bg-subtle-danger", !dati.raggiunto);
     });
-    // Il pulsante per dichiarare la seduta costituita segue il quorum.
+    // Azioni della seduta che seguono il quorum: «Dichiara validamente
+    // costituita» con il quorum, «Chiudi: quorum non raggiunto» senza.
     document.querySelectorAll("[data-se-quorum-raggiunto]").forEach(function (el) {
       el.classList.toggle("d-none", !dati.raggiunto);
+    });
+    document.querySelectorAll("[data-se-quorum-mancante]").forEach(function (el) {
+      el.classList.toggle("d-none", dati.raggiunto);
+      el.classList.toggle("d-flex", !dati.raggiunto);
     });
     document.querySelectorAll("[data-esito-quorum]").forEach(function (el) {
       el.classList.toggle("theme-success", dati.raggiunto);

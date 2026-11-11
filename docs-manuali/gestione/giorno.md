@@ -38,9 +38,13 @@ comunque una volta sola).
 
 ## Cruscotto e seggi
 
-Il **Cruscotto** si aggiorna da solo: presenti, quorum, maggioranze richieste. Appena il
-quorum è raggiunto compare **Dichiara validamente costituita**, come nella pagina della
-seduta. La
+Il **Cruscotto** è il punto centrale della seduta e si aggiorna da solo: presenti, quorum,
+maggioranze richieste. Da lì, per chi ne ha il permesso, ci sono gli stessi collegamenti e
+le stesse azioni della pagina della seduta (presenze, deleghe, votazioni, seggi, elenco
+degli aventi diritto, apertura, **Dichiara validamente costituita** appena il quorum è
+raggiunto, chiusura dei lavori e verifica del quorum), senza andare avanti e indietro.
+Dopo ogni azione si torna al cruscotto. Il verbale invece si apre dalla pagina della
+seduta: si può compilare anche dopo la chiusura. La
 **Vista proiettore** è la versione da mostrare in sala, senza dati personali.
 
 ![Cruscotto](img/cruscotto.jpg)

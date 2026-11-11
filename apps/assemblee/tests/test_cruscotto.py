@@ -166,3 +166,39 @@ class TestDichiarazioneDalCruscotto:
             {"azione": "costituita", "next": "https://esempio.invalid/"},
         )
         assert risposta.url == f"{self._base(seduta)}/"
+
+
+class TestCruscottoPuntoCentrale:
+    def _base(self, seduta):
+        return f"/assemblee/{seduta.assemblea_id}/sedute/{seduta.pk}"
+
+    def test_collegamenti_e_azioni_senza_verbale(self, client, seduta, segreteria):
+        sedute.dichiara_costituita(seduta, segreteria)
+        client.force_login(segreteria)
+        url = f"{self._base(seduta)}/cruscotto/"
+        pagina = client.get(url).content.decode()
+        for testo in (
+            "Registra presenze",
+            "Deleghe AE",
+            "Votazioni",
+            "Modifica l'elenco degli aventi diritto",
+            "Chiudi i lavori",
+            "Apri una verifica del quorum",
+        ):
+            assert testo in pagina, testo
+        assert f"{self._base(seduta)}/verbale/" not in pagina
+        # Le azioni tornano al cruscotto.
+        risposta = client.post(
+            f"{self._base(seduta)}/azione/",
+            {"azione": "apri_verifica", "richiedente": "PRESIDENZA", "next": url},
+        )
+        assert risposta.url == url
+        assert "Chiudi la verifica" in client.get(url).content.decode()
+
+    def test_il_comitato_non_vede_l_elenco(self, client, seduta):
+        operatore = _persona("op2@example.it")
+        OperatoreVoto.objects.create(assemblea=seduta.assemblea, utente=operatore)
+        client.force_login(operatore)
+        pagina = client.get(f"{self._base(seduta)}/cruscotto/").content.decode()
+        assert "Registra presenze" in pagina
+        assert "Modifica l'elenco degli aventi diritto" not in pagina

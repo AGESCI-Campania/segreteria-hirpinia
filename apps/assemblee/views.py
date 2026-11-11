@@ -1054,6 +1054,29 @@ def _breadcrumb_seduta(request, *ultimi: dict) -> list[dict]:
     return _breadcrumb_assemblea(request, {"label": str(seduta) if seduta else ""}, *ultimi)
 
 
+def _contesto_gestione_seduta(request, seduta: Seduta) -> dict:
+    """Contesto di collegamenti e azioni della seduta (templates/assemblee/
+    _collegamenti_seduta.html e _azioni_seduta.html), comuni alla pagina della
+    seduta e al cruscotto: i permessi veri restano nel service layer."""
+    assemblea = seduta.assemblea
+    verifica = quorum_assemblea.verifica_in_corso(seduta)
+    return {
+        "assemblea": assemblea,
+        "seduta": seduta,
+        "quorum": stato_quorum(seduta),
+        "verifica": verifica,
+        "verifica_senza_quorum": quorum_assemblea.verifica_senza_quorum(seduta),
+        "puo_gestire": puo_gestire_assemblee(request.user),
+        "puo_compilare": puo_compilare_verbale(request.user, assemblea),
+        "stato_verifica": stato_quorum(seduta, verifica) if verifica else None,
+        "verifiche_chiuse": seduta.appelli.filter(
+            tipo=TipoAppello.VERIFICA, chiuso_il__isnull=False
+        ).order_by("numero"),
+        "richiedenti": RichiedenteVerifica.choices,
+        "puo_operare": puo_operare(request.user, assemblea) and not assemblea.conclusa,
+    }
+
+
 class SedutaView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
     template_name = "assemblee/seduta.html"
 
@@ -1064,21 +1087,8 @@ class SedutaView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
     def get(self, request, pk, seduta_pk):
         seduta = _seduta_visibile(request, pk, seduta_pk)
         assemblea = seduta.assemblea
-        verifica = quorum_assemblea.verifica_in_corso(seduta)
         contesto = {
-            "assemblea": assemblea,
-            "seduta": seduta,
-            "quorum": stato_quorum(seduta),
-            "verifica": verifica,
-            "verifica_senza_quorum": quorum_assemblea.verifica_senza_quorum(seduta),
-            "puo_gestire": puo_gestire_assemblee(request.user),
-            "puo_compilare": puo_compilare_verbale(request.user, assemblea),
-            "stato_verifica": stato_quorum(seduta, verifica) if verifica else None,
-            "verifiche_chiuse": seduta.appelli.filter(
-                tipo=TipoAppello.VERIFICA, chiuso_il__isnull=False
-            ).order_by("numero"),
-            "richiedenti": RichiedenteVerifica.choices,
-            "puo_operare": puo_operare(request.user, assemblea) and not assemblea.conclusa,
+            **_contesto_gestione_seduta(request, seduta),
             "puo_nuova_convocazione": (
                 puo_gestire_assemblee(request.user)
                 and seduta.costituita is False
@@ -1606,16 +1616,13 @@ class CruscottoView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
 
     def get(self, request, pk, seduta_pk):
         seduta = _seduta_visibile(request, pk, seduta_pk)
+        # Il cruscotto è il punto centrale della seduta: stessi collegamenti e
+        # stesse azioni della pagina della seduta, tranne il verbale.
         contesto = {
-            "assemblea": seduta.assemblea,
-            "seduta": seduta,
+            **_contesto_gestione_seduta(request, seduta),
+            "nel_cruscotto": True,
             "stato": cruscotto.stato_seduta(seduta, con_elenco=True),
             "intervallo_ms": cruscotto.INTERVALLO_AGGIORNAMENTO_MS,
-            # Il pulsante si mostra o nasconde da solo col polling, secondo il
-            # quorum; la regola resta in sedute.dichiara_costituita().
-            "puo_dichiarare": puo_operare(request.user, seduta.assemblea)
-            and seduta.aperta
-            and seduta.costituita is None,
         }
         return render(request, self.template_name, contesto)
 
