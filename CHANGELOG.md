@@ -8,6 +8,15 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.13.0] - 2026-11-11
+
+### Aggiunto
+
+- Votazioni per alzata di mano: esito «Palese». Se alla richiesta non ci sono
+  contrari né astenuti, la votazione si chiude approvata senza contare; nella
+  pagina, nell'elenco e nel verbale l'esito è «Approvata a voto palese»
+  (richiede una migrazione del database, applicata all'avvio).
+
 ## [1.12.1] - 2026-11-11
 
 ### Modificato
