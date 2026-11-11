@@ -15,6 +15,10 @@ templates/500.html: Bootstrap 6 con la stessa versione e SRI del tema.
 </head>
 <body class="bg-ag-viola fg-white d-flex flex-column min-vh-100">
   <main class="container py-7 flex-grow-1 d-flex flex-column justify-content-center text-center">
+    <div class="mb-5">
+      {# Cerchio bianco: sul viola il logo non si leggerebbe. Con 1,5 rem di margine interno il logo quadrato sta tutto dentro il cerchio di 160 px. #}
+      <img src="{% static 'pdf/img/logo_zona.png' %}" alt="AGESCI Zona Hirpinia" width="160" height="160" class="bg-white rounded-circle p-7">
+    </div>
     <p class="fs-2xl mb-3">{{ assemblea }} — {{ seduta.get_convocazione_display }}</p>
     <p class="fs-6xl fw-bold mb-0"><span data-campo="presenti">{{ stato.presenti }}</span> / <span data-campo="aventi_diritto">{{ stato.aventi_diritto }}</span></p>
     <p class="fs-2xl mb-7">presenti / aventi diritto</p>

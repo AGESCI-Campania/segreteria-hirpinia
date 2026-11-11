@@ -43,6 +43,8 @@ Il **Cruscotto** si aggiorna da solo: presenti, quorum, maggioranze richieste. L
 
 ![Cruscotto](img/cruscotto.jpg)
 
+![Vista proiettore](img/proiettore.jpg)
+
 **Seggi** crea le postazioni di voto in sala (tablet o PC della Zona).
 
 ![Seggi](img/seggi.jpg)

@@ -297,6 +297,8 @@ def test_schermate(live_server, browser, settings):
     f.scatta("gestione", "deleghe")
     f.apri(f"/assemblee/{pk}/sedute/{spk}/cruscotto/")
     f.scatta("gestione", "cruscotto")
+    f.apri(f"/assemblee/{pk}/sedute/{spk}/proiettore/")
+    f.scatta("gestione", "proiettore", intera=False)
     f.apri(f"/voto/gestione/{pk}/sedute/{spk}/seggi/")
     f.scatta("gestione", "seggi")
     f.scatta("voto", "seggi")
