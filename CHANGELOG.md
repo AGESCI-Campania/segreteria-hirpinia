@@ -8,6 +8,21 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.6.1] - 2026-11-11
+
+### Aggiunto
+
+- Assemblee: titolo facoltativo, scelto alla creazione o alla duplicazione e
+  modificabile dalla pagina dell'assemblea.
+- Manuali in PDF: manuale di voto in app, manuale di voto al seggio e manuale
+  per il banco e i seggi al posto del manuale di voto unico, con il logo della
+  Zona in copertina e la palette verde della Zona.
+
+### Corretto
+
+- Autocompletamento di presidenti, segretario, comitato mozioni, scrutatori e
+  candidature: la ricerca non restituiva risultati.
+
 ## [1.6.0] - 2026-11-11
 
 ### Aggiunto
