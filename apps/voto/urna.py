@@ -25,6 +25,7 @@ from apps.assemblee.models import (
     CanaleVoto,
     ModalitaVoto,
     Seduta,
+    Sesso,
     TipoVotazione,
     Votazione,
 )
@@ -48,9 +49,15 @@ class Scelte:
     esito: str = ESITO_VOTO
     candidati: tuple[int, ...] = ()
     liberi: tuple[str, ...] = ()
+    # Con le quote per sesso: il sesso dichiarato per ciascun nome scritto,
+    # nello stesso ordine di `liberi` (docs/plan_preparazione_assemblea.md, D2).
+    sessi_liberi: tuple[str, ...] = ()
 
     def come_json(self) -> dict:
-        return {"esito": self.esito, "candidati": list(self.candidati), "liberi": list(self.liberi)}
+        dati = {"esito": self.esito, "candidati": list(self.candidati), "liberi": list(self.liberi)}
+        if self.sessi_liberi:
+            dati["sessi_liberi"] = list(self.sessi_liberi)
+        return dati
 
 
 @dataclass
@@ -155,12 +162,15 @@ def valida_scelte(votazione: Votazione, scelte: Scelte) -> Scelte:
         # Il ballottaggio è fra i due candidati proposti (art. 18 c.3): un nome
         # scritto non può essere né l'uno né l'altro.
         raise ValidationError("Nel ballottaggio si sceglie solo fra i due candidati.")
-    ammessi = set(votazione.candidati.values_list("pk", flat=True))
+    sessi_candidati = dict(votazione.candidati.values_list("pk", "sesso"))
     candidati = tuple(dict.fromkeys(scelte.candidati))
-    if set(candidati) - ammessi:
+    if set(candidati) - set(sessi_candidati):
         raise ValidationError("Candidato non valido per questa votazione.")
+    quote = votazione.posti_maschili > 0 or votazione.posti_femminili > 0
     liberi: list[str] = []
-    for nome in scelte.liberi:
+    sessi_liberi: list[str] = []
+    sessi = list(scelte.sessi_liberi) + [""] * (len(scelte.liberi) - len(scelte.sessi_liberi))
+    for nome, sesso in zip(scelte.liberi, sessi, strict=False):
         nome = " ".join(str(nome).split())
         if not nome:
             continue
@@ -168,8 +178,11 @@ def valida_scelte(votazione: Votazione, scelte: Scelte) -> Scelte:
             raise ValidationError(
                 f"Un nome scritto può avere al massimo {LUNGHEZZA_NOME_LIBERO} caratteri."
             )
+        if quote and sesso not in Sesso.values:
+            raise ValidationError(f"Indica se «{nome}» è per un posto maschile o femminile.")
         if nome.casefold() not in (n.casefold() for n in liberi):
             liberi.append(nome)
+            sessi_liberi.append(sesso if quote else "")
     preferenze = len(candidati) + len(liberi)
     if preferenze == 0:
         raise ValidationError(
@@ -180,7 +193,34 @@ def valida_scelte(votazione: Votazione, scelte: Scelte) -> Scelte:
             f"Puoi esprimere al massimo {votazione.posti} "
             f"{'preferenza' if votazione.posti == 1 else 'preferenze'}."
         )
-    return Scelte(esito=ESITO_VOTO, candidati=candidati, liberi=tuple(liberi))
+    if quote:
+        _verifica_quote(votazione, [sessi_candidati[c] for c in candidati] + sessi_liberi)
+    return Scelte(
+        esito=ESITO_VOTO,
+        candidati=candidati,
+        liberi=tuple(liberi),
+        sessi_liberi=tuple(sessi_liberi) if quote else (),
+    )
+
+
+def _verifica_quote(votazione: Votazione, sessi: list[str]) -> None:
+    """Per ciascun sesso al massimo i posti di quel sesso più gli
+    indifferenti (D4-bis)."""
+    indifferenti = votazione.posti - votazione.posti_maschili - votazione.posti_femminili
+    for sesso, posti, singolare, plurale in (
+        (Sesso.MASCHILE, votazione.posti_maschili, "preferenza maschile", "preferenze maschili"),
+        (
+            Sesso.FEMMINILE,
+            votazione.posti_femminili,
+            "preferenza femminile",
+            "preferenze femminili",
+        ),
+    ):
+        massimo = posti + indifferenti
+        if sessi.count(sesso) > massimo:
+            raise ValidationError(
+                f"Puoi esprimere al massimo {massimo} {singolare if massimo == 1 else plurale}."
+            )
 
 
 def _nuova_ricevuta() -> str:

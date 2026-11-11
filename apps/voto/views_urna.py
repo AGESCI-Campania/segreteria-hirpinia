@@ -22,7 +22,7 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.cache import never_cache
 
-from apps.assemblee.models import Votazione
+from apps.assemblee.models import Sesso, Votazione
 from apps.assemblee.votazioni import frase_esito
 
 from . import postazioni, scrutinio, urna
@@ -132,6 +132,8 @@ def _scelte_dal_post(request: HttpRequest, numero: int) -> list[urna.Scelte]:
                 esito=request.POST.get(f"esito_{indice}", urna.ESITO_VOTO),
                 candidati=candidati,
                 liberi=tuple(request.POST.getlist(f"liberi_{indice}")),
+                # Un menu per ogni campo nome, nello stesso ordine (solo con le quote).
+                sessi_liberi=tuple(request.POST.getlist(f"sessi_liberi_{indice}")),
             )
         )
     return scelte
@@ -145,7 +147,11 @@ def _riepilogo(votazione: Votazione, scelte: urna.Scelte) -> list[str]:
         return ["Scheda annullata (nulla)"]
     nomi = dict(votazione.candidati.values_list("pk", "nome"))
     righe = [nomi[c] for c in scelte.candidati]
-    righe += [f"«{nome}» (nome scritto)" for nome in scelte.liberi]
+    sessi = dict(Sesso.choices)
+    for i, nome in enumerate(scelte.liberi):
+        sesso = scelte.sessi_liberi[i] if i < len(scelte.sessi_liberi) else ""
+        dettaglio = f"nome scritto, posto {sessi[sesso].lower()}" if sesso else "nome scritto"
+        righe.append(f"«{nome}» ({dettaglio})")
     return righe
 
 
@@ -169,6 +175,8 @@ class SchedaView(View):
             "candidati": list(votazione.candidati.all()) if votazione else [],
             "spettanti": spettanti,
             "posti": range(votazione.posti) if votazione else range(0),
+            "quote": bool(votazione and (votazione.posti_maschili or votazione.posti_femminili)),
+            "sessi": Sesso.choices,
         }
 
     def get(self, request):

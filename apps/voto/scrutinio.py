@@ -162,6 +162,12 @@ def interpreta(
         avente.assemblea_id != votazione.seduta.assemblea_id or avente.eliminato
     ):
         raise ValidationError("Si attribuisce solo a un avente diritto dell'assemblea.")
+    if avente is not None and _con_quote(votazione) and not avente.sesso:
+        # Con le quote il sesso serve a validare la preferenza (D2, D3).
+        raise ValidationError(
+            f"Il sesso di {avente} non è noto: indicalo nell'elenco degli aventi diritto prima "
+            "di attribuirgli il nome."
+        )
     decisione, _ = InterpretazioneNome.objects.update_or_create(
         votazione=votazione,
         chiave=chiave,
@@ -180,7 +186,10 @@ def _candidato_per_avente(votazione: Votazione, avente: AventeDiritto) -> Candid
     candidato = votazione.candidati.filter(avente=avente).first()
     if candidato is None:
         candidato = Candidato.objects.create(
-            votazione=votazione, avente=avente, nome=f"{avente.cognome} {avente.nome}"
+            votazione=votazione,
+            avente=avente,
+            nome=f"{avente.cognome} {avente.nome}",
+            sesso=avente.sesso,
         )
     return candidato
 
@@ -196,18 +205,34 @@ class Conteggio:
     schede: int = 0
 
 
-def _scheda_interpretata(scelte: dict, attribuzioni: dict[str, int | None]) -> dict:
+def _con_quote(votazione: Votazione) -> bool:
+    return votazione.posti_maschili > 0 or votazione.posti_femminili > 0
+
+
+def _scheda_interpretata(
+    scelte: dict,
+    attribuzioni: dict[str, int | None],
+    sessi_candidati: dict[int, str] | None = None,
+) -> dict:
     """Scheda come la si conta e la si pubblica: candidati (id) validi dopo
-    l'interpretazione dei nomi scritti. Una scheda di voto senza preferenze
-    valide è nulla."""
+    l'interpretazione dei nomi scritti. Con le quote (`sessi_candidati`) un
+    nome scritto attribuito a una persona di sesso diverso da quello
+    dichiarato sulla scheda non conta (D2). Una scheda di voto senza
+    preferenze valide è nulla."""
     esito = scelte.get("esito")
     if esito != urna.ESITO_VOTO:
         return {"esito": esito, "candidati": []}
     candidati = list(dict.fromkeys(scelte.get("candidati", [])))
-    for testo in scelte.get("liberi", []):
+    dichiarati = scelte.get("sessi_liberi", [])
+    for i, testo in enumerate(scelte.get("liberi", [])):
         candidato = attribuzioni.get(chiave_nome(testo))
-        if candidato is not None and candidato not in candidati:
-            candidati.append(candidato)
+        if candidato is None or candidato in candidati:
+            continue
+        if sessi_candidati is not None:
+            dichiarato = dichiarati[i] if i < len(dichiarati) else ""
+            if sessi_candidati.get(candidato) != dichiarato:
+                continue
+        candidati.append(candidato)
     if not candidati:
         return {"esito": urna.ESITO_NULLA, "candidati": []}
     return {"esito": urna.ESITO_VOTO, "candidati": sorted(candidati)}
@@ -221,6 +246,12 @@ def _attribuzioni(votazione: Votazione) -> dict[str, int | None]:
         else:
             risultato[decisione.chiave] = _candidato_per_avente(votazione, decisione.avente).pk
     return risultato
+
+
+def _sessi_candidati(votazione: Votazione) -> dict[int, str] | None:
+    if not _con_quote(votazione):
+        return None
+    return dict(votazione.candidati.values_list("pk", "sesso"))
 
 
 def conteggio(votazione: Votazione) -> Conteggio:
@@ -238,8 +269,9 @@ def conteggio(votazione: Votazione) -> Conteggio:
         )
     attribuzioni = _attribuzioni(votazione)
     risultato.voti = {c.pk: 0 for c in votazione.candidati.all()}
+    sessi = _sessi_candidati(votazione)
     for scheda in Scheda.objects.filter(votazione=votazione):
-        interpretata = _scheda_interpretata(scheda.scelte, attribuzioni)
+        interpretata = _scheda_interpretata(scheda.scelte, attribuzioni, sessi)
         risultato.schede += 1
         if interpretata["esito"] == urna.ESITO_BIANCA:
             risultato.bianche += 1
@@ -270,8 +302,9 @@ def righe_bacheca(votazione: Votazione) -> list[str]:
         for d in votazione.interpretazioni_nomi.all()
     }
     nomi = dict(votazione.candidati.values_list("pk", "nome"))
+    sessi = _sessi_candidati(votazione)
     return [
-        _riga_bacheca(s.ricevuta, _scheda_interpretata(s.scelte, attribuzioni), nomi)
+        _riga_bacheca(s.ricevuta, _scheda_interpretata(s.scelte, attribuzioni, sessi), nomi)
         for s in Scheda.objects.filter(votazione=votazione).order_by("ricevuta")
     ]
 

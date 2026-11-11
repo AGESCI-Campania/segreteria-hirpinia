@@ -1338,9 +1338,25 @@ controlli sul sesso sono avvisi: candidato di sesso diverso da posti solo maschi
 femminili, sesso non noto, quota che le candidature non coprono. Il giorno dell'assemblea
 «Nuova votazione» apre l'elezione dalla posizione, copiandone incarico, posti, quote e
 candidati; un'elezione con posti maschili o femminili non si apre finché ogni candidato non
-ha il sesso (unico controllo bloccante). Le regole di voto con le quote (piano D1, D2,
-D4-bis, D4-ter) arrivano con il passo 4 del piano: fino ad allora urna ed esito ignorano le
-quote.
+ha il sesso (unico controllo bloccante).
+
+**Elezioni con posti divisi per sesso** (2026-11-11, decisione di chi gestisce la Zona,
+piano D1, D2, D4-bis, D4-ter, D5; vale accanto alle soglie del regolamento, che non
+cambiano):
+- *eletti* (`votazioni.esito()`): prima i posti maschili ai maschi più votati sopra soglia
+  e i femminili alle femmine, ciascuno con la propria graduatoria e la regola della parità
+  sull'ultimo posto; poi i posti indifferenti ai più votati sopra soglia fra i rimanenti;
+- *ballottaggio*: per un posto vacante, fra i due non eletti più votati dello stesso sesso
+  del posto (di qualunque sesso per un posto indifferente); uno solo per elezione, come
+  sempre;
+- *voto in app* (`urna.valida_scelte()`): al massimo tante preferenze quanti i posti, e per
+  ciascun sesso al massimo i posti di quel sesso più gli indifferenti; per un nome scritto
+  l'elettore dichiara se è per un posto maschile o femminile;
+- *scrutinio* (`scrutinio.conteggio()` e bacheca): un nome scritto attribuito a una persona
+  di sesso diverso da quello dichiarato non conta, il resto della scheda sì; con le quote la
+  commissione attribuisce un nome solo a un avente di cui è noto il sesso;
+- *carta*: le stesse regole le applicano gli scrutatori, che inseriscono i voti già
+  validati; la pagina della votazione le ricorda.
 
 **Ufficio di presidenza e comitato mozioni in preparazione** (2026-11-11,
 `apps/assemblee/presidenza.py`, piano D7–D12): si indicano per l'assemblea, fra gli aventi

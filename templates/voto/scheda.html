@@ -22,7 +22,7 @@
                   {% for candidato in candidati %}
                     <div class="form-field mb-3">
                       <input id="c{{ indice }}-{{ candidato.pk }}" type="checkbox" name="candidati_{{ indice }}" value="{{ candidato.pk }}" class="check">
-                      <label for="c{{ indice }}-{{ candidato.pk }}" class="fs-lg">{{ candidato.nome }}</label>
+                      <label for="c{{ indice }}-{{ candidato.pk }}" class="fs-lg">{{ candidato.nome }}{% if quote and candidato.sesso %} <small class="fg-2">({{ candidato.get_sesso_display|lower }})</small>{% endif %}</label>
                     </div>
                   {% endfor %}
                   {% if votazione.tipo != "BALLOTTAGGIO" %}{% for _ in posti %}
@@ -30,6 +30,15 @@
                       <label for="l{{ indice }}-{{ forloop.counter }}">Altro nome (facoltativo)</label>
                       <input id="l{{ indice }}-{{ forloop.counter }}" type="text" name="liberi_{{ indice }}" maxlength="100" class="form-control" autocomplete="off">
                     </div>
+                    {% if quote %}
+                      <div class="form-field mb-5">
+                        <label for="s{{ indice }}-{{ forloop.counter }}">Per un posto</label>
+                        <select id="s{{ indice }}-{{ forloop.counter }}" name="sessi_liberi_{{ indice }}" class="form-control">
+                          <option value="">—</option>
+                          {% for valore, etichetta in sessi %}<option value="{{ valore }}">{{ etichetta|lower }}</option>{% endfor %}
+                        </select>
+                      </div>
+                    {% endif %}
                   {% endfor %}{% endif %}
                   <div class="form-field mt-5 mb-3">
                     <input id="e{{ indice }}-voto" type="radio" name="esito_{{ indice }}" value="VOTO" class="check" checked>

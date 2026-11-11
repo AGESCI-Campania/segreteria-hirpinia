@@ -2,3 +2,11 @@
 <h1 class="mb-3">{{ votazione.oggetto }}</h1>
 {% if votazione.incarico %}<p class="mb-1">Incarico: <strong>{{ votazione.incarico }}</strong></p>{% endif %}
 <p class="fg-2 mb-5">{% if votazione.tipo == "BALLOTTAGGIO" %}Ballottaggio: scegli uno dei due candidati.{% elif votazione.posti == 1 %}Una preferenza, anche scrivendo un nome.{% else %}Fino a {{ votazione.posti }} preferenze, anche scrivendo un nome.{% endif %}</p>
+{% if votazione.tipo != "BALLOTTAGGIO" and votazione.posti_maschili or votazione.tipo != "BALLOTTAGGIO" and votazione.posti_femminili %}
+  <div class="alert theme-info mb-5" role="note"><p class="mb-0">
+    Posti maschili {{ votazione.posti_maschili }}, femminili {{ votazione.posti_femminili }}{% if votazione.posti > votazione.posti_maschili|add:votazione.posti_femminili %}, gli altri per candidati di qualunque sesso{% endif %}:
+    non puoi dare più preferenze maschili o femminili di quanti sono i posti che le ammettono. Se scrivi
+    un nome, indica se è per un posto maschile o femminile: se la persona è dell'altro sesso, quella
+    preferenza non conta.
+  </p></div>
+{% endif %}

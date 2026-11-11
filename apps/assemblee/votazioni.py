@@ -32,6 +32,7 @@ from .models import (
     PosizioneVoto,
     RisultatoCanale,
     Seduta,
+    Sesso,
     TipoVotazione,
     Votazione,
 )
@@ -116,6 +117,26 @@ class Esito:
     eletti: list[Candidato] = field(default_factory=list)
     posti_vacanti: int = 0
     ballottaggio_proposto: list[Candidato] = field(default_factory=list)
+    # Con le quote per sesso (D4): posti vacanti per sesso ("M", "F", "" per
+    # gli indifferenti) e sesso del posto da coprire con il ballottaggio.
+    vacanti_per_sesso: dict[str, int] = field(default_factory=dict)
+    ballottaggio_sesso: str = ""
+
+
+def _assegna(candidati: list[Candidato], posti: int) -> list[Candidato]:
+    """I primi `posti` di una graduatoria già ordinata e sopra soglia. Parità
+    sull'ultimo posto utile: nessuno dei pari è eletto (art. 18 c.3)."""
+    if posti <= 0:
+        return []
+    eletti = candidati[:posti]
+    if len(candidati) > posti and candidati[posti].voti == candidati[posti - 1].voti:
+        pari = candidati[posti - 1].voti
+        eletti = [c for c in eletti if c.voti > pari]
+    return eletti
+
+
+def _con_quote(votazione: Votazione) -> bool:
+    return votazione.posti_maschili > 0 or votazione.posti_femminili > 0
 
 
 def esito(votazione: Votazione) -> Esito:
@@ -127,12 +148,10 @@ def esito(votazione: Votazione) -> Esito:
 
     candidati = sorted(votazione.candidati.all(), key=lambda c: c.voti, reverse=True)
     sopra = [c for c in candidati if c.voti >= valore_soglia]
+    if _con_quote(votazione) and votazione.tipo == TipoVotazione.ELEZIONE:
+        return _esito_con_quote(votazione, risultato, candidati, sopra)
     posti = votazione.posti
-    eletti = sopra[:posti]
-    # Parità sull'ultimo posto utile: nessuno dei pari è eletto (art. 18 c.3).
-    if len(sopra) > posti and sopra[posti].voti == sopra[posti - 1].voti:
-        pari = sopra[posti - 1].voti
-        eletti = [c for c in eletti if c.voti > pari]
+    eletti = _assegna(sopra, posti)
     risultato.eletti = eletti
     risultato.posti_vacanti = posti - len(eletti)
 
@@ -142,6 +161,46 @@ def esito(votazione: Votazione) -> Esito:
         # (o uno solo rimasto) niente ballottaggio: il posto resta vacante.
         if len(non_eletti) >= 2:
             risultato.ballottaggio_proposto = non_eletti[:2]
+    return risultato
+
+
+def _esito_con_quote(
+    votazione: Votazione, risultato: Esito, candidati: list[Candidato], sopra: list[Candidato]
+) -> Esito:
+    """Quote per sesso (docs/plan_preparazione_assemblea.md, D1, D4-ter): prima
+    i posti maschili ai maschi più votati sopra soglia e i femminili alle
+    femmine, ciascuno con la sua graduatoria; poi i posti indifferenti ai più
+    votati sopra soglia fra i rimanenti, di qualunque sesso. Il ballottaggio
+    copre un posto vacante con i due non eletti più votati dello stesso sesso
+    del posto (di qualunque sesso per un posto indifferente)."""
+    posti_per_sesso: dict[str, int] = {
+        Sesso.MASCHILE: votazione.posti_maschili,
+        Sesso.FEMMINILE: votazione.posti_femminili,
+        "": votazione.posti - votazione.posti_maschili - votazione.posti_femminili,
+    }
+    eletti: list[Candidato] = []
+    vacanti: dict[str, int] = {}
+    for sesso in (Sesso.MASCHILE, Sesso.FEMMINILE):
+        scelti = _assegna([c for c in sopra if c.sesso == sesso], posti_per_sesso[sesso])
+        eletti += scelti
+        vacanti[sesso] = posti_per_sesso[sesso] - len(scelti)
+    rimanenti = [c for c in sopra if c not in eletti]
+    scelti = _assegna(rimanenti, posti_per_sesso[""])
+    eletti += scelti
+    vacanti[""] = posti_per_sesso[""] - len(scelti)
+
+    risultato.eletti = sorted(eletti, key=lambda c: c.voti, reverse=True)
+    risultato.vacanti_per_sesso = {k: v for k, v in vacanti.items() if v}
+    risultato.posti_vacanti = sum(vacanti.values())
+    non_eletti = [c for c in candidati if c not in eletti]
+    for posto in (str(Sesso.MASCHILE), str(Sesso.FEMMINILE), ""):
+        if not vacanti[posto]:
+            continue
+        possibili = [c for c in non_eletti if not posto or c.sesso == posto]
+        if len(possibili) >= 2:
+            risultato.ballottaggio_proposto = possibili[:2]
+            risultato.ballottaggio_sesso = posto
+            break
     return risultato
 
 
@@ -348,7 +407,8 @@ def apri_ballottaggio(votazione: Votazione, utente: Utente) -> Votazione:
         raise ValidationError("Il ballottaggio segue un'elezione già scrutinata.")
     if votazione.ballottaggi.exists():
         raise ValidationError("Il ballottaggio di questa elezione è già stato aperto.")
-    proposti = esito(votazione).ballottaggio_proposto
+    esito_elezione = esito(votazione)
+    proposti = esito_elezione.ballottaggio_proposto
     if len(proposti) < 2:
         raise ValidationError("Per questa elezione non è previsto il ballottaggio.")
     stato = stato_quorum(votazione.seduta)
@@ -359,6 +419,8 @@ def apri_ballottaggio(votazione: Votazione, utente: Utente) -> Votazione:
         oggetto=votazione.oggetto,
         incarico=votazione.incarico,
         posti=1,
+        posti_maschili=1 if esito_elezione.ballottaggio_sesso == Sesso.MASCHILE else 0,
+        posti_femminili=1 if esito_elezione.ballottaggio_sesso == Sesso.FEMMINILE else 0,
         ballottaggio_di=votazione,
         presenti=stato.presenti,
         aventi_diritto=stato.aventi_diritto,
@@ -418,6 +480,15 @@ def frase_esito(votazione: Votazione) -> str:
         if e.ballottaggio_proposto:
             nomi = " e ".join(c.nome for c in e.ballottaggio_proposto)
             parti.append(f"ballottaggio fra {nomi}")
+        elif e.vacanti_per_sesso:
+            etichette = {Sesso.MASCHILE: "maschil", Sesso.FEMMINILE: "femminil", "": "indifferent"}
+            dettaglio = ", ".join(
+                f"{n} {etichette[k]}{'e' if n == 1 else 'i'}"
+                for k, n in e.vacanti_per_sesso.items()
+            )
+            parti.append(
+                f"{_voti(e.posti_vacanti, 'posto vacante', 'posti vacanti')} ({dettaglio})"
+            )
         else:
             parti.append(f"{_voti(e.posti_vacanti, 'posto vacante', 'posti vacanti')}")
     return "; ".join(parti) + f" ({base})."

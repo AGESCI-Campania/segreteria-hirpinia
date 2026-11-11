@@ -325,7 +325,10 @@ deve violare:
   un'elezione con quote non si apre senza il sesso di ogni candidato
   (`candidature.verifica_apribile()`, chiamata da `votazioni.apri_votazione(posizione=...)`,
   che resta l'unico punto di apertura). Le quote si copiano su `Votazione`/`Candidato`
-  all'apertura: urna, scrutinio ed esito devono leggerle da lì, non dalla posizione.
+  all'apertura: urna (`valida_scelte()`), scrutinio (`_scheda_interpretata()`) ed esito
+  (`votazioni.esito()`) le leggono da lì, non dalla posizione; con le quote un nome scritto
+  porta il sesso dichiarato (`Scelte.sessi_liberi`, nella `Scheda` come `sessi_liberi`) e
+  non conta se la commissione lo attribuisce a una persona dell'altro sesso.
 - **Assemblee di prova** (`Assemblea.di_prova`, D22): il flag si sceglie **solo alla
   creazione** (in admin è in sola lettura) ed è l'unica condizione per eliminare
   un'assemblea (`apps/assemblee/prova.py::elimina()`); non renderlo modificabile.
