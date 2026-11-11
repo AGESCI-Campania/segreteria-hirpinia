@@ -8,6 +8,21 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.14.0] - 2026-11-11
+
+### Aggiunto
+
+- Proiettore dei risultati: oltre a elezioni e ballottaggi si proiettano tutte
+  le votazioni chiuse, revoca di un mandato compresa, con favorevoli, contrari,
+  astenuti, maggioranza richiesta ed esito («Approvata» o «Respinta»; con
+  l'esito palese solo «Approvata a voto palese», senza numeri).
+
+### Modificato
+
+- Revoca di un mandato: su carta si registrano anche le schede nulle e le
+  schede bianche contano come astenuti («Astenuti e schede bianche»). Le schede
+  nulle compaiono nell'esito, nel verbale e sul proiettore.
+
 ## [1.13.0] - 2026-11-11
 
 ### Aggiunto
