@@ -9,11 +9,12 @@ from openpyxl import load_workbook
 from pypdf import PdfReader
 
 from apps.accounts.models import Ruolo, StatoUtente, TipoUtente, Utente
-from apps.anagrafica.models import Capo, CensimentoCapo
+from apps.anagrafica.models import Capo, CensimentoCapo, FunzioneIncarico
 from apps.assemblee import elenco
 from apps.assemblee import file as file_assemblea
 from apps.assemblee.models import (
     Assemblea,
+    IncaricoDichiarato,
     OperatoreVoto,
     Provenienza,
     ScaricamentoFile,
@@ -161,6 +162,18 @@ class TestFoglioPresenze:
         assert "mario@example.it" in testo
         assert "Firma" not in testo
         assert ScaricamentoFile.objects.get().tipo == TipoFile.FOGLIO_PRESENZE
+
+    def test_ae_accanto_al_nome(self, assemblea, segreteria):
+        aventi = assemblea.aventi_diritto
+        aventi.filter(cognome="Bianchi").update(ae_zona=True)
+        IncaricoDichiarato.objects.create(
+            avente=aventi.get(cognome="Neri"), funzione=FunzioneIncarico.AE_GRUPPO
+        )
+        contenuto = file_assemblea.genera_foglio_presenze_pdf(assemblea, segreteria)
+        testo = "".join(p.extract_text() for p in PdfReader(io.BytesIO(contenuto)).pages)
+        assert "Bianchi Anna (AEZ)" in testo
+        assert "Neri Sara (AE)" in testo
+        assert "Rossi Mario (" not in testo
 
 
 class TestViste:

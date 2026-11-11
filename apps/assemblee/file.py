@@ -14,7 +14,7 @@ from openpyxl import Workbook
 from apps.accounts.models import Utente
 from apps.core.pdf import contesto_carta_intestata
 
-from . import quorum
+from . import deleghe, quorum
 from .models import Assemblea, AventeDiritto, ScaricamentoFile, TipoFile
 from .permessi import puo_gestire_assemblee
 from .sedute import seduta_corrente
@@ -158,6 +158,8 @@ def genera_foglio_presenze_pdf(assemblea: Assemblea, utente: Utente) -> bytes:
     totale = sum(len(righe) for _, righe in gruppi)
     contesto = {
         "assemblea": assemblea,
+        # AE accanto al nome: AEZ per quello di Zona, AE per quelli di gruppo.
+        "ae_gruppo_ids": deleghe.ae_gruppo_ids(a for _, righe in gruppi for _, a in righe),
         "seduta": seduta_corrente(assemblea),
         "gruppi": gruppi,
         "totale": totale,

@@ -89,7 +89,7 @@
         {% for numero, avente in righe %}
           <tr>
             <td class="num">{{ numero }}</td>
-            <td class="nome">{{ avente.cognome }} {{ avente.nome }}</td>
+            <td class="nome">{{ avente.cognome }} {{ avente.nome }}{% if avente.ae_zona %} (AEZ){% elif avente.pk in ae_gruppo_ids %} (AE){% endif %}</td>
             <td class="codice">{{ avente.codice_socio|default:"—" }}</td>
             <td class="voto">{% if avente.vota_in_app %}App{% else %}Carta{% endif %}</td>
             <td class="presente"><span class="casella"></span></td>
