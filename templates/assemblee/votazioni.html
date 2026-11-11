@@ -41,7 +41,7 @@
 
   {% if puo_votare and urne_aperte %}
     <div class="alert theme-success" role="status"><p class="mb-0">
-      Urne aperte: {% for v in urne_aperte %}«{{ v.oggetto }}»{% if not forloop.last %}, {% endif %}{% endfor %}. Per aprirne altre, prima chiudile (dalla pagina di una delle votazioni).
+      Urne aperte: {% for v in urne_aperte %}«<a href="{% url 'assemblee:votazione' assemblea.pk seduta.pk v.pk %}">{{ v.oggetto }}</a>»{% if not forloop.last %}, {% endif %}{% endfor %}. Chi ha votato e chi manca si vede nella pagina di ciascuna votazione e nel cruscotto. Per aprirne altre, prima chiudile (dalla pagina di una delle votazioni).
     </p></div>
   {% elif puo_votare and apribili %}
     <form method="post" action="{% url 'voto:apri_urne' assemblea.pk seduta.pk %}" id="form-apri-urne" class="d-flex flex-wrap align-items-center gap-3 mb-5">
@@ -62,11 +62,11 @@
           {% endif %}
           <td>{{ votazione.aperta_il|time:"H:i" }}</td>
           <td>
-            <strong>{{ votazione.get_tipo_display }}</strong>: {{ votazione.oggetto }}
+            <a href="{% url 'assemblee:votazione' assemblea.pk seduta.pk votazione.pk %}"><strong>{{ votazione.get_tipo_display }}</strong>: {{ votazione.oggetto }}</a>
             {% if votazione.punto %}<br><small class="fg-2">Punto {{ votazione.punto }}</small>{% endif %}
           </td>
           <td>{{ frase }}</td>
-          <td><a href="{% url 'assemblee:votazione' assemblea.pk seduta.pk votazione.pk %}" class="btn-outline theme-primary btn-sm">{% if votazione.chiusa %}Apri{% else %}Registra i voti{% endif %}</a></td>
+          <td><a href="{% url 'assemblee:votazione' assemblea.pk seduta.pk votazione.pk %}" class="btn-outline theme-primary btn-sm">{% if votazione.chiusa %}Apri{% elif votazione.urna_aperta %}Segui il voto{% else %}Registra i voti{% endif %}</a></td>
         </tr>
       {% empty %}
         <tr><td colspan="4">Nessuna votazione in questa seduta.</td></tr>

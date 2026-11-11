@@ -337,3 +337,5 @@ def test_pagine_con_affluenza(client, elezione, costituita, assemblea, segreteri
     assert "hanno votato in app" in proiettore and "Devono ancora votare" not in proiettore
     stato = client.get(f"{base}/stato.json").json()
     assert stato["urne"][0]["attesi"] == 3 and "da_votare" not in stato["urne"][0]
+    votazioni = client.get(f"{base}/votazioni/").content.decode()
+    assert f'href="{base}/votazioni/{elezione.pk}/"' in votazioni and "Segui il voto" in votazioni
