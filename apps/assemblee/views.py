@@ -1209,12 +1209,22 @@ class PresenzeView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             righe = righe.filter(
                 Q(cognome__icontains=cerca) | Q(nome__icontains=cerca) | Q(codice_socio=cerca)
             )
+        # Deleghe degli AE: il delegante conta come presente se il delegato è
+        # registrato (art. 4 c.2, stessa regola di quorum.presenti_nell_appello).
+        deleghe = {d.delegante_id: d.delegato for d in seduta.deleghe.select_related("delegato")}
+        per_delega = {
+            delegante: delegato
+            for delegante, delegato in deleghe.items()
+            if delegato.pk in presenti_ids and delegante not in presenti_ids
+        }
         if solo_assenti:
-            righe = righe.exclude(pk__in=presenti_ids)
+            righe = righe.exclude(pk__in=presenti_ids).exclude(pk__in=per_delega)
         contesto = {
             "assemblea": assemblea,
             "seduta": seduta,
             "appello": appello,
+            "deleghe": deleghe,
+            "per_delega": per_delega,
             "righe": righe.order_by("cognome", "nome"),
             "presenti_ids": presenti_ids,
             "quorum": stato_quorum(seduta),

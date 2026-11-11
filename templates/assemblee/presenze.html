@@ -74,6 +74,7 @@
           <td>
             <strong>{{ riga.cognome }} {{ riga.nome }}</strong><br>
             <small class="fg-2">{{ riga.gruppo.nome }}{% if riga.codice_socio %} — {{ riga.codice_socio }}{% endif %}{% if verifica and riga.pk in precedenti_ids and riga.pk not in presenti_ids %} — era presente{% endif %}</small>
+            {% for delegante, delegato in deleghe.items %}{% if delegante == riga.pk %}<br><small class="fg-2">Ha delegato {{ delegato.cognome }} {{ delegato.nome }}{% if riga.pk not in per_delega and riga.pk not in presenti_ids %} (non ancora presente){% endif %}</small>{% endif %}{% endfor %}
           </td>
           <td>
             {% if riga.vota_in_app %}{% ag_chip "App" variant="success" %}{% else %}{% ag_chip "Carta" variant="secondary" %}{% endif %}
@@ -103,6 +104,15 @@
                   <input type="hidden" name="next" value="{{ request.get_full_path }}#avente-{{ riga.pk }}">
                   <input type="hidden" name="annulla" value="1">
                   <button type="submit" class="btn-outline theme-secondary btn-sm">Annulla</button>
+                </form>
+              {% endif %}
+            {% elif riga.pk in per_delega %}
+              {% ag_chip "Presente per delega" variant="success" %}
+              {% if puo_operare %}
+                <form method="post" action="{% url 'assemblee:presenza' assemblea.pk seduta.pk riga.pk %}" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}#avente-{{ riga.pk }}">
+                  <button type="submit" class="btn-outline theme-success btn-sm">Presente di persona</button>
                 </form>
               {% endif %}
             {% elif puo_operare %}

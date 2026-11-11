@@ -202,6 +202,26 @@ class TestPresenzaPerDelega:
         self._registra(seduta, segreteria, "CAPO_AV")
         assert stato_quorum(seduta).presenti == 2
 
+    def test_pagina_presenze_mostra_il_delegante_presente_per_delega(
+        self, client, seduta, segreteria
+    ):
+        _delega(seduta, segreteria, "AE_AV", "CAPO_AV")
+        ae = _per_codice(seduta.assemblea, "AE_AV")
+        url = f"/assemblee/{seduta.assemblea_id}/sedute/{seduta.pk}/presenze/"
+        client.force_login(segreteria)
+        risposta = client.get(url)
+        assert ae.pk not in risposta.context["per_delega"]
+        assert "(non ancora presente)" in risposta.content.decode()
+
+        self._registra(seduta, segreteria, "CAPO_AV")
+        risposta = client.get(url)
+        assert risposta.context["per_delega"][ae.pk].codice_socio == "CAPO_AV"
+        pagina = risposta.content.decode()
+        assert "Presente per delega" in pagina and "Presente di persona" in pagina
+        # Fra i «solo non ancora presenti» il delegante non compare.
+        assenti = client.get(url, {"assenti": "1"}).context["righe"]
+        assert ae not in list(assenti)
+
     def test_presente_anche_di_persona_conta_una_volta(self, seduta, segreteria):
         _delega(seduta, segreteria, "AE_AV", "CAPO_AV")
         self._registra(seduta, segreteria, "CAPO_AV", "AE_AV")

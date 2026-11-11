@@ -29,7 +29,10 @@ schermo, con l'etichetta da stampare. I dettagli sono nel manuale per il banco e
 
 **Deleghe AE** registra le deleghe della seduta: l'AE di gruppo delega un capo del
 proprio gruppo o un altro AE, l'AE di Zona un Responsabile di Zona o un membro del
-Comitato; nessuno raccoglie più di una delega.
+Comitato; nessuno raccoglie più di una delega. Quando il delegato viene registrato presente, nella
+pagina delle presenze l'AE che ha delegato compare come **Presente per delega** e conta
+per il quorum; se arriva di persona si può segnare con **Presente di persona** (conta
+comunque una volta sola).
 
 ![Deleghe](img/deleghe.jpg)
 

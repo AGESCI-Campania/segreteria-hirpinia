@@ -26,6 +26,11 @@ Nella pagina del codice ci sono anche l'**etichetta 50×80 mm** per l'etichettat
     Chiusa la pagina non si può più rileggere: se serve, si rigenera. Non fotografarlo e
     non lasciarlo sullo schermo.
 
+!!! info "Deleghe degli AE"
+    Un AE che ha delegato (la delega si registra in **Deleghe AE**) compare come
+    **Presente per delega** appena il delegato è registrato presente: non serve segnarlo.
+    Non riceve un codice: vota il delegato, con una seconda scheda.
+
 ## Passare un capo a carta
 
 Nell'elenco degli aventi diritto, **Passa a carta** sposta un capo al voto su carta
