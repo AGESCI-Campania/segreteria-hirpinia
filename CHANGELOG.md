@@ -8,6 +8,14 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.15.1] - 2026-11-11
+
+### Modificato
+
+- Foglio presenze: la colonna «Firma» è sostituita dall'email di ogni avente
+  diritto; ogni gruppo inizia un foglio nuovo, e titolo e nome del gruppo si
+  ripetono in cima a ogni pagina.
+
 ## [1.15.0] - 2026-11-11
 
 ### Aggiunto
