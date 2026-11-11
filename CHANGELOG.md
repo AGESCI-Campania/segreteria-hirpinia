@@ -8,6 +8,14 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.15.3] - 2026-11-11
+
+### Corretto
+
+- Aventi diritto: anche dopo l'inserimento di un nuovo capo (e con «Annulla» o
+  «Aggiungi e inseriscine un altro») si torna all'elenco con gli stessi filtri
+  di prima.
+
 ## [1.15.2] - 2026-11-11
 
 ### Modificato
