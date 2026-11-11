@@ -8,6 +8,14 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.12.1] - 2026-11-11
+
+### Modificato
+
+- Votazione: il punto dell'ordine del giorno si collega (o si toglie) dalla
+  pagina della votazione in qualsiasi momento, anche a votazione chiusa e ad
+  assemblea conclusa.
+
 ## [1.12.0] - 2026-11-11
 
 ### Aggiunto
