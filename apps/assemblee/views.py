@@ -1839,6 +1839,8 @@ class VotazioneView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
         assemblea = votazione.seduta.assemblea
         in_app = assemblea.voto_catello and urna_voto.votazioni_in_app(votazione)
         return {
+            "puo_collegare_punto": voto.puo_collegare_punto(request.user, votazione),
+            "punti_odg": assemblea.punti_odg.order_by("ordine"),
             "urna": {
                 "prevista": in_app,
                 "votanti": scrutinio_voto.numero_votanti(votazione) if in_app else 0,
@@ -1916,7 +1918,8 @@ class VotazioneView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
 
 
 class VotazioneAzioneView(LoginRequiredMixin, View):
-    """Ballottaggio e annullamento: i permessi li controlla il service layer."""
+    """Ballottaggio, annullamento e punto dell'OdG: i permessi li controlla il
+    service layer."""
 
     def post(self, request, pk, seduta_pk, votazione_pk):
         votazione = _votazione_visibile(request, pk, seduta_pk, votazione_pk)
@@ -1935,6 +1938,19 @@ class VotazioneAzioneView(LoginRequiredMixin, View):
                 return redirect(
                     reverse("assemblee:votazione", args=[pk, seduta_pk, ballottaggio.pk])
                 )
+            if azione == "punto":
+                valore = request.POST.get("punto", "")
+                punto = (
+                    get_object_or_404(PuntoOdG, pk=valore, assemblea=votazione.seduta.assemblea)
+                    if valore.isdigit()
+                    else None
+                )
+                voto.collega_punto(votazione, request.user, punto)
+                messages.success(
+                    request,
+                    f"Collegata al punto {punto}." if punto else "Nessun punto collegato.",
+                )
+                return redirect(reverse("assemblee:votazione", args=[pk, seduta_pk, votazione_pk]))
             if azione == "annulla" and request.POST.get("conferma") == "1":
                 voto.annulla_votazione(votazione, request.user)
                 messages.success(request, "Votazione annullata.")

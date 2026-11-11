@@ -30,13 +30,14 @@ from .models import (
     CanaleVoto,
     Candidato,
     PosizioneVoto,
+    PuntoOdG,
     RisultatoCanale,
     Seduta,
     Sesso,
     TipoVotazione,
     Votazione,
 )
-from .permessi import puo_operare
+from .permessi import puo_compilare_verbale, puo_operare
 from .quorum import meta_piu_uno, stato_quorum
 
 BASE_PRESENTI = "presenti"
@@ -467,6 +468,24 @@ def annulla_votazione(votazione: Votazione, utente: Utente) -> None:
     if votazione.aperta_in_app_il is not None:
         raise ValidationError("Una votazione con l'urna elettronica già aperta non si annulla.")
     votazione.delete()
+
+
+def puo_collegare_punto(utente: Utente, votazione: Votazione) -> bool:
+    assemblea = votazione.seduta.assemblea
+    return puo_operare(utente, assemblea) or puo_compilare_verbale(utente, assemblea)
+
+
+@transaction.atomic
+def collega_punto(votazione: Votazione, utente: Utente, punto: PuntoOdG | None) -> None:
+    """Punto dell'ordine del giorno di una votazione, o nessuno. Si cambia in
+    qualsiasi momento, anche a votazione chiusa e ad assemblea conclusa: è
+    l'ordinamento del verbale, non tocca voti né soglie."""
+    if not puo_collegare_punto(utente, votazione):
+        raise PermissionDenied
+    if punto is not None and punto.assemblea_id != votazione.seduta.assemblea_id:
+        raise ValidationError("Il punto non è dell'ordine del giorno di questa assemblea.")
+    votazione.punto = punto
+    votazione.save(update_fields=["punto"])
 
 
 def _voti(n: int, singolare: str, plurale: str) -> str:

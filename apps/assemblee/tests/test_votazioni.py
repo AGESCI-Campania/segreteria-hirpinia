@@ -355,3 +355,38 @@ class TestRisultatiDaProiettare:
         assert pagina.count('id="mdi-crown"') == 1 and "Dora" in pagina
         # Una votazione non proiettabile riporta all'elenco.
         assert client.get(f"{base}/proiettore/risultati/?v=999999").status_code == 302
+
+
+class TestPuntoOdG:
+    def test_si_collega_anche_a_votazione_chiusa(self, client, seduta, segreteria):
+        from apps.assemblee.models import Assemblea, PuntoOdG
+
+        punto = PuntoOdG.objects.create(assemblea=seduta.assemblea, ordine=1, titolo="Bilancio")
+        v = _palese(
+            votazioni.apri_votazione(
+                seduta, segreteria, tipo=TipoVotazione.MOZIONE, oggetto="Bilancio"
+            ),
+            segreteria,
+            3,
+            0,
+            0,
+        )
+        votazione = seduta.votazioni.get()
+        assert v.approvata and votazione.chiusa
+        client.force_login(segreteria)
+        base = f"/assemblee/{seduta.assemblea_id}/sedute/{seduta.pk}/votazioni/{votazione.pk}/"
+        assert 'name="punto"' in client.get(base).content.decode()
+        client.post(base + "azione/", {"azione": "punto", "punto": punto.pk})
+        votazione.refresh_from_db()
+        assert votazione.punto == punto
+        client.post(base + "azione/", {"azione": "punto", "punto": ""})
+        votazione.refresh_from_db()
+        assert votazione.punto is None
+
+        altra = Assemblea.objects.create(tipo=seduta.assemblea.tipo, anno_scout=2028)
+        estraneo = PuntoOdG.objects.create(assemblea=altra, ordine=1, titolo="Altro")
+        with pytest.raises(ValidationError):
+            votazioni.collega_punto(votazione, segreteria, estraneo)
+        capo = Utente.objects.create(username="capo-punto", email="cp@example.it")
+        with pytest.raises(PermissionDenied):
+            votazioni.collega_punto(votazione, capo, punto)

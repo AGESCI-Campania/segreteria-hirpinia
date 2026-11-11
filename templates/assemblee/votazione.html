@@ -12,6 +12,22 @@
     — {% if votazione.segreta %}scrutinio segreto{% if votazione.tipo == "BALLOTTAGGIO" and not assemblea.voto_catello %}, solo su carta{% endif %}{% else %}alzata di mano{% endif %}
   </p>
 
+  {% if puo_collegare_punto and punti_odg %}
+    <form method="post" action="{% url 'assemblee:votazione_azione' assemblea.pk seduta.pk votazione.pk %}" class="d-flex flex-wrap align-items-end gap-3 mb-5">
+      {% csrf_token %}<input type="hidden" name="azione" value="punto">
+      <div class="form-field mb-0">
+        <label for="punto-odg">Punto all'ordine del giorno</label>
+        <select id="punto-odg" name="punto" class="form-control">
+          <option value="">Nessuno</option>
+          {% for p in punti_odg %}<option value="{{ p.pk }}"{% if p.pk == votazione.punto_id %} selected{% endif %}>{{ p }}</option>{% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn-outline theme-primary">Collega</button>
+    </form>
+  {% elif votazione.punto %}
+    <p class="mb-5">Punto all'ordine del giorno: {{ votazione.punto }}</p>
+  {% endif %}
+
   <div class="alert theme-info mb-5" role="note">
     <p class="mb-0">
       Maggioranza richiesta: metà {% if soglia.0 == "votanti" %}dei votanti{% elif soglia.0 == "aventi diritto" %}degli aventi diritto{% else %}dei presenti{% endif %} + 1

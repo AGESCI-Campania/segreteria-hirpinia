@@ -58,6 +58,10 @@ pubblica la bacheca e ne fissa l'impronta per il verbale.
 
 ![Esito della votazione](img/votazione-esito.jpg)
 
+Il **punto all'ordine del giorno** di una votazione si cambia dalla sua pagina in
+qualsiasi momento, anche dopo la chiusura e ad assemblea conclusa: scegli il punto e
+premi **Collega**. Serve al verbale, non cambia voti né maggioranze.
+
 ## Proiettare i risultati
 
 Per mostrare in sala i risultati delle elezioni, nell'elenco delle **Votazioni** spunta
