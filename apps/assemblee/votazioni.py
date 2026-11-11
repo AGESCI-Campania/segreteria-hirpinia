@@ -414,8 +414,7 @@ def _verifica_coerenza(votazione: Votazione) -> None:
         espressi = tot.votanti
     if espressi > votazione.presenti:
         raise ValidationError(
-            f"I voti ({espressi}) superano i presenti della votazione "
-            f"({votazione.presenti})."
+            f"I voti ({espressi}) superano i presenti della votazione " f"({votazione.presenti})."
         )
 
 
