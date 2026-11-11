@@ -117,6 +117,16 @@ l'indicazione, senza conoscere il provider. In sviluppo e test (dove `override.p
 in uso) il contrassegno non cambia nulla: lì il provider non è mai reale per convenzione
 (`docs/email/sviluppo-e-test.md`).
 
+### R10 — Email dell'assemblea di prova visibili in Catello
+
+- Nell'assemblea di prova «solo Mailpit» va visibile il collegamento alle email finite su
+  Mailpit; Mailpit vale anche per il voto legato a quell'assemblea (codici di voto: già
+  in D26).
+
+*Oggi*: l'interfaccia web di Mailpit in produzione è solo su `127.0.0.1:8025` del server,
+raggiungibile con un tunnel SSH, mai da internet
+(`docs/email/mailpit-override-produzione.md`).
+
 ## Dubbi da chiarire
 
 Tutti risolti il 2026-11-11: le risposte sono in «Decisioni prese» (D1–D25), che
@@ -289,3 +299,18 @@ prevalgono sulle proposte scritte nei requisiti.
   non risponde), **l'email non parte e compare un errore esplicito**: mai un invio reale
   creduto deviato. Alla creazione (e alla modifica dell'opzione) si avvisa se Mailpit non
   è configurato sul server.
+- **D28 (2026-11-11)**: niente link all'interfaccia di Mailpit e nessuna esposizione
+  nuova: è **Catello a mostrare le email** dell'assemblea di prova, leggendole dall'API di
+  Mailpit (rete interna di Compose), in una pagina **solo per i gestori** (ADMIN,
+  SEGRETERIA, RdZ): destinatario, oggetto, ora e testo. Si vedono **solo le email di
+  quell'assemblea**, riconosciute da un'etichetta che Catello aggiunge all'invio (tag di
+  Mailpit, `X-Tags`). Serve una nuova variabile con l'indirizzo dell'API di Mailpit
+  (porta web 8025 sulla rete interna) accanto a `EMAIL_MAILPIT_HOST`.
+- **D29 (2026-11-11)**: nella pagina, il **codice degli inviti di attivazione è
+  oscurato** (gli account sono reali: chi lo vedesse potrebbe attivare l'account di un
+  altro); i **codici di voto di prova restano visibili**, servono per provare l'urna.
+  Deviazione dichiarata da D-71 («il codice in chiaro esiste solo nel valore restituito da
+  `codici.emetti()`»), limitata alle assemblee di prova «solo Mailpit».
+  *Conseguenza*: un componente di un'assemblea di prova senza account attivo non riceve
+  il codice di attivazione; per farlo entrare si toglie temporaneamente «solo Mailpit» e
+  si usa «Invia invito», oppure si usano account già attivi.
