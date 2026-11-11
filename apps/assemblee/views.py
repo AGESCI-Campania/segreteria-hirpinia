@@ -57,6 +57,7 @@ from .forms import (
     PosizioneForm,
     PuntoOdGForm,
     QualificheForm,
+    TitoloAssembleaForm,
     TrasferisciForm,
     VariazioneRappresentanteForm,
     VerbaleForm,
@@ -194,6 +195,7 @@ class AssembleaDuplicaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
         origine = get_object_or_404(Assemblea, pk=pk)
         prima = origine.sedute.order_by("convocazione").first()
         iniziali = {
+            "titolo": origine.titolo,
             "tipo": origine.tipo,
             "anno_scout": origine.anno_scout,
             "sessione": origine.sessione,
@@ -355,6 +357,21 @@ class ElezioniView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
         return redirect(reverse("assemblee:elezioni", args=[pk]) + ancora)
 
 
+class AssembleaTitoloView(GestisceAssembleeMixin, View):
+    """Titolo dell'assemblea: cambia solo il nome mostrato (pagine, PDF,
+    email), anche ad assemblea conclusa."""
+
+    def post(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        form = TitoloAssembleaForm(request.POST, instance=assemblea)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Titolo aggiornato: {assemblea}.")
+        else:
+            messages.error(request, "Titolo non valido.")
+        return redirect(reverse("assemblee:assemblea_dettaglio", args=[pk]))
+
+
 class AssembleaEliminaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
     """Eliminazione definitiva, solo per le assemblee di prova (prova.py)."""
 
@@ -414,6 +431,7 @@ class AssembleaDettaglioView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             "totale_app": elenco.filter(vota_in_app=True).count(),
             "form_operatore": ComitatoAggiungiForm(assemblea=assemblea) if puo_gestire else None,
             "mailpit_configurato": mailpit_api.configurato(),
+            "form_titolo": TitoloAssembleaForm(instance=assemblea) if puo_gestire else None,
             "incarichi_per_ruolo": [
                 (ruolo, presidenza.incarichi(assemblea, ruolo)) for ruolo in RuoloAssemblea
             ],

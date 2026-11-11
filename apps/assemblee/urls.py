@@ -10,6 +10,7 @@ urlpatterns = [
     path("<int:pk>/", views.AssembleaDettaglioView.as_view(), name="assemblea_dettaglio"),
     path("<int:pk>/duplica/", views.AssembleaDuplicaView.as_view(), name="assemblea_duplica"),
     path("<int:pk>/elimina/", views.AssembleaEliminaView.as_view(), name="assemblea_elimina"),
+    path("<int:pk>/titolo/", views.AssembleaTitoloView.as_view(), name="assemblea_titolo"),
     path("<int:pk>/email-prova/", views.EmailProvaView.as_view(), name="email_prova"),
     path(
         "<int:pk>/comitato/cerca/",

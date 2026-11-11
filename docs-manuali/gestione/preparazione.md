@@ -6,7 +6,9 @@ Da **Assemblee** premi **Nuova assemblea**.
 
 ![Elenco delle assemblee](img/assemblee-elenco.jpg)
 
-Si indicano tipo (autunnale o primaverile), anno associativo, sessione e la **prima
+Si indicano un **titolo** facoltativo (se vuoto il nome è «Assemblea autunnale 2026/2027»,
+da tipo e anno; si può cambiare dopo con **Cambia il titolo** nella pagina
+dell'assemblea), tipo (autunnale o primaverile), anno associativo, sessione e la **prima
 convocazione** (data, ora, luogo). Le convocazioni successive si aggiungono solo se la
 precedente non raggiunge il quorum.
 

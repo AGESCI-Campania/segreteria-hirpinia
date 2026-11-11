@@ -43,8 +43,20 @@
       </form>
     {% endif %}
   {% endif %}
+  {% if form_titolo %}
+    <details class="mb-3">
+      <summary class="fg-2">Cambia il titolo</summary>
+      <form method="post" action="{% url 'assemblee:assemblea_titolo' assemblea.pk %}" class="row g-3 align-items-end mt-3">
+        {% csrf_token %}
+        <div class="md:col-8">
+          <div class="form-field">{{ form_titolo.titolo.label_tag }}{{ form_titolo.titolo }}<span class="form-text">{{ form_titolo.titolo.help_text }}</span></div>
+        </div>
+        <div class="md:col-auto"><button type="submit" class="btn-outline theme-primary">Salva</button></div>
+      </form>
+    </details>
+  {% endif %}
   <p class="fg-2 mb-7">
-    Sessione {{ assemblea.get_sessione_display|lower }} —
+    {% if assemblea.titolo %}Assemblea {{ assemblea.get_tipo_display|lower }} {{ assemblea.anno_scout|add:"-1" }}/{{ assemblea.anno_scout }} — {% endif %}Sessione {{ assemblea.get_sessione_display|lower }} —
     {% if assemblea.conclusa %}conclusa il {{ assemblea.conclusa_il|date:"d/m/Y" }}{% else %}in preparazione{% endif %}
   </p>
 

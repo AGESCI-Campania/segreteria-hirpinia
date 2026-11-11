@@ -145,3 +145,39 @@ class TestViste:
         client.force_login(segreteria)
         response = client.post(f"/assemblee/{conclusa.pk}/comitato/aggiungi/", {"avente": 1})
         assert response.status_code == 403
+
+
+class TestTitolo:
+    def test_nome_automatico_o_titolo(self):
+        assemblea = Assemblea(tipo=TipoAssemblea.AUTUNNALE, anno_scout=2027)
+        assert str(assemblea) == "Assemblea autunnale 2026/2027"
+        assemblea.titolo = "Assemblea straordinaria sul bilancio"
+        assert str(assemblea) == "Assemblea straordinaria sul bilancio"
+        assemblea.di_prova = True
+        assert str(assemblea) == "Assemblea straordinaria sul bilancio (di prova)"
+
+    def test_creazione_e_modifica_del_titolo(self, client, segreteria):
+        client.force_login(segreteria)
+        client.post(
+            "/assemblee/nuova/",
+            {
+                "titolo": "Assemblea di primavera",
+                "tipo": TipoAssemblea.PRIMAVERILE,
+                "anno_scout": 2027,
+                "sessione": "ORDINARIA",
+                "data_convocazione": "2027-04-10",
+                "elenco_iniziale": "VUOTA",
+            },
+        )
+        assemblea = Assemblea.objects.get()
+        assert assemblea.titolo == "Assemblea di primavera"
+        pagina = client.get(f"/assemblee/{assemblea.pk}/").content.decode()
+        assert "Assemblea di primavera" in pagina and "Assemblea primaverile 2026/2027" in pagina
+        client.post(f"/assemblee/{assemblea.pk}/titolo/", {"titolo": ""})
+        assemblea.refresh_from_db()
+        assert str(assemblea) == "Assemblea primaverile 2026/2027"
+
+    def test_titolo_solo_dai_gestori(self, client, capo, assemblea):
+        OperatoreVoto.objects.create(assemblea=assemblea, utente=capo)
+        client.force_login(capo)
+        assert client.post(f"/assemblee/{assemblea.pk}/titolo/", {"titolo": "X"}).status_code == 403

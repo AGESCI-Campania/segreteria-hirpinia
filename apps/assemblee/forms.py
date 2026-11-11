@@ -38,6 +38,7 @@ class AssembleaCreaForm(forms.ModelForm):
     class Meta:
         model = Assemblea
         fields = [
+            "titolo",
             "tipo",
             "anno_scout",
             "sessione",
@@ -114,6 +115,12 @@ class AssembleaNuovaForm(AssembleaCreaForm):
 
     def clean_elenco_iniziale(self) -> str:
         return self.cleaned_data.get("elenco_iniziale") or self.TUTTI
+
+
+class TitoloAssembleaForm(forms.ModelForm):
+    class Meta:
+        model = Assemblea
+        fields = ["titolo"]
 
 
 class AggiungiGruppoForm(forms.Form):

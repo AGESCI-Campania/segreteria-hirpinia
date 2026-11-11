@@ -40,6 +40,13 @@ class ModalitaVoto(models.TextChoices):
 
 
 class Assemblea(models.Model):
+    # Facoltativo: se vuoto il nome si compone da tipo e anno (__str__).
+    titolo = models.CharField(
+        "Titolo",
+        max_length=200,
+        blank=True,
+        help_text="Facoltativo. Se vuoto: «Assemblea autunnale 2026/2027» (tipo e anno).",
+    )
     tipo = models.CharField(max_length=20, choices=TipoAssemblea.choices)
     anno_scout = models.PositiveIntegerField(
         help_text="Anno associativo in cui si tiene l'assemblea (es. 2027 per il 2026/2027)."
@@ -103,7 +110,7 @@ class Assemblea(models.Model):
         ]
 
     def __str__(self) -> str:
-        nome = (
+        nome = self.titolo.strip() or (
             f"Assemblea {self.get_tipo_display().lower()} {self.anno_scout - 1}/{self.anno_scout}"
         )
         return f"{nome} (di prova)" if self.di_prova else nome
