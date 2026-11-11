@@ -8,6 +8,18 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.9.0] - 2026-11-11
+
+### Aggiunto
+
+- Votazioni: le elezioni preparate si creano insieme dall'elenco delle
+  votazioni e, con il voto in app, se ne aprono subito le urne tutte insieme.
+
+### Modificato
+
+- «Nuova votazione»: il pulsante è «Crea la votazione» e la pagina spiega che
+  con il voto in app si vota dopo aver aperto l'urna.
+
 ## [1.8.0] - 2026-11-11
 
 ### Aggiunto
