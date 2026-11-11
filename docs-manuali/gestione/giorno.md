@@ -38,7 +38,9 @@ comunque una volta sola).
 
 ## Cruscotto e seggi
 
-Il **Cruscotto** si aggiorna da solo: presenti, quorum, maggioranze richieste. La
+Il **Cruscotto** si aggiorna da solo: presenti, quorum, maggioranze richieste. Appena il
+quorum è raggiunto compare **Dichiara validamente costituita**, come nella pagina della
+seduta. La
 **Vista proiettore** è la versione da mostrare in sala, senza dati personali.
 
 ![Cruscotto](img/cruscotto.jpg)

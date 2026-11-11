@@ -123,3 +123,46 @@ class TestViste:
         html = response.content.decode()
         assert "Aggiorna" in html
         assert righe["Verdi"].delegato.codice_socio == "1"
+
+
+class TestDichiarazioneDalCruscotto:
+    def _base(self, seduta):
+        return f"/assemblee/{seduta.assemblea_id}/sedute/{seduta.pk}"
+
+    def test_quorum_raggiunto_si_dichiara_e_si_torna_al_cruscotto(self, client, seduta, segreteria):
+        client.force_login(segreteria)
+        url = f"{self._base(seduta)}/cruscotto/"
+        pagina = client.get(url).content.decode()
+        assert "Dichiara validamente costituita" in pagina
+        assert 'class="" data-se-quorum-raggiunto' in pagina  # visibile: quorum raggiunto
+        risposta = client.post(
+            f"{self._base(seduta)}/azione/", {"azione": "costituita", "next": url}
+        )
+        assert risposta.url == url
+        seduta.refresh_from_db()
+        assert seduta.costituita is True
+        assert "Dichiara validamente costituita" not in client.get(url).content.decode()
+
+    def test_senza_quorum_il_pulsante_e_nascosto(self, client, seduta, segreteria):
+        for avente in seduta.assemblea.aventi_diritto.filter(cognome__in=["Rossi", "Neri"]):
+            sedute.annulla_presenza(seduta, avente, segreteria)
+        client.force_login(segreteria)
+        pagina = client.get(f"{self._base(seduta)}/cruscotto/").content.decode()
+        assert 'class="d-none" data-se-quorum-raggiunto' in pagina
+
+    def test_il_comitato_elettorale_puo_dichiarare(self, client, seduta):
+        operatore = _persona("op@example.it")
+        OperatoreVoto.objects.create(assemblea=seduta.assemblea, utente=operatore)
+        client.force_login(operatore)
+        assert (
+            "Dichiara validamente costituita"
+            in client.get(f"{self._base(seduta)}/cruscotto/").content.decode()
+        )
+
+    def test_next_esterno_ignorato(self, client, seduta, segreteria):
+        client.force_login(segreteria)
+        risposta = client.post(
+            f"{self._base(seduta)}/azione/",
+            {"azione": "costituita", "next": "https://esempio.invalid/"},
+        )
+        assert risposta.url == f"{self._base(seduta)}/"

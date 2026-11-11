@@ -53,6 +53,10 @@
     imposta("[data-campo='soglia']", dati.soglia === null ? "—" : dati.soglia);
     imposta("[data-campo='aggiornato_il']", dati.aggiornato_il);
     imposta("[data-campo='stato_quorum']", testoQuorum(dati.soglia, dati.raggiunto, dati.mancanti));
+    // Il pulsante per dichiarare la seduta costituita segue il quorum.
+    document.querySelectorAll("[data-se-quorum-raggiunto]").forEach(function (el) {
+      el.classList.toggle("d-none", !dati.raggiunto);
+    });
     document.querySelectorAll("[data-esito-quorum]").forEach(function (el) {
       el.classList.toggle("theme-success", dati.raggiunto);
       el.classList.toggle("theme-warning", !dati.raggiunto);

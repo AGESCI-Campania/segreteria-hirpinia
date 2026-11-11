@@ -1138,6 +1138,12 @@ class SedutaAzioneView(LoginRequiredMixin, View):
                 messages.error(request, " ".join(errore.messages))
             else:
                 messages.success(request, messaggio)
+        # Dal cruscotto si torna al cruscotto (solo indirizzi interni al sito).
+        destinazione = request.POST.get("next", "")
+        if destinazione and url_has_allowed_host_and_scheme(
+            destinazione, allowed_hosts={request.get_host()}
+        ):
+            return redirect(destinazione)
         return redirect(reverse("assemblee:seduta", args=[pk, seduta_pk]))
 
 
@@ -1605,6 +1611,11 @@ class CruscottoView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             "seduta": seduta,
             "stato": cruscotto.stato_seduta(seduta, con_elenco=True),
             "intervallo_ms": cruscotto.INTERVALLO_AGGIORNAMENTO_MS,
+            # Il pulsante si mostra o nasconde da solo col polling, secondo il
+            # quorum; la regola resta in sedute.dichiara_costituita().
+            "puo_dichiarare": puo_operare(request.user, seduta.assemblea)
+            and seduta.aperta
+            and seduta.costituita is None,
         }
         return render(request, self.template_name, contesto)
 

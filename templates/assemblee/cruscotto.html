@@ -33,8 +33,16 @@
     </div></div></div>
   </div>
 
-  <div class="alert {% if stato.raggiunto %}theme-success{% else %}theme-warning{% endif %} mb-5" role="status" data-esito-quorum>
+  <div class="alert {% if stato.raggiunto %}theme-success{% else %}theme-warning{% endif %} mb-5 d-flex flex-wrap justify-content-between align-items-center gap-3" role="status" data-esito-quorum>
     <p class="mb-0 fs-lg" data-campo="stato_quorum">{% if stato.soglia is None %}Quorum non richiesto{% elif stato.raggiunto %}Quorum raggiunto{% else %}Mancano {{ stato.mancanti }} presenti{% endif %}</p>
+    {% if puo_dichiarare %}
+      <form method="post" action="{% url 'assemblee:seduta_azione' assemblea.pk seduta.pk %}" class="{% if not stato.raggiunto %}d-none{% endif %}" data-se-quorum-raggiunto>
+        {% csrf_token %}
+        <input type="hidden" name="azione" value="costituita">
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" class="btn-solid theme-success">Dichiara validamente costituita</button>
+      </form>
+    {% endif %}
   </div>
 
   <h2 class="fs-xl">Maggioranze richieste ora</h2>
