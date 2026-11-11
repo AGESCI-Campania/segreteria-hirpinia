@@ -8,6 +8,26 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.15.0] - 2026-11-11
+
+### Aggiunto
+
+- Bacheca del voto: l'elenco si scarica come testo, con le indicazioni per
+  ricalcolarne l'impronta SHA-256 e confrontarla con quella fissata alla
+  registrazione dei risultati.
+- Verbale: le note finali si scrivono con un editor (grassetto, corsivo,
+  sottolineato, elenchi), senza immagini.
+
+### Modificato
+
+- Variazione del rappresentante legale: il Responsabile di Zona si sceglie fra
+  tutti gli aventi diritto, con prima gli eletti della seduta e poi i
+  Responsabili di Zona in carica.
+- Verbale: «Responsabile di Zona femminile» e «Responsabile di Zona maschile»,
+  suggeriti fra tutti gli aventi diritto e precompilati con gli RdZ in carica
+  nell'elenco (richiede una migrazione del database, applicata all'avvio).
+- Verbale: l'impronta della bacheca non compare più; resta in bacheca.
+
 ## [1.14.0] - 2026-11-11
 
 ### Aggiunto
