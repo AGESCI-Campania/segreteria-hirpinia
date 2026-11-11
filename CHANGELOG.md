@@ -8,6 +8,43 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.6.0] - 2026-11-11
+
+### Aggiunto
+
+- Voto in app per le elezioni dell'Assemblea di Zona: codice di voto per
+  email o al banco, urna da telefono o ai seggi in sala, scrutinio con
+  interpretazione dei nomi scritti da parte della commissione elettorale,
+  bacheca pubblica con impronta nel verbale e verifica della ricevuta.
+- Etichetta 50×80 mm del codice di voto per l'etichettatrice, in PNG e PDF.
+- Email degli aventi diritto, con Excel per gruppo da far verificare ai
+  capigruppo.
+- Preparazione dell'assemblea in anticipo:
+  - comitato elettorale scelto fra gli aventi diritto, con account e invito
+    di attivazione;
+  - presidenti, segretario, comitato mozioni e scrutatori, che precompilano
+    il verbale; presidenti e segretario possono vedere i risultati, scrivere
+    la discussione dei punti e compilare il verbale;
+  - posizioni al voto con posti maschili, femminili e indifferenti, e
+    candidature con controllo del sesso;
+  - elezioni con quote per sesso nel voto in app, nello scrutinio e nel
+    calcolo degli eletti, con ballottaggio fra candidati dello stesso sesso.
+- Elenco degli aventi diritto: sesso, sesso ed email mancanti evidenziati,
+  riallineamento con l'anagrafica, «Aggiungi dall'anagrafica» per capo o per
+  gruppo, selezione di tutti i capi visibili.
+- Assemblee con elenco vuoto, assemblee di prova eliminabili con email solo
+  su Mailpit, duplicazione di un'assemblea.
+- Manuale di voto e manuale di gestione dell'assemblea in PDF, allegati alla
+  release.
+
+### Modificato
+
+- Il voto elettronico di Catello si chiama «Voto in app»: votano tutti in
+  app, la carta resta per chi ha problemi.
+- PDF sulla carta intestata ufficiale della Zona, anche il riepilogo dei
+  contributi.
+- Email: migrazione alle impostazioni MAILERS di Django 6.1.
+
 ## [1.5.0] - 2026-11-10
 
 ### Aggiunto
