@@ -40,5 +40,5 @@ annotala o fotografala, poi premi **Fatto** (in cima o in fondo alla pagina).
 ![La ricevuta](img/ricevuta.jpg){ width="320" }
 
 !!! tip "Delega di un AE"
-    Se un AE ti ha delegato (la delega la registra il banco), la scheda è doppia: la tua e
+    Se un AE ti ha delegato (la delega la registra la segreteria), la scheda è doppia: la tua e
     quella per delega, ciascuna con la sua ricevuta.

@@ -275,9 +275,9 @@ def vota(
     if not votazioni_in_app(votazione) or not votazione.urna_aperta:
         raise ValidationError("La votazione non è aperta.")
     if not codice.avente.vota_in_app:
-        raise ValidationError("Voti su carta: chiedi la scheda al banco.")
+        raise ValidationError("Voti su carta: chiedi la scheda alla segreteria.")
     if not quorum.presenti(codice.seduta).filter(pk=codice.avente_id).exists():
-        raise ValidationError("Non risulti fra i presenti: passa dal banco.")
+        raise ValidationError("Non risulti fra i presenti: passa dalla segreteria.")
     spettanti = schede_spettanti(codice, votazione)
     if not spettanti:
         raise ValidationError("Hai già votato in questa votazione.")

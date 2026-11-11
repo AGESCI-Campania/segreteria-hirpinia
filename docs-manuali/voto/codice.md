@@ -6,17 +6,17 @@ segrete della seduta** (della convocazione) in cui ti sei registrato.
 
 ## Come lo ricevi
 
-- **Per email**: appena il banco registra la tua presenza, ricevi un'email con il codice
+- **Per email**: appena la segreteria registra la tua presenza, ricevi un'email con il codice
   e un link che apre la pagina del voto con il codice già inserito. Se nell'assemblea si
   vota **solo ai seggi**, l'email non ha il link: porta il codice a un seggio in sala.
-- **Al banco**: se non hai un'email o non ti è arrivata, il banco lo rigenera e te lo
+- **In segreteria**: se non hai un'email o non ti è arrivata, la segreteria lo rigenera e te lo
   mostra a schermo, oppure te lo stampa su un'**etichetta** con il tuo nome, il codice
   e un QR da inquadrare con il telefono.
 
 !!! warning "Tienilo per te"
     Chi ha il tuo codice può votare al posto tuo. Non mostrarlo e non inoltrare
-    l'email. Se pensi che qualcuno l'abbia visto, chiedi al banco di rigenerarlo: il
+    l'email. Se pensi che qualcuno l'abbia visto, chiedi alla segreteria di rigenerarlo: il
     vecchio smette subito di valere.
 
-Se perdi il codice, il banco te ne dà uno nuovo («Rigenera e mostra»): quello vecchio
+Se perdi il codice, la segreteria te ne dà uno nuovo («Rigenera e mostra»): quello vecchio
 non vale più. Se hai già votato in una votazione, quel voto resta.

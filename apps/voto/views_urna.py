@@ -98,7 +98,9 @@ class AccediView(View):
         postazione = postazione_della_richiesta(request)
         tentativi = _tentativi_recenti(request)
         if len(tentativi) >= (MAX_TENTATIVI_SEGGIO if postazione else MAX_TENTATIVI):
-            messages.error(request, "Troppi tentativi con codici non validi: chiedi al banco.")
+            messages.error(
+                request, "Troppi tentativi con codici non validi: chiedi alla segreteria."
+            )
             return redirect("voto:urna")
         codice = urna.accedi(request.POST.get("codice", ""))
         if codice is not None and not urna.ammesso_da(codice, postazione):

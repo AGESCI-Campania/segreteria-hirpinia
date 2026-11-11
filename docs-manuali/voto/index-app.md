@@ -8,7 +8,7 @@ mozioni si votano per alzata di mano; la revoca di un mandato resta su carta.
 
 ## In breve
 
-1. All'ingresso ti registri al banco: ricevi il **codice di voto** per email.
+1. All'ingresso ti registri in segreteria: ricevi il **codice di voto** per email.
 2. Apri il link dell'email: la pagina del voto si apre con il codice già inserito.
 3. Quando la presidenza apre un'elezione la scheda compare da sola: scegli, **rivedi** e
    **conferma**.
@@ -19,3 +19,8 @@ mozioni si votano per alzata di mano; la revoca di un mandato resta su carta.
     La scheda non è collegata a chi l'ha votata: la piattaforma registra solo **chi ha
     votato** (è pubblico per regolamento), non **cosa** ha votato. La ricevuta non dice a
     nessuno chi sei.
+
+!!! info "Un'urna chiusa non si riapre"
+    Quando l'urna di una votazione viene chiusa non si può più riaprire: nessuno può
+    aggiungere o cambiare schede. Prima del conteggio la piattaforma verifica che le schede
+    siano esattamente quante le persone che hanno votato.
