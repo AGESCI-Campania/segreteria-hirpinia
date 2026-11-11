@@ -13,7 +13,8 @@ templates/500.html: Bootstrap 6 con la stessa versione e SRI del tema.
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
   <link href="{% static 'agesci_theme/css/agesci.min.css' %}" rel="stylesheet">
 </head>
-<body class="bg-ag-viola fg-white d-flex flex-column min-vh-100">
+{# Sfondo tenue: rosso finché manca il quorum, verde quando è raggiunto; lo aggiorna assemblea-cruscotto.js. #}
+<body class="{% if stato.raggiunto %}bg-subtle-success{% else %}bg-subtle-danger{% endif %} d-flex flex-column min-vh-100" data-sfondo-quorum>
   <main class="container py-7 flex-grow-1 d-flex flex-column justify-content-center text-center">
     <div class="mb-5">
       {# Cerchio bianco: sul viola il logo non si leggerebbe. Con 1,5 rem di margine interno il logo quadrato sta tutto dentro il cerchio di 160 px. #}

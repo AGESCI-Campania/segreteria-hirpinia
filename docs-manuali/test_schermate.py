@@ -289,6 +289,8 @@ def test_schermate(live_server, browser, settings):
     # --- Il giorno dell'assemblea --------------------------------------------------
     f.apri(f"/assemblee/{pk}/sedute/{spk}/")
     f.scatta("gestione", "seduta-da-aprire")
+    f.apri(f"/assemblee/{pk}/sedute/{spk}/proiettore/")
+    f.scatta("gestione", "proiettore-senza-quorum", intera=False)
     _in_corso(segreteria, assemblea, seduta, avente)
     f.apri(f"/assemblee/{pk}/sedute/{spk}/")
     f.scatta("gestione", "seduta-costituita")

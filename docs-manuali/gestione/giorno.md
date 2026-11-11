@@ -45,7 +45,12 @@ seduta. La
 
 ![Cruscotto](img/cruscotto.jpg)
 
-![Vista proiettore](img/proiettore.jpg)
+La vista proiettore ha lo sfondo **rosso tenue** finché manca il quorum e **verde tenue**
+quando è raggiunto.
+
+![Vista proiettore senza quorum](img/proiettore-senza-quorum.jpg)
+
+![Vista proiettore con il quorum](img/proiettore.jpg)
 
 **Seggi** crea le postazioni di voto in sala (tablet o PC della Zona).
 
