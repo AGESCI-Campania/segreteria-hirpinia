@@ -27,6 +27,7 @@ from django.utils import timezone
 from django.utils.crypto import salted_hmac
 
 from apps.accounts.models import Utente
+from apps.assemblee import prova
 from apps.assemblee.models import AventeDiritto, Seduta
 from apps.assemblee.permessi import puo_operare
 from apps.core.invio_email import invia_email_template
@@ -139,6 +140,7 @@ def invia(seduta: Seduta, avente: AventeDiritto, utente: Utente) -> EsitoInvio:
                 "link": link_urna(codice),
             },
             fail_silently=False,
+            **prova.opzioni_invio(seduta.assemblea, prova.ETICHETTA_CODICE_VOTO),
         )
     except Exception:
         # Mai il codice né l'indirizzo nel log: solo che l'invio non è riuscito.

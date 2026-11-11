@@ -7,9 +7,42 @@
   <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
     <h1 class="mb-0">{{ assemblea }}</h1>
     {% if puo_gestire %}
-      <a href="{% url 'assemblee:assemblea_duplica' assemblea.pk %}" class="btn-outline theme-primary">{% bs_icon "copy" %} Duplica assemblea</a>
+      <div class="d-flex flex-wrap gap-3">
+        <a href="{% url 'assemblee:assemblea_duplica' assemblea.pk %}" class="btn-outline theme-primary">{% bs_icon "copy" %} Duplica assemblea</a>
+        {% if assemblea.di_prova %}
+          <a href="{% url 'assemblee:assemblea_elimina' assemblea.pk %}" class="btn-outline theme-danger">Elimina assemblea</a>
+        {% endif %}
+      </div>
     {% endif %}
   </div>
+  {% if assemblea.di_prova %}
+    <div class="alert theme-warning" role="note">
+      <div>
+        <p class="mb-1"><strong>Assemblea di prova.</strong> È indicata come tale nelle pagine e nei PDF e si può eliminare del tutto.</p>
+        <p class="mb-0">
+          {% if assemblea.email_solo_mailpit %}
+            Codici di voto e inviti <strong>non arrivano ai destinatari</strong>: restano su Mailpit.
+            {% if puo_gestire %}<a href="{% url 'assemblee:email_prova' assemblea.pk %}">Leggi le email</a>.{% endif %}
+            {% if not mailpit_configurato %}<strong>Mailpit non è configurato sul server: le email non partono.</strong>{% endif %}
+          {% else %}
+            Codici di voto e inviti arrivano davvero ai destinatari.
+          {% endif %}
+        </p>
+      </div>
+    </div>
+    {% if puo_gestire and not assemblea.conclusa %}
+      <form method="post" action="{% url 'assemblee:email_prova' assemblea.pk %}" class="mb-7">
+        {% csrf_token %}
+        {% if assemblea.email_solo_mailpit %}
+          <input type="hidden" name="email_solo_mailpit" value="0">
+          <button type="submit" class="btn-outline theme-warning btn-sm">Invia le email davvero ai destinatari</button>
+        {% else %}
+          <input type="hidden" name="email_solo_mailpit" value="1">
+          <button type="submit" class="btn-outline theme-primary btn-sm">Manda le email solo su Mailpit</button>
+        {% endif %}
+      </form>
+    {% endif %}
+  {% endif %}
   <p class="fg-2 mb-7">
     Sessione {{ assemblea.get_sessione_display|lower }} —
     {% if assemblea.conclusa %}conclusa il {{ assemblea.conclusa_il|date:"d/m/Y" }}{% else %}in preparazione{% endif %}

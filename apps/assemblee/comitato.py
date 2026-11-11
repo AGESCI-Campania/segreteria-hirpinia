@@ -19,6 +19,7 @@ from django.db.models import Q
 from apps.accounts.inviti import crea_invito
 from apps.accounts.models import StatoUtente, TipoUtente, Utente
 
+from . import prova
 from .models import Assemblea, AventeDiritto, OperatoreVoto
 from .permessi import puo_gestire_assemblee
 
@@ -95,13 +96,17 @@ def _collega_account(componente: OperatoreVoto) -> Utente:
     return utente
 
 
-def _invia_invito(utente: Utente, gestore: Utente) -> bool:
+def _invia_invito(utente: Utente, gestore: Utente, assemblea: Assemblea) -> bool:
     """Invito solo a chi non ha ancora una password. Fuori dalla transazione:
     un invio fallito non annulla la nomina, l'invito si può rimandare."""
     if utente.has_usable_password():
         return False
     try:
-        crea_invito(email=utente.email, creato_da=gestore)
+        crea_invito(
+            email=utente.email,
+            creato_da=gestore,
+            **prova.opzioni_invio(assemblea, prova.ETICHETTA_INVITO),
+        )
     except Exception:
         logger.exception("Invio dell'invito al comitato elettorale non riuscito (1 destinatario)")
         raise InvitoNonInviato from None
@@ -122,7 +127,7 @@ def aggiungi(
             assemblea=assemblea, avente=avente, nominato_da=gestore
         )
         utente = _collega_account(componente) if accesso else None
-    return componente, utente is not None and _invia_invito(utente, gestore)
+    return componente, utente is not None and _invia_invito(utente, gestore, assemblea)
 
 
 def dai_accesso(componente: OperatoreVoto, gestore: Utente) -> bool:
@@ -131,7 +136,7 @@ def dai_accesso(componente: OperatoreVoto, gestore: Utente) -> bool:
     _verifica(gestore, componente.assemblea)
     with transaction.atomic():
         utente = componente.utente or _collega_account(componente)
-    return _invia_invito(utente, gestore)
+    return _invia_invito(utente, gestore, componente.assemblea)
 
 
 @transaction.atomic

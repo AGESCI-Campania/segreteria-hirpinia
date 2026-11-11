@@ -7,7 +7,13 @@
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1>Aventi diritto</h1>
     {% if puo_gestire %}
-      <a href="{% url 'assemblee:inserisci' assemblea.pk %}{% if filtro_gruppo %}?gruppo={{ filtro_gruppo }}{% endif %}" class="btn-solid theme-primary">Nuovo capo</a>
+      <div class="d-flex flex-wrap gap-3">
+        {% if not assemblea.conclusa %}
+          <a href="{% url 'assemblee:riallinea' assemblea.pk %}" class="btn-outline theme-primary">Riallinea con l'anagrafica</a>
+          <a href="{% url 'assemblee:aggiungi_anagrafica' assemblea.pk %}" class="btn-outline theme-primary">Aggiungi dall'anagrafica</a>
+        {% endif %}
+        <a href="{% url 'assemblee:inserisci' assemblea.pk %}{% if filtro_gruppo %}?gruppo={{ filtro_gruppo }}{% endif %}" class="btn-solid theme-primary">Nuovo capo</a>
+      </div>
     {% endif %}
   </div>
   <p class="fg-2 mb-5">
@@ -85,6 +91,7 @@
         {% if puo_gestire %}<th><input type="checkbox" id="seleziona-tutti" class="check" aria-label="Seleziona tutti gli aventi diritto visibili"></th>{% endif %}
         <th>Cognome e nome</th>
         <th>Codice socio</th>
+        <th>Sesso</th>
         <th>Email</th>
         <th>Gruppo</th>
         <th>Dati</th>
@@ -105,6 +112,7 @@
             {% if riga.rdz %}{% ag_chip "RdZ" variant="primary" %}{% elif riga.comitato %}{% ag_chip "Comitato" variant="primary" %}{% endif %}
           </td>
           <td>{{ riga.codice_socio|default:"—" }}</td>
+          <td>{{ riga.sesso|default:"—" }}</td>
           <td>{{ riga.email|default:"—" }}</td>
           <td>
             {{ riga.gruppo.nome }}
@@ -139,7 +147,7 @@
                 <a href="{% url 'assemblee:qualifiche' assemblea.pk riga.pk %}" class="btn-outline theme-secondary btn-sm">Qualifiche</a>
               {% endif %}
               {% if puo_operare %}
-                <a href="{% url 'assemblee:avente_email' assemblea.pk riga.pk %}" class="btn-outline theme-secondary btn-sm">Email</a>
+                <a href="{% url 'assemblee:avente_email' assemblea.pk riga.pk %}" class="btn-outline theme-secondary btn-sm">Dati</a>
                 {% if riga.vota_in_app %}
                   <form method="post" action="{% url 'assemblee:passa_a_carta' assemblea.pk riga.pk %}" class="d-inline">
                     {% csrf_token %}
@@ -159,7 +167,7 @@
           </td>
         </tr>
       {% empty %}
-        <tr><td colspan="8">Nessun capo corrisponde ai filtri.</td></tr>
+        <tr><td colspan="9">Nessun capo corrisponde ai filtri.</td></tr>
       {% endfor %}
     </tbody>
   </table>

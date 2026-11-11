@@ -1329,6 +1329,25 @@ del giorno; non si copiano sedute, presenze, deleghe, votazioni, codici, seggi e
 né i passaggi a carta. L'anagrafica non si legge: l'elenco copiato si riallinea ai censiti
 solo con «aggiorna il gruppo».
 
+**Dati dei capi, elenco vuoto, assemblee di prova** (2026-11-11, piano completo in
+`docs/plan_preparazione_assemblea.md`, D6–D29):
+- l'elenco ha anche il **sesso** (`AventeDiritto.sesso`), preso da `Capo.sesso` solo se
+  `M`/`F`; sesso ed email si correggono nel modulo senza scrivere l'anagrafica, e le
+  correzioni restano marcate (`sesso_corretto`, `email_corretta`; negli elenchi già
+  esistenti un'email diversa da quella dell'anagrafica vale come corretta);
+- **«Riallinea con l'anagrafica»** (pulsante, anteprima e conferma, mai ad assemblea
+  conclusa): nome, cognome, sesso, email e gruppo del censimento dei capi con codice
+  socio, senza sovrascrivere le correzioni né i trasferimenti fatti a mano; «Ripristina»
+  riallinea anche i dati del capo che torna nell'elenco;
+- un'assemblea può nascere con l'**elenco vuoto**; «Aggiungi dall'anagrafica» aggiunge
+  un censito, un gruppo intero o tutti, con le stesse regole dell'import (anno scelto
+  gruppo per gruppo; chi è uscito si ripristina, non si reimporta);
+- **assemblea di prova** (`di_prova`, scelto solo alla creazione): indicata nel nome,
+  nelle pagine, nei PDF («DI PROVA») e nelle pagine del voto; è l'unica che si può
+  eliminare del tutto; quorum e soglie restano quelli del regolamento. Con «Email solo su
+  Mailpit» codici di voto e inviti non arrivano ai destinatari: restano su Mailpit e i
+  gestori li leggono dalla pagina dell'assemblea, con il codice degli inviti oscurato.
+
 **Sedute e quorum costitutivo (art. 4).** Ogni convocazione (1ª, 2ª, 3ª) è una seduta
 separata, con data, luogo e presenze proprie; l'elenco degli aventi diritto è unico per
 l'assemblea. Quorum costitutivo: metà degli aventi diritto + 1 in 1ª e 2ª convocazione,
@@ -1408,6 +1427,10 @@ manuale a carta, `elenco.passa_a_carta()`).
 - i voti in app non si inseriscono a mano: arrivano dallo scrutinio dell'urna
   (`registra_risultati()` li prende da `apps/voto/scrutinio.conteggio()`);
 - tracciato e pagina «abilitazione app» non servono e non compaiono.
+- *assemblee di prova «solo Mailpit»* (2026-11-11): i codici di voto inviati per email
+  restano su Mailpit e i gestori li leggono in chiaro dalla pagina dell'assemblea, per
+  provare l'urna. È l'unica eccezione alla regola «il codice in chiaro esiste solo nel
+  valore restituito da `codici.emetti()`», e vale solo per le assemblee di prova.
 
 **Email degli aventi diritto.** `AventeDiritto.email` (vale anche con l'app del Nazionale,
 che la riceve nel tracciato): precompilata da `capo.email` all'import, corretta a mano, al

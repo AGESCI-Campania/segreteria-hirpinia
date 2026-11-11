@@ -4,6 +4,15 @@ Raccolta dei requisiti (dal 2026-11-11). Si sviluppa tutto insieme alla fine del
 raccolta, dopo aver chiarito i dubbi elencati in fondo. Le regole definitive andranno in
 D-70/D-71 di `Catello_Progettazione.md`.
 
+## Stato dello sviluppo
+
+- **Passo 1 — fatto (2026-11-11)**: R5, R6, R7, R9, R10 (D6, D13–D22, D26–D29).
+- Passo 2: R4 (presidenza, segretario, comitato mozioni, scrutatori, permessi).
+- Passo 3: R1/R2 (posizioni al voto e candidature, avvisi sul sesso).
+- Passo 4: R3 (quote per sesso in urna, scrutinio ed esito).
+- Passo 5: R8 (etichetta Niimbot B1).
+- Passo 6: R11 (manuali in PDF).
+
 ## Obiettivo
 
 Preparare prima del giorno dell'assemblea tutto ciò che si può, invece di inserirlo

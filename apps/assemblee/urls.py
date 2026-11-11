@@ -9,6 +9,8 @@ urlpatterns = [
     path("nuova/", views.AssembleaCreaView.as_view(), name="assemblea_crea"),
     path("<int:pk>/", views.AssembleaDettaglioView.as_view(), name="assemblea_dettaglio"),
     path("<int:pk>/duplica/", views.AssembleaDuplicaView.as_view(), name="assemblea_duplica"),
+    path("<int:pk>/elimina/", views.AssembleaEliminaView.as_view(), name="assemblea_elimina"),
+    path("<int:pk>/email-prova/", views.EmailProvaView.as_view(), name="email_prova"),
     path(
         "<int:pk>/comitato/cerca/",
         views.ComitatoAutocompleteView.as_view(),
@@ -30,6 +32,17 @@ urlpatterns = [
         name="operatore_rimuovi",
     ),
     path("<int:pk>/elenco/", views.ElencoView.as_view(), name="elenco"),
+    path("<int:pk>/elenco/riallinea/", views.RiallineaView.as_view(), name="riallinea"),
+    path(
+        "<int:pk>/elenco/aggiungi/",
+        views.AggiungiDaAnagraficaView.as_view(),
+        name="aggiungi_anagrafica",
+    ),
+    path(
+        "<int:pk>/elenco/aggiungi/cerca/",
+        views.AggiungiDaAnagraficaCercaView.as_view(),
+        name="aggiungi_anagrafica_cerca",
+    ),
     path("<int:pk>/elenco/elimina/", views.EliminaView.as_view(), name="elimina"),
     path("<int:pk>/elenco/nuovo/", views.InserisciView.as_view(), name="inserisci"),
     path(

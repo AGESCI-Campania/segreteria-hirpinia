@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block page_title %}Aggiungi dall'anagrafica — {{ assemblea }}{% endblock %}
+
+{% block content %}
+  <h1>Aggiungi dall'anagrafica</h1>
+  <p class="fg-2 mb-7">
+    {{ assemblea }} — {{ totale }} nell'elenco. Si possono aggiungere i censiti
+    {% if assemblea.tipo == "AUTUNNALE" %}dell'anno usato per ciascun gruppo (quello in corso se il gruppo ne ha già i dati, altrimenti il precedente){% else %}dell'anno in corso{% endif %},
+    di tutti i gruppi compreso il Comitato, con i loro dati dell'anagrafica. Chi è già
+    nell'elenco non compare; se è uscito, si ripristina dall'elenco.
+  </p>
+
+  <h2 class="fs-lg">Un capo</h2>
+  <form method="post" class="mb-7">
+    {% csrf_token %}
+    <input type="hidden" name="azione" value="capo">
+    <input type="hidden" name="codice_socio" id="id_codice_socio">
+    <div class="row g-3 align-items-end">
+      <div class="md:col-6">
+        <div class="mb-5 position-relative">
+          <label for="ricerca-censito" class="form-label">Capo (nome, cognome, gruppo o codice socio)</label>
+          <input type="text" id="ricerca-censito" class="form-control" autocomplete="off" placeholder="Digita almeno 2 caratteri…">
+          <ul class="list-group position-absolute w-100" id="ricerca-censito-risultati" style="z-index: 1000; display: none;"></ul>
+          <div class="form-text" id="ricerca-censito-selezionato"></div>
+        </div>
+      </div>
+      <div class="md:col-auto">
+        <button type="submit" class="btn-solid theme-primary mb-5">Aggiungi</button>
+      </div>
+    </div>
+  </form>
+
+  <h2 class="fs-lg">Un gruppo intero</h2>
+  <form method="post" class="row g-3 align-items-end mb-7">
+    {% csrf_token %}
+    <input type="hidden" name="azione" value="gruppo">
+    <div class="md:col-6">
+      <div class="form-field">{{ form_gruppo.gruppo.label_tag }}{{ form_gruppo.gruppo }}</div>
+    </div>
+    <div class="md:col-auto">
+      <button type="submit" class="btn-solid theme-primary">Aggiungi i censiti del gruppo</button>
+    </div>
+  </form>
+
+  <h2 class="fs-lg">Tutti i censiti</h2>
+  <p class="fg-2">Come all'apertura di un'assemblea: aggiunge tutti i censiti non ancora nell'elenco.</p>
+  <form method="post" class="mb-7">
+    {% csrf_token %}
+    <input type="hidden" name="azione" value="tutti">
+    <button type="submit" class="btn-outline theme-primary">Importa tutti i censiti</button>
+  </form>
+
+  <a href="{% url 'assemblee:elenco' assemblea.pk %}" class="btn-outline theme-secondary">Torna all'elenco</a>
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script src="{% static 'js/ricerca-autocomplete-comune.js' %}" defer></script>
+  <script src="{% static 'js/aggiungi-censito-autocomplete.js' %}" defer data-url-autocomplete="{% url 'assemblee:aggiungi_anagrafica_cerca' assemblea.pk %}"></script>
+{% endblock %}

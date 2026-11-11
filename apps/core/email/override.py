@@ -33,6 +33,13 @@ if TYPE_CHECKING:  # pragma: no cover
 ALIAS_PROVIDER = "provider"
 ALIAS_MAILPIT = "mailpit"
 
+#: Contrassegno messo da `apps.core.invio_email.invia_email_template()` sui
+#: messaggi che devono andare **sempre** su Mailpit, qualunque sia
+#: l'interruttore globale: le email delle assemblee di prova «solo Mailpit»
+#: (docs/plan_preparazione_assemblea.md, D26-D27). Chi lo mette non sa quale
+#: provider è attivo: la scelta del trasporto resta solo qui.
+HEADER_SOLO_MAILPIT = "X-Catello-Solo-Mailpit"
+
 
 class MailpitOverridableBackend(BaseEmailBackend):
     """Delega al mailer "mailpit" se `ImpostazioniPiattaforma.corrente().email_su_mailpit`
@@ -48,13 +55,32 @@ class MailpitOverridableBackend(BaseEmailBackend):
     def send_messages(self, email_messages: Sequence[EmailMessage]) -> int:
         if not email_messages:
             return 0
-        alias = self._alias_attivo()
+        solo_mailpit = [m for m in email_messages if m.extra_headers.get(HEADER_SOLO_MAILPIT)]
+        altri = [m for m in email_messages if not m.extra_headers.get(HEADER_SOLO_MAILPIT)]
+        inviati = 0
+        if solo_mailpit:
+            # Mai un invio reale creduto deviato (D27): senza Mailpit si fallisce,
+            # anche con fail_silently.
+            self._verifica_mailpit()
+            inviati += self._invia(ALIAS_MAILPIT, solo_mailpit)
+        if altri:
+            inviati += self._invia(self._alias_attivo(), altri)
+        return inviati
+
+    def _invia(self, alias: str, messaggi: Sequence[EmailMessage]) -> int:
         try:
-            return mail.mailers[alias].send_messages(email_messages) or 0
+            return mail.mailers[alias].send_messages(messaggi) or 0
         except Exception:
             if not self.fail_silently:
                 raise
             return 0
+
+    @staticmethod
+    def _verifica_mailpit() -> None:
+        if not settings.EMAIL_MAILPIT_HOST:
+            raise ImproperlyConfigured(
+                "Email da inviare solo su Mailpit, ma EMAIL_MAILPIT_HOST non è configurato."
+            )
 
     def _alias_attivo(self) -> str:
         from apps.core.models import ImpostazioniPiattaforma

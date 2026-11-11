@@ -61,6 +61,26 @@ class Assemblea(models.Model):
         choices=ModalitaVoto.choices,
         default=ModalitaVoto.PERSONALE_E_SEGGIO,
     )
+    # Si sceglie solo alla creazione e non cambia più: solo un'assemblea di
+    # prova si può eliminare del tutto (docs/plan_preparazione_assemblea.md, D22).
+    di_prova = models.BooleanField(
+        "Assemblea di prova",
+        default=False,
+        help_text=(
+            "Per provare il voto o per votazioni ristrette: è indicata come «di prova» nelle "
+            "pagine e nei PDF e si può eliminare del tutto. Non si può cambiare dopo."
+        ),
+    )
+    # Solo per le assemblee di prova (D26): le email legate all'assemblea
+    # (codici di voto, inviti) vanno sempre su Mailpit, mai al provider reale.
+    email_solo_mailpit = models.BooleanField(
+        "Email solo su Mailpit",
+        default=False,
+        help_text=(
+            "Codici di voto e inviti di questa assemblea non arrivano ai destinatari: restano su "
+            "Mailpit e si leggono dalla pagina dell'assemblea."
+        ),
+    )
     conclusa_il = models.DateTimeField(null=True, blank=True)
     creata_il = models.DateTimeField(auto_now_add=True)
     creata_da = models.ForeignKey(
@@ -75,11 +95,18 @@ class Assemblea(models.Model):
         verbose_name = "assemblea"
         verbose_name_plural = "assemblee"
         ordering = ["-anno_scout", "-creata_il"]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(di_prova=True) | Q(email_solo_mailpit=False),
+                name="email_solo_mailpit_solo_di_prova",
+            )
+        ]
 
     def __str__(self) -> str:
-        return (
+        nome = (
             f"Assemblea {self.get_tipo_display().lower()} {self.anno_scout - 1}/{self.anno_scout}"
         )
+        return f"{nome} (di prova)" if self.di_prova else nome
 
     @property
     def anno_censimento_base(self) -> int:
@@ -235,6 +262,15 @@ class Provenienza(models.TextChoices):
     NON_NOTA = "NON_NOTA", "Non nota"
 
 
+class Sesso(models.TextChoices):
+    """Sesso del capo nell'elenco: precompilato da `Capo.sesso`, correggibile
+    nel modulo senza scrivere l'anagrafica (docs/plan_preparazione_assemblea.md,
+    D6/D17). Vuoto se non noto."""
+
+    MASCHILE = "M", "Maschile"
+    FEMMINILE = "F", "Femminile"
+
+
 class MotivoUscita(models.TextChoices):
     ELIMINATO = "ELIMINATO", "Eliminato"
     NON_CENSITO = "NON_CENSITO", "Non più censito"
@@ -267,6 +303,12 @@ class AventeDiritto(models.Model):
     # `capo.email` all'import, poi corretto qui (a mano, al banco o con l'Excel
     # dei capigruppo) senza mai scrivere l'anagrafica.
     email = models.EmailField(blank=True)
+    # Email corretta nel modulo (a mano, al banco o con l'Excel dei capigruppo):
+    # il riallineamento con l'anagrafica non la sovrascrive (D14).
+    email_corretta = models.BooleanField(default=False)
+    sesso = models.CharField(max_length=1, choices=Sesso.choices, blank=True)
+    # Sesso corretto nel modulo: il riallineamento non lo sovrascrive (D17).
+    sesso_corretto = models.BooleanField(default=False)
     gruppo = models.ForeignKey(
         "organizzazione.Gruppo",
         on_delete=models.PROTECT,

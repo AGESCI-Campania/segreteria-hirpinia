@@ -1,14 +1,16 @@
 {% extends "base.html" %}
 
-{% block page_title %}Email — {{ avente }}{% endblock %}
+{% block page_title %}Dati — {{ avente }}{% endblock %}
 
 {% block content %}
   <div class="row justify-content-center">
     <div class="md:col-6">
-      <h1>Email di {{ avente.cognome }} {{ avente.nome }}</h1>
+      <h1>Dati di {{ avente.cognome }} {{ avente.nome }}</h1>
       <p class="fg-2">
-        Serve per il tracciato e per l'invio del codice di voto.
-        {% if avente.capo.email and avente.capo.email != avente.email %}In anagrafica: {{ avente.capo.email }}.{% endif %}
+        L'email serve per il tracciato e per l'invio del codice di voto, il sesso per le
+        candidature. Le correzioni valgono solo per questa assemblea e il riallineamento con
+        l'anagrafica non le sovrascrive.
+        {% if avente.capo.email and avente.capo.email != avente.email %}Email in anagrafica: {{ avente.capo.email }}.{% endif %}
       </p>
       <form method="post">
         {% csrf_token %}

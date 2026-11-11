@@ -48,3 +48,18 @@
     height: 0.9cm;
     margin-bottom: 0.15cm;
   }
+
+  /* Assemblea di prova: dicitura ripetuta su ogni pagina (position: fixed in
+     WeasyPrint si ripete a ogni pagina). */
+  .di-prova {
+    position: fixed;
+    top: 45%;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    font-size: 60pt;
+    font-weight: bold;
+    color: rgba(200, 0, 0, 0.18);
+    transform: rotate(-30deg);
+    z-index: 1000;
+  }

@@ -315,7 +315,8 @@ def applica_import(
         )
     for modifica in anteprima.modifiche:
         modifica.avente.email = modifica.nuova
-        modifica.avente.save(update_fields=["email"])
+        modifica.avente.email_corretta = True
+        modifica.avente.save(update_fields=["email", "email_corretta"])
     return ImportazioneEmail.objects.create(
         assemblea=assemblea,
         nome_file=nome_file[:255],

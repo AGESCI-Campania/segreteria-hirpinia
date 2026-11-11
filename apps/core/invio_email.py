@@ -11,12 +11,14 @@ sceglie mai il trasporto: `EMAIL_PROVIDER` resta l'unico selettore
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 
 import bleach
 from bleach.css_sanitizer import CSSSanitizer
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 
+from .email.override import HEADER_SOLO_MAILPIT
 from .models import CodiceTemplateEmail, ImpostazioniPiattaforma, TemplateEmail
 from .template_email import (
     applica_prefisso_oggetto,
@@ -195,11 +197,15 @@ def invia_email_template(
     destinatari: list[str],
     contesto: dict[str, str],
     fail_silently: bool = True,
+    solo_mailpit: bool = False,
+    etichette: Sequence[str] = (),
 ) -> None:
     """Sempre multipart: il corpo testo è sempre presente, l'HTML è
     un'alternativa solo se il corpo o la firma configurano contenuto HTML. Se
     il record manca o è vuoto usa il fallback hardcoded (mai bloccare un
-    invio critico come l'attivazione account)."""
+    invio critico come l'attivazione account). `solo_mailpit`: il messaggio
+    va sempre su Mailpit in produzione (assemblee di prova, D26), mai al
+    provider reale; `etichette` lo ritrovano su Mailpit."""
     if not destinatari:
         return
 
@@ -220,6 +226,13 @@ def invia_email_template(
     )
 
     messaggio = EmailMultiAlternatives(subject=oggetto, body=corpo_testo, to=destinatari)
+    if solo_mailpit:
+        # Solo un contrassegno: dove va il messaggio lo decide il backend di
+        # produzione (apps/core/email/override.py), non chi invia. Le etichette
+        # servono a ritrovare i messaggi su Mailpit (tag, `X-Tags`).
+        messaggio.extra_headers[HEADER_SOLO_MAILPIT] = "1"
+        if etichette:
+            messaggio.extra_headers["X-Tags"] = ", ".join(etichette)
     if corpo_html.strip():
         messaggio.attach_alternative(sanifica_html(corpo_html), "text/html")
     # Django 6.1 depreca send(fail_silently=...): l'errore si intercetta qui. Nel

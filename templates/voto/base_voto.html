@@ -21,6 +21,9 @@ della pagina, niente script di terze parti.
   <header class="bg-ag-viola fg-white">
     <div class="container py-5"><strong>{% block intestazione %}AGESCI Zona Hirpinia — Voto{% endblock %}</strong></div>
   </header>
+  {% if assemblea.di_prova or votazione.seduta.assemblea.di_prova %}
+    <div class="bg-ag-giallo-oro"><div class="container py-3"><strong>Assemblea di prova</strong>: questo voto non ha valore.</div></div>
+  {% endif %}
   <main class="container py-7 flex-grow-1">
     {% block content %}{% endblock %}
   </main>

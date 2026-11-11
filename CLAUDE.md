@@ -192,6 +192,13 @@ Punti da non confondere:
   contributo, A-8): non è un caso che gli altri due non lo facciano, dato che la ricerca
   capo/incarico non ha lo stesso vincolo.
 
+Un **quarto perimetro**, anch'esso distinto e da non unificare:
+`AggiungiDaAnagraficaCercaView` (`apps/assemblee/views.py`, «Aggiungi dall'anagrafica»
+nell'elenco di un'assemblea): solo gestori, solo i censiti che
+`elenco.censiti_aggiungibili()` ammette (anni dell'import, anno scelto gruppo per gruppo,
+Comitato compreso, non ancora in elenco), match parziale su nome, cognome, gruppo e
+codice socio, restituisce nome, cognome, gruppo e codice socio, mai recapiti.
+
 ### Ruoli, perimetro, impersonificazione
 
 - **Mai ricavare il perimetro da `utente.gruppo`.** Quel campo identifica l'account
@@ -253,7 +260,14 @@ nelle fixture di test.
   all'alias `provider` (`EMAIL_PROVIDER`) o all'alias `mailpit` in base al flag
   `ImpostazioniPiattaforma.email_su_mailpit`; quei due alias li usa solo lui. È
   confinata a quel solo modulo: nessun'altra view o service layer legge mai quel flag. Dettagli e rischi operativi in
-  `docs/email/mailpit-override-produzione.md`.
+  `docs/email/mailpit-override-produzione.md`. Estensione dichiarata per le **assemblee
+  di prova «solo Mailpit»**: `invia_email_template(solo_mailpit=True, etichette=...)`
+  mette sul messaggio solo un contrassegno (`override.HEADER_SOLO_MAILPIT`) e i tag di
+  Mailpit; è sempre `override.py` a mandarlo all'alias `mailpit` (con errore, mai invio
+  reale, se Mailpit non è configurato). I chiamanti passano gli argomenti di
+  `apps/assemblee/prova.py::opzioni_invio()`, mai un `if` sul provider. La lettura dei
+  messaggi dall'API di Mailpit (`EMAIL_MAILPIT_API_URL`) vive solo in
+  `apps/core/email/mailpit_api.py`, per la pagina delle email delle assemblee di prova.
 - I backend Gmail e Graph estendono `apps/core/email/base.py::ApiEmailBackend` e
   implementano solo `_richiedi_token()` e `_invia_mime()`. Se stai riscrivendo la
   conversione MIME o la gestione di `fail_silently`, sei nel posto sbagliato.
@@ -298,6 +312,15 @@ deve violare:
   censiti della Zona dell'anno da cui è importato il gruppo (autunnale: anno scelto
   gruppo per gruppo), più il passaggio manuale a carta; nel tracciato il gruppo è quello
   di origine, anche dopo un trasferimento.
+- **Dati dei capi nell'elenco** (`docs/plan_preparazione_assemblea.md`, D6–D21): sesso
+  (`AventeDiritto.sesso`) ed email si prendono dall'anagrafica e si correggono nel modulo
+  (`email_corretta`/`sesso_corretto`), che non scrive mai l'anagrafica; il riallineamento
+  (`elenco.applica_riallinea()`, anche dentro `ripristina()`) non sovrascrive le
+  correzioni né i trasferimenti fatti a mano. Il sesso dell'anagrafica vale solo se è
+  `M`/`F` (`elenco.sesso_da_capo()`): un altro valore resta non noto, mai normalizzato.
+- **Assemblee di prova** (`Assemblea.di_prova`, D22): il flag si sceglie **solo alla
+  creazione** (in admin è in sola lettura) ed è l'unica condizione per eliminare
+  un'assemblea (`apps/assemblee/prova.py::elimina()`); non renderlo modificabile.
 - **Comitato elettorale** (ex «operatori di voto», modello `OperatoreVoto`): si nomina
   solo da `apps/assemblee/comitato.py`, fra gli aventi diritto dell'elenco. L'account
   creato per un componente nasce **senza password** e passa dall'invito di D-20, mai una
@@ -321,6 +344,9 @@ Regole complete in D-71 e in `docs/plan_voto.md`. Qui ciò che il codice non dev
   restituito da `codici.emetti()` (email o schermo del banco): mai in sessione, database,
   log, auditlog, URL di path o querystring. Nei link sta nel *fragment* (`#c=…`), e così
   il segreto di attivazione dei seggi (`#s=…`). In sessione resta l'id del `CodiceVoto`.
+  Unica eccezione dichiarata: nelle assemblee **di prova** «solo Mailpit» l'email del
+  codice resta su Mailpit e i gestori la leggono dalla pagina dell'assemblea
+  (`prova.email_su_mailpit()`); non estenderla alle assemblee vere.
 - **`Scheda` non ha e non deve avere** FK verso avente, codice, votante o postazione, né
   timestamp; `Votante` nemmeno timestamp. Un test sul `_meta` lo verifica: non
   aggiungere campi «per comodità». Nessun log registra codici, ricevute o scelte, e

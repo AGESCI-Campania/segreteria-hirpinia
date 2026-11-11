@@ -1,4 +1,5 @@
 {# Intestazione e piè di pagina della Zona ripetuti su ogni pagina (running elements); contesto da apps/core/pdf.py::contesto_carta_intestata(). #}
+  {% if assemblea.di_prova %}<div class="di-prova">DI PROVA</div>{% endif %}
   <div class="intestazione">
     <div class="banda">
       {% if logo_zona_path %}

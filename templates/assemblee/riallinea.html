@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block page_title %}Riallinea con l'anagrafica — {{ assemblea }}{% endblock %}
+
+{% block content %}
+  <h1>Riallinea con l'anagrafica</h1>
+  <p class="fg-2 mb-5">
+    Aggiorna nome, cognome, sesso, email e gruppo dei capi dell'elenco con i dati di Catello.
+    Email e sesso corretti in questa assemblea non si toccano; un capo trasferito a mano resta nel
+    gruppo in cui è stato spostato. Restano esclusi i capi senza codice socio e quelli usciti
+    (si riallineano quando li ripristini). Controlla le modifiche e conferma.
+  </p>
+
+  {% if not righe %}
+    <div class="alert theme-info" role="note"><p class="mb-0">L'elenco è già allineato: non c'è niente da aggiornare.</p></div>
+    <a href="{% url 'assemblee:elenco' assemblea.pk %}" class="btn-outline theme-secondary">Torna all'elenco</a>
+  {% else %}
+    <div class="table-responsive mb-5">
+      <table class="table table-sm">
+        <thead><tr><th>Capo</th><th>Dato</th><th>Ora</th><th>Dopo</th></tr></thead>
+        <tbody>
+          {% for riga in righe %}
+            {% for modifica in riga.modifiche %}
+              <tr>
+                {% if forloop.first %}<td rowspan="{{ riga.modifiche|length }}">{{ riga.avente.cognome }} {{ riga.avente.nome }} ({{ riga.avente.codice_socio }})</td>{% endif %}
+                <td>{{ modifica.etichetta }}</td>
+                <td>{{ modifica.prima }}</td>
+                <td>{{ modifica.dopo }}</td>
+              </tr>
+            {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <form method="post" class="d-flex gap-3">
+      {% csrf_token %}
+      <button type="submit" class="btn-solid theme-primary">Applica a {{ righe|length }} capi</button>
+      <a href="{% url 'assemblee:elenco' assemblea.pk %}" class="btn-outline theme-secondary">Annulla</a>
+    </form>
+  {% endif %}
+{% endblock %}

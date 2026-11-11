@@ -22,6 +22,12 @@ class AssembleaAdmin(admin.ModelAdmin):
     readonly_fields = ["creata_il", "creata_da"]
     inlines = [SedutaInline, OperatoreVotoInline]
 
+    def get_readonly_fields(self, request, obj=None):
+        # `di_prova` si sceglie solo alla creazione: renderlo vero dopo
+        # renderebbe eliminabile un'assemblea vera (apps/assemblee/prova.py).
+        campi = list(super().get_readonly_fields(request, obj))
+        return [*campi, "di_prova"] if obj is not None else campi
+
 
 class IncaricoDichiaratoInline(admin.TabularInline):
     model = IncaricoDichiarato

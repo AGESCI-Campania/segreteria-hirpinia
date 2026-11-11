@@ -16,6 +16,7 @@ from django.views import View
 from django.views.generic import ListView
 
 from apps.accounts.models import Utente
+from apps.core.email import mailpit_api
 from apps.core.mixins import BreadcrumbExtraMixin
 from apps.organizzazione.models import Gruppo
 from apps.voto import codici as codici_voto
@@ -23,14 +24,16 @@ from apps.voto import scrutinio as scrutinio_voto
 from apps.voto import urna as urna_voto
 from apps.voto import views as voto_banco
 
-from . import comitato, cruscotto, duplica, elenco, email_aventi, odg, sedute
+from . import comitato, cruscotto, duplica, elenco, email_aventi, odg, prova, sedute
 from . import deleghe as deleghe_ae
 from . import file as file_assemblea
 from . import quorum as quorum_assemblea
 from . import verbale as verbale_assemblea
 from . import votazioni as voto
 from .forms import (
+    AggiungiGruppoForm,
     AssembleaCreaForm,
+    AssembleaNuovaForm,
     AventeInserisciForm,
     ComitatoAggiungiForm,
     ConvocazioneForm,
@@ -114,15 +117,27 @@ class AssembleaCreaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
         return [*_breadcrumb_assemblee(), {"label": "Nuova assemblea"}]
 
     def get(self, request):
-        return render(request, self.template_name, {"form": AssembleaCreaForm()})
+        return render(request, self.template_name, {"form": AssembleaNuovaForm()})
 
     def post(self, request):
-        form = AssembleaCreaForm(request.POST)
+        form = AssembleaNuovaForm(request.POST)
         if not form.is_valid():
             return render(request, self.template_name, {"form": form})
         form.instance.creata_da = request.user
+        if form.cleaned_data["email_solo_mailpit"] and not mailpit_api.configurato():
+            messages.warning(
+                request,
+                "Mailpit non è configurato sul server: finché non lo è, le email di questa "
+                "assemblea di prova non partono.",
+            )
         with transaction.atomic():
             assemblea = form.save()
+            if form.cleaned_data["elenco_iniziale"] == AssembleaNuovaForm.VUOTA:
+                messages.success(
+                    request,
+                    f"{assemblea} creata con l'elenco vuoto: aggiungi i capi dall'anagrafica.",
+                )
+                return redirect(reverse("assemblee:aggiungi_anagrafica", args=[assemblea.pk]))
             importati = elenco.importa_elenco(assemblea, request.user)
         messages.success(request, f"{assemblea} creata: {importati} aventi diritto importati.")
         return redirect(reverse("assemblee:assemblea_dettaglio", args=[assemblea.pk]))
@@ -147,6 +162,8 @@ class AssembleaDuplicaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
             "sessione": origine.sessione,
             "sistema_voto": origine.sistema_voto,
             "modalita_voto": origine.modalita_voto,
+            "di_prova": origine.di_prova,
+            "email_solo_mailpit": origine.email_solo_mailpit,
             "ora_convocazione": prima.ora if prima else None,
             "luogo": prima.luogo if prima else "",
         }
@@ -166,6 +183,82 @@ class AssembleaDuplicaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
             request, f"{nuova} creata come copia di {origine}: {copiati} aventi diritto copiati."
         )
         return redirect(reverse("assemblee:assemblea_dettaglio", args=[nuova.pk]))
+
+
+class EmailProvaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+    """Email di un'assemblea di prova «solo Mailpit», lette da Mailpit (D28)."""
+
+    template_name = "assemblee/email_prova.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_assemblea(request, {"label": "Email su Mailpit"})
+
+    def get(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk, di_prova=True)
+        contesto = {"assemblea": assemblea, "messaggi": None, "errore": False}
+        try:
+            contesto["messaggi"] = prova.email_su_mailpit(assemblea, request.user)
+        except mailpit_api.MailpitNonRaggiungibile:
+            contesto["errore"] = True
+        return render(request, self.template_name, contesto)
+
+    def post(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk, di_prova=True)
+        valore = request.POST.get("email_solo_mailpit") == "1"
+        try:
+            prova.imposta_email_solo_mailpit(assemblea, valore, request.user)
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+        else:
+            if valore:
+                messages.success(request, "Le email di questa assemblea vanno solo su Mailpit.")
+                if not mailpit_api.configurato():
+                    messages.warning(
+                        request,
+                        "Mailpit non è configurato sul server: finché non lo è, le email di "
+                        "questa assemblea non partono.",
+                    )
+            else:
+                messages.warning(
+                    request, "Le email di questa assemblea ora arrivano davvero ai destinatari."
+                )
+        return redirect(reverse("assemblee:assemblea_dettaglio", args=[pk]))
+
+
+class AssembleaEliminaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+    """Eliminazione definitiva, solo per le assemblee di prova (prova.py)."""
+
+    template_name = "assemblee/assemblea_elimina.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return [*_breadcrumb_assemblee(), {"label": "Elimina assemblea"}]
+
+    def _assemblea(self, pk) -> Assemblea:
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        if not assemblea.di_prova:
+            raise PermissionDenied("Solo un'assemblea di prova si può eliminare.")
+        return assemblea
+
+    def get(self, request, pk):
+        assemblea = self._assemblea(pk)
+        contesto = {
+            "assemblea": assemblea,
+            "aventi": assemblea.aventi_diritto.count(),
+            "votazioni": Votazione.objects.filter(seduta__assemblea=assemblea).count(),
+        }
+        return render(request, self.template_name, contesto)
+
+    def post(self, request, pk):
+        assemblea = self._assemblea(pk)
+        if request.POST.get("conferma") != "1":
+            messages.error(request, "Spunta la conferma per eliminare l'assemblea.")
+            return redirect(reverse("assemblee:assemblea_elimina", args=[pk]))
+        nome = str(assemblea)
+        prova.elimina(assemblea, request.user)
+        messages.success(request, f"{nome} eliminata.")
+        return redirect(reverse("assemblee:assemblea_lista"))
 
 
 class AssembleaDettaglioView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
@@ -191,6 +284,7 @@ class AssembleaDettaglioView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             "totale_aventi_diritto": elenco.count(),
             "totale_app": elenco.filter(vota_in_app=True).count(),
             "form_operatore": ComitatoAggiungiForm(assemblea=assemblea) if puo_gestire else None,
+            "mailpit_configurato": mailpit_api.configurato(),
             "sistemi_voto": SistemaVoto.choices,
             "modalita_voto": ModalitaVoto.choices,
             "sistema_modificabile": puo_gestire
@@ -402,11 +496,15 @@ class RipristinaView(GestisceAssembleeMixin, View):
     def post(self, request, pk, avente_pk):
         avente = get_object_or_404(AventeDiritto, pk=avente_pk, assemblea_id=pk)
         try:
-            elenco.ripristina(avente, request.user)
+            modifiche = elenco.ripristina(avente, request.user)
         except ValidationError as errore:
             messages.error(request, " ".join(errore.messages))
         else:
-            messages.success(request, f"{avente} è di nuovo nell'elenco.")
+            dettaglio = ""
+            if modifiche:
+                campi = ", ".join(m.etichetta.lower() for m in modifiche)
+                dettaglio = f" Dati aggiornati dall'anagrafica: {campi}."
+            messages.success(request, f"{avente} è di nuovo nell'elenco.{dettaglio}")
         return _torna_all_elenco(request, avente.assemblea)
 
 
@@ -559,6 +657,134 @@ class AggiornaGruppoView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
         else:
             messages.success(request, f"{gruppo} aggiornato ai censiti {assemblea.anno_scout}.")
         return redirect(reverse("assemblee:elenco", args=[pk]) + f"?gruppo={gruppo.pk}")
+
+
+class AggiungiDaAnagraficaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+    """Capi dall'anagrafica nell'elenco: uno alla volta con la ricerca, un gruppo
+    intero, o tutti i censiti (D18-D21)."""
+
+    template_name = "assemblee/aggiungi_anagrafica.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_assemblea(
+            request,
+            {
+                "label": "Aventi diritto",
+                "url": reverse("assemblee:elenco", args=[request.resolver_match.kwargs["pk"]]),
+            },
+            {"label": "Aggiungi dall'anagrafica"},
+        )
+
+    def _assemblea(self, pk) -> Assemblea:
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        if assemblea.conclusa:
+            raise PermissionDenied("L'assemblea è conclusa.")
+        return assemblea
+
+    def get(self, request, pk):
+        assemblea = self._assemblea(pk)
+        contesto = {
+            "assemblea": assemblea,
+            "form_gruppo": AggiungiGruppoForm(gruppi=elenco.gruppi_con_censiti(assemblea)),
+            "totale": assemblea.aventi_diritto.nell_elenco().count(),
+        }
+        return render(request, self.template_name, contesto)
+
+    def post(self, request, pk):
+        assemblea = self._assemblea(pk)
+        azione = request.POST.get("azione")
+        try:
+            if azione == "capo":
+                avente = elenco.aggiungi_da_anagrafica(
+                    assemblea, request.POST.get("codice_socio", "").strip(), request.user
+                )
+                messages.success(request, f"{avente} aggiunto all'elenco.")
+            elif azione == "gruppo":
+                form = AggiungiGruppoForm(request.POST, gruppi=elenco.gruppi_con_censiti(assemblea))
+                if not form.is_valid():
+                    raise ValidationError("Scegli un gruppo.")
+                gruppo = form.cleaned_data["gruppo"]
+                aggiunti = elenco.importa_elenco(assemblea, request.user, gruppi=[gruppo])
+                messages.success(request, f"{gruppo}: {aggiunti} capi aggiunti all'elenco.")
+            elif azione == "tutti":
+                aggiunti = elenco.importa_elenco(assemblea, request.user)
+                messages.success(request, f"{aggiunti} capi aggiunti all'elenco.")
+            else:
+                raise ValidationError("Operazione non valida.")
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+        return redirect(reverse("assemblee:aggiungi_anagrafica", args=[pk]))
+
+
+class AggiungiDaAnagraficaCercaView(GestisceAssembleeMixin, View):
+    """Ricerca dei censiti da aggiungere all'elenco: perimetro proprio, distinto
+    dalle tre ricerche soci (CLAUDE.md § Ricerca soci). Solo i censiti degli
+    anni dell'import non ancora in elenco; nome, cognome, gruppo, mai
+    recapiti."""
+
+    def get(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        query = request.GET.get("q", "").strip()
+        if len(query) < MINIMO_CARATTERI_AUTOCOMPLETE:
+            return JsonResponse({"risultati": []})
+        censiti = (
+            elenco.censiti_aggiungibili(assemblea)
+            .filter(
+                Q(capo__nome__icontains=query)
+                | Q(capo__cognome__icontains=query)
+                | Q(capo__codice_socio__icontains=query)
+                | Q(gruppo__nome__icontains=query)
+            )
+            .order_by("capo__cognome", "capo__nome")[:LIMITE_RISULTATI_AUTOCOMPLETE]
+        )
+        return JsonResponse(
+            {
+                "risultati": [
+                    {
+                        "codice_socio": c.capo_id,
+                        "nome": c.capo.nome,
+                        "cognome": c.capo.cognome,
+                        "gruppo": c.gruppo.nome,
+                    }
+                    for c in censiti
+                ]
+            }
+        )
+
+
+class RiallineaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+    """Riallineamento dell'elenco con l'anagrafica: anteprima e conferma."""
+
+    template_name = "assemblee/riallinea.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_assemblea(
+            request,
+            {
+                "label": "Aventi diritto",
+                "url": reverse("assemblee:elenco", args=[request.resolver_match.kwargs["pk"]]),
+            },
+            {"label": "Riallinea con l'anagrafica"},
+        )
+
+    def get(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        if assemblea.conclusa:
+            raise PermissionDenied("L'assemblea è conclusa.")
+        righe = elenco.anteprima_riallinea(assemblea)
+        return render(request, self.template_name, {"assemblea": assemblea, "righe": righe})
+
+    def post(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        try:
+            cambiati = elenco.applica_riallinea(assemblea, request.user)
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+        else:
+            messages.success(request, f"Riallineamento fatto: {cambiati} capi aggiornati.")
+        return redirect(reverse("assemblee:elenco", args=[pk]))
 
 
 # --- File -----------------------------------------------------------------------
@@ -1069,7 +1295,8 @@ class ImportEmailReportView(GestisceAssembleeMixin, View):
 
 
 class AventeEmailView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
-    """Correzione dell'email di un avente: gestori e operatori al banco."""
+    """Correzione di email e sesso di un avente, solo per l'assemblea:
+    gestori e comitato elettorale al banco."""
 
     template_name = "assemblee/avente_email.html"
 
@@ -1081,7 +1308,7 @@ class AventeEmailView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
                 "label": "Aventi diritto",
                 "url": reverse("assemblee:elenco", args=[request.resolver_match.kwargs["pk"]]),
             },
-            {"label": "Email"},
+            {"label": "Dati"},
         )
 
     def _avente(self, request, pk, avente_pk) -> AventeDiritto:
@@ -1092,7 +1319,7 @@ class AventeEmailView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
 
     def get(self, request, pk, avente_pk):
         avente = self._avente(request, pk, avente_pk)
-        form = EmailAventeForm(initial={"email": avente.email})
+        form = EmailAventeForm(initial={"email": avente.email, "sesso": avente.sesso})
         return render(request, self.template_name, {"avente": avente, "form": form})
 
     def post(self, request, pk, avente_pk):
@@ -1101,10 +1328,11 @@ class AventeEmailView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
         if form.is_valid():
             try:
                 elenco.aggiorna_email(avente, form.cleaned_data["email"], request.user)
+                elenco.aggiorna_sesso(avente, form.cleaned_data["sesso"], request.user)
             except ValidationError as errore:
-                form.add_error("email", errore)
+                form.add_error(None, errore)
             else:
-                messages.success(request, f"Email di {avente} aggiornata.")
+                messages.success(request, f"Dati di {avente} aggiornati.")
                 return redirect(
                     reverse("assemblee:elenco", args=[pk]) + f"?gruppo={avente.gruppo_id}"
                 )

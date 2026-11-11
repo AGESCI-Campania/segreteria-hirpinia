@@ -68,3 +68,25 @@ lato utente (l'invio "riesce", solo verso Mailpit). L'interfaccia mostra un avvi
 esplicito accanto al campo proprio per questo. Prima di aprire un test in produzione:
 avvisare chi gestisce la segreteria, e verificare subito dopo di averlo disattivato che
 un invio reale funzioni ancora.
+
+## Assemblee di prova «solo Mailpit»
+
+Indipendente dall'interruttore globale (docs/plan_preparazione_assemblea.md, R9–R10): le
+email di un'assemblea di prova con «Email solo su Mailpit» (codici di voto, inviti di
+attivazione del comitato elettorale) portano il contrassegno
+`X-Catello-Solo-Mailpit` e i tag `catello-assemblea-<id>` più `codice-voto`/`invito`
+(`X-Tags`). `MailpitOverridableBackend` le manda **sempre** all'alias `mailpit`, anche a
+interruttore spento; se `EMAIL_MAILPIT_HOST` è vuoto l'invio fallisce con errore
+(mai un invio reale creduto deviato).
+
+I gestori le leggono nella pagina dell'assemblea («Leggi le email»): Catello interroga
+l'API di Mailpit sulla rete interna, senza esporla. Serve anche:
+
+```bash
+EMAIL_MAILPIT_API_URL=http://mailpit:8025   # API web dello stesso Mailpit, rete interna
+```
+
+Negli inviti il codice di attivazione è oscurato (gli account sono reali); i codici di
+voto di prova restano visibili, per provare l'urna. In sviluppo e test il contrassegno
+non cambia nulla: lì `override.py` non è in uso e il provider non è mai reale per
+convenzione (`docs/email/sviluppo-e-test.md`).

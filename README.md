@@ -131,6 +131,7 @@ In `.env`:
 ```bash
 EMAIL_MAILPIT_HOST=mailpit   # nome del servizio Compose
 EMAIL_MAILPIT_PORT=1025
+EMAIL_MAILPIT_API_URL=http://mailpit:8025   # per leggere le email delle assemblee di prova
 ```
 
 poi riavviare `web` (`docker compose -f compose.prod.yaml up -d --build web`) perché

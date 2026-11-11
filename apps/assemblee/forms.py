@@ -14,6 +14,7 @@ from .models import (
     Provenienza,
     PuntoOdG,
     Seduta,
+    Sesso,
     TipoVotazione,
     VariazioneRappresentante,
     VerbaleSeduta,
@@ -34,7 +35,15 @@ class AssembleaCreaForm(forms.ModelForm):
 
     class Meta:
         model = Assemblea
-        fields = ["tipo", "anno_scout", "sessione", "sistema_voto", "modalita_voto"]
+        fields = [
+            "tipo",
+            "anno_scout",
+            "sessione",
+            "sistema_voto",
+            "modalita_voto",
+            "di_prova",
+            "email_solo_mailpit",
+        ]
         labels = {"anno_scout": "Anno associativo"}
         help_texts = {
             "sistema_voto": (
@@ -42,11 +51,17 @@ class AssembleaCreaForm(forms.ModelForm):
                 "prima votazione."
             ),
             "modalita_voto": "Solo per il voto in app; si può cambiare anche il giorno stesso.",
+            "email_solo_mailpit": (
+                "Solo per le assemblee di prova: codici di voto e inviti non arrivano ai "
+                "destinatari, restano su Mailpit e si leggono dalla pagina dell'assemblea. Si può "
+                "cambiare dopo."
+            ),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["anno_scout"].initial = anno_scout_corrente()
+        self.fields["email_solo_mailpit"].initial = True
         # Se non indicati valgono i default del modello (app del Nazionale).
         for nome in ("sistema_voto", "modalita_voto"):
             self.fields[nome].required = False
@@ -56,6 +71,9 @@ class AssembleaCreaForm(forms.ModelForm):
         for nome in ("sistema_voto", "modalita_voto"):
             if not dati.get(nome):
                 dati[nome] = Assemblea._meta.get_field(nome).get_default()
+        # Mailpit vale solo per le assemblee di prova.
+        if not dati.get("di_prova"):
+            dati["email_solo_mailpit"] = False
         return dati
 
     def save(self, commit: bool = True) -> Assemblea:
@@ -69,6 +87,41 @@ class AssembleaCreaForm(forms.ModelForm):
                 luogo=self.cleaned_data["luogo"],
             )
         return assemblea
+
+
+class AssembleaNuovaForm(AssembleaCreaForm):
+    """Creazione da zero: si sceglie anche con quale elenco parte (D19)."""
+
+    TUTTI = "TUTTI"
+    VUOTA = "VUOTA"
+
+    elenco_iniziale = forms.ChoiceField(
+        label="Elenco degli aventi diritto",
+        choices=[
+            (TUTTI, "Tutti i censiti della Zona"),
+            (VUOTA, "Vuoto: scelgo io i capi da importare"),
+        ],
+        initial=TUTTI,
+        required=False,
+        widget=forms.RadioSelect,
+        help_text=(
+            "Un elenco vuoto serve per assemblee ristrette o di prova; tutti i censiti si "
+            "possono importare anche dopo."
+        ),
+    )
+
+    def clean_elenco_iniziale(self) -> str:
+        return self.cleaned_data.get("elenco_iniziale") or self.TUTTI
+
+
+class AggiungiGruppoForm(forms.Form):
+    gruppo = forms.ModelChoiceField(label="Gruppo", queryset=Gruppo.objects.none())
+
+    def __init__(self, *args, gruppi, **kwargs):
+        super().__init__(*args, **kwargs)
+        cast(forms.ModelChoiceField, self.fields["gruppo"]).queryset = Gruppo.objects.filter(
+            pk__in=[g.pk for g in gruppi]
+        ).order_by("nome")
 
 
 class ComitatoAggiungiForm(forms.Form):
@@ -112,6 +165,11 @@ class AventeInserisciForm(forms.Form):
         required=False,
         help_text="Facoltativa. Serve per il tracciato e per ricevere il codice di voto.",
     )
+    sesso = forms.ChoiceField(
+        choices=[("", "Non noto"), *Sesso.choices],
+        required=False,
+        help_text="Facoltativo. Se vuoto e il codice socio è in anagrafica, si prende da lì.",
+    )
 
     def __init__(self, *args, assemblea: Assemblea, **kwargs):
         super().__init__(*args, **kwargs)
@@ -124,6 +182,11 @@ class AventeInserisciForm(forms.Form):
 
 class EmailAventeForm(forms.Form):
     email = forms.EmailField(
+        required=False,
+        help_text="Vale solo per questa assemblea: l'anagrafica non cambia.",
+    )
+    sesso = forms.ChoiceField(
+        choices=[("", "Non noto"), *Sesso.choices],
         required=False,
         help_text="Vale solo per questa assemblea: l'anagrafica non cambia.",
     )

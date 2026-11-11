@@ -37,6 +37,8 @@ def crea_invito(
     gruppo: Gruppo | None = None,
     ruolo_proposto: str | None = None,
     delega_pendente: Delega | None = None,
+    solo_mailpit: bool = False,
+    etichette: tuple[str, ...] = (),
 ) -> InvitoAttivazione:
     """Un nuovo invito per la stessa email revoca il precedente (D-20). La
     scrittura su database è in una propria transazione, separata dall'invio
@@ -58,11 +60,17 @@ def crea_invito(
         invito.imposta_codice(codice)
         invito.save()
 
-    _invia_email_invito(invito, codice)
+    _invia_email_invito(invito, codice, solo_mailpit=solo_mailpit, etichette=etichette)
     return invito
 
 
-def _invia_email_invito(invito: InvitoAttivazione, codice: str) -> None:
+def _invia_email_invito(
+    invito: InvitoAttivazione,
+    codice: str,
+    *,
+    solo_mailpit: bool = False,
+    etichette: tuple[str, ...] = (),
+) -> None:
     from django.conf import settings
 
     # Il codice non va nella query string (CWE-598): finirebbe nei log del
@@ -91,6 +99,8 @@ def _invia_email_invito(invito: InvitoAttivazione, codice: str) -> None:
         destinatari=[invito.email],
         contesto=contesto,
         fail_silently=False,
+        solo_mailpit=solo_mailpit,
+        etichette=etichette,
     )
     invito.inviato_il = timezone.now()
     invito.save(update_fields=["inviato_il"])

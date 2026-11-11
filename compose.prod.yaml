@@ -20,7 +20,9 @@ services:
   # Impostazioni non deve far girare un container in più. Interfaccia web
   # solo su loopback, come "web" sotto: mai esposta pubblicamente. Con
   # questo servizio attivo, impostare EMAIL_MAILPIT_HOST=mailpit in .env
-  # (il nome del servizio, risolto sulla rete Docker interna).
+  # (il nome del servizio, risolto sulla rete Docker interna) e, per leggere
+  # da Catello le email delle assemblee di prova,
+  # EMAIL_MAILPIT_API_URL=http://mailpit:8025.
   mailpit:
     image: axllent/mailpit:latest
     container_name: catello_mailpit

@@ -205,6 +205,11 @@ MAILERS = {
 # ImpostazioniPiattaforma, letto a ogni invio, non una scelta fatta all'avvio.
 EMAIL_MAILPIT_HOST = os.environ.get("EMAIL_MAILPIT_HOST", "")
 EMAIL_MAILPIT_PORT = int(os.environ.get("EMAIL_MAILPIT_PORT", "1025"))
+# Indirizzo dell'API web dello stesso Mailpit sulla rete interna (es.
+# http://mailpit:8025), letta solo da apps/core/email/mailpit_api.py per
+# mostrare ai gestori le email delle assemblee di prova «solo Mailpit»
+# (docs/plan_preparazione_assemblea.md, D28). Mai esposta pubblicamente.
+EMAIL_MAILPIT_API_URL = os.environ.get("EMAIL_MAILPIT_API_URL", "")
 
 # --- gmail_service_account / gmail_oauth (apps.core.email.gmail) -------------
 # Vedi docs/email/gmail-service-account.md e docs/email/gmail-oauth.md.

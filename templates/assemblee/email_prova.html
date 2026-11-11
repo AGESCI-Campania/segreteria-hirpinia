@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block page_title %}Email su Mailpit — {{ assemblea }}{% endblock %}
+
+{% block content %}
+  <h1>Email su Mailpit</h1>
+  <p class="fg-2 mb-5">
+    {{ assemblea }}: codici di voto e inviti che non sono arrivati ai destinatari perché
+    l'assemblea è di prova. Nei testi degli inviti il codice di attivazione è nascosto: gli
+    account sono reali.
+  </p>
+  {% if not assemblea.email_solo_mailpit %}
+    <div class="alert theme-info" role="note"><p class="mb-0">Ora le email di questa assemblea arrivano davvero ai destinatari: qui restano solo quelle mandate prima su Mailpit.</p></div>
+  {% endif %}
+  {% if errore %}
+    <div class="alert theme-danger" role="alert"><p class="mb-0">Mailpit non risponde o non è configurato sul server: le email non si possono leggere.</p></div>
+  {% elif not messaggi %}
+    <p>Nessuna email.</p>
+  {% else %}
+    {% for messaggio in messaggi %}
+      <div class="card mb-5">
+        <div class="card-body">
+          <p class="mb-1"><strong>{{ messaggio.oggetto }}</strong></p>
+          <p class="fg-2 mb-3">A {{ messaggio.destinatari|join:", " }}{% if messaggio.data %} — {{ messaggio.data|date:"d/m/Y H:i" }}{% endif %}</p>
+          <pre class="mb-0" style="white-space: pre-wrap;">{{ messaggio.testo }}</pre>
+        </div>
+      </div>
+    {% endfor %}
+  {% endif %}
+  <a href="{% url 'assemblee:assemblea_dettaglio' assemblea.pk %}" class="btn-outline theme-secondary">Torna all'assemblea</a>
+{% endblock %}
