@@ -1,21 +1,54 @@
 # Pagine descritte da ciascun manuale (docs/plan_preparazione_assemblea.md, D34).
 # Se una di queste cambia, il manuale va aggiornato (testo e schermate): la CI
-# avvisa quando cambiano senza che cambi anche docs-manuali/<manuale>/.
-# Pattern in stile glob, relativi alla radice del repository.
+# avvisa quando cambiano senza che cambi anche la cartella del manuale.
+# Pattern in stile glob, relativi alla radice del repository. I tre manuali di
+# voto condividono la cartella docs-manuali/voto/.
 
-[voto]
+[voto-app]
+cartella = "docs-manuali/voto"
 pagine = [
-    "templates/voto/*.html",
-    "apps/voto/views.py",
+    "templates/voto/urna.html",
+    "templates/voto/scheda.html",
+    "templates/voto/_testata_scheda.html",
+    "templates/voto/riepilogo.html",
+    "templates/voto/ricevuta.html",
+    "templates/voto/bacheca.html",
+    "templates/voto/verifica.html",
+    "templates/voto/base_voto.html",
     "apps/voto/views_urna.py",
     "apps/voto/urna.py",
-    "apps/voto/etichetta.py",
-    "templates/assemblee/presenze.html",
     "static/js/voto-urna.js",
+]
+
+[voto-seggio]
+cartella = "docs-manuali/voto"
+pagine = [
+    "templates/voto/urna.html",
+    "templates/voto/scheda.html",
+    "templates/voto/_testata_scheda.html",
+    "templates/voto/riepilogo.html",
+    "templates/voto/ricevuta.html",
+    "templates/voto/bacheca.html",
+    "templates/voto/verifica.html",
+    "templates/voto/postazione_attiva.html",
+    "apps/voto/views_urna.py",
+    "apps/voto/urna.py",
+    "static/js/voto-urna.js",
+]
+
+[banco]
+cartella = "docs-manuali/voto"
+pagine = [
+    "templates/voto/codice_mostra.html",
+    "templates/voto/seggi.html",
+    "templates/assemblee/presenze.html",
+    "apps/voto/views.py",
+    "apps/voto/etichetta.py",
     "static/js/etichetta-stampa.js",
 ]
 
 [gestione]
+cartella = "docs-manuali/gestione"
 pagine = [
     "templates/assemblee/*.html",
     "apps/assemblee/views.py",

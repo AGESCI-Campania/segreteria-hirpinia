@@ -1,7 +1,8 @@
 # Manuale di gestione dell'assemblea
 
-Questo manuale spiega come si prepara e si conduce un'Assemblea di Zona con Catello, dal
-menu **Moduli → Assemblee**. Per il voto dell'elettore c'è il manuale di voto.
+Questo manuale spiega come si prepara e si conduce un'Assemblea di Zona con la piattaforma, dal
+menu **Moduli → Assemblee**. Per il voto ci sono i manuali di voto in app e di
+voto al seggio; per il giorno dell'assemblea, il manuale per il banco e i seggi.
 
 ## Chi fa cosa
 

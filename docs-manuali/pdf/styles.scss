@@ -9,3 +9,20 @@ article img {
   height: auto;
   border: 1px solid #ddd;
 }
+
+// Palette della Zona: il verde della branca E/G del tema (#3d8e33) al posto
+// del rosso predefinito del plugin, per titoli, copertina e indice.
+$verde: #3d8e33;
+$verde-chiaro: #9cc797;
+
+article h1 {
+  border-bottom-color: $verde;
+}
+article h2 {
+  border-bottom-color: $verde-chiaro;
+}
+// Il tema Material dà ai titoli un grigio con più specificità: serve !important.
+article h1,
+article h2 {
+  color: $verde !important;
+}

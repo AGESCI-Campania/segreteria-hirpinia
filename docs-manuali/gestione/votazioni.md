@@ -5,7 +5,7 @@
 Da **Votazioni** premi **Nuova votazione**. Per un'elezione preparata scegli la posizione
 in **Elezione preparata**: incarico, posti, quote e candidati arrivano da lì. Le altre
 votazioni (mozioni, bilanci, mozioni d'ordine…) si indicano con tipo e oggetto. All'apertura
-Catello fotografa presenti e aventi diritto: sono la base della maggioranza.
+la piattaforma fotografa presenti e aventi diritto: sono la base della maggioranza.
 
 ![Nuova votazione](img/votazione-nuova.jpg)
 

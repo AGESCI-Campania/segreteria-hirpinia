@@ -10,8 +10,8 @@ theme:
   name: material
   language: it
   palette:
-    primary: deep purple
-    accent: amber
+    primary: green
+    accent: light green
   features:
     - navigation.sections
     - content.code.copy
@@ -32,6 +32,8 @@ plugins:
       # Logo ufficiale della Zona, lo stesso della carta intestata dei PDF.
       cover_logo: static/pdf/img/logo_zona.png
       author: AGESCI Zona Hirpinia
+      toc_title: Indice
+      custom_template_path: docs-manuali/pdf
 
 markdown_extensions:
   - admonition

@@ -64,5 +64,7 @@ docs/ignored/
 
 # Output generato da MkDocs (HTML + PDF): si rigenera con `mise run docs-build`
 site/
-site-voto/
+site-voto-app/
+site-voto-seggio/
+site-banco/
 site-gestione/

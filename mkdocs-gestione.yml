@@ -11,8 +11,8 @@ theme:
   name: material
   language: it
   palette:
-    primary: deep purple
-    accent: amber
+    primary: green
+    accent: light green
   features:
     - navigation.sections
 

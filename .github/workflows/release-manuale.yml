@@ -32,7 +32,9 @@ jobs:
       - name: Genera i manuali (MkDocs + PDF)
         run: |
           uv run mkdocs build
-          uv run mkdocs build -f mkdocs-voto.yml
+          uv run mkdocs build -f mkdocs-voto-app.yml
+          uv run mkdocs build -f mkdocs-voto-seggio.yml
+          uv run mkdocs build -f mkdocs-banco.yml
           uv run mkdocs build -f mkdocs-gestione.yml
 
       - name: Allega i PDF alla release
@@ -41,6 +43,8 @@ jobs:
         run: >-
           gh release upload "${{ github.event.release.tag_name }}"
           site/pdf/guida-capigruppo.pdf
-          site-voto/pdf/manuale-voto.pdf
+          site-voto-app/pdf/manuale-voto-app.pdf
+          site-voto-seggio/pdf/manuale-voto-seggio.pdf
+          site-banco/pdf/manuale-banco.pdf
           site-gestione/pdf/manuale-gestione.pdf
           --clobber

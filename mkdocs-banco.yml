@@ -1,0 +1,43 @@
+# Manuale per il banco e i seggi (docs/plan_preparazione_assemblea.md, R11). Le pagine stanno in
+# docs-manuali/voto/, condivise con gli altri manuali di voto: ciascun manuale ne
+# sceglie alcune con il nav. Si rigenera solo se cambiano le pagine descritte:
+# vedi docs-manuali/README.md.
+site_name: Segreteria AGESCI Hirpinia — Manuale per il banco e i seggi
+site_description: >-
+  Presenze, codici di voto, seggi e passaggio a carta il giorno dell'Assemblea di Zona.
+site_author: AGESCI Zona Hirpinia
+docs_dir: docs-manuali/voto
+site_dir: site-banco
+
+theme:
+  name: material
+  language: it
+  palette:
+    primary: green
+    accent: light green
+  features:
+    - navigation.sections
+
+nav:
+  - Introduzione: index-banco.md
+  - Presenze, codici e seggi: banco.md
+
+plugins:
+  - search
+  - with-pdf:
+      output_path: pdf/manuale-banco.pdf
+      cover_title: Manuale per il banco e i seggi
+      cover_subtitle: Segreteria AGESCI Hirpinia
+      # Logo ufficiale della Zona, lo stesso della carta intestata dei PDF.
+      cover_logo: static/pdf/img/logo_zona.png
+      author: AGESCI Zona Hirpinia
+      copyright: AGESCI Zona Hirpinia
+      toc_title: Indice
+      custom_template_path: docs-manuali/pdf
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true

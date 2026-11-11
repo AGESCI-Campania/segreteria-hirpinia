@@ -65,12 +65,14 @@ description = "Genera la documentazione utente (HTML + PDF) in site/"
 run = "uv run --group docs mkdocs build"
 
 [tasks.manuali-schermate]
-description = "Rifà le schermate dei manuali di voto e di gestione (dati inventati, Chrome senza interfaccia)"
+description = "Rifà le schermate dei manuali (dati inventati, Chrome senza interfaccia)"
 run = "DYLD_LIBRARY_PATH=/opt/homebrew/lib uv run pytest docs-manuali/test_schermate.py -q -p no:cacheprovider"
 
 [tasks.manuali-build]
-description = "Genera i manuali di voto e di gestione in PDF (site-voto/, site-gestione/)"
+description = "Genera in PDF i manuali di voto in app, di voto al seggio, per il banco e di gestione (site-*/)"
 run = [
-    "uv run --group docs mkdocs build -f mkdocs-voto.yml",
+    "uv run --group docs mkdocs build -f mkdocs-voto-app.yml",
+    "uv run --group docs mkdocs build -f mkdocs-voto-seggio.yml",
+    "uv run --group docs mkdocs build -f mkdocs-banco.yml",
     "uv run --group docs mkdocs build -f mkdocs-gestione.yml",
 ]

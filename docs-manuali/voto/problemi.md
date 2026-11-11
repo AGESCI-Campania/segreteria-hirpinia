@@ -7,7 +7,7 @@
 | «Troppi tentativi» | Hai sbagliato il codice troppe volte: chiedi al banco. |
 | La scheda non compare | L'urna non è ancora aperta: tieni aperta la pagina, compare da sola. |
 | «In questa assemblea si vota solo ai seggi in sala» | Vai a un seggio. |
-| Il telefono non collabora | Vota a un seggio, oppure chiedi al banco di passarti a **carta**. |
+| Il telefono o il seggio non collaborano | Prova l'altro modo (telefono o seggio), oppure chiedi al banco di passarti a **carta**. |
 
 Il passaggio a carta lo fa il banco; non è possibile se hai già votato in app in una
 votazione non ancora scrutinata (voteresti due volte).

@@ -18,7 +18,7 @@ rifà l'appello dalla pagina delle presenze.
 
 **Registra presenze**: si cerca il capo e si preme **Presente**. Con il voto in app il
 codice di voto parte subito per email; in alternativa **Rigenera e mostra** lo mostra a
-schermo, con l'etichetta da stampare. I dettagli sono nel manuale di voto.
+schermo, con l'etichetta da stampare. I dettagli sono nel manuale per il banco e i seggi.
 
 ![Presenze](img/presenze.jpg)
 

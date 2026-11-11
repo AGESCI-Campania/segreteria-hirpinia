@@ -1,7 +1,7 @@
 # L'elenco degli aventi diritto
 
 L'elenco è separato dall'anagrafica: le modifiche fatte qui valgono solo per questa
-assemblea e non toccano i dati dei capi in Catello.
+assemblea e non toccano i dati dei capi nella piattaforma.
 
 ![Elenco degli aventi diritto](img/aventi-elenco.jpg)
 

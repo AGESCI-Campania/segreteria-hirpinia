@@ -371,3 +371,8 @@ prevalgono sulle proposte scritte nei requisiti.
 - **D37 (2026-11-11)**: un solo ballottaggio per elezione anche con le quote: si propone
   per il primo posto vacante (maschile, poi femminile, poi indifferente) che ha almeno due
   candidati; gli altri posti restano vacanti.
+- **D38 (2026-11-11)**: nei manuali la piattaforma si chiama «la piattaforma», mai con
+  il nome del progetto. Il manuale di voto si divide in **voto in app** e **voto al
+  seggio** (entrambi con codice di voto, controllo del proprio voto e «Se qualcosa non
+  va») più un terzo **manuale per il banco e i seggi**. Palette dei manuali sul **verde**
+  della Zona (quello della branca E/G del tema, `#3d8e33`), non sul rosso.

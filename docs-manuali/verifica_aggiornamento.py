@@ -33,7 +33,8 @@ def manuali_da_aggiornare(cambiati: list[str], configurazione: dict) -> dict[str
     risultato = {}
     for manuale, dati in configurazione.items():
         toccate = [f for f in cambiati if any(fnmatch.fnmatch(f, p) for p in dati["pagine"])]
-        aggiornato = any(f.startswith(f"docs-manuali/{manuale}/") for f in cambiati)
+        cartella = dati.get("cartella", f"docs-manuali/{manuale}").rstrip("/") + "/"
+        aggiornato = any(f.startswith(cartella) for f in cambiati)
         if toccate and not aggiornato:
             risultato[manuale] = toccate
     return risultato

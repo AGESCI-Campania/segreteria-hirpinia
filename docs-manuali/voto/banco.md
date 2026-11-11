@@ -1,6 +1,4 @@
-# Per il banco e i seggi
-
-Questa parte è per il **comitato elettorale** e per chi gestisce l'assemblea.
+# Presenze, codici e seggi
 
 ## Registrare le presenze e dare i codici
 

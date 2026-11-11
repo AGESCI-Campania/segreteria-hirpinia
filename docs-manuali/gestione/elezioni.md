@@ -20,7 +20,7 @@ segretario, che però non cambiano i punti.
 
 ![Elezioni e candidature](img/elezioni-candidature.jpg)
 
-Sotto ogni posizione Catello segnala, senza bloccare, cosa non torna: un candidato di
+Sotto ogni posizione la piattaforma segnala, senza bloccare, cosa non torna: un candidato di
 sesso diverso dai posti, un sesso non noto, posti maschili o femminili che le
 candidature non coprono. Il sesso di un capo dell'elenco si corregge con **Dati**
 nell'elenco degli aventi diritto.

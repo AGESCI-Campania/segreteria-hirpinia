@@ -12,7 +12,7 @@ dell'assemblea), tipo (autunnale o primaverile), anno associativo, sessione e la
 convocazione** (data, ora, luogo). Le convocazioni successive si aggiungono solo se la
 precedente non raggiunge il quorum.
 
-- **Sistema di voto**: *Voto in app* (Catello: votano tutti in app, la carta solo per chi
+- **Sistema di voto**: *Voto in app* (con la piattaforma: votano tutti in app, la carta solo per chi
   ha problemi) oppure *App del Nazionale* (tracciato da caricare nell'app nazionale,
   risultati copiati a mano). Si può cambiare fino all'apertura della prima votazione.
 - **Modalità** (solo voto in app): dispositivi personali e seggi, oppure solo seggi. Si
