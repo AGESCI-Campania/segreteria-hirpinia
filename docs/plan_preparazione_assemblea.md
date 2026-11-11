@@ -338,3 +338,13 @@ prevalgono sulle proposte scritte nei requisiti.
   fittizi (mai dati reali di soci, CLAUDE.md § Dati sensibili), salvate nel repository.
 - **D33 (2026-11-11)**: i manuali si scrivono **in fondo**, a funzioni finite (ultimo
   passo del piano), insieme alla modifica del workflow di release.
+- **D34 (2026-11-11)**: i manuali (testo e schermate) si **rifanno solo se cambiano le
+  pagine che descrivono**. Per ogni manuale un elenco dei template e dei file di codice
+  delle pagine descritte; se nessuno è cambiato restano testo e schermate della release
+  precedente. Un controllo in CI avvisa quando una pagina descritta cambia senza che il
+  relativo manuale sia aggiornato. Le schermate sono obbligatorie (D32).
+- **D35 (2026-11-11)**: le schermate le produce uno **script automatico**: crea
+  un'assemblea di prova con dati fittizi e cattura le pagine con un browser senza
+  interfaccia (Playwright, **solo dipendenza di sviluppo**, mai fra quelle obbligatorie),
+  così si rifanno con un comando quando le pagine cambiano. Le immagini stanno nel
+  repository accanto ai sorgenti del manuale.
