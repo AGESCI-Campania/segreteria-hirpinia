@@ -351,9 +351,14 @@ deve violare:
   rappresentante legale (dati anagrafici dell'RdZ, solo gestori).
 - **Tempo reale = polling ogni 3 secondi**, nessuna infrastruttura nuova (D-17 vale
   ancora).
-- **Carta intestata dei PDF** (nota spese, foglio presenze, verbali): un solo partial,
-  `templates/pdf/carta_intestata.html` + `carta_intestata_stile.html`, con i dati della
-  Zona (`ZONA`) e i percorsi dei loghi da `apps/core/pdf.py::contesto_carta_intestata()`. Non ricopiarla in un nuovo
+- **Carta intestata dei PDF** (nota spese, foglio presenze, verbali, riepilogo dei
+  contributi): un solo partial, `templates/pdf/carta_intestata.html` +
+  `carta_intestata_stile.html`, con i dati della Zona (`ZONA`) e i percorsi di banda e
+  loghi (`static/pdf/img/`) da `apps/core/pdf.py::contesto_carta_intestata()`. Riproduce
+  il modello ufficiale `docs/ignored/carta_intestata.docx` (non versionato): lo stile fissa
+  i margini della pagina del modello (5/2/3/3 cm) e intestazione e piè di pagina sono
+  posizionati su quelli, quindi **un template non deve ridefinire i margini di `@page`**
+  (solo aggiungere, per esempio, il numero di pagina). Non ricopiarla in un nuovo
   template.
 
 ### Voto elettronico (D-71)

@@ -4,15 +4,7 @@
 <meta charset="utf-8">
 <title>Nota spese {{ nota.numero|default:nota.pk }}</title>
 <style>
-  @page {
-    size: A4;
-    margin-top: 5cm;
-    margin-left: 3cm;
-    margin-right: 2cm;
-    margin-bottom: 3cm;
-    @top-center { content: element(intestazione); }
-    @bottom-center { content: element(piede); }
-  }
+  /* Margini e carta intestata da pdf/carta_intestata_stile.html. */
 
   body {
     font-family: sans-serif;

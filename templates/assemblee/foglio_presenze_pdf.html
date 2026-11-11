@@ -4,14 +4,8 @@
 <meta charset="utf-8">
 <title>Foglio presenze — {{ assemblea }}</title>
 <style>
+  /* Margini e carta intestata da pdf/carta_intestata_stile.html. */
   @page {
-    size: A4;
-    margin-top: 4.3cm;
-    margin-left: 1.5cm;
-    margin-right: 1.5cm;
-    margin-bottom: 2.6cm;
-    @top-center { content: element(intestazione); }
-    @bottom-center { content: element(piede); }
     @bottom-right { content: "Pagina " counter(page) " di " counter(pages); font-family: sans-serif; font-size: 7.5pt; color: #555; }
   }
 

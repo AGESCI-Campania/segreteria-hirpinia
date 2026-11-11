@@ -1,6 +1,10 @@
 """Risorse condivise dei PDF WeasyPrint con la carta intestata della Zona
-(templates/pdf/carta_intestata*.html): nota spese, foglio presenze e verbali
-delle assemblee."""
+(templates/pdf/carta_intestata*.html): nota spese, foglio presenze, verbali
+delle assemblee, riepilogo dei contributi.
+
+La carta intestata riproduce quella ufficiale della Zona (modello Word in
+docs/ignored/carta_intestata.docx, non versionato): banda e loghi sono le
+immagini di quel modello, in static/pdf/img/."""
 
 from __future__ import annotations
 
@@ -24,6 +28,7 @@ def contesto_carta_intestata() -> dict:
     `file://`) per i template della carta intestata."""
     return {
         "zona": ZONA,
-        "logo_zona_path": finders.find("note_spese/img/logo_zona.png"),
-        "loghi_piede_path": finders.find("note_spese/img/loghi_wosm_waggs.png"),
+        "banda_path": finders.find("pdf/img/carta_intestata_banda.jpg"),
+        "logo_zona_path": finders.find("pdf/img/logo_zona.png"),
+        "loghi_piede_path": finders.find("pdf/img/loghi_wosm_wagggs.jpg"),
     }

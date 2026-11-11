@@ -1,24 +1,20 @@
-{# Intestazione e piè di pagina della Zona ripetuti su ogni pagina (running elements); contesto da apps/core/pdf.py::contesto_carta_intestata(). #}
+{# Carta intestata ufficiale della Zona (modello docs/ignored/carta_intestata.docx), ripetuta su ogni pagina: gli elementi position: fixed WeasyPrint li ripete a ogni pagina. Contesto da apps/core/pdf.py::contesto_carta_intestata(); stile in carta_intestata_stile.html, che fissa anche i margini della pagina su cui sono calcolate le posizioni. #}
   {% if assemblea.di_prova %}<div class="di-prova">DI PROVA</div>{% endif %}
   <div class="intestazione">
-    <div class="banda">
-      {% if logo_zona_path %}
-        <img class="logo" src="file://{{ logo_zona_path }}" alt="{{ zona.nome }}">
-      {% endif %}
+    {% if banda_path %}<img class="banda" src="file://{{ banda_path }}" alt="">{% endif %}
+    <div class="riga">
+      {% if logo_zona_path %}<img class="logo" src="file://{{ logo_zona_path }}" alt="{{ zona.nome }}">{% else %}<span></span>{% endif %}
       <div class="testo">
-        <strong>{{ zona.nome }} - Regione {{ zona.regione }}</strong><br>
-        Associazione Guide e Scouts Cattolici Italiani<br>
+        <strong>{{ zona.nome }} - Regione {{ zona.regione }}<br>Associazione Guide e Scouts Cattolici Italiani</strong><br>
         {{ zona.indirizzo }}<br>
         Codice Fiscale: {{ zona.codice_fiscale }}<br>
-        Mail: {{ zona.email }} — Pec: {{ zona.pec }}
+        Mail: <a href="mailto:{{ zona.email }}">{{ zona.email }}</a><br>
+        Pec: <a href="mailto:{{ zona.pec }}">{{ zona.pec }}</a>
       </div>
     </div>
-    <div class="segmento-giallo"></div>
   </div>
 
   <div class="piede">
-    {% if loghi_piede_path %}
-      <img class="loghi" src="file://{{ loghi_piede_path }}" alt="WOSM / WAGGGS">
-    {% endif %}
-    <p>{{ zona.runts }}</p>
+    {% if loghi_piede_path %}<img class="loghi" src="file://{{ loghi_piede_path }}" alt="WAGGGS / WOSM">{% endif %}
+    <span>{{ zona.runts }}</span>
   </div>

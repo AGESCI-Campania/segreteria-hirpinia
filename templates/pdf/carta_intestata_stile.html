@@ -1,52 +1,60 @@
-{# Regole CSS della carta intestata della Zona per i PDF WeasyPrint: da includere dentro <style>. #}
-  /* Intestazione ripetuta su ogni pagina (D-67): banda viola ricostruita
-     come gradiente CSS, non il JPEG originale (sgrana in stampa), con
-     segmento giallo. */
-  .intestazione {
-    position: running(intestazione);
-    width: 100%;
-  }
-  .intestazione .banda {
-    display: flex;
-    align-items: center;
-    background: linear-gradient(90deg, #5C5291 0%, #746BA4 100%);
-    color: #fff;
-    padding: 0.3cm 0.5cm;
-    box-sizing: border-box;
-  }
-  .intestazione .segmento-giallo {
-    height: 0.25cm;
-    background: #EBC43B;
-  }
-  .intestazione .logo {
-    height: 2.2cm;
-    width: 2.2cm;
-    margin-right: 0.5cm;
-  }
-  .intestazione .testo {
-    font-size: 8.5pt;
-    line-height: 1.35;
-  }
-  .intestazione .testo strong {
-    font-size: 10pt;
-  }
-  .intestazione .testo a {
-    color: #fff;
+{# Regole CSS della carta intestata della Zona per i PDF WeasyPrint: da includere dentro <style>. Fissa i margini della pagina come nel modello ufficiale (docs/ignored/carta_intestata.docx: 5 cm in alto, 3 a sinistra, 2 a destra, 3 in basso): le posizioni di intestazione e piè di pagina sono calcolate su questi. #}
+  @page {
+    size: A4;
+    margin: 5cm 2cm 3cm 3cm;
   }
 
-  /* Piè di pagina ripetuto (D-67): loghi WOSM/WAGGGS + iscrizione RUNTS. */
-  .piede {
-    position: running(piede);
+  /* Intestazione: banda viola e gialla, logo a sinistra, dati della Zona a
+     destra in Tahoma 8 pt, colore del modello. position: fixed è relativa
+     all'area della pagina: i valori negativi la portano nel margine. */
+  .intestazione {
+    position: fixed;
+    top: -4.09cm;
+    left: -1.6cm;
+    width: 17.85cm;
+  }
+  .intestazione .banda {
+    display: block;
     width: 100%;
-    text-align: center;
-    font-size: 7.5pt;
-    color: #555;
-    border-top: 1px solid #ccc;
-    padding-top: 0.2cm;
+  }
+  .intestazione .riga {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-top: 0.3cm;
+  }
+  .intestazione .logo {
+    width: 1.98cm;
+    height: 1.98cm;
+    margin-left: 1.6cm;
+  }
+  .intestazione .testo {
+    text-align: right;
+    font-family: Tahoma, Verdana, "DejaVu Sans", sans-serif;
+    font-size: 8pt;
+    line-height: 1.15;
+    color: #45387E;
+  }
+  .intestazione .testo a {
+    color: #0563C1;
+  }
+
+  /* Piè di pagina: loghi WAGGGS/WOSM e iscrizione al RUNTS, a 1,25 cm dal
+     fondo come nel modello. */
+  .piede {
+    position: fixed;
+    bottom: -1.75cm;
+    left: -1.6cm;
+    width: 16.5cm;
+    display: flex;
+    align-items: center;
+    font-family: Tahoma, Verdana, "DejaVu Sans", sans-serif;
+    font-size: 6pt;
+    color: #000;
   }
   .piede .loghi {
-    height: 0.9cm;
-    margin-bottom: 0.15cm;
+    height: 0.77cm;
+    margin-right: 0.6cm;
   }
 
   /* Assemblea di prova: dicitura ripetuta su ogni pagina (position: fixed in

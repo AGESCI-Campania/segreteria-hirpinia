@@ -25,6 +25,7 @@ from apps.anagrafica.models import CensimentoCapo
 from apps.core.messaggi import messaggi_per_campo, messaggio_utente
 from apps.core.mixins import BreadcrumbExtraMixin
 from apps.core.models import ImpostazioniPiattaforma
+from apps.core.pdf import contesto_carta_intestata
 from apps.core.views import RUOLI_GESTIONE_IMPOSTAZIONI
 from apps.organizzazione.models import Gruppo
 
@@ -659,7 +660,8 @@ class CampagnaReportPdfView(RuoloRequiredMixin, View):
             return redirect(reverse("contributi:campagna_dettaglio", args=[campagna.pk]))
 
         html = render_to_string(
-            "contributi/riepilogo_pdf.html", {"campagna": campagna, "riepilogo": riepilogo}
+            "contributi/riepilogo_pdf.html",
+            {"campagna": campagna, "riepilogo": riepilogo, **contesto_carta_intestata()},
         )
         pdf = HTML(string=html).write_pdf()
         response = HttpResponse(pdf, content_type="application/pdf")
