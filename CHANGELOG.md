@@ -8,6 +8,28 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.7.0] - 2026-11-11
+
+### Aggiunto
+
+- Voto in app: più elezioni con l'urna aperta insieme, aperte in un colpo solo
+  dall'elenco delle votazioni; chi vota compila tutte le schede nella stessa
+  pagina e le conferma una volta sola; le urne si chiudono tutte insieme.
+- Cruscotto: «Dichiara validamente costituita» appena il quorum è raggiunto.
+- Pagina dell'assemblea ed elenco delle assemblee: collegamento alla seduta
+  aperta; dalla seduta e dalle presenze i gestori raggiungono l'elenco degli
+  aventi diritto.
+- Vista proiettore: logo della Zona e sfondo rosso tenue finché manca il
+  quorum, verde tenue quando è raggiunto.
+
+### Modificato
+
+- Presenze: l'AE che ha delegato compare come «Presente per delega» appena il
+  delegato è registrato.
+- Con la modalità «solo seggi» l'email del codice di voto non contiene il link
+  per votare dal telefono.
+- Manuali in PDF: icona dei riquadri a sinistra del titolo.
+
 ## [1.6.1] - 2026-11-11
 
 ### Aggiunto
