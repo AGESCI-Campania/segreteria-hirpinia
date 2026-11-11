@@ -11,7 +11,7 @@ D-70/D-71 di `Catello_Progettazione.md`.
 - **Passo 3 — fatto (2026-11-11)**: R1/R2 (D3, D4, D6), più colonna sesso/email mancanti
   evidenziati nell'elenco degli aventi diritto (richiesta del 2026-11-11).
 - **Passo 4 — fatto (2026-11-11)**: R3 (D1, D2, D4-bis, D4-ter, D5).
-- Passo 5: R8 (etichetta Niimbot B1).
+- **Passo 5 — fatto (2026-11-11)**: R8 (D23–D25).
 - Passo 6: R11 (manuali in PDF).
 
 ## Obiettivo
@@ -363,9 +363,9 @@ prevalgono sulle proposte scritte nei requisiti.
   interfaccia (Playwright, **solo dipendenza di sviluppo**, mai fra quelle obbligatorie),
   così si rifanno con un comando quando le pagine cambiano. Le immagini stanno nel
   repository accanto ai sorgenti del manuale.
-- **D36 (2026-11-11)**: scheda di carta oltre quota: va bene l'indicazione data agli
-  scrutatori nella pagina della votazione (per ciascun sesso contano al massimo le
-  preferenze ammesse da posti di quel sesso più indifferenti).
+- **D36 (2026-11-11, precisata)**: una scheda di carta con più preferenze di un sesso di
+  quante ne ammettono i posti di quel sesso più gli indifferenti è **nulla per intero**.
+  In app non può succedere (l'urna lo impedisce). Gli scrutatori la contano fra le nulle.
 - **D37 (2026-11-11)**: un solo ballottaggio per elezione anche con le quote: si propone
   per il primo posto vacante (maschile, poi femminile, poi indifferente) che ha almeno due
   candidati; gli altri posti restano vacanti.

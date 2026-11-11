@@ -371,6 +371,9 @@ Regole complete in D-71 e in `docs/plan_voto.md`. Qui ciò che il codice non dev
   restituito da `codici.emetti()` (email o schermo del banco): mai in sessione, database,
   log, auditlog, URL di path o querystring. Nei link sta nel *fragment* (`#c=…`), e così
   il segreto di attivazione dei seggi (`#s=…`). In sessione resta l'id del `CodiceVoto`.
+  L'etichetta 50×80 mm per l'etichettatrice (`apps/voto/etichetta.py`, PNG e PDF) si
+  genera solo in memoria nella stessa risposta di «Rigenera e mostra», incorporata come
+  `data:` URI: non aggiungere un endpoint che la rigeneri, servirebbe il codice in chiaro.
   Unica eccezione dichiarata: nelle assemblee **di prova** «solo Mailpit» l'email del
   codice resta su Mailpit e i gestori la leggono dalla pagina dell'assemblea
   (`prova.email_su_mailpit()`); non estenderla alle assemblee vere.

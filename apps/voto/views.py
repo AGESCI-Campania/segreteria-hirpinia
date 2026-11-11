@@ -17,7 +17,7 @@ from apps.assemblee.models import Assemblea, AventeDiritto, Seduta, Votazione
 from apps.assemblee.permessi import assemblee_visibili, puo_operare
 from apps.core.mixins import BreadcrumbExtraMixin
 
-from . import codici, postazioni, scrutinio, sistema
+from . import codici, etichetta, postazioni, scrutinio, sistema
 
 MESSAGGI_INVIO = {
     codici.EsitoInvio.INVIATO: "codice di voto inviato per email",
@@ -91,6 +91,13 @@ class CodiceMostraView(LoginRequiredMixin, View):
             messages.error(request, " ".join(errore.messages))
             return _torna(request, seduta)
         link = codici.link_urna(codice)
+        dati_etichetta = etichetta.Etichetta(
+            codice=codici.formatta(codice),
+            link=link,
+            nome=f"{avente.nome} {avente.cognome}",
+            assemblea=str(seduta.assemblea),
+            convocazione=f"{seduta.get_convocazione_display()} del {seduta.data:%d/%m/%Y}",
+        )
         contesto = {
             "seduta": seduta,
             "assemblea": seduta.assemblea,
@@ -98,6 +105,10 @@ class CodiceMostraView(LoginRequiredMixin, View):
             "codice": codici.formatta(codice),
             # Immagine data: invece di SVG inline, così il template non usa |safe.
             "qr": segno.make(link, error="m").svg_data_uri(scale=6, dark="#000", light="#fff"),
+            # Etichetta 50×80 mm già pronta nella pagina, come file da scaricare:
+            # il codice non passa da un'altra richiesta (etichetta.py).
+            "etichetta_png": etichetta.data_uri(etichetta.png(dati_etichetta), "image/png"),
+            "etichetta_pdf": etichetta.data_uri(etichetta.pdf(dati_etichetta), "application/pdf"),
             "torna": _torna(request, seduta).url,
         }
         return render(request, self.template_name, contesto)

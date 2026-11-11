@@ -1356,7 +1356,9 @@ cambiano):
   di sesso diverso da quello dichiarato non conta, il resto della scheda sì; con le quote la
   commissione attribuisce un nome solo a un avente di cui è noto il sesso;
 - *carta*: le stesse regole le applicano gli scrutatori, che inseriscono i voti già
-  validati; la pagina della votazione le ricorda.
+  validati; una scheda di carta con più preferenze di un sesso di quante ne ammettono i
+  posti di quel sesso più gli indifferenti è nulla per intero; la pagina della votazione
+  ricorda le regole.
 
 **Ufficio di presidenza e comitato mozioni in preparazione** (2026-11-11,
 `apps/assemblee/presidenza.py`, piano D7–D12): si indicano per l'assemblea, fra gli aventi
@@ -1489,7 +1491,8 @@ a mano. Uno attivo per avente e seduta; si salva **solo l'hash** (HMAC-SHA256, c
 di D-20). Parte per email alla registrazione della presenza, con il codice nel *fragment*
 del link (`/voto/#c=…`, mai nei log del server); al banco si inserisce l'email mancante o si
 fa «Rigenera e mostra» (codice e QR a schermo una volta sola, tagliando stampabile dal
-browser se c'è una stampante). Il passaggio a carta revoca il codice ed è rifiutato a chi
+browser se c'è una stampante; dal 2026-11-11 anche etichetta 50×80 mm per
+un'etichettatrice termica, in PNG e PDF, generata nella stessa risposta e mai salvata). Il passaggio a carta revoca il codice ed è rifiutato a chi
 ha già votato in app in una votazione non ancora scrutinata.
 
 **Urna** (`apps/voto/urna.py::vota()`, unico punto). Il codice vale se è attivo e della
