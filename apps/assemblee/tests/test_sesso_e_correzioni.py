@@ -142,3 +142,15 @@ def test_pagina_dati(client, assemblea, segreteria):
     client.post(url, {"email": avente.email, "sesso": "M"})
     avente.refresh_from_db()
     assert avente.sesso == "M" and avente.sesso_corretto and not avente.email_corretta
+
+
+def test_elenco_evidenzia_e_filtra_i_dati_mancanti(client, assemblea, segreteria):
+    elenco.aggiorna_email(assemblea.aventi_diritto.get(codice_socio="101"), "", segreteria)
+    client.force_login(segreteria)
+    url = f"/assemblee/{assemblea.pk}/elenco/"
+    risposta = client.get(url)
+    assert risposta.context["totale_senza_sesso"] == 2
+    assert risposta.context["totale_senza_email"] == 1
+    assert "Manca" in risposta.content.decode()
+    filtrate = client.get(url, {"incompleti": "1"}).context["righe"]
+    assert sorted(r.codice_socio for r in filtrate) == ["101", "102", "103"]

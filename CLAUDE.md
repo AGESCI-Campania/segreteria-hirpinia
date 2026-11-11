@@ -318,6 +318,14 @@ deve violare:
   (`elenco.applica_riallinea()`, anche dentro `ripristina()`) non sovrascrive le
   correzioni né i trasferimenti fatti a mano. Il sesso dell'anagrafica vale solo se è
   `M`/`F` (`elenco.sesso_da_capo()`): un altro valore resta non noto, mai normalizzato.
+- **Posizioni al voto e candidature** (R1–R2): solo da `apps/assemblee/candidature.py`.
+  Posti maschili + femminili + indifferenti; il sesso di una candidatura di un avente è
+  **sempre quello dell'elenco** (si corregge lì, mai sulla candidatura). I controlli sul
+  sesso sono avvisi (`candidature.avvisi()`), con un'unica eccezione bloccante:
+  un'elezione con quote non si apre senza il sesso di ogni candidato
+  (`candidature.verifica_apribile()`, chiamata da `votazioni.apri_votazione(posizione=...)`,
+  che resta l'unico punto di apertura). Le quote si copiano su `Votazione`/`Candidato`
+  all'apertura: urna, scrutinio ed esito devono leggerle da lì, non dalla posizione.
 - **Assemblee di prova** (`Assemblea.di_prova`, D22): il flag si sceglie **solo alla
   creazione** (in admin è in sola lettura) ed è l'unica condizione per eliminare
   un'assemblea (`apps/assemblee/prova.py::elimina()`); non renderlo modificabile.

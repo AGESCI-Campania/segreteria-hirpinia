@@ -6,7 +6,7 @@
   <h1 class="mb-3">{{ votazione.get_tipo_display }}</h1>
   <p class="fs-lg mb-1">{{ votazione.oggetto }}</p>
   <p class="fg-2 mb-5">
-    {% if votazione.incarico %}{{ votazione.incarico }}{% if votazione.tipo == "ELEZIONE" %}, {{ votazione.posti }} {% if votazione.posti == 1 %}posto{% else %}posti{% endif %}{% endif %} — {% endif %}
+    {% if votazione.incarico %}{{ votazione.incarico }}{% if votazione.tipo == "ELEZIONE" %}, {{ votazione.posti }} {% if votazione.posti == 1 %}posto{% else %}posti{% endif %}{% if votazione.posti_maschili or votazione.posti_femminili %} (maschili {{ votazione.posti_maschili }}, femminili {{ votazione.posti_femminili }}){% endif %}{% endif %} — {% endif %}
     aperta alle {{ votazione.aperta_il|time:"H:i" }} con {{ votazione.presenti }} presenti su {{ votazione.aventi_diritto }} aventi diritto
     — {% if votazione.segreta %}scrutinio segreto{% if votazione.tipo == "BALLOTTAGGIO" and not assemblea.voto_catello %}, solo su carta{% endif %}{% else %}alzata di mano{% endif %}
   </p>

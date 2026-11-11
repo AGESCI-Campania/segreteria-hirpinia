@@ -671,6 +671,102 @@ class PuntoOdG(models.Model):
         return f"{self.ordine}. {self.titolo}"
 
 
+class PosizioneVoto(models.Model):
+    """Una posizione al voto preparata in anticipo (docs/plan_preparazione_
+    assemblea.md, R1, D4): l'incarico da eleggere con i suoi posti, divisi in
+    maschili, femminili e indifferenti, e le candidature man mano che
+    arrivano. Il giorno dell'assemblea l'elezione si apre da qui
+    (`votazioni.apri_votazione(posizione=...)`)."""
+
+    assemblea = models.ForeignKey(Assemblea, on_delete=models.CASCADE, related_name="posizioni")
+    incarico = models.CharField(max_length=200)
+    punto = models.ForeignKey(
+        "PuntoOdG", on_delete=models.SET_NULL, null=True, blank=True, related_name="posizioni"
+    )
+    posti_maschili = models.PositiveSmallIntegerField(default=0)
+    posti_femminili = models.PositiveSmallIntegerField(default=0)
+    posti_indifferenti = models.PositiveSmallIntegerField(default=0)
+    creata_il = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "posizione al voto"
+        verbose_name_plural = "posizioni al voto"
+        ordering = ["assemblea", "creata_il"]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(posti_maschili__gt=0)
+                | Q(posti_femminili__gt=0)
+                | Q(posti_indifferenti__gt=0),
+                name="posizione_almeno_un_posto",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return self.incarico
+
+    @property
+    def posti(self) -> int:
+        return self.posti_maschili + self.posti_femminili + self.posti_indifferenti
+
+    @property
+    def con_quote(self) -> bool:
+        return self.posti_maschili > 0 or self.posti_femminili > 0
+
+
+class Candidatura(models.Model):
+    """Candidatura arrivata per una posizione: un avente diritto dell'elenco
+    (il sesso è quello dell'elenco, D6) oppure un nome scritto a mano, con il
+    suo sesso se noto."""
+
+    posizione = models.ForeignKey(
+        PosizioneVoto, on_delete=models.CASCADE, related_name="candidature"
+    )
+    avente = models.ForeignKey(
+        AventeDiritto, on_delete=models.CASCADE, null=True, blank=True, related_name="candidature"
+    )
+    nome = models.CharField(max_length=200, blank=True)
+    sesso = models.CharField(max_length=1, choices=Sesso.choices, blank=True)
+    arrivata_il = models.DateField("Arrivata il", null=True, blank=True)
+    inserita_il = models.DateTimeField(auto_now_add=True)
+    inserita_da = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+
+    class Meta:
+        verbose_name = "candidatura"
+        verbose_name_plural = "candidature"
+        ordering = ["posizione", "inserita_il"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["posizione", "avente"],
+                condition=Q(avente__isnull=False),
+                name="candidatura_unica_per_avente",
+            ),
+            models.CheckConstraint(
+                condition=Q(avente__isnull=False) | ~Q(nome=""),
+                name="candidatura_avente_o_nome",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.nome_completo
+
+    @property
+    def nome_completo(self) -> str:
+        if self.avente is not None:
+            return f"{self.avente.cognome} {self.avente.nome}"
+        return self.nome
+
+    @property
+    def sesso_effettivo(self) -> str:
+        """Per un avente diritto vale il sesso dell'elenco (corretto lì se serve)."""
+        return self.avente.sesso if self.avente is not None else self.sesso
+
+
 class TipoVotazione(models.TextChoices):
     MOZIONE = "MOZIONE", "Mozione"
     RACCOMANDAZIONE = "RACCOMANDAZIONE", "Raccomandazione"
@@ -710,6 +806,12 @@ class Votazione(models.Model):
     # Solo elezioni e ballottaggi.
     incarico = models.CharField(max_length=200, blank=True)
     posti = models.PositiveSmallIntegerField(default=1)
+    # Quote per sesso (D4): i posti non maschili né femminili sono indifferenti.
+    posti_maschili = models.PositiveSmallIntegerField(default=0)
+    posti_femminili = models.PositiveSmallIntegerField(default=0)
+    posizione = models.ForeignKey(
+        PosizioneVoto, on_delete=models.SET_NULL, null=True, blank=True, related_name="votazioni"
+    )
     ballottaggio_di = models.ForeignKey(
         "self", on_delete=models.CASCADE, null=True, blank=True, related_name="ballottaggi"
     )
@@ -788,6 +890,8 @@ class Candidato(models.Model):
         AventeDiritto, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
     nome = models.CharField(max_length=200)
+    # Copiato all'apertura (dall'elenco o dalla candidatura): serve alle quote.
+    sesso = models.CharField(max_length=1, choices=Sesso.choices, blank=True)
     voti_app = models.PositiveIntegerField(default=0)
     voti_carta = models.PositiveIntegerField(default=0)
 

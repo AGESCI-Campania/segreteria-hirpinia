@@ -18,6 +18,7 @@
   </div>
   <p class="fg-2 mb-5">
     {{ assemblea }} — {{ totale }} nell'elenco: {{ totale_app }} votano in app, {{ totale_carta }} su carta{% if totale_usciti %}; {{ totale_usciti }} usciti{% endif %}.
+    {% if totale_senza_sesso or totale_senza_email %}<br>Dati mancanti: {{ totale_senza_sesso }} senza sesso, {{ totale_senza_email }} senza email{% if puo_operare %} (si completano con «Dati»){% endif %}.{% endif %}
   </p>
 
   {% if gruppi_da_aggiornare %}
@@ -71,6 +72,12 @@
       </div>
     </div>
     <div class="md:col-auto">
+      <div class="form-field">
+        <input id="filtro-incompleti" type="checkbox" name="incompleti" value="1" class="check"{% if solo_incompleti %} checked{% endif %}>
+        <label for="filtro-incompleti">Solo senza sesso o email</label>
+      </div>
+    </div>
+    <div class="md:col-auto">
       <button type="submit" class="btn-outline theme-primary">Filtra</button>
     </div>
   </form>
@@ -112,8 +119,8 @@
             {% if riga.rdz %}{% ag_chip "RdZ" variant="primary" %}{% elif riga.comitato %}{% ag_chip "Comitato" variant="primary" %}{% endif %}
           </td>
           <td>{{ riga.codice_socio|default:"—" }}</td>
-          <td>{{ riga.sesso|default:"—" }}</td>
-          <td>{{ riga.email|default:"—" }}</td>
+          <td>{% if riga.sesso %}{{ riga.sesso }}{% elif not riga.eliminato %}{% ag_chip "Manca" variant="warning" %}{% else %}—{% endif %}</td>
+          <td>{% if riga.email %}{{ riga.email }}{% elif not riga.eliminato %}{% ag_chip "Manca" variant="warning" %}{% else %}—{% endif %}</td>
           <td>
             {{ riga.gruppo.nome }}
             {% if riga.trasferito %}<br><small class="fg-2">da {{ riga.gruppo_origine.nome }}</small>{% endif %}

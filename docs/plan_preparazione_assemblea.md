@@ -8,7 +8,8 @@ D-70/D-71 di `Catello_Progettazione.md`.
 
 - **Passo 1 — fatto (2026-11-11)**: R5, R6, R7, R9, R10 (D6, D13–D22, D26–D29).
 - **Passo 2 — fatto (2026-11-11)**: R4 (D7–D12-ter).
-- Passo 3: R1/R2 (posizioni al voto e candidature, avvisi sul sesso).
+- **Passo 3 — fatto (2026-11-11)**: R1/R2 (D3, D4, D6), più colonna sesso/email mancanti
+  evidenziati nell'elenco degli aventi diritto (richiesta del 2026-11-11).
 - Passo 4: R3 (quote per sesso in urna, scrutinio ed esito).
 - Passo 5: R8 (etichetta Niimbot B1).
 - Passo 6: R11 (manuali in PDF).

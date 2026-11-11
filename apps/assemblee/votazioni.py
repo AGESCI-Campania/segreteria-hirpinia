@@ -29,6 +29,7 @@ from .models import (
     AventeDiritto,
     CanaleVoto,
     Candidato,
+    PosizioneVoto,
     RisultatoCanale,
     Seduta,
     TipoVotazione,
@@ -168,11 +169,16 @@ def apri_votazione(
     incarico: str = "",
     posti: int = 1,
     candidati: Iterable[AventeDiritto | str] = (),
+    posizione: PosizioneVoto | None = None,
 ) -> Votazione:
     """Apre una votazione fotografando presenti e aventi diritto in quel
-    momento: sono la base delle soglie e non cambiano dopo."""
+    momento: sono la base delle soglie e non cambiano dopo. Con `posizione`
+    è l'elezione preparata (R1): incarico, posti, quote per sesso e
+    candidati vengono da lì, e gli argomenti relativi si ignorano."""
     _verifica_operatore(utente, seduta)
     _verifica_seduta(seduta)
+    if posizione is not None:
+        return _apri_da_posizione(seduta, utente, posizione, oggetto=oggetto, punto=punto)
     if tipo == TipoVotazione.BALLOTTAGGIO:
         raise ValidationError("Il ballottaggio si apre dall'esito di un'elezione.")
     if tipo not in TipoVotazione.values:
@@ -205,9 +211,45 @@ def _crea_candidati(votazione: Votazione, candidati: Iterable[AventeDiritto | st
     for candidato in candidati:
         if isinstance(candidato, AventeDiritto):
             nome = f"{candidato.cognome} {candidato.nome}"
-            Candidato.objects.create(votazione=votazione, avente=candidato, nome=nome)
+            Candidato.objects.create(
+                votazione=votazione, avente=candidato, nome=nome, sesso=candidato.sesso
+            )
         elif candidato.strip():
             Candidato.objects.create(votazione=votazione, nome=candidato.strip())
+
+
+def _apri_da_posizione(
+    seduta: Seduta, utente: Utente, posizione: PosizioneVoto, *, oggetto: str, punto
+) -> Votazione:
+    # Lazy: candidature.py usa le regole di questo modulo.
+    from .candidature import verifica_apribile
+
+    if posizione.assemblea_id != seduta.assemblea_id:
+        raise ValidationError("La posizione non è di questa assemblea.")
+    candidature = verifica_apribile(posizione)
+    stato = stato_quorum(seduta)
+    votazione = Votazione.objects.create(
+        seduta=seduta,
+        punto=punto or posizione.punto,
+        tipo=TipoVotazione.ELEZIONE,
+        oggetto=(oggetto or "").strip() or f"Elezione: {posizione.incarico}",
+        incarico=posizione.incarico,
+        posti=posizione.posti,
+        posti_maschili=posizione.posti_maschili,
+        posti_femminili=posizione.posti_femminili,
+        posizione=posizione,
+        presenti=stato.presenti,
+        aventi_diritto=stato.aventi_diritto,
+        aperta_da=utente,
+    )
+    for candidatura in candidature:
+        Candidato.objects.create(
+            votazione=votazione,
+            avente=candidatura.avente,
+            nome=candidatura.nome_completo,
+            sesso=candidatura.sesso_effettivo,
+        )
+    return votazione
 
 
 @transaction.atomic
@@ -324,7 +366,10 @@ def apri_ballottaggio(votazione: Votazione, utente: Utente) -> Votazione:
     )
     for candidato in proposti:
         Candidato.objects.create(
-            votazione=ballottaggio, avente=candidato.avente, nome=candidato.nome
+            votazione=ballottaggio,
+            avente=candidato.avente,
+            nome=candidato.nome,
+            sesso=candidato.sesso,
         )
     return ballottaggio
 

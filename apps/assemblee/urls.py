@@ -190,6 +190,7 @@ urlpatterns = [
         name="votazione_azione",
     ),
     path("<int:pk>/odg/", views.OdgView.as_view(), name="odg"),
+    path("<int:pk>/elezioni/", views.ElezioniView.as_view(), name="elezioni"),
     path("<int:pk>/odg/<int:punto_pk>/", views.PuntoModificaView.as_view(), name="punto"),
     path(
         "<int:pk>/sedute/<int:seduta_pk>/verbale/",

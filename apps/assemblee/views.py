@@ -24,7 +24,18 @@ from apps.voto import scrutinio as scrutinio_voto
 from apps.voto import urna as urna_voto
 from apps.voto import views as voto_banco
 
-from . import comitato, cruscotto, duplica, elenco, email_aventi, odg, presidenza, prova, sedute
+from . import (
+    candidature,
+    comitato,
+    cruscotto,
+    duplica,
+    elenco,
+    email_aventi,
+    odg,
+    presidenza,
+    prova,
+    sedute,
+)
 from . import deleghe as deleghe_ae
 from . import file as file_assemblea
 from . import quorum as quorum_assemblea
@@ -35,6 +46,7 @@ from .forms import (
     AssembleaCreaForm,
     AssembleaNuovaForm,
     AventeInserisciForm,
+    CandidaturaForm,
     ComitatoAggiungiForm,
     ConvocazioneForm,
     DelegaForm,
@@ -42,6 +54,7 @@ from .forms import (
     EmailAventeForm,
     ImportEmailForm,
     IncaricoDichiaratoFormSet,
+    PosizioneForm,
     PuntoOdGForm,
     QualificheForm,
     TrasferisciForm,
@@ -54,11 +67,13 @@ from .models import (
     Assemblea,
     AventeDiritto,
     CanaleVoto,
+    Candidatura,
     DelegaAE,
     ImportazioneEmail,
     IncaricoAssemblea,
     ModalitaVoto,
     OperatoreVoto,
+    PosizioneVoto,
     PuntoOdG,
     RichiedenteVerifica,
     RuoloAssemblea,
@@ -246,6 +261,98 @@ class EmailProvaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
                     request, "Le email di questa assemblea ora arrivano davvero ai destinatari."
                 )
         return redirect(reverse("assemblee:assemblea_dettaglio", args=[pk]))
+
+
+class ElezioniView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+    """Posizioni al voto e candidature preparate in anticipo (candidature.py)."""
+
+    template_name = "assemblee/elezioni.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_assemblea(request, {"label": "Elezioni e candidature"})
+
+    def _contesto(self, assemblea, form_posizione=None):
+        voci = [
+            {
+                "posizione": p,
+                "candidature": candidature.candidature(p),
+                "avvisi": candidature.avvisi(p),
+                "votazioni": p.votazioni.count(),
+                "form": PosizioneForm(
+                    assemblea=assemblea,
+                    initial={
+                        "incarico": p.incarico,
+                        "posti_maschili": p.posti_maschili,
+                        "posti_femminili": p.posti_femminili,
+                        "posti_indifferenti": p.posti_indifferenti,
+                        "punto": p.punto_id,
+                    },
+                    prefix=f"p{p.pk}",
+                ),
+            }
+            for p in candidature.posizioni(assemblea)
+        ]
+        return {
+            "assemblea": assemblea,
+            "voci": voci,
+            "modificabile": not assemblea.conclusa,
+            "form_posizione": form_posizione or PosizioneForm(assemblea=assemblea),
+            "form_candidatura": CandidaturaForm(assemblea=assemblea),
+        }
+
+    def get(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        return render(request, self.template_name, self._contesto(assemblea))
+
+    def post(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        azione = request.POST.get("azione")
+        posizione = None
+        if request.POST.get("posizione"):
+            posizione = get_object_or_404(
+                PosizioneVoto, pk=request.POST["posizione"], assemblea=assemblea
+            )
+        try:
+            if azione == "nuova_posizione":
+                form = PosizioneForm(request.POST, assemblea=assemblea)
+                if not form.is_valid():
+                    return render(request, self.template_name, self._contesto(assemblea, form))
+                candidature.aggiungi_posizione(assemblea, request.user, **form.cleaned_data)
+                messages.success(request, f"Posizione aggiunta: {form.cleaned_data['incarico']}.")
+            elif azione == "modifica_posizione" and posizione is not None:
+                form = PosizioneForm(request.POST, assemblea=assemblea, prefix=f"p{posizione.pk}")
+                if not form.is_valid():
+                    raise ValidationError("Controlla incarico e posti.")
+                candidature.modifica_posizione(posizione, request.user, **form.cleaned_data)
+                messages.success(request, f"Posizione aggiornata: {posizione.incarico}.")
+            elif azione == "elimina_posizione" and posizione is not None:
+                candidature.elimina_posizione(posizione, request.user)
+                messages.success(request, f"Posizione eliminata: {posizione.incarico}.")
+            elif azione == "candidatura" and posizione is not None:
+                form = CandidaturaForm(request.POST, assemblea=assemblea)
+                if not form.is_valid():
+                    raise ValidationError("Controlla i dati della candidatura.")
+                candidatura = candidature.aggiungi_candidatura(
+                    posizione, request.user, **form.cleaned_data
+                )
+                messages.success(request, f"Candidatura di {candidatura} aggiunta.")
+            elif azione == "rimuovi_candidatura":
+                candidatura = get_object_or_404(
+                    Candidatura, pk=request.POST.get("candidatura"), posizione__assemblea=assemblea
+                )
+                candidature.rimuovi_candidatura(candidatura, request.user)
+                messages.success(request, f"Candidatura di {candidatura} tolta.")
+            else:
+                raise ValidationError("Operazione non valida.")
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+        ancora = (
+            f"#posizione-{posizione.pk}"
+            if posizione is not None and azione != "elimina_posizione"
+            else ""
+        )
+        return redirect(reverse("assemblee:elezioni", args=[pk]) + ancora)
 
 
 class AssembleaEliminaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
@@ -535,8 +642,12 @@ class ElencoView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
         filtro_gruppo = request.GET.get("gruppo", "")
         cerca = request.GET.get("q", "").strip()
         mostra_usciti = request.GET.get("usciti") == "1"
+        solo_incompleti = request.GET.get("incompleti") == "1"
+        incompleti = Q(sesso="") | Q(email="")
 
         righe = tutti if mostra_usciti else nell_elenco
+        if solo_incompleti:
+            righe = righe.filter(incompleti)
         if filtro_gruppo:
             righe = righe.filter(gruppo_id=filtro_gruppo)
         if cerca:
@@ -556,6 +667,9 @@ class ElencoView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             "filtro_gruppo": filtro_gruppo,
             "cerca": cerca,
             "mostra_usciti": mostra_usciti,
+            "solo_incompleti": solo_incompleti,
+            "totale_senza_sesso": nell_elenco.filter(sesso="").count(),
+            "totale_senza_email": nell_elenco.filter(email="").count(),
             "totale": nell_elenco.count(),
             "totale_app": nell_elenco.filter(vota_in_app=True).count(),
             "totale_carta": nell_elenco.filter(vota_in_app=False).count(),
@@ -1563,8 +1677,9 @@ class NuovaVotazioneView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
                     oggetto=dati["oggetto"],
                     punto=dati["punto"],
                     incarico=dati["incarico"],
-                    posti=dati["posti"],
+                    posti=dati["posti"] or 1,
                     candidati=candidati,
+                    posizione=dati["posizione"],
                 )
             except ValidationError as errore:
                 form.add_error(None, errore)

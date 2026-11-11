@@ -12,6 +12,7 @@ from .models import (
     Assemblea,
     AventeDiritto,
     CanaleVoto,
+    PosizioneVoto,
     Provenienza,
     PuntoOdG,
     Seduta,
@@ -275,12 +276,83 @@ class QualificheForm(forms.Form):
     )
 
 
+class PosizioneForm(forms.Form):
+    incarico = forms.CharField(
+        label="Incarico da eleggere",
+        max_length=200,
+        help_text="Es. membro del Comitato di Zona, Responsabile di Zona.",
+    )
+    posti_maschili = forms.IntegerField(label="Posti maschili", min_value=0, initial=0)
+    posti_femminili = forms.IntegerField(label="Posti femminili", min_value=0, initial=0)
+    posti_indifferenti = forms.IntegerField(
+        label="Posti indifferenti",
+        min_value=0,
+        initial=0,
+        help_text="Posti che può occupare un candidato di qualunque sesso.",
+    )
+    punto = forms.ModelChoiceField(
+        label="Punto all'ordine del giorno", queryset=PuntoOdG.objects.none(), required=False
+    )
+
+    def __init__(self, *args, assemblea: Assemblea, **kwargs):
+        super().__init__(*args, **kwargs)
+        cast(forms.ModelChoiceField, self.fields["punto"]).queryset = assemblea.punti_odg.all()
+
+
+class CandidaturaForm(forms.Form):
+    """Un avente diritto (campo nascosto, dall'autocompletamento) oppure un
+    nome scritto a mano con il suo sesso."""
+
+    avente = forms.ModelChoiceField(
+        queryset=AventeDiritto.objects.none(), required=False, widget=forms.HiddenInput
+    )
+    nome = forms.CharField(
+        label="Oppure nome e cognome",
+        max_length=200,
+        required=False,
+        help_text="Solo per chi non è nell'elenco degli aventi diritto.",
+    )
+    sesso = forms.ChoiceField(
+        label="Sesso",
+        choices=[("", "Non noto"), *Sesso.choices],
+        required=False,
+        help_text="Solo per un nome scritto a mano: per un capo dell'elenco vale quello dell'elenco.",
+    )
+    arrivata_il = forms.DateField(
+        label="Arrivata il",
+        required=False,
+        widget=forms.DateInput(attrs={"type": "date"}),
+    )
+
+    def __init__(self, *args, assemblea: Assemblea, **kwargs):
+        super().__init__(*args, **kwargs)
+        cast(forms.ModelChoiceField, self.fields["avente"]).queryset = (
+            assemblea.aventi_diritto.nell_elenco()
+        )
+
+
 class VotazioneForm(forms.Form):
+    posizione = forms.ModelChoiceField(
+        label="Elezione preparata",
+        queryset=PosizioneVoto.objects.none(),
+        required=False,
+        empty_label="Nessuna: votazione da indicare qui sotto",
+        help_text=(
+            "Se scegli una posizione preparata, incarico, posti e candidati vengono da lì e i "
+            "campi seguenti, tranne oggetto e punto, si ignorano."
+        ),
+    )
     tipo = forms.ChoiceField(
         label="Tipo",
         choices=[(v, e) for v, e in TipoVotazione.choices if v != TipoVotazione.BALLOTTAGGIO],
+        required=False,
     )
-    oggetto = forms.CharField(label="Oggetto", max_length=500)
+    oggetto = forms.CharField(
+        label="Oggetto",
+        max_length=500,
+        required=False,
+        help_text="Per un'elezione preparata, se vuoto: «Elezione: incarico».",
+    )
     punto = forms.ModelChoiceField(
         label="Punto all'ordine del giorno", queryset=PuntoOdG.objects.none(), required=False
     )
@@ -291,7 +363,11 @@ class VotazioneForm(forms.Form):
         help_text="Solo per le elezioni (es. membro del Comitato di Zona).",
     )
     posti = forms.IntegerField(
-        label="Posti da eleggere", min_value=1, initial=1, help_text="Solo per le elezioni."
+        label="Posti da eleggere",
+        min_value=1,
+        initial=1,
+        required=False,
+        help_text="Solo per le elezioni non preparate.",
     )
     candidati = _AventiMultipliField(
         label="Candidati dall'elenco",
@@ -308,12 +384,24 @@ class VotazioneForm(forms.Form):
 
     def __init__(self, *args, assemblea: Assemblea, **kwargs):
         super().__init__(*args, **kwargs)
+        cast(forms.ModelChoiceField, self.fields["posizione"]).queryset = (
+            assemblea.posizioni.order_by("creata_il")
+        )
         cast(forms.ModelChoiceField, self.fields["punto"]).queryset = assemblea.punti_odg.all()
         cast(forms.ModelChoiceField, self.fields["candidati"]).queryset = (
             assemblea.aventi_diritto.nell_elenco()
             .select_related("gruppo")
             .order_by("cognome", "nome")
         )
+
+    def clean(self):
+        dati = super().clean()
+        if not dati.get("posizione"):
+            if not dati.get("tipo"):
+                self.add_error("tipo", "Indica il tipo di votazione.")
+            if not (dati.get("oggetto") or "").strip():
+                self.add_error("oggetto", "Indica l'oggetto della votazione.")
+        return dati
 
 
 def form_risultati(votazione, canali_voto: list[str], data=None) -> forms.Form:

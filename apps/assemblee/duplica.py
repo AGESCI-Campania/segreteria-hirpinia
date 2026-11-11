@@ -3,8 +3,8 @@ convocazione, che riparte dall'elenco degli aventi diritto di un'altra.
 
 Si copiano l'elenco così com'è (eliminazioni, trasferimenti, email, qualifiche
 e incarichi dichiarati compresi), il comitato elettorale, presidenza, segretario,
-comitato mozioni e scrutatori e i titoli dei punti
-all'ordine del giorno. Non si copiano sedute, presenze, deleghe, votazioni,
+comitato mozioni e scrutatori, i titoli dei punti all'ordine del giorno e le
+posizioni al voto con le candidature. Non si copiano sedute, presenze, deleghe, votazioni,
 codici di voto, seggi, verbali, né i passaggi a carta, che valgono solo per
 il giorno dell'assemblea: il voto in app si ricalcola con la regola di
 sempre. L'anagrafica non si legge né si scrive: per riallineare l'elenco ai
@@ -21,9 +21,11 @@ from . import elenco
 from .models import (
     Assemblea,
     AventeDiritto,
+    Candidatura,
     IncaricoAssemblea,
     IncaricoDichiarato,
     OperatoreVoto,
+    PosizioneVoto,
     PuntoOdG,
 )
 from .permessi import puo_gestire_assemblee
@@ -101,8 +103,32 @@ def copia_in(origine: Assemblea, nuova: Assemblea, utente: Utente) -> int:
                 nominato_da=utente,
             )
 
-    PuntoOdG.objects.bulk_create(
-        PuntoOdG(assemblea=nuova, ordine=punto.ordine, titolo=punto.titolo)
-        for punto in origine.punti_odg.all()
-    )
+    punti: dict[int, PuntoOdG] = {}
+    for punto in origine.punti_odg.all():
+        punti[punto.pk] = PuntoOdG.objects.create(
+            assemblea=nuova, ordine=punto.ordine, titolo=punto.titolo
+        )
+
+    # Posizioni al voto e candidature: si preparano come per l'originale.
+    for posizione in origine.posizioni.prefetch_related("candidature"):
+        copia = PosizioneVoto.objects.create(
+            assemblea=nuova,
+            incarico=posizione.incarico,
+            punto=punti.get(posizione.punto_id) if posizione.punto_id else None,
+            posti_maschili=posizione.posti_maschili,
+            posti_femminili=posizione.posti_femminili,
+            posti_indifferenti=posizione.posti_indifferenti,
+        )
+        for candidatura in posizione.candidature.all():
+            avente = corrispondenze.get(candidatura.avente_id) if candidatura.avente_id else None
+            if candidatura.avente_id and (avente is None or avente.eliminato_il is not None):
+                continue
+            Candidatura.objects.create(
+                posizione=copia,
+                avente=avente,
+                nome=candidatura.nome,
+                sesso=candidatura.sesso,
+                arrivata_il=candidatura.arrivata_il,
+                inserita_da=utente,
+            )
     return len(corrispondenze)

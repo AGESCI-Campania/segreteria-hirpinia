@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% load static agesci_components %}
+
+{% block page_title %}Elezioni e candidature — {{ assemblea }}{% endblock %}
+
+{% block content %}
+  <h1 class="mb-3">Elezioni e candidature</h1>
+  <p class="fg-2 mb-7">
+    {{ assemblea }}. Le posizioni al voto e le candidature si preparano in anticipo; il giorno
+    dell'assemblea l'elezione si apre scegliendo la posizione in «Nuova votazione». I posti
+    maschili e femminili si coprono con candidati di quel sesso, gli indifferenti con chiunque.
+    I controlli sul sesso sono avvisi; un'elezione con posti maschili o femminili però non si apre
+    finché ogni candidato non ha il sesso (per un capo dell'elenco si corregge con «Dati»
+    nell'elenco degli aventi diritto).
+  </p>
+
+  {% for voce in voci %}
+    {% with p=voce.posizione %}
+      <div class="card mb-7" id="posizione-{{ p.pk }}">
+        <div class="card-body">
+          <h2 class="fs-xl mb-1">{{ p.incarico }}</h2>
+          <p class="fg-2 mb-3">
+            {{ p.posti }} {% if p.posti == 1 %}posto{% else %}posti{% endif %}{% if p.con_quote %}:
+            {% if p.posti_maschili %}{{ p.posti_maschili }} maschil{% if p.posti_maschili == 1 %}e{% else %}i{% endif %}{% endif %}{% if p.posti_maschili and p.posti_femminili %}, {% endif %}{% if p.posti_femminili %}{{ p.posti_femminili }} femminil{% if p.posti_femminili == 1 %}e{% else %}i{% endif %}{% endif %}{% if p.posti_indifferenti %}, {{ p.posti_indifferenti }} indifferent{% if p.posti_indifferenti == 1 %}e{% else %}i{% endif %}{% endif %}{% else %}, di qualunque sesso{% endif %}
+            {% if p.punto %} — punto {{ p.punto.ordine }}. {{ p.punto.titolo }}{% endif %}
+            {% if voce.votazioni %} — {% ag_chip "Elezione aperta" variant="info" %}{% endif %}
+          </p>
+
+          {% if voce.avvisi %}
+            <div class="alert theme-warning" role="note"><div><ul class="mb-0">{% for avviso in voce.avvisi %}<li>{{ avviso }}</li>{% endfor %}</ul></div></div>
+          {% endif %}
+
+          <div class="table-responsive mb-5">
+            <table class="table table-sm">
+              <thead><tr><th>Candidato</th><th>Sesso</th><th>Gruppo</th><th>Arrivata il</th>{% if modificabile %}<th></th>{% endif %}</tr></thead>
+              <tbody>
+                {% for c in voce.candidature %}
+                  <tr>
+                    <td>{{ c.nome_completo }}{% if not c.avente %} <small class="fg-2">(non in elenco)</small>{% endif %}</td>
+                    <td>{% if c.sesso_effettivo %}{{ c.sesso_effettivo }}{% else %}{% ag_chip "Manca" variant="warning" %}{% endif %}</td>
+                    <td>{{ c.avente.gruppo.nome|default:"—" }}</td>
+                    <td>{{ c.arrivata_il|date:"d/m/Y"|default:"—" }}</td>
+                    {% if modificabile %}
+                      <td class="text-end">
+                        <form method="post" class="d-inline">
+                          {% csrf_token %}
+                          <input type="hidden" name="azione" value="rimuovi_candidatura">
+                          <input type="hidden" name="candidatura" value="{{ c.pk }}">
+                          <button type="submit" class="btn-outline theme-danger btn-sm">Togli</button>
+                        </form>
+                      </td>
+                    {% endif %}
+                  </tr>
+                {% empty %}
+                  <tr><td colspan="5">Nessuna candidatura.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          {% if modificabile %}
+            <h3 class="fs-lg">Aggiungi una candidatura</h3>
+            <form method="post" class="mb-5">
+              {% csrf_token %}
+              <input type="hidden" name="azione" value="candidatura">
+              <input type="hidden" name="posizione" value="{{ p.pk }}">
+              <div class="row g-3 align-items-end">
+                <div class="md:col-4">
+                  <div class="mb-5 position-relative" data-avente-autocomplete="{% url 'assemblee:comitato_cerca' assemblea.pk %}?per=incarichi">
+                    <label for="cand-{{ p.pk }}" class="form-label">Capo dell'elenco</label>
+                    <input type="text" id="cand-{{ p.pk }}" class="form-control js-cerca" autocomplete="off" placeholder="Digita almeno 2 caratteri…">
+                    <ul class="list-group position-absolute w-100 js-risultati" style="z-index: 1000; display: none;"></ul>
+                    <div class="form-text js-selezionato"></div>
+                    <input type="hidden" name="avente">
+                  </div>
+                </div>
+                <div class="md:col-3">
+                  <div class="form-field mb-5"><label for="nome-{{ p.pk }}">{{ form_candidatura.nome.label }}</label><input type="text" name="nome" id="nome-{{ p.pk }}" class="form-control" maxlength="200"></div>
+                </div>
+                <div class="md:col-2">
+                  <div class="form-field mb-5"><label for="sesso-{{ p.pk }}">{{ form_candidatura.sesso.label }}</label>
+                    <select name="sesso" id="sesso-{{ p.pk }}" class="form-control">{% for v, e in form_candidatura.sesso.field.choices %}<option value="{{ v }}">{{ e }}</option>{% endfor %}</select>
+                  </div>
+                </div>
+                <div class="md:col-3">
+                  <div class="form-field mb-5"><label for="arrivata-{{ p.pk }}">{{ form_candidatura.arrivata_il.label }}</label><input type="date" name="arrivata_il" id="arrivata-{{ p.pk }}" class="form-control"></div>
+                </div>
+              </div>
+              <p class="form-text mb-3">Il nome scritto a mano e il suo sesso servono solo per chi non è nell'elenco.</p>
+              <button type="submit" class="btn-solid theme-primary">Aggiungi la candidatura</button>
+            </form>
+
+            <details class="mb-3">
+              <summary>Modifica o elimina la posizione</summary>
+              <form method="post" class="mt-3">
+                {% csrf_token %}
+                <input type="hidden" name="azione" value="modifica_posizione">
+                <input type="hidden" name="posizione" value="{{ p.pk }}">
+                {{ voce.form.as_p }}
+                <button type="submit" class="btn-solid theme-primary">Salva</button>
+              </form>
+              <form method="post" class="mt-3">
+                {% csrf_token %}
+                <input type="hidden" name="azione" value="elimina_posizione">
+                <input type="hidden" name="posizione" value="{{ p.pk }}">
+                <button type="submit" class="btn-outline theme-danger btn-sm">Elimina la posizione e le sue candidature</button>
+              </form>
+            </details>
+          {% endif %}
+        </div>
+      </div>
+    {% endwith %}
+  {% empty %}
+    <p class="mb-7">Nessuna posizione al voto.</p>
+  {% endfor %}
+
+  {% if modificabile %}
+    <h2 class="fs-xl">Nuova posizione al voto</h2>
+    <form method="post" class="mb-7">
+      {% csrf_token %}
+      <input type="hidden" name="azione" value="nuova_posizione">
+      {{ form_posizione.as_p }}
+      <button type="submit" class="btn-solid theme-primary">Aggiungi la posizione</button>
+    </form>
+  {% endif %}
+  <a href="{% url 'assemblee:assemblea_dettaglio' assemblea.pk %}" class="btn-outline theme-secondary">Torna all'assemblea</a>
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  {% if modificabile %}
+    <script src="{% static 'js/ricerca-autocomplete-comune.js' %}" defer></script>
+    <script src="{% static 'js/avente-autocomplete.js' %}" defer></script>
+  {% endif %}
+{% endblock %}

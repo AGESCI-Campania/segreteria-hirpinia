@@ -1329,6 +1329,19 @@ del giorno; non si copiano sedute, presenze, deleghe, votazioni, codici, seggi e
 né i passaggi a carta. L'anagrafica non si legge: l'elenco copiato si riallinea ai censiti
 solo con «aggiorna il gruppo».
 
+**Posizioni al voto e candidature in anticipo** (2026-11-11,
+`apps/assemblee/candidature.py`, piano R1–R2, D3, D4, D6): per l'assemblea si preparano le
+posizioni al voto (incarico, posti maschili, femminili e indifferenti, punto dell'ordine
+del giorno) e le candidature man mano che arrivano (un avente diritto, con il sesso
+dell'elenco, oppure un nome scritto a mano con il suo sesso, e la data di arrivo). I
+controlli sul sesso sono avvisi: candidato di sesso diverso da posti solo maschili o solo
+femminili, sesso non noto, quota che le candidature non coprono. Il giorno dell'assemblea
+«Nuova votazione» apre l'elezione dalla posizione, copiandone incarico, posti, quote e
+candidati; un'elezione con posti maschili o femminili non si apre finché ogni candidato non
+ha il sesso (unico controllo bloccante). Le regole di voto con le quote (piano D1, D2,
+D4-bis, D4-ter) arrivano con il passo 4 del piano: fino ad allora urna ed esito ignorano le
+quote.
+
 **Ufficio di presidenza e comitato mozioni in preparazione** (2026-11-11,
 `apps/assemblee/presidenza.py`, piano D7–D12): si indicano per l'assemblea, fra gli aventi
 diritto dell'elenco, presidenti (al massimo due, di sesso diverso: bloccante se entrambi
