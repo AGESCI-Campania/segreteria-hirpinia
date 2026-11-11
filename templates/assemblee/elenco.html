@@ -150,11 +150,11 @@
               {% endif %}
             {% else %}
               {% if puo_gestire %}
-                <a href="{% url 'assemblee:trasferisci' assemblea.pk riga.pk %}" class="btn-outline theme-secondary btn-sm">Trasferisci</a>
-                <a href="{% url 'assemblee:qualifiche' assemblea.pk riga.pk %}" class="btn-outline theme-secondary btn-sm">Qualifiche</a>
+                <a href="{% url 'assemblee:trasferisci' assemblea.pk riga.pk %}?next={{ request.get_full_path|urlencode }}" class="btn-outline theme-secondary btn-sm">Trasferisci</a>
+                <a href="{% url 'assemblee:qualifiche' assemblea.pk riga.pk %}?next={{ request.get_full_path|urlencode }}" class="btn-outline theme-secondary btn-sm">Qualifiche</a>
               {% endif %}
               {% if puo_operare %}
-                <a href="{% url 'assemblee:avente_email' assemblea.pk riga.pk %}" class="btn-outline theme-secondary btn-sm">Dati</a>
+                <a href="{% url 'assemblee:avente_email' assemblea.pk riga.pk %}?next={{ request.get_full_path|urlencode }}" class="btn-outline theme-secondary btn-sm">Dati</a>
                 {% if riga.vota_in_app %}
                   <form method="post" action="{% url 'assemblee:passa_a_carta' assemblea.pk riga.pk %}" class="d-inline">
                     {% csrf_token %}

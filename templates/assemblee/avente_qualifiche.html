@@ -12,10 +12,11 @@
       </p>
       <form method="post">
         {% csrf_token %}
+        <input type="hidden" name="next" value="{{ ritorno }}">
         {{ form.as_p }}
         <div class="d-flex gap-3">
           <button type="submit" class="btn-solid theme-primary">Salva</button>
-          <a href="{% url 'assemblee:elenco' assemblea.pk %}?gruppo={{ avente.gruppo_id }}" class="btn-outline theme-secondary">Annulla</a>
+          <a href="{{ ritorno }}" class="btn-outline theme-secondary">Annulla</a>
         </div>
       </form>
     </div>
