@@ -8,6 +8,16 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.8.0] - 2026-11-11
+
+### Aggiunto
+
+- Cruscotto come punto centrale della seduta: per chi ne ha il permesso,
+  presenze, deleghe, votazioni, seggi, elenco degli aventi diritto, apertura,
+  costituzione, chiusura dei lavori e verifica del quorum, senza passare dalla
+  pagina della seduta; dopo ogni azione si torna al cruscotto. Il verbale resta
+  nella pagina della seduta.
+
 ## [1.7.0] - 2026-11-11
 
 ### Aggiunto
