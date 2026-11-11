@@ -37,7 +37,7 @@ SECONDI_ACCESSO_SEGGIO = 3 * 60
 MAX_TENTATIVI = 10
 # Al seggio la sessione è condivisa da tutti i votanti che passano.
 MAX_TENTATIVI_SEGGIO = 30
-SECONDI_RICEVUTA_SEGGIO = 10
+SECONDI_RICEVUTA_SEGGIO = 30
 SALE_COOKIE = "apps.voto.postazione"
 
 

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block page_title %}{{ votazione }}{% endblock %}
 
@@ -47,14 +48,14 @@
             {% endif %}
           {% endif %}
         {% elif not votazione.chiusa_in_app_il %}
-          <p class="fs-2xl mb-1">{{ urna.votanti }}</p>
-          <p class="fg-2 mb-3">hanno votato in app (aperta alle {{ votazione.aperta_in_app_il|time:"H:i" }}). I risultati si vedono solo a urna chiusa.</p>
+          {% include "assemblee/_affluenza_urne.html" with urne=urna.affluenza votazione_pk=votazione.pk %}
+          <p class="fg-2 mb-3">Urna aperta alle {{ votazione.aperta_in_app_il|time:"H:i" }}; si aggiorna da sola. I risultati si vedono solo a urna chiusa.</p>
           {% if puo_operare %}
             <form method="post" action="{% url 'voto:urna_azione' assemblea.pk seduta.pk votazione.pk %}" class="d-flex flex-wrap align-items-center gap-3">
               {% csrf_token %}<input type="hidden" name="azione" value="chiudi">
               <div class="form-field mb-0">
                 <input type="checkbox" name="conferma" value="1" id="conferma-chiudi-urna" class="check" required>
-                <label for="conferma-chiudi-urna">Hanno votato tutti quelli che volevano votare in app{% if urna.altre_aperte %} (si chiudono anche le altre {{ urna.altre_aperte|length }} urne aperte){% endif %}</label>
+                <label for="conferma-chiudi-urna">Hanno votato tutti quelli che volevano votare in app{% if urna.altre_aperte|length == 1 %} (si chiude anche l'altra urna aperta){% elif urna.altre_aperte %} (si chiudono anche le altre {{ urna.altre_aperte|length }} urne aperte){% endif %}</label>
               </div>
               <button type="submit" class="btn-solid theme-warning">{% if urna.altre_aperte %}Chiudi tutte le urne{% else %}Chiudi l'urna{% endif %}</button>
             </form>
@@ -113,4 +114,7 @@
   {% endif %}
 
   <p class="mt-7"><a href="{% url 'assemblee:votazioni' assemblea.pk seduta.pk %}">Tutte le votazioni della seduta</a></p>
+  {% if urna.prevista and votazione.aperta_in_app_il and not votazione.chiusa_in_app_il %}
+    <script src="{% static 'js/assemblea-cruscotto.js' %}" data-url-stato="{% url 'assemblee:stato_seduta' assemblea.pk seduta.pk %}?elenco=1" data-intervallo="{{ urna.intervallo_ms }}" defer></script>
+  {% endif %}
 {% endblock %}

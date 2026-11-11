@@ -1818,6 +1818,10 @@ class VotazioneView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             "urna": {
                 "prevista": in_app,
                 "votanti": scrutinio_voto.numero_votanti(votazione) if in_app else 0,
+                "intervallo_ms": cruscotto.INTERVALLO_AGGIORNAMENTO_MS,
+                "affluenza": (
+                    cruscotto.urne_in_corso(votazione.seduta, con_elenco=True) if in_app else []
+                ),
                 "da_interpretare": (
                     len(scrutinio_voto.nomi_da_interpretare(votazione)) if in_app else 0
                 ),

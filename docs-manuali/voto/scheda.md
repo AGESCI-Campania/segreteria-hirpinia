@@ -35,7 +35,7 @@ premi **Conferma il voto**, altrimenti **Modifica**.
 ![Il riepilogo](img/riepilogo.jpg){ width="320" }
 
 Dopo la conferma il voto è nell'urna e non si può cambiare. Compare la **ricevuta**:
-annotala o fotografala.
+annotala o fotografala, poi premi **Fatto** (in cima o in fondo alla pagina).
 
 ![La ricevuta](img/ricevuta.jpg){ width="320" }
 

@@ -306,7 +306,7 @@ class TestVisteGestione:
         pagina = client.get(
             f"/assemblee/{assemblea.pk}/sedute/{costituita.pk}/votazioni/{elezione.pk}/"
         ).content.decode()
-        assert "hanno votato in app" in pagina
+        assert "Hanno votato in app" in pagina
         client.post(url, {"azione": "chiudi"})  # senza conferma: resta aperta
         elezione.refresh_from_db()
         assert elezione.urna_aperta

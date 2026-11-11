@@ -117,7 +117,9 @@ class TestChiosco:
                 },
             )
             testo = ricevuta.content.decode()
-            assert 'http-equiv="refresh"' in testo
+            assert 'http-equiv="refresh" content="30;' in testo
+            # Il pulsante di chiusura è in cima e in fondo alla ricevuta.
+            assert testo.count("Fatto, avanti il prossimo") == 2
             # Il voto successivo riparte dall'accesso: nessuna sessione residua.
             assert client.get("/voto/scheda/").url == "/voto/"
         assert Scheda.objects.count() == 2

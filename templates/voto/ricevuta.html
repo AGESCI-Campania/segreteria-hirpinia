@@ -8,6 +8,7 @@
   <div class="row justify-content-center">
     <div class="md:col-8">
       <h1 class="mb-3">Voto registrato</h1>
+      <div class="mb-7">{% include "voto/_ricevuta_chiudi.html" %}</div>
       <p class="mb-5">Annota {% if per_votazione|length == 1 and per_votazione.0.ricevute|length == 1 %}la ricevuta{% else %}le ricevute{% endif %}: a votazione chiusa potrai controllare in bacheca che ogni scheda sia stata contata così.</p>
       {% for voce in per_votazione %}
         <h2 class="fs-xl mb-3">{{ voce.votazione.oggetto }}</h2>
@@ -22,11 +23,7 @@
         {% endfor %}
       {% endfor %}
       <p class="fg-2 mb-5">La ricevuta non dice a nessuno chi sei. Non viene mostrata di nuovo: la puoi controllare in <a href="{% url 'voto:verifica' %}">verifica della ricevuta</a>.</p>
-      {% if al_seggio %}
-        <a href="{% url 'voto:urna' %}" class="btn-solid theme-primary w-100">Fatto, avanti il prossimo</a>
-      {% else %}
-        <a href="{% url 'voto:scheda' %}" class="btn-solid theme-primary w-100">Fatto</a>
-      {% endif %}
+      {% include "voto/_ricevuta_chiudi.html" %}
     </div>
   </div>
 {% endblock %}

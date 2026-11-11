@@ -1,0 +1,6 @@
+{# Pulsante di chiusura della ricevuta, in evidenza in cima e in fondo alla pagina. #}
+{% if al_seggio %}
+  <a href="{% url 'voto:urna' %}" class="btn-solid theme-success btn-lg w-100">Fatto, avanti il prossimo</a>
+{% else %}
+  <a href="{% url 'voto:scheda' %}" class="btn-solid theme-success btn-lg w-100">Fatto</a>
+{% endif %}

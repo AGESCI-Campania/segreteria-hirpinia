@@ -1,0 +1,17 @@
+{# Affluenza delle urne aperte (cruscotto.urne_in_corso()): la riscrive static/js/assemblea-cruscotto.js a ogni aggiornamento, con lo stesso markup. proiettore: solo numeri; votazione: solo quella urna. #}
+<div data-urne{% if proiettore %} data-urne-stile="proiettore"{% endif %}{% if votazione_pk %} data-urne-votazione="{{ votazione_pk }}"{% endif %}>
+  {% for u in urne %}{% if not votazione_pk or u.votazione == votazione_pk %}
+    {% if proiettore %}
+      <div class="mb-5">
+        <p class="fs-4xl fw-bold mb-0">{{ u.votanti }} / {{ u.attesi }}</p>
+        <p class="fs-lg mb-0">hanno votato in app — {{ u.oggetto }}</p>
+      </div>
+    {% else %}
+      <div class="mb-5">
+        {% if not votazione_pk %}<h3 class="fs-lg mb-1">{{ u.oggetto }}</h3>{% endif %}
+        <p class="mb-1">Hanno votato in app <strong>{{ u.votanti }}</strong> su {{ u.attesi }}: {% if u.mancano %}mancano <strong>{{ u.mancano }}</strong>.{% else %}hanno votato tutti.{% endif %}</p>
+        {% if u.da_votare %}<p class="fs-sm fg-2 mb-0">Devono ancora votare: {{ u.da_votare|join:", " }}.</p>{% endif %}
+      </div>
+    {% endif %}
+  {% endif %}{% endfor %}
+</div>

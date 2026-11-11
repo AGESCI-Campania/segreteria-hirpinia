@@ -22,7 +22,10 @@ anche le urne, tutte insieme.
 ## L'urna elettronica
 
 Con il voto in app, **Apri l'urna** dalla pagina della votazione: chi ha il codice vede
-la scheda. Durante il voto si vede solo quanti hanno votato.
+la scheda. Durante il voto non si vedono risultati: la pagina della votazione e il
+**Cruscotto** mostrano, aggiornati da soli, quanti hanno votato in app, quanti mancano e
+chi deve ancora votare (chi ha votato è pubblico per regolamento, cosa ha votato no). Sul
+proiettore compaiono solo i numeri.
 
 Per votare **più elezioni insieme**, nell'elenco delle **Votazioni** spunta le elezioni e
 premi **Apri le urne selezionate**: chi vota le trova tutte nella stessa pagina e le

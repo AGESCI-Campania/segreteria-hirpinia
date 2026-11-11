@@ -45,6 +45,66 @@
     corpo.replaceChildren(righe);
   }
 
+  // Affluenza delle urne aperte: stesso markup di templates/assemblee/_affluenza_urne.html.
+  function paragrafo(classi, parti) {
+    var p = document.createElement("p");
+    p.className = classi;
+    parti.forEach(function (parte) {
+      if (typeof parte === "string") {
+        p.appendChild(document.createTextNode(parte));
+      } else {
+        var strong = document.createElement("strong");
+        strong.textContent = String(parte.forte);
+        p.appendChild(strong);
+      }
+    });
+    return p;
+  }
+
+  function aggiornaUrne(urne) {
+    document.querySelectorAll("[data-urne]").forEach(function (contenitore) {
+      var solo = contenitore.dataset.urneVotazione;
+      var proiettore = contenitore.dataset.urneStile === "proiettore";
+      var blocchi = document.createDocumentFragment();
+      (urne || []).forEach(function (u) {
+        if (solo && String(u.votazione) !== solo) {
+          return;
+        }
+        var div = document.createElement("div");
+        div.className = "mb-5";
+        if (proiettore) {
+          div.appendChild(paragrafo("fs-4xl fw-bold mb-0", [u.votanti + " / " + u.attesi]));
+          div.appendChild(paragrafo("fs-lg mb-0", ["hanno votato in app — " + u.oggetto]));
+        } else {
+          if (!solo) {
+            var h3 = document.createElement("h3");
+            h3.className = "fs-lg mb-1";
+            h3.textContent = u.oggetto;
+            div.appendChild(h3);
+          }
+          div.appendChild(
+            paragrafo(
+              "mb-1",
+              ["Hanno votato in app ", { forte: u.votanti }, " su " + u.attesi + ": "].concat(
+                u.mancano ? ["mancano ", { forte: u.mancano }, "."] : ["hanno votato tutti."]
+              )
+            )
+          );
+          if (u.da_votare && u.da_votare.length) {
+            div.appendChild(
+              paragrafo("fs-sm fg-2 mb-0", ["Devono ancora votare: " + u.da_votare.join(", ") + "."])
+            );
+          }
+        }
+        blocchi.appendChild(div);
+      });
+      contenitore.replaceChildren(blocchi);
+    });
+    document.querySelectorAll("[data-se-urne]").forEach(function (el) {
+      el.classList.toggle("d-none", !(urne && urne.length));
+    });
+  }
+
   function applica(dati) {
     imposta("[data-campo='aventi_diritto']", dati.aventi_diritto);
     imposta("[data-campo='presenti']", dati.presenti);
@@ -87,6 +147,7 @@
       imposta("[data-campo='soglia_revoca']", dati.soglie.revoca);
     }
     aggiornaElenco(dati.elenco);
+    aggiornaUrne(dati.urne);
   }
 
   function segnalaConnessione(ok) {

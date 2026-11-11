@@ -167,6 +167,28 @@ class TestDeleghe:
         assert neri.tramite.cognome == "Bianchi"
         assert Scheda.objects.count() == 2
 
+    def test_affluenza_con_delega(
+        self, delega, elezione, costituita, assemblea, segreteria, client
+    ):
+        from apps.assemblee import cruscotto
+        from apps.voto import scrutinio
+
+        prima = scrutinio.affluenza(elezione)
+        assert (prima.votanti, prima.attesi, prima.mancano) == (0, 4, 4)
+        neri = next(d for d in prima.da_votare if d.avente.cognome == "Neri")
+        assert neri.tramite.cognome == "Bianchi"
+        codice = _codice(costituita, assemblea, "Bianchi", segreteria)
+        # Bianchi vota per sé e per Neri.
+        urna.vota(codice.pk, elezione, [urna.Scelte(esito=urna.ESITO_BIANCA)] * 2)
+        dopo = scrutinio.affluenza(elezione)
+        assert (dopo.votanti, dopo.attesi) == (2, 4)
+        urne = cruscotto.urne_in_corso(costituita, con_elenco=True)
+        assert urne[0]["mancano"] == 2
+        nomi = " ".join(urne[0]["da_votare"])
+        assert len(urne[0]["da_votare"]) == 2 and "Bianchi" not in nomi and "Neri" not in nomi
+        # Sul proiettore solo i numeri.
+        assert "da_votare" not in cruscotto.urne_in_corso(costituita)[0]
+
     def test_delega_non_si_revoca_a_votazione_aperta(
         self, delega, elezione, costituita, assemblea, segreteria
     ):
@@ -303,3 +325,15 @@ def test_chi_arriva_a_urna_aperta_vota_e_conta(elezione, costituita, assemblea, 
     )
     elezione.refresh_from_db()
     assert elezione.chiusa
+
+
+@pytest.mark.django_db
+def test_pagine_con_affluenza(client, elezione, costituita, assemblea, segreteria):
+    client.force_login(segreteria)
+    base = f"/assemblee/{assemblea.pk}/sedute/{costituita.pk}"
+    cruscotto = client.get(f"{base}/cruscotto/").content.decode()
+    assert "Urne aperte" in cruscotto and "Devono ancora votare" in cruscotto
+    proiettore = client.get(f"{base}/proiettore/").content.decode()
+    assert "hanno votato in app" in proiettore and "Devono ancora votare" not in proiettore
+    stato = client.get(f"{base}/stato.json").json()
+    assert stato["urne"][0]["attesi"] == 3 and "da_votare" not in stato["urne"][0]

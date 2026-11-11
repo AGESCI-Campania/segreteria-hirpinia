@@ -10,6 +10,7 @@ In sala ci sono dei **seggi**: tablet o PC della Zona già pronti sulla pagina d
 ![Accesso all'urna](img/urna-accesso.jpg){ width="320" }
 
 !!! warning "Dopo il voto"
-    La ricevuta resta a schermo **10 secondi**, poi la pagina si azzera per il prossimo
-    votante: annotala subito. Il codice resta tuo e vale anche per le votazioni
+    La ricevuta resta a schermo **30 secondi**, poi la pagina si azzera per il prossimo
+    votante: annotala subito. Quando hai finito premi **Fatto, avanti il prossimo**, in
+    cima o in fondo alla pagina, senza aspettare. Il codice resta tuo e vale anche per le votazioni
     successive della seduta.

@@ -44,6 +44,11 @@
     {% include "assemblee/_azioni_seduta.html" %}
   </div>
 
+  <div class="{% if not stato.urne %}d-none {% endif %}mb-7" data-se-urne>
+    <h2 class="fs-xl">Urne aperte</h2>
+    {% include "assemblee/_affluenza_urne.html" with urne=stato.urne %}
+  </div>
+
   <h2 class="fs-xl">Maggioranze richieste ora</h2>
   <div class="table-responsive mb-5">
   <table class="table table-sm">

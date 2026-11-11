@@ -88,6 +88,7 @@ def stato_seduta(seduta: Seduta, *, con_elenco: bool = False) -> dict:
             "soglia": in_verifica.soglia,
             "raggiunto": in_verifica.raggiunto,
         }
+    dati["urne"] = urne_in_corso(seduta, con_elenco=con_elenco)
     if con_elenco:
         dati["elenco"] = [
             {
@@ -105,6 +106,33 @@ def stato_seduta(seduta: Seduta, *, con_elenco: bool = False) -> dict:
             for p in elenco_presenti(seduta)
         ]
     return dati
+
+
+def urne_in_corso(seduta: Seduta, *, con_elenco: bool = False) -> list[dict]:
+    """Per ogni urna aperta: quanti hanno votato in app e quanti mancano (regola
+    in apps/voto/scrutinio.affluenza()). I nomi di chi manca solo con
+    `con_elenco`: sul proiettore vanno solo i numeri."""
+    # Import locale: apps.voto dipende già da apps.assemblee.
+    from apps.voto import scrutinio, urna
+
+    risultato = []
+    for votazione in urna.votazioni_aperte(seduta):
+        affluenza = scrutinio.affluenza(votazione)
+        dati: dict = {
+            "votazione": votazione.pk,
+            "oggetto": votazione.oggetto,
+            "votanti": affluenza.votanti,
+            "attesi": affluenza.attesi,
+            "mancano": affluenza.mancano,
+        }
+        if con_elenco:
+            dati["da_votare"] = [
+                f"{d.avente.cognome} {d.avente.nome}"
+                + (f" (per delega a {d.tramite.cognome} {d.tramite.nome})" if d.tramite else "")
+                for d in affluenza.da_votare
+            ]
+        risultato.append(dati)
+    return risultato
 
 
 def presenti_in_app(seduta: Seduta) -> list[Presente]:

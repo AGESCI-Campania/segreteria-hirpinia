@@ -30,6 +30,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import Utente
+from apps.assemblee import quorum
 from apps.assemblee.models import AventeDiritto, Candidato, Seduta, Votazione
 from apps.assemblee.permessi import puo_operare
 
@@ -52,6 +53,55 @@ def urna_usata(votazione: Votazione) -> bool:
 
 def numero_votanti(votazione: Votazione) -> int:
     return Votante.objects.filter(votazione=votazione).count()
+
+
+@dataclass(frozen=True)
+class DaVotare:
+    """Un presente che deve ancora votare in app; per un AE delegante,
+    `tramite` è il delegato che vota per lui."""
+
+    avente: AventeDiritto
+    tramite: AventeDiritto | None = None
+
+
+@dataclass(frozen=True)
+class Affluenza:
+    votanti: int
+    attesi: int
+    da_votare: list[DaVotare]
+
+    @property
+    def mancano(self) -> int:
+        return len(self.da_votare)
+
+
+def affluenza(votazione: Votazione) -> Affluenza:
+    """Chi ha votato in app e chi deve ancora farlo, fra i presenti che votano
+    in app (stessa regola di `urna.schede_spettanti()`: un AE delegante vota
+    tramite il delegato, solo se anche il delegato vota in app). «Chi ha
+    votato» è pubblico per regolamento; cosa ha votato no, e qui non c'è."""
+    seduta = votazione.seduta
+    presenti = list(quorum.presenti(seduta).filter(vota_in_app=True).order_by("cognome", "nome"))
+    di_persona = set(
+        quorum.presenti(seduta)
+        .filter(presenze__appello=quorum.appello_effettivo(seduta))
+        .values_list("pk", flat=True)
+    )
+    deleghe = {d.delegante_id: d.delegato for d in seduta.deleghe.select_related("delegato")}
+    gia = set(Votante.objects.filter(votazione=votazione).values_list("avente_id", flat=True))
+    attesi: list[DaVotare] = []
+    for avente in presenti:
+        if avente.pk in di_persona:
+            attesi.append(DaVotare(avente))
+        else:
+            delegato = deleghe.get(avente.pk)
+            if delegato is not None and delegato.vota_in_app:
+                attesi.append(DaVotare(avente, tramite=delegato))
+    return Affluenza(
+        votanti=len(gia),
+        attesi=len(attesi),
+        da_votare=[a for a in attesi if a.avente.pk not in gia],
+    )
 
 
 @transaction.atomic
