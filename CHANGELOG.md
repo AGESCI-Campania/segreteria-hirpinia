@@ -8,6 +8,14 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.11.1] - 2026-11-11
+
+### Modificato
+
+- Votazioni: nell'elenco il nome della votazione apre la sua pagina; a urna
+  aperta il pulsante è «Segui il voto» e l'avviso delle urne aperte collega le
+  votazioni e ricorda dove si vede chi ha votato e chi manca.
+
 ## [1.11.0] - 2026-11-11
 
 ### Aggiunto
