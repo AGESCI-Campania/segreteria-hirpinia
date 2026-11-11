@@ -20,6 +20,7 @@ from apps.anagrafica.models import FunzioneIncarico, IncaricoUnita
 
 from .models import AventeDiritto, DelegaAE, IncaricoDichiarato, Seduta
 from .permessi import puo_gestire_assemblee, puo_operare
+from .quorum import aggiorna_presenti_votazioni, verifica_nessuna_votazione_in_corso
 
 
 def ae_gruppo_ids(aventi: Iterable[AventeDiritto]) -> set[int]:
@@ -106,11 +107,14 @@ def registra_delega(
     if deleghe.filter(delegato=delegante).exists():
         raise ValidationError(f"{delegante} ha ricevuto una delega: non può delegare.")
     try:
-        return DelegaAE.objects.create(
+        delega = DelegaAE.objects.create(
             seduta=seduta, delegante=delegante, delegato=delegato, registrata_da=utente
         )
     except IntegrityError as errore:  # registrazione concorrente dallo stesso banco
         raise ValidationError("Delega già registrata.") from errore
+    # Con il delegato presente, l'AE entra nei presenti anche delle votazioni aperte.
+    aggiorna_presenti_votazioni(seduta)
+    return delega
 
 
 @transaction.atomic
@@ -118,6 +122,7 @@ def revoca_delega(delega: DelegaAE, utente: Utente) -> None:
     _verifica_operatore(utente, delega.seduta)
     if delega.seduta.chiusa_il is not None:
         raise ValidationError("La seduta è chiusa.")
+    verifica_nessuna_votazione_in_corso(delega.seduta, "la revoca di una delega")
     delega.delete()
 
 

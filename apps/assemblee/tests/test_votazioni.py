@@ -199,16 +199,32 @@ class TestElezioni:
 
 
 class TestApertura:
-    def test_fotografa_i_presenti(self, seduta, segreteria):
+    def test_fotografa_i_presenti_e_aggiunge_chi_arriva(self, seduta, segreteria):
         v = votazioni.apri_votazione(
             seduta, segreteria, tipo=TipoVotazione.MOZIONE, oggetto="Bilancio"
         )
         assert (v.presenti, v.aventi_diritto) == (3, 4)
-        sedute.registra_presenza(
-            seduta, seduta.assemblea.aventi_diritto.get(codice_socio="3"), segreteria
+        arrivato = seduta.assemblea.aventi_diritto.get(codice_socio="3")
+        sedute.registra_presenza(seduta, arrivato, segreteria)
+        v.refresh_from_db()
+        # Arrivato a votazione aperta: vota ed entra nella base della maggioranza.
+        assert v.presenti == 4
+        # Togliere una presenza a votazione aperta cambierebbe la base: non si può.
+        with pytest.raises(ValidationError, match="votazione aperta"):
+            sedute.annulla_presenza(seduta, arrivato, segreteria)
+
+    def test_a_votazione_chiusa_la_base_non_cambia(self, seduta, segreteria):
+        v = votazioni.apri_votazione(
+            seduta, segreteria, tipo=TipoVotazione.MOZIONE, oggetto="Bilancio"
         )
+        votazioni.registra_risultati(
+            v, segreteria, per_canale={"PALESE": {"favorevoli": 3, "contrari": 0, "astenuti": 0}}
+        )
+        arrivato = seduta.assemblea.aventi_diritto.get(codice_socio="3")
+        sedute.registra_presenza(seduta, arrivato, segreteria)
         v.refresh_from_db()
         assert v.presenti == 3
+        sedute.annulla_presenza(seduta, arrivato, segreteria)
 
     def test_elezione_richiede_incarico_e_candidati(self, seduta, segreteria):
         with pytest.raises(ValidationError):

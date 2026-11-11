@@ -1420,7 +1420,10 @@ modalità (app o carta).
 
 "Metà + 1" si calcola come `n // 2 + 1`, in un'unica funzione
 (`apps/assemblee/votazioni.py`). I risultati si inseriscono a mano; i presenti di
-riferimento sono fotografati all'apertura della votazione. Deliberazioni, mozioni
+riferimento sono fotografati all'apertura della votazione e, finché i risultati non sono
+registrati, crescono con chi arriva (presenza o delega AE): chi arriva a votazione aperta
+vota. Togliere una presenza o revocare una delega a votazione aperta non si può: cambierebbe
+la base già usata (decisione del 2026-11-11). Deliberazioni, mozioni
 d'ordine e nuovi punti all'OdG si votano per alzata di mano: un solo conteggio di
 favorevoli, contrari e astenuti. Elezioni e revoca sono a scrutinio segreto, con app e
 carta separate (nelle elezioni anche schede bianche e nulle). Un'elezione è una votazione

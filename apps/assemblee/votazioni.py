@@ -252,7 +252,8 @@ def apri_votazione(
     posizione: PosizioneVoto | None = None,
 ) -> Votazione:
     """Apre una votazione fotografando presenti e aventi diritto in quel
-    momento: sono la base delle soglie e non cambiano dopo. Con `posizione`
+    momento: sono la base delle soglie. Fino alla registrazione dei risultati
+    crescono con chi arriva (quorum.aggiorna_presenti_votazioni()). Con `posizione`
     è l'elezione preparata (R1): incarico, posti, quote per sesso e
     candidati vengono da lì, e gli argomenti relativi si ignorano."""
     _verifica_operatore(utente, seduta)
@@ -343,7 +344,8 @@ def registra_risultati(
     """Registra i voti e chiude la votazione. `per_canale` ha una voce per
     ciascun canale della votazione (favorevoli, contrari, astenuti, bianche,
     nulle); `voti_candidati` mappa l'id del candidato su voti_app/voti_carta.
-    I voti non possono superare i presenti fotografati all'apertura.
+    I voti non possono superare i presenti della votazione (all'apertura più
+    chi è arrivato dopo).
 
     Con il voto di Catello i voti in app non si inseriscono a mano: arrivano
     dallo scrutinio dell'urna (`apps/voto/scrutinio.conteggio()`), che blocca
@@ -412,7 +414,7 @@ def _verifica_coerenza(votazione: Votazione) -> None:
         espressi = tot.votanti
     if espressi > votazione.presenti:
         raise ValidationError(
-            f"I voti ({espressi}) superano i presenti all'apertura della votazione "
+            f"I voti ({espressi}) superano i presenti della votazione "
             f"({votazione.presenti})."
         )
 

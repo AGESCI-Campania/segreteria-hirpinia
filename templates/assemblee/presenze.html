@@ -133,6 +133,6 @@
 
   <p class="fg-2 mt-5">
     Un capo che non compare nell'elenco lo aggiungono amministratori, segreteria o RdZ dall'{% if puo_gestire %}<a href="{% url 'assemblee:elenco' assemblea.pk %}">elenco degli aventi diritto</a>{% else %}elenco degli aventi diritto{% endif %}.
-    «Annulla» corregge un errore di registrazione: le uscite non si registrano, i presenti si aggiornano con la verifica del quorum.
+    «Annulla» corregge un errore di registrazione: le uscite non si registrano, i presenti si aggiornano con la verifica del quorum. Con una votazione aperta non si può annullare una presenza: chi arriva invece vota e si aggiunge ai presenti della votazione.
   </p>
 {% endblock %}

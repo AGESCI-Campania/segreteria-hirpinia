@@ -808,7 +808,8 @@ class CanaleVoto(models.TextChoices):
 
 class Votazione(models.Model):
     """Una votazione della seduta (D-70). Presenti e aventi diritto sono
-    fotografati all'apertura: sono la base delle soglie (votazioni.py)."""
+    fotografati all'apertura e crescono con chi arriva finché la votazione è
+    aperta: sono la base delle soglie (votazioni.py, quorum.py)."""
 
     seduta = models.ForeignKey(Seduta, on_delete=models.CASCADE, related_name="votazioni")
     punto = models.ForeignKey(

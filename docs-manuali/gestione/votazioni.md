@@ -5,7 +5,10 @@
 Da **Votazioni** premi **Nuova votazione**. Per un'elezione preparata scegli la posizione
 in **Elezione preparata**: incarico, posti, quote e candidati arrivano da lì. Le altre
 votazioni (mozioni, bilanci, mozioni d'ordine…) si indicano con tipo e oggetto. All'apertura
-la piattaforma fotografa presenti e aventi diritto: sono la base della maggioranza.
+la piattaforma fotografa presenti e aventi diritto: sono la base della maggioranza. Chi
+arriva mentre la votazione è aperta vota e si aggiunge ai presenti di quella votazione;
+finché ci sono votazioni aperte, invece, non si può togliere una presenza né revocare una
+delega.
 
 ![Nuova votazione](img/votazione-nuova.jpg)
 

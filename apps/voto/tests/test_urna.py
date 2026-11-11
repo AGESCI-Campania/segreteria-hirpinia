@@ -167,12 +167,13 @@ class TestDeleghe:
         assert neri.tramite.cognome == "Bianchi"
         assert Scheda.objects.count() == 2
 
-    def test_delega_revocata_una_sola_scheda(
+    def test_delega_non_si_revoca_a_votazione_aperta(
         self, delega, elezione, costituita, assemblea, segreteria
     ):
-        deleghe.revoca_delega(delega, segreteria)
+        with pytest.raises(ValidationError, match="votazione aperta"):
+            deleghe.revoca_delega(delega, segreteria)
         codice = _codice(costituita, assemblea, "Bianchi", segreteria)
-        assert len(urna.schede_spettanti(codice, elezione)) == 1
+        assert len(urna.schede_spettanti(codice, elezione)) == 2
 
     def test_delegante_passato_a_carta(self, delega, elezione, costituita, assemblea, segreteria):
         elenco.passa_a_carta(avente(assemblea, "Neri"), segreteria)
@@ -271,3 +272,34 @@ def test_pagine_del_voto_non_mandano_origin_null(client):
     pagina = client.get("/voto/").content.decode()
     assert '<meta name="referrer" content="same-origin">' in pagina
     assert "no-referrer" not in pagina
+
+
+@pytest.mark.django_db
+def test_chi_arriva_a_urna_aperta_vota_e_conta(elezione, costituita, assemblea, segreteria):
+    from apps.assemblee.models import CanaleVoto
+    from apps.voto import scrutinio
+
+    assert elezione.presenti == 3
+    for cognome in ("Rossi", "Bianchi", "Verdi"):
+        urna.vota(
+            _codice(costituita, assemblea, cognome, segreteria).pk,
+            elezione,
+            [urna.Scelte(esito=urna.ESITO_BIANCA)],
+        )
+    # Arriva Gialli a urna aperta: entra fra i presenti della votazione e vota.
+    sedute.registra_presenza(costituita, avente(assemblea, "Gialli"), segreteria)
+    elezione.refresh_from_db()
+    assert elezione.presenti == 4
+    urna.vota(
+        _codice(costituita, assemblea, "Gialli", segreteria).pk,
+        elezione,
+        [urna.Scelte(esito=urna.ESITO_BIANCA)],
+    )
+    scrutinio.chiudi_urne(costituita, segreteria)
+    elezione.refresh_from_db()
+    # Quattro schede su quattro presenti: i risultati si registrano.
+    votazioni.registra_risultati(
+        elezione, segreteria, per_canale={CanaleVoto.CARTA.value: {"bianche": 0, "nulle": 0}}
+    )
+    elezione.refresh_from_db()
+    assert elezione.chiusa

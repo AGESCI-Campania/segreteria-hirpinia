@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from django.core.exceptions import ValidationError
 from django.db.models import Q, QuerySet
 
 from .models import Appello, AventeDiritto, Seduta, TipoAppello
@@ -102,3 +103,30 @@ def stato_quorum(seduta: Seduta, appello: Appello | None = None) -> StatoQuorum:
         presenti_carta=totale - app,
         soglia=None if seduta.senza_quorum else meta_piu_uno(aventi),
     )
+
+
+# --- Presenze durante le votazioni -------------------------------------------------
+#
+# Chi arriva mentre una votazione è aperta (risultati non ancora registrati)
+# vota ed entra nei presenti di quella votazione, cioè nella base della
+# maggioranza; togliere una presenza o revocare una delega a votazione aperta
+# non si può, cambierebbe la base già usata (decisione del 2026-11-11).
+
+
+def votazioni_in_corso(seduta: Seduta):
+    return seduta.votazioni.filter(chiusa_il__isnull=True)
+
+
+def aggiorna_presenti_votazioni(seduta: Seduta) -> None:
+    """Dopo un arrivo (presenza o delega): i presenti delle votazioni non
+    ancora chiuse crescono fino ai presenti attuali, mai diminuiscono."""
+    presenti = stato_quorum(seduta).presenti
+    votazioni_in_corso(seduta).filter(presenti__lt=presenti).update(presenti=presenti)
+
+
+def verifica_nessuna_votazione_in_corso(seduta: Seduta, cosa: str) -> None:
+    if votazioni_in_corso(seduta).exists():
+        raise ValidationError(
+            f"C'è una votazione aperta: {cosa} non si può finché non sono registrati i "
+            "risultati (cambierebbe la base della maggioranza)."
+        )

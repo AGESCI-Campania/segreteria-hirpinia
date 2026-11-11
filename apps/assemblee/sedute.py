@@ -22,7 +22,13 @@ from .models import (
     TipoAppello,
 )
 from .permessi import puo_gestire_assemblee, puo_operare
-from .quorum import appello_attivo, stato_quorum, verifica_in_corso
+from .quorum import (
+    aggiorna_presenti_votazioni,
+    appello_attivo,
+    stato_quorum,
+    verifica_in_corso,
+    verifica_nessuna_votazione_in_corso,
+)
 
 
 def _verifica_operatore(utente: Utente, seduta: Seduta) -> None:
@@ -72,6 +78,9 @@ def registra_presenza(seduta: Seduta, avente: AventeDiritto, utente: Utente) -> 
     _, creata = Presenza.objects.get_or_create(
         appello=appello, avente=avente, defaults={"registrata_da": utente}
     )
+    if creata:
+        # Arrivato a votazione aperta: vota ed entra nella base della maggioranza.
+        aggiorna_presenti_votazioni(seduta)
     return creata
 
 
@@ -81,6 +90,7 @@ def annulla_presenza(seduta: Seduta, avente: AventeDiritto, utente: Utente) -> N
     si registrano (D-70); i presenti si aggiornano con la verifica del quorum."""
     _verifica_operatore(utente, seduta)
     _verifica_aperta(seduta)
+    verifica_nessuna_votazione_in_corso(seduta, "la presenza")
     appello = appello_attivo(seduta)
     Presenza.objects.filter(appello=appello, avente=avente).delete()
 
