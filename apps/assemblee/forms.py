@@ -21,6 +21,7 @@ from .models import (
     VariazioneRappresentante,
     VerbaleSeduta,
 )
+from .votazioni import voci as voci_risultati
 
 
 class AssembleaCreaForm(forms.ModelForm):
@@ -411,10 +412,16 @@ class VotazioneForm(forms.Form):
         return dati
 
 
+# Nella revoca le schede bianche contano come astenuti: l'etichetta lo dice.
+ETICHETTE_VOCI = {
+    (TipoVotazione.REVOCA, "astenuti"): "Astenuti e schede bianche",
+    (TipoVotazione.REVOCA, "nulle"): "Schede nulle",
+}
+
+
 def form_risultati(votazione, canali_voto: list[str], data=None) -> forms.Form:
-    """Form dei risultati costruito sulla votazione: favorevoli/contrari/
-    astenuti per canale nelle votazioni sì/no; voti per candidato più schede
-    bianche e nulle nelle elezioni."""
+    """Form dei risultati costruito sulla votazione: voti per candidato nelle
+    elezioni, poi per canale le voci di `votazioni.voci()`."""
     campi: dict[str, forms.Field] = {}
     elezione = votazione.tipo in (TipoVotazione.ELEZIONE, TipoVotazione.BALLOTTAGGIO)
     etichette = dict(CanaleVoto.choices)
@@ -429,10 +436,10 @@ def form_risultati(votazione, canali_voto: list[str], data=None) -> forms.Form:
                     initial=0,
                 )
     for canale in canali_voto:
-        voci = ("bianche", "nulle") if elezione else ("favorevoli", "contrari", "astenuti")
-        for voce in voci:
+        for voce in voci_risultati(votazione, canale):
+            nome = ETICHETTE_VOCI.get((votazione.tipo, voce), voce.capitalize())
             campi[f"{canale}_{voce}"] = forms.IntegerField(
-                label=f"{voce.capitalize()} ({etichette[canale].lower()})", min_value=0, initial=0
+                label=f"{nome} ({etichette[canale].lower()})", min_value=0, initial=0
             )
     classe = type("RisultatiForm", (forms.Form,), campi)
     return classe(data)

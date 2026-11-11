@@ -1,7 +1,9 @@
 {% load static bootstrap_icons %}
 {% comment %}
-Risultati di una o più elezioni chiuse da proiettare in sala, una per colonna
-(al massimo tre), con una corona accanto agli eletti. Pagina statica, senza
+Risultati di una o più votazioni chiuse da proiettare in sala, una per colonna
+(al massimo tre): elezioni e ballottaggi con una corona accanto agli eletti,
+le altre (revoca compresa: segreto è il voto, non il risultato) con
+favorevoli, contrari, astenuti ed esito; la revoca anche con le schede nulle. Pagina statica, senza
 aggiornamento automatico: i risultati sono definitivi. Autonoma come
 assemblee/proiettore.html.
 {% endcomment %}
@@ -27,6 +29,22 @@ assemblee/proiettore.html.
       {% for r in risultati %}
         <section class="{% if risultati|length == 1 %}lg:col-8 mx-auto{% elif risultati|length == 2 %}md:col-6{% else %}lg:col-4{% endif %}">
           <h2 class="fs-2xl mb-5">{{ r.votazione.oggetto }}</h2>
+          {% if not r.elezione %}
+            {% if r.palese %}
+              <p class="fs-xl mb-5">Nessun contrario né astenuto.</p>
+            {% else %}
+              <table class="table fs-xl">
+                <tbody>
+                  <tr><td>Favorevoli</td><td class="text-end">{{ r.favorevoli }}</td></tr>
+                  <tr><td>Contrari</td><td class="text-end">{{ r.contrari }}</td></tr>
+                  <tr><td>{% if r.revoca %}Astenuti e schede bianche{% else %}Astenuti{% endif %}</td><td class="text-end">{{ r.astenuti }}</td></tr>
+                  {% if r.revoca %}<tr><td class="fg-2">Schede nulle</td><td class="text-end fg-2">{{ r.nulle }}</td></tr>{% endif %}
+                </tbody>
+              </table>
+            {% endif %}
+            <p class="mb-5"><span class="badge {% if r.approvata %}theme-success{% else %}theme-danger{% endif %} fs-2xl">{% if r.approvata %}Approvata{% if r.palese %} a voto palese{% endif %}{% else %}Respinta{% endif %}</span></p>
+            <p class="fs-lg mb-1">Maggioranza richiesta: {{ r.soglia }} su {{ r.base }} {{ r.base_nome }}.</p>
+          {% else %}
           <table class="table fs-xl">
             <tbody>
               {% for c in r.candidati %}
@@ -41,6 +59,7 @@ assemblee/proiettore.html.
           </table>
           <p class="fs-lg mb-1">Maggioranza richiesta: {{ r.soglia }} su {{ r.base }} {{ r.base_nome }}.</p>
           {% if r.vacanti %}<p class="fs-lg fw-bold mb-0">{{ r.vacanti|capfirst }}.</p>{% endif %}
+          {% endif %}
         </section>
       {% endfor %}
     </div>

@@ -9,6 +9,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from apps.accounts.models import Ruolo, StatoUtente, TipoUtente, Utente
 from apps.anagrafica.models import Capo, CensimentoCapo
 from apps.assemblee import elenco, sedute, votazioni
+from apps.assemblee.forms import form_risultati
 from apps.assemblee.models import (
     Assemblea,
     CanaleVoto,
@@ -316,16 +317,59 @@ class TestVerificaDelQuorum:
         assert _palese(v, segreteria, 2, 2, 0).soglia == 3
 
 
+class TestRevoca:
+    def test_schede_nulle_solo_su_carta(self, seduta, segreteria):
+        v = _votazione(seduta, TipoVotazione.REVOCA)
+        assert votazioni.voci(v, CanaleVoto.CARTA) == (
+            "favorevoli",
+            "contrari",
+            "astenuti",
+            "nulle",
+        )
+        assert votazioni.voci(v, CanaleVoto.APP) == ("favorevoli", "contrari", "astenuti")
+        campi = form_risultati(v, votazioni.canali(v)).fields
+        assert "CARTA_nulle" in campi and "APP_nulle" not in campi
+        assert campi["CARTA_astenuti"].label == "Astenuti e schede bianche (carta)"
+        votazioni.registra_risultati(
+            v,
+            segreteria,
+            per_canale={
+                CanaleVoto.APP.value: {"favorevoli": 60, "nulle": 9},
+                CanaleVoto.CARTA.value: {"favorevoli": 40, "astenuti": 5, "nulle": 3},
+            },
+        )
+        totali = votazioni.totali(v)
+        # In app non ci sono schede nulle: quelle passate si ignorano.
+        assert (totali.favorevoli, totali.astenuti, totali.nulle) == (100, 5, 3)
+        assert "3 schede nulle" in votazioni.frase_esito(v)
+
+    def test_le_nulle_contano_nei_voti_espressi(self, seduta, segreteria):
+        v = _votazione(seduta, TipoVotazione.REVOCA, presenti=10)
+        with pytest.raises(ValidationError, match="superano i presenti"):
+            votazioni.registra_risultati(
+                v,
+                segreteria,
+                per_canale={CanaleVoto.CARTA.value: {"favorevoli": 8, "nulle": 3}},
+            )
+
+
 class TestRisultatiDaProiettare:
-    def test_solo_elezioni_chiuse_al_massimo_tre(self, seduta, segreteria):
+    def test_solo_chiuse_al_massimo_tre(self, seduta, segreteria):
         chiuse = []
-        for nome in ("Anna", "Bruno", "Carla", "Dario"):
+        for nome in ("Anna", "Bruno"):
             v = _votazione(seduta, TipoVotazione.ELEZIONE, candidati=[nome, "Zeta"])
             _elezione(v, segreteria, {nome: 70, "Zeta": 40})
             chiuse.append(v)
         aperta = _votazione(seduta, TipoVotazione.ELEZIONE, candidati=["Ugo"])
-        mozione = _palese(_votazione(seduta, TipoVotazione.MOZIONE), segreteria, 70, 10, 0)
-        assert mozione.approvata
+        mozione = _votazione(seduta, TipoVotazione.MOZIONE)
+        assert _palese(mozione, segreteria, 70, 10, 0).approvata
+        chiuse.append(mozione)
+        # Segreto è il voto, non il risultato: anche la revoca si proietta.
+        revoca = _votazione(seduta, TipoVotazione.REVOCA)
+        votazioni.registra_risultati(
+            revoca, segreteria, per_canale={CanaleVoto.CARTA.value: {"favorevoli": 100}}
+        )
+        chiuse.append(revoca)
         assert votazioni.proiettabili(seduta) == chiuse
         assert votazioni.da_proiettare(seduta, [chiuse[0].pk, chiuse[2].pk]) == [
             chiuse[0],
@@ -353,6 +397,37 @@ class TestRisultatiDaProiettare:
         _elezione(eletta, segreteria, {"Dora": 70, "Ezio": 40})
         pagina = client.get(f"{base}/proiettore/risultati/?v={v.pk}&v={eletta.pk}").content.decode()
         assert pagina.count('id="mdi-crown"') == 1 and "Dora" in pagina
+        # Votazioni per alzata di mano: numeri ed esito, con l'esito palese solo l'esito.
+        respinta = _votazione(seduta, TipoVotazione.MOZIONE)
+        _palese(respinta, segreteria, 40, 50, 7)
+        palese = _votazione(seduta, TipoVotazione.RACCOMANDAZIONE)
+        votazioni.registra_palese(palese, segreteria)
+        assert votazioni.risultati_per_proiettore(respinta)["contrari"] == 50
+        pagina = client.get(
+            f"{base}/proiettore/risultati/?v={respinta.pk}&v={palese.pk}"
+        ).content.decode()
+        assert "Respinta" in pagina and "Approvata a voto palese" in pagina
+        assert ">50<" in pagina and ">40<" in pagina and ">7<" in pagina
+        assert "Maggioranza richiesta: 61 su 120 presenti" in pagina
+        assert ">120<" not in pagina
+        revoca = _votazione(seduta, TipoVotazione.REVOCA)
+        votazioni.registra_risultati(
+            revoca,
+            segreteria,
+            per_canale={
+                CanaleVoto.APP.value: {"favorevoli": 80, "contrari": 5},
+                CanaleVoto.CARTA.value: {
+                    "favorevoli": 15,
+                    "contrari": 3,
+                    "astenuti": 2,
+                    "nulle": 4,
+                },
+            },
+        )
+        pagina = client.get(f"{base}/proiettore/risultati/?v={revoca.pk}").content.decode()
+        assert ">95<" in pagina and ">8<" in pagina and "Approvata" in pagina
+        assert "Astenuti e schede bianche" in pagina and ">4<" in pagina
+        assert "Maggioranza richiesta: 94 su 186 aventi diritto" in pagina
         # Una votazione non proiettabile riporta all'elenco.
         assert client.get(f"{base}/proiettore/risultati/?v=999999").status_code == 302
 

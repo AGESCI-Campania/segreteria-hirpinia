@@ -1428,7 +1428,8 @@ d'ordine e nuovi punti all'OdG si votano per alzata di mano: un solo conteggio d
 favorevoli, contrari e astenuti, oppure l'esito **palese** (si chiedono prima i contrari, poi
 gli astenuti: se non ce ne sono è approvata senza contare; nei totali i favorevoli sono i
 presenti della votazione e il verbale dice «approvata a voto palese»). Elezioni e revoca sono a scrutinio segreto, con app e
-carta separate (nelle elezioni anche schede bianche e nulle). Un'elezione è una votazione
+carta separate (nelle elezioni anche schede bianche e nulle; nella revoca, su carta,
+anche le schede nulle, mentre le bianche contano come astenuti — decisione del 2026-11-11). Un'elezione è una votazione
 per incarico con N posti: eletti i candidati sopra soglia in ordine di voti; parità
 sull'ultimo posto o posti scoperti → ballottaggio fra i due più votati non eletti, un solo
 turno; senza maggioranza nemmeno al ballottaggio, il posto resta vacante.

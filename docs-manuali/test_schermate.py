@@ -34,6 +34,7 @@ from apps.assemblee.models import (
     Seduta,
     SistemaVoto,
     TipoAssemblea,
+    TipoVotazione,
 )
 from apps.organizzazione.models import Gruppo
 from apps.voto import codici, scrutinio, urna
@@ -409,7 +410,19 @@ def test_schermate(live_server, browser, settings):
             for c in elezione_foca.candidati.all()
         },
     )
-    f.apri(f"/assemblee/{pk}/sedute/{spk}/proiettore/risultati/?v={vpk}&v={elezione_foca.pk}")
+    # Accanto alle elezioni, una mozione per alzata di mano.
+    mozione = votazioni.apri_votazione(
+        seduta, segreteria, tipo=TipoVotazione.MOZIONE, oggetto="Mozione sul campo di Zona"
+    )
+    votazioni.registra_risultati(
+        mozione,
+        segreteria,
+        per_canale={CanaleVoto.PALESE.value: {"favorevoli": 9, "contrari": 2, "astenuti": 1}},
+    )
+    f.apri(
+        f"/assemblee/{pk}/sedute/{spk}/proiettore/risultati/"
+        f"?v={vpk}&v={elezione_foca.pk}&v={mozione.pk}"
+    )
     f.scatta("gestione", "proiettore-risultati", intera=False)
     f.apri(f"/assemblee/{pk}/sedute/{spk}/verbale/")
     f.scatta("gestione", "verbale")

@@ -55,7 +55,7 @@
   {% if proiettabili %}
     <form method="get" action="{% url 'assemblee:proiettore_risultati' assemblea.pk seduta.pk %}" target="_blank" id="form-proietta" class="d-flex flex-wrap align-items-center gap-3 mb-5">
       <button type="submit" class="btn-outline theme-primary">{% bs_icon "display" %} Proietta i risultati</button>
-      <span class="fg-2">Spunta fino a {{ max_proiettati }} elezioni chiuse: si aprono in una pagina da proiettare, una per colonna.</span>
+      <span class="fg-2">Spunta fino a {{ max_proiettati }} votazioni chiuse: si aprono in una pagina da proiettare, una per colonna.</span>
     </form>
   {% endif %}
 

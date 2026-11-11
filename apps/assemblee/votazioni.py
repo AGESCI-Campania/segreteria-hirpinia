@@ -59,6 +59,18 @@ def canali(votazione: Votazione) -> list[str]:
     return [CanaleVoto.PALESE]
 
 
+def voci(votazione: Votazione, canale: str) -> tuple[str, ...]:
+    """Voci dei risultati di un canale, per il form e per `registra_risultati()`.
+    Nelle elezioni schede bianche e nulle (i voti stanno sui candidati); nelle
+    votazioni sì/no favorevoli, contrari e astenuti, più le schede nulle nella
+    revoca su carta. Nella revoca le schede bianche contano come astenuti."""
+    if votazione.tipo in (TipoVotazione.ELEZIONE, TipoVotazione.BALLOTTAGGIO):
+        return ("bianche", "nulle")
+    if votazione.tipo == TipoVotazione.REVOCA and canale == CanaleVoto.CARTA:
+        return ("favorevoli", "contrari", "astenuti", "nulle")
+    return ("favorevoli", "contrari", "astenuti")
+
+
 @dataclass(frozen=True)
 class Totali:
     favorevoli: int = 0
@@ -378,10 +390,7 @@ def registra_risultati(
         dati = per_canale.get(canale, {})
         if dall_urna is not None and canale == CanaleVoto.APP:
             dati = {"bianche": dall_urna.bianche, "nulle": dall_urna.nulle}
-        if elezione:
-            dati = {"bianche": dati.get("bianche", 0), "nulle": dati.get("nulle", 0)}
-        else:
-            dati = {k: dati.get(k, 0) for k in ("favorevoli", "contrari", "astenuti")}
+        dati = {k: dati.get(k, 0) for k in voci(votazione, canale)}
         if any(v < 0 for v in dati.values()):
             raise ValidationError("I voti non possono essere negativi.")
         RisultatoCanale.objects.create(votazione=votazione, canale=canale, **dati)
@@ -526,6 +535,7 @@ def frase_esito(votazione: Votazione) -> str:
                 _voti(t.contrari, "contrario", "contrari"),
                 _voti(t.astenuti, "astenuto", "astenuti"),
             ]
+            + ([_voti(t.nulle, "scheda nulla", "schede nulle")] if t.nulle else [])
         )
         verbo = "approvata" if e.approvata else "respinta"
         return f"{verbo.capitalize()} con {dettaglio} ({base})."
@@ -558,41 +568,56 @@ def _frase_vacanti(e: Esito) -> str:
 
 # --- Risultati da proiettare --------------------------------------------------------
 #
-# Vista proiettore dei risultati: elezioni e ballottaggi chiusi della seduta,
-# al massimo tre affiancati (una colonna ciascuno). Esito e soglie restano in
-# esito(): qui solo la forma dei dati per la pagina.
+# Vista proiettore dei risultati: votazioni chiuse della seduta, al massimo tre
+# affiancate (una colonna ciascuna). Anche quelle a scrutinio segreto: segreto
+# è il voto, non il risultato. Esito e soglie restano in esito(): qui solo la
+# forma dei dati per la pagina.
 
 MAX_RISULTATI_PROIETTATI = 3
-TIPI_PROIETTABILI = (TipoVotazione.ELEZIONE, TipoVotazione.BALLOTTAGGIO)
 
 
 def proiettabili(seduta: Seduta) -> list[Votazione]:
-    return list(
-        seduta.votazioni.filter(chiusa_il__isnull=False, tipo__in=TIPI_PROIETTABILI).order_by(
-            "aperta_il"
-        )
-    )
+    return list(seduta.votazioni.filter(chiusa_il__isnull=False).order_by("aperta_il"))
 
 
 def da_proiettare(seduta: Seduta, scelte: Iterable[int]) -> list[Votazione]:
     scelte = set(scelte)
     votazioni = [v for v in proiettabili(seduta) if v.pk in scelte]
     if not votazioni or len(votazioni) != len(scelte):
-        raise ValidationError("Scegli da una a tre elezioni chiuse di questa seduta.")
+        raise ValidationError("Scegli da una a tre votazioni chiuse di questa seduta.")
     if len(votazioni) > MAX_RISULTATI_PROIETTATI:
         raise ValidationError(
-            f"Si proiettano al massimo {MAX_RISULTATI_PROIETTATI} elezioni alla volta."
+            f"Si proiettano al massimo {MAX_RISULTATI_PROIETTATI} votazioni alla volta."
         )
     return votazioni
 
 
 def risultati_per_proiettore(votazione: Votazione) -> dict:
     e = esito(votazione)
+    if e.approvata is not None:
+        # Votazioni sì/no, revoca compresa. Con l'esito palese i favorevoli non
+        # si contano (registra_palese()), quindi niente numeri, come in
+        # frase_esito().
+        return {
+            "votazione": votazione,
+            "elezione": False,
+            "approvata": e.approvata,
+            "palese": votazione.esito_palese,
+            "favorevoli": e.totali.favorevoli,
+            "contrari": e.totali.contrari,
+            "astenuti": e.totali.astenuti,
+            "nulle": e.totali.nulle,
+            "revoca": votazione.tipo == TipoVotazione.REVOCA,
+            "base": e.base,
+            "base_nome": e.base_nome,
+            "soglia": e.soglia,
+        }
     eletti = {c.pk for c in e.eletti}
     ballottaggio = {c.pk for c in e.ballottaggio_proposto}
     candidati = sorted(votazione.candidati.all(), key=lambda c: (-c.voti, c.nome))
     return {
         "votazione": votazione,
+        "elezione": True,
         "candidati": [
             {
                 "nome": c.nome,

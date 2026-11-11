@@ -61,6 +61,10 @@ prima i contrari, poi gli astenuti: se non ce ne sono, premi **Palese**. La vota
 approvata senza contare i favorevoli e l'esito, anche nel verbale, è «Approvata a voto
 palese».
 
+Nella **revoca di un mandato**, a scrutinio segreto, per la carta si inseriscono
+favorevoli, contrari, **astenuti e schede bianche** (le schede bianche contano come
+astenuti) e **schede nulle**; con il voto di Catello la revoca si vota solo su carta.
+
 ![Esito della votazione](img/votazione-esito.jpg)
 
 Il **punto all'ordine del giorno** di una votazione si cambia dalla sua pagina in
@@ -69,11 +73,15 @@ premi **Collega**. Serve al verbale, non cambia voti né maggioranze.
 
 ## Proiettare i risultati
 
-Per mostrare in sala i risultati delle elezioni, nell'elenco delle **Votazioni** spunta
-fino a tre elezioni o ballottaggi già chiusi e premi **Proietta i risultati**: si apre una
-pagina da proiettare, una elezione per colonna, con i voti di ogni candidato, una corona
+Per mostrare in sala i risultati, nell'elenco delle **Votazioni** spunta fino a tre
+votazioni già chiuse e premi **Proietta i risultati**: si apre una pagina da proiettare,
+una votazione per colonna. Per le elezioni ci sono i voti di ogni candidato, una corona
 accanto agli eletti, schede bianche e nulle, maggioranza richiesta ed eventuale
-ballottaggio o posto vacante. I risultati sono definitivi: la pagina non si aggiorna.
+ballottaggio o posto vacante; per le altre votazioni, revoca di un mandato compresa
+(segreto è il voto, non il risultato), favorevoli, contrari, astenuti (per la revoca
+anche schede nulle), maggioranza richiesta ed esito («Approvata» o «Respinta»; con
+l'esito palese solo «Approvata a voto palese», senza numeri). I risultati sono
+definitivi: la pagina non si aggiorna.
 
 ![Risultati da proiettare](img/proiettore-risultati.jpg)
 
