@@ -8,6 +8,15 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.12.0] - 2026-11-11
+
+### Aggiunto
+
+- Proiettore dei risultati: dall'elenco delle votazioni si scelgono fino a tre
+  elezioni o ballottaggi chiusi e si proiettano affiancati, con i voti di ogni
+  candidato, una corona accanto agli eletti, schede bianche e nulle,
+  maggioranza richiesta ed eventuale ballottaggio o posto vacante.
+
 ## [1.11.1] - 2026-11-11
 
 ### Modificato
