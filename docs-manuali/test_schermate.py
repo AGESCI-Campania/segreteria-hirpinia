@@ -238,6 +238,18 @@ def _in_corso(segreteria, assemblea, seduta, avente):
     sedute.dichiara_costituita(seduta, segreteria)
 
 
+def _verifica_autocompletamento(browser, campo: str, testo: str, atteso: str) -> None:
+    """Prova nel browser vero che l'autocompletamento mostri i risultati."""
+    from selenium.webdriver.support.ui import WebDriverWait
+
+    elemento = browser.find_element("id", campo)
+    elemento.clear()
+    elemento.send_keys(testo)
+    lista = elemento.find_element("xpath", "following-sibling::ul")
+    WebDriverWait(browser, 5).until(lambda _: atteso in lista.text)
+    elemento.clear()
+
+
 def test_schermate(live_server, browser, settings):
     settings.SITE_URL = live_server.url
     f = Fotografo(browser, live_server.url)
@@ -252,6 +264,9 @@ def test_schermate(live_server, browser, settings):
     f.scatta("gestione", "assemblea-nuova")
     f.apri(f"/assemblee/{pk}/")
     f.scatta("gestione", "assemblea-dettaglio")
+    # Autocompletamento dell'ufficio di presidenza: l'URL ha già ?per=incarichi.
+    _verifica_autocompletamento(browser, "ricerca-incarico", "Bru", "Bruno Marta")
+    _verifica_autocompletamento(browser, "ricerca-comitato", "Bru", "Bruno Marta")
     f.apri(f"/assemblee/{pk}/elenco/")
     f.scatta("gestione", "aventi-elenco")
     f.apri(f"/assemblee/{pk}/elenco/{avente('Mancini').pk}/email/")

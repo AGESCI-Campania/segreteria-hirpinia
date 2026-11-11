@@ -64,7 +64,11 @@
             controllerCorrente.abort();
           }
           controllerCorrente = new AbortController();
-          fetch(url + "?q=" + encodeURIComponent(termine), { signal: controllerCorrente.signal })
+          // L'URL può avere già dei parametri (es. ?per=incarichi): q si aggiunge con &.
+          var separatore = url.indexOf("?") === -1 ? "?" : "&";
+          fetch(url + separatore + "q=" + encodeURIComponent(termine), {
+            signal: controllerCorrente.signal,
+          })
             .then(function (risposta) {
               return risposta.json();
             })
