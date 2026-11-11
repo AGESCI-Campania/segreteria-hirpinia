@@ -32,6 +32,8 @@ plugins:
       output_path: pdf/manuale-gestione.pdf
       cover_title: Manuale di gestione dell'assemblea
       cover_subtitle: Segreteria AGESCI Hirpinia
+      # Logo ufficiale della Zona, lo stesso della carta intestata dei PDF.
+      cover_logo: static/pdf/img/logo_zona.png
       author: AGESCI Zona Hirpinia
       copyright: AGESCI Zona Hirpinia
       toc_title: Indice

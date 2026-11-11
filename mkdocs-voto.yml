@@ -31,6 +31,8 @@ plugins:
       output_path: pdf/manuale-voto.pdf
       cover_title: Manuale di voto
       cover_subtitle: Segreteria AGESCI Hirpinia
+      # Logo ufficiale della Zona, lo stesso della carta intestata dei PDF.
+      cover_logo: static/pdf/img/logo_zona.png
       author: AGESCI Zona Hirpinia
       copyright: AGESCI Zona Hirpinia
       toc_title: Indice
