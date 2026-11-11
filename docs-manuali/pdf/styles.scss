@@ -26,3 +26,21 @@ article h1,
 article h2 {
   color: $verde !important;
 }
+
+// Riquadri (avvisi, informazioni): con WeasyPrint l'icona finiva sopra la
+// prima parola del titolo. Icona fissata a sinistra e testo spostato a destra.
+article .admonition > .admonition-title {
+  position: relative;
+  padding-left: 2.4rem !important;
+}
+article .admonition > .admonition-title::before {
+  position: absolute;
+  left: 0.7rem;
+  top: 50%;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: -0.55rem !important;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
