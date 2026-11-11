@@ -19,6 +19,7 @@
               <input type="hidden" name="esito_{{ scheda.indice }}" value="{{ scheda.scelte.esito }}">
               {% for candidato in scheda.scelte.candidati %}<input type="hidden" name="candidati_{{ scheda.indice }}" value="{{ candidato }}">{% endfor %}
               {% for nome in scheda.scelte.liberi %}<input type="hidden" name="liberi_{{ scheda.indice }}" value="{{ nome }}">{% endfor %}
+              {% for sesso in scheda.scelte.sessi_liberi %}<input type="hidden" name="sessi_liberi_{{ scheda.indice }}" value="{{ sesso }}">{% endfor %}
             </div>
           </div>
         {% endfor %}

@@ -59,3 +59,17 @@ jobs:
 
       - name: Test
         run: uv run pytest --cov=apps --cov-report=term-missing
+
+  manuali:
+    # Avviso, mai bloccante: pagine descritte dai manuali cambiate senza che
+    # cambi il manuale (docs-manuali/pagine.toml, D34).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Manuali da aggiornare
+        run: >-
+          python3 docs-manuali/verifica_aggiornamento.py
+          "${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}"

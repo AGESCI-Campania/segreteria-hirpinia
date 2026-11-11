@@ -29,10 +29,18 @@ jobs:
       - name: Installa le dipendenze della documentazione
         run: uv sync --group docs --no-install-project
 
-      - name: Genera il manuale (MkDocs + PDF)
-        run: uv run mkdocs build
+      - name: Genera i manuali (MkDocs + PDF)
+        run: |
+          uv run mkdocs build
+          uv run mkdocs build -f mkdocs-voto.yml
+          uv run mkdocs build -f mkdocs-gestione.yml
 
-      - name: Allega il PDF alla release
+      - name: Allega i PDF alla release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" site/pdf/guida-capigruppo.pdf --clobber
+        run: >-
+          gh release upload "${{ github.event.release.tag_name }}"
+          site/pdf/guida-capigruppo.pdf
+          site-voto/pdf/manuale-voto.pdf
+          site-gestione/pdf/manuale-gestione.pdf
+          --clobber

@@ -1,0 +1,11 @@
+// Stile comune dei manuali in PDF (mkdocs-with-pdf, custom_template_path).
+// Le schermate a pagina intera sono più alte di un foglio: si limitano.
+// Niente `display: block` con `margin: auto` sulle immagini: con WeasyPrint
+// tronca il resto del documento (verificato).
+article img {
+  max-width: 100%;
+  max-height: 21cm;
+  width: auto;
+  height: auto;
+  border: 1px solid #ddd;
+}

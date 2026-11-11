@@ -10,7 +10,8 @@ della pagina, niente script di terze parti.
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="referrer" content="no-referrer">
+  {# same-origin, non no-referrer: con no-referrer i browser mandano «Origin: null» sui POST dei moduli e il controllo CSRF di Django rifiuta accesso all'urna e voto. Il codice sta nel fragment, che non va mai nel referrer; verso siti esterni il referrer non parte comunque. #}
+  <meta name="referrer" content="same-origin">
   <meta name="robots" content="noindex, nofollow">
   <title>{% block title %}Voto{% endblock %}</title>
   {% block extra_head %}{% endblock %}

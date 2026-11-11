@@ -89,6 +89,8 @@ Riavviare `mise run dev`, poi leggere le email inviate su `http://localhost:8025
 | `mise run mailpit-up` / `mailpit-down` | Mailpit in Docker (opzionale, alternativa a `console` con interfaccia web) |
 | `mise run docs-serve` | Anteprima locale della documentazione utente (MkDocs) |
 | `mise run docs-build` | Genera la documentazione utente (HTML + PDF) in `site/` |
+| `mise run manuali-schermate` | Rifà le schermate dei manuali di voto e di gestione (dati inventati, Chrome) |
+| `mise run manuali-build` | Genera i manuali di voto e di gestione in PDF (`site-voto/`, `site-gestione/`) |
 
 ## Produzione
 
@@ -207,6 +209,9 @@ apps/
   costruita con MkDocs (`mise run docs-serve`/`docs-build`), pubblicata su
   [Read the Docs](https://segreteria-hirpinia.readthedocs.io) (linkata anche nel footer
   dell'applicazione come "Manuale d'uso") e distribuita anche in PDF
+- [`docs-manuali/`](docs-manuali/README.md) — **manuale di voto** e **manuale di gestione
+  dell'assemblea**, in PDF allegati a ogni release insieme alla guida dei capigruppo; si
+  aggiornano solo quando cambiano le pagine che descrivono
 - [`docs/Catello_Progettazione.md`](docs/Catello_Progettazione.md) — documento di
   progettazione, fonte di verità per modello dati, regole di dominio e decisioni
   architetturali

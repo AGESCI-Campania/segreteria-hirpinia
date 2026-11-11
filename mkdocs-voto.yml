@@ -1,0 +1,44 @@
+# Manuale di voto (docs/plan_preparazione_assemblea.md, R11). Si rigenera solo se cambiano
+# le pagine descritte: vedi docs-manuali/README.md.
+site_name: Segreteria AGESCI Hirpinia — Manuale di voto
+site_description: >-
+  Come si vota in app nelle elezioni dell'Assemblea di Zona, dal telefono o al seggio; per il banco e i seggi.
+site_author: AGESCI Zona Hirpinia
+docs_dir: docs-manuali/voto
+site_dir: site-voto
+
+theme:
+  name: material
+  language: it
+  palette:
+    primary: deep purple
+    accent: amber
+  features:
+    - navigation.sections
+
+nav:
+  - Introduzione: index.md
+  - Il codice di voto: codice.md
+  - Votare dal telefono: votare.md
+  - Votare al seggio: seggio.md
+  - Controllare il proprio voto: verifica.md
+  - Se qualcosa non va: problemi.md
+  - Per il banco e i seggi: banco.md
+
+plugins:
+  - search
+  - with-pdf:
+      output_path: pdf/manuale-voto.pdf
+      cover_title: Manuale di voto
+      cover_subtitle: Segreteria AGESCI Hirpinia
+      author: AGESCI Zona Hirpinia
+      copyright: AGESCI Zona Hirpinia
+      toc_title: Indice
+      custom_template_path: docs-manuali/pdf
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true

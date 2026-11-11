@@ -1,0 +1,44 @@
+# Votazioni e risultati
+
+## Aprire una votazione
+
+Da **Votazioni** premi **Nuova votazione**. Per un'elezione preparata scegli la posizione
+in **Elezione preparata**: incarico, posti, quote e candidati arrivano da lì. Le altre
+votazioni (mozioni, bilanci, mozioni d'ordine…) si indicano con tipo e oggetto. All'apertura
+Catello fotografa presenti e aventi diritto: sono la base della maggioranza.
+
+![Nuova votazione](img/votazione-nuova.jpg)
+
+![Votazione aperta](img/votazione-aperta.jpg)
+
+## L'urna elettronica
+
+Con il voto in app, **Apri l'urna**: chi ha il codice vede la scheda. Durante il voto si
+vede solo quanti hanno votato. Quando hanno votato tutti quelli che volevano votare in
+app, spunta la conferma e **Chiudi l'urna**. Si può tenere aperta un'urna alla volta.
+
+![Urna aperta](img/votazione-urna-aperta.jpg)
+
+## Nomi scritti
+
+Se nelle schede ci sono nomi scritti, la **commissione elettorale** li attribuisce a un
+avente diritto (che diventa candidato) oppure li dichiara nulli. Finché resta un nome da
+interpretare, i risultati non si registrano. Con le quote per sesso, un nome si
+attribuisce solo a un capo di cui è noto il sesso; se il sesso dichiarato sulla scheda è
+diverso, quella preferenza non conta.
+
+![Nomi scritti](img/nomi-scritti.jpg)
+
+## Registrare i risultati
+
+In **Registra i voti** si inseriscono solo i voti **su carta** (e schede bianche e nulle):
+quelli in app si contano da soli. **Registra e chiudi la votazione** calcola l'esito,
+pubblica la bacheca e ne fissa l'impronta per il verbale.
+
+![Esito della votazione](img/votazione-esito.jpg)
+
+Con posti maschili e femminili si eleggono prima i posti di ciascun sesso, ognuno con la
+sua graduatoria, poi quelli indifferenti fra i rimanenti. Su carta, una scheda con più
+preferenze di un sesso di quante ne ammettono i posti è nulla. Se un posto resta
+vacante, **Apri il ballottaggio** lo propone fra i due non eletti più votati (dello stesso
+sesso del posto, se riservato).

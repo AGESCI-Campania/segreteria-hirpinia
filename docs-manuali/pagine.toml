@@ -1,0 +1,27 @@
+# Pagine descritte da ciascun manuale (docs/plan_preparazione_assemblea.md, D34).
+# Se una di queste cambia, il manuale va aggiornato (testo e schermate): la CI
+# avvisa quando cambiano senza che cambi anche docs-manuali/<manuale>/.
+# Pattern in stile glob, relativi alla radice del repository.
+
+[voto]
+pagine = [
+    "templates/voto/*.html",
+    "apps/voto/views.py",
+    "apps/voto/views_urna.py",
+    "apps/voto/urna.py",
+    "apps/voto/etichetta.py",
+    "templates/assemblee/presenze.html",
+    "static/js/voto-urna.js",
+    "static/js/etichetta-stampa.js",
+]
+
+[gestione]
+pagine = [
+    "templates/assemblee/*.html",
+    "apps/assemblee/views.py",
+    "apps/assemblee/forms.py",
+    "apps/assemblee/urls.py",
+    "templates/voto/seggi.html",
+    "templates/voto/nomi_scritti.html",
+    "apps/voto/views.py",
+]

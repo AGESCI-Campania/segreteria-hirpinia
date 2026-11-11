@@ -12,7 +12,9 @@ D-70/D-71 di `Catello_Progettazione.md`.
   evidenziati nell'elenco degli aventi diritto (richiesta del 2026-11-11).
 - **Passo 4 — fatto (2026-11-11)**: R3 (D1, D2, D4-bis, D4-ter, D5).
 - **Passo 5 — fatto (2026-11-11)**: R8 (D23–D25).
-- Passo 6: R11 (manuali in PDF).
+- **Passo 6 — fatto (2026-11-11)**: R11 (D30–D35). Deviazione da D35: le schermate usano
+  **Selenium**, già fra le dipendenze di sviluppo, invece di Playwright (stesso risultato,
+  nessuna dipendenza nuova).
 
 ## Obiettivo
 

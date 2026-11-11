@@ -394,6 +394,13 @@ Regole complete in D-71 e in `docs/plan_voto.md`. Qui ciò che il codice non dev
   mai un blocco per seduta (bloccherebbe l'urna a tutti).
 - `manage.py prova_carico_voto` scrive codici in chiaro su file: funziona solo con
   `DEBUG`, non togliere quel controllo.
+- Le pagine del voto (`templates/voto/base_voto.html`) hanno la policy dei referrer
+  **`same-origin`, mai `no-referrer`**: con `no-referrer` i browser mandano
+  `Origin: null` sui POST e il CSRF di Django rifiuta accesso all'urna e voto (i test con
+  il client di Django non se ne accorgono, c'è un test dedicato).
+- **Manuali** (`docs-manuali/`, PDF allegati alla release): se cambi una pagina elencata in
+  `docs-manuali/pagine.toml`, aggiorna anche testo e schermate del manuale
+  (`mise run manuali-schermate`); le schermate usano solo dati inventati.
 
 ### Menu: un modulo con più funzioni è una voce sola
 

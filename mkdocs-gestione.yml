@@ -1,0 +1,45 @@
+# Manuale di gestione dell'assemblea (docs/plan_preparazione_assemblea.md, R11). Si rigenera solo se cambiano
+# le pagine descritte: vedi docs-manuali/README.md.
+site_name: Segreteria AGESCI Hirpinia — Manuale di gestione dell'assemblea
+site_description: >-
+  Come si prepara e si conduce un'Assemblea di Zona con Catello: gestori, comitato elettorale, presidenza e segretario.
+site_author: AGESCI Zona Hirpinia
+docs_dir: docs-manuali/gestione
+site_dir: site-gestione
+
+theme:
+  name: material
+  language: it
+  palette:
+    primary: deep purple
+    accent: amber
+  features:
+    - navigation.sections
+
+nav:
+  - Introduzione: index.md
+  - Creare e preparare: preparazione.md
+  - Aventi diritto: elenco.md
+  - Comitati e presidenza: comitati.md
+  - Ordine del giorno ed elezioni: elezioni.md
+  - Il giorno dell'assemblea: giorno.md
+  - Votazioni e risultati: votazioni.md
+  - Verbali e file: verbale.md
+
+plugins:
+  - search
+  - with-pdf:
+      output_path: pdf/manuale-gestione.pdf
+      cover_title: Manuale di gestione dell'assemblea
+      cover_subtitle: Segreteria AGESCI Hirpinia
+      author: AGESCI Zona Hirpinia
+      copyright: AGESCI Zona Hirpinia
+      toc_title: Indice
+      custom_template_path: docs-manuali/pdf
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true

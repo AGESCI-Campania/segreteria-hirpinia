@@ -261,3 +261,12 @@ def test_l_avente_che_ha_votato_non_si_cancella(elezione, costituita, assemblea,
     urna.vota(codice.pk, elezione, [urna.Scelte(esito=urna.ESITO_BIANCA)])
     with pytest.raises(RestrictedError):
         avente(assemblea, "Rossi").delete()
+
+
+@pytest.mark.django_db
+def test_pagine_del_voto_non_mandano_origin_null(client):
+    """Con «no-referrer» il browser manda Origin: null sui POST e il CSRF di
+    Django rifiuta l'accesso all'urna: la policy deve restare same-origin."""
+    pagina = client.get("/voto/").content.decode()
+    assert '<meta name="referrer" content="same-origin">' in pagina
+    assert "no-referrer" not in pagina
