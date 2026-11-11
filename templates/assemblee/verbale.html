@@ -6,7 +6,7 @@
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1>Verbale</h1>
     <div class="d-flex flex-wrap gap-3">
-      <a href="{% url 'assemblee:variazione_rappresentante' assemblea.pk seduta.pk %}" class="btn-outline theme-primary">Variazione del rappresentante legale</a>
+      {% if puo_gestire %}<a href="{% url 'assemblee:variazione_rappresentante' assemblea.pk seduta.pk %}" class="btn-outline theme-primary">Variazione del rappresentante legale</a>{% endif %}
       <a href="{% url 'assemblee:verbale_pdf' assemblea.pk seduta.pk %}" class="btn-solid theme-primary">Scarica il verbale (PDF)</a>
     </div>
   </div>
@@ -23,6 +23,13 @@
   {% if votazioni_aperte %}
     <div class="alert theme-warning" role="note"><p class="mb-0">{{ votazioni_aperte }} votazioni non hanno ancora i risultati: nel verbale non compaiono.</p></div>
   {% endif %}
+
+  <form method="post" class="mb-5">
+    {% csrf_token %}
+    <input type="hidden" name="azione" value="riprendi">
+    <p class="fg-2 mb-3">Presidenza, segretario, comitato mozioni e scrutatori si precompilano da quanto indicato nella pagina dell'assemblea; se lì sono cambiati dopo, riprendili.</p>
+    <button type="submit" class="btn-outline theme-secondary btn-sm">Riprendi dalla preparazione</button>
+  </form>
 
   <form method="post">
     {% csrf_token %}

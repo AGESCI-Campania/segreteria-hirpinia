@@ -27,6 +27,21 @@ urlpatterns = [
         name="operatore_accesso",
     ),
     path(
+        "<int:pk>/incarichi/aggiungi/",
+        views.IncaricoAggiungiView.as_view(),
+        name="incarico_aggiungi",
+    ),
+    path(
+        "<int:pk>/incarichi/<int:incarico_pk>/accesso/",
+        views.IncaricoAccessoView.as_view(),
+        name="incarico_accesso",
+    ),
+    path(
+        "<int:pk>/incarichi/<int:incarico_pk>/rimuovi/",
+        views.IncaricoRimuoviView.as_view(),
+        name="incarico_rimuovi",
+    ),
+    path(
         "<int:pk>/comitato/<int:operatore_pk>/rimuovi/",
         views.ComitatoRimuoviView.as_view(),
         name="operatore_rimuovi",

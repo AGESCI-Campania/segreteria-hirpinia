@@ -46,7 +46,7 @@
   </ol>
 
   <p>
-    Assume la Presidenza, ai sensi dell'art. 6 del Regolamento dell'Assemblea di Zona, {% if verbale.presidente %}{{ verbale.presidente }}{% else %}<span class="mancante">[…]</span>{% endif %}
+    Assume la Presidenza, ai sensi dell'art. 6 del Regolamento dell'Assemblea di Zona, {% if verbale.presidente and verbale.presidente_2 %}nelle persone di {{ verbale.presidente }} e {{ verbale.presidente_2 }}{% elif verbale.presidente %}{{ verbale.presidente }}{% else %}<span class="mancante">[…]</span>{% endif %}
     che, constatata e fatta constatare la regolarità della convocazione come da Regolamento e la presenza del quorum
     costitutivo, ai sensi dell'art. 4, dichiara l'Assemblea validamente costituita e atta ad assumere la delibera di cui
     sopra, chiamando a fungere da Segretario {% if verbale.segretario %}{{ verbale.segretario }}{% else %}<span class="mancante">[…]</span>{% endif %}, che, ringraziando, accetta.
@@ -87,6 +87,7 @@
   <table class="firme">
     <tr>
       <td>Il Presidente<br>{{ verbale.presidente }}<div class="linea"></div></td>
+      {% if verbale.presidente_2 %}<td>Il Presidente<br>{{ verbale.presidente_2 }}<div class="linea"></div></td>{% endif %}
       <td>Il Segretario<br>{{ verbale.segretario }}<div class="linea"></div></td>
     </tr>
     {% if verbale.rdz_1 or verbale.rdz_2 %}

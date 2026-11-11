@@ -47,7 +47,7 @@
 
   <p>
     Assume la Presidenza, ai sensi dell'art. 6 del Regolamento dell'Assemblea di Zona,
-    {% if verbale.presidente %}{{ verbale.presidente }}{% else %}<span class="mancante">[…]</span>{% endif %}
+    {% if verbale.presidente and verbale.presidente_2 %}nelle persone di {{ verbale.presidente }} e {{ verbale.presidente_2 }}{% elif verbale.presidente %}{{ verbale.presidente }}{% else %}<span class="mancante">[…]</span>{% endif %}
     che, constatata e fatta constatare la regolarità della convocazione come da Regolamento
     {% if seduta.senza_quorum %}
       e trattandosi di terza convocazione, valida indipendentemente dal numero dei presenti ai sensi dell'art. 4 comma 3
@@ -63,7 +63,7 @@
   <p>
     Il Presidente procede quindi con la nomina degli scrutatori in persona di
     {% if verbale.scrutatore_1 or verbale.scrutatore_2 %}{{ verbale.scrutatore_1 }}{% if verbale.scrutatore_1 and verbale.scrutatore_2 %} e {% endif %}{{ verbale.scrutatore_2 }}{% else %}<span class="mancante">[…]</span>{% endif %}
-    e del Comitato mozioni formato da {% if verbale.comitato_mozioni %}{{ verbale.comitato_mozioni }}{% else %}<span class="mancante">[…]</span>{% endif %}.
+    e del Comitato mozioni formato da {% if verbale.comitato_mozioni %}{{ verbale.comitato_mozioni }}{% endif %}{% for _ in mozioni_mancanti %}{% if verbale.comitato_mozioni or not forloop.first %}, {% endif %}<span class="mancante">[…]</span>{% endfor %}.
   </p>
   <p>
     Il Comitato elettorale è composto da
@@ -119,6 +119,7 @@
   <table class="firme">
     <tr>
       <td>Il Presidente<br>{{ verbale.presidente }}<div class="linea"></div></td>
+      {% if verbale.presidente_2 %}<td>Il Presidente<br>{{ verbale.presidente_2 }}<div class="linea"></div></td>{% endif %}
       <td>Il Segretario<br>{{ verbale.segretario }}<div class="linea"></div></td>
     </tr>
     {% if verbale.rdz_1 or verbale.rdz_2 %}

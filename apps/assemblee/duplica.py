@@ -2,7 +2,8 @@
 convocazione, che riparte dall'elenco degli aventi diritto di un'altra.
 
 Si copiano l'elenco così com'è (eliminazioni, trasferimenti, email, qualifiche
-e incarichi dichiarati compresi), il comitato elettorale e i titoli dei punti
+e incarichi dichiarati compresi), il comitato elettorale, presidenza, segretario,
+comitato mozioni e scrutatori e i titoli dei punti
 all'ordine del giorno. Non si copiano sedute, presenze, deleghe, votazioni,
 codici di voto, seggi, verbali, né i passaggi a carta, che valgono solo per
 il giorno dell'assemblea: il voto in app si ricalcola con la regola di
@@ -17,7 +18,14 @@ from django.db import transaction
 from apps.accounts.models import Utente
 
 from . import elenco
-from .models import Assemblea, AventeDiritto, IncaricoDichiarato, OperatoreVoto, PuntoOdG
+from .models import (
+    Assemblea,
+    AventeDiritto,
+    IncaricoAssemblea,
+    IncaricoDichiarato,
+    OperatoreVoto,
+    PuntoOdG,
+)
 from .permessi import puo_gestire_assemblee
 
 # Campi dell'avente che descrivono il capo nell'elenco, e quindi si copiano.
@@ -81,6 +89,17 @@ def copia_in(origine: Assemblea, nuova: Assemblea, utente: Utente) -> int:
         OperatoreVoto.objects.create(
             assemblea=nuova, avente=avente, utente_id=componente.utente_id, nominato_da=utente
         )
+
+    for incarico in origine.incarichi.all():
+        avente = corrispondenze.get(incarico.avente_id)
+        if avente is not None and avente.eliminato_il is None:
+            IncaricoAssemblea.objects.create(
+                assemblea=nuova,
+                ruolo=incarico.ruolo,
+                avente=avente,
+                utente_id=incarico.utente_id,
+                nominato_da=utente,
+            )
 
     PuntoOdG.objects.bulk_create(
         PuntoOdG(assemblea=nuova, ordine=punto.ordine, titolo=punto.titolo)

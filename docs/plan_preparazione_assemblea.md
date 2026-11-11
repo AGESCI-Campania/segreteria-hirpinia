@@ -7,7 +7,7 @@ D-70/D-71 di `Catello_Progettazione.md`.
 ## Stato dello sviluppo
 
 - **Passo 1 — fatto (2026-11-11)**: R5, R6, R7, R9, R10 (D6, D13–D22, D26–D29).
-- Passo 2: R4 (presidenza, segretario, comitato mozioni, scrutatori, permessi).
+- **Passo 2 — fatto (2026-11-11)**: R4 (D7–D12-ter).
 - Passo 3: R1/R2 (posizioni al voto e candidature, avvisi sul sesso).
 - Passo 4: R3 (quote per sesso in urna, scrutinio ed esito).
 - Passo 5: R8 (etichetta Niimbot B1).
@@ -275,6 +275,11 @@ prevalgono sulle proposte scritte nei requisiti.
   cruscotto, presenze e quorum (sola lettura); **compilano il verbale** e ne scaricano il
   PDF; **vedono l'ordine del giorno senza modificarlo**. Non fanno operazioni di voto
   (quelle restano al comitato elettorale e ai gestori).
+- **D12-quater (2026-11-11)**: l'ordine del giorno resta immutabile per presidenti e
+  segretario (i punti li cambiano i gestori), ma **la discussione dei punti la possono
+  scrivere** (è parte del verbale), anche ad assemblea conclusa. La variazione del
+  rappresentante legale resta ai gestori; gli scrutatori si indicano anche in
+  preparazione; togliere un incarico non cancella l'account (confermati).
 - **D12-ter (2026-11-11)**: la casella «Crea l'account e invia l'invito» parte spuntata,
   per presidenza/segretario come per il comitato elettorale.
 - **D13 (2026-11-11)**: il riallineamento (R5) aggiorna nome, cognome, sesso (salvo

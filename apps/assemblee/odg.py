@@ -10,7 +10,7 @@ from django.db.models import Max
 from apps.accounts.models import Utente
 
 from .models import Assemblea, PuntoOdG
-from .permessi import puo_gestire_assemblee
+from .permessi import puo_compilare_verbale, puo_gestire_assemblee
 
 # Punti ricorrenti del modello nazionale di verbale dell'Assemblea di Zona.
 PUNTI_TIPICI = [
@@ -52,6 +52,17 @@ def modifica_punto(punto: PuntoOdG, utente: Utente, *, titolo: str, testo: str) 
     punto.titolo = titolo.strip()
     punto.testo = testo.strip()
     punto.save(update_fields=["titolo", "testo"])
+
+
+@transaction.atomic
+def scrivi_discussione(punto: PuntoOdG, utente: Utente, testo: str) -> None:
+    """La discussione del punto è parte del verbale: la scrivono anche
+    presidenti e segretario, che non possono cambiare i punti (D12-bis). Si
+    scrive anche ad assemblea conclusa, come il verbale."""
+    if not puo_compilare_verbale(utente, punto.assemblea):
+        raise PermissionDenied
+    punto.testo = testo.strip()
+    punto.save(update_fields=["testo"])
 
 
 @transaction.atomic

@@ -20,7 +20,13 @@ from apps.accounts.inviti import crea_invito
 from apps.accounts.models import StatoUtente, TipoUtente, Utente
 
 from . import prova
-from .models import Assemblea, AventeDiritto, OperatoreVoto
+from .models import (
+    Assemblea,
+    AventeDiritto,
+    IncaricoAssemblea,
+    OperatoreVoto,
+    RuoloAssemblea,
+)
 from .permessi import puo_gestire_assemblee
 
 logger = logging.getLogger(__name__)
@@ -57,7 +63,7 @@ def _crea_account(avente: AventeDiritto) -> Utente:
     if not avente.email:
         raise ValidationError(
             "Per creare l'account serve l'email del capo: inseriscila nell'elenco, oppure "
-            "aggiungilo al comitato senza accesso."
+            "aggiungilo senza accesso."
         )
     codice_socio = avente.codice_socio or None
     if codice_socio and Utente.objects.filter(codice_socio=codice_socio).exists():
@@ -78,13 +84,21 @@ def _crea_account(avente: AventeDiritto) -> Utente:
     return utente
 
 
-def _collega_account(componente: OperatoreVoto) -> Utente:
-    assert componente.avente is not None
-    utente = _account_esistente(componente.avente) or _crea_account(componente.avente)
+def account_per_avente(avente: AventeDiritto) -> Utente:
+    """Account personale dell'avente: quello che ha già (per codice socio, poi
+    per email) o uno nuovo senza password. Usato anche per presidenza e
+    segretario (presidenza.py)."""
+    utente = _account_esistente(avente) or _crea_account(avente)
     if utente.tipo != TipoUtente.PERSONA:
         raise ValidationError(
             "L'email del capo è quella di un account di gruppo: correggila nell'elenco."
         )
+    return utente
+
+
+def _collega_account(componente: OperatoreVoto) -> Utente:
+    assert componente.avente is not None
+    utente = account_per_avente(componente.avente)
     if (
         OperatoreVoto.objects.filter(assemblea=componente.assemblea, utente=utente)
         .exclude(pk=componente.pk)
@@ -96,7 +110,7 @@ def _collega_account(componente: OperatoreVoto) -> Utente:
     return utente
 
 
-def _invia_invito(utente: Utente, gestore: Utente, assemblea: Assemblea) -> bool:
+def invia_invito(utente: Utente, gestore: Utente, assemblea: Assemblea) -> bool:
     """Invito solo a chi non ha ancora una password. Fuori dalla transazione:
     un invio fallito non annulla la nomina, l'invito si può rimandare."""
     if utente.has_usable_password():
@@ -108,7 +122,7 @@ def _invia_invito(utente: Utente, gestore: Utente, assemblea: Assemblea) -> bool
             **prova.opzioni_invio(assemblea, prova.ETICHETTA_INVITO),
         )
     except Exception:
-        logger.exception("Invio dell'invito al comitato elettorale non riuscito (1 destinatario)")
+        logger.exception("Invio dell'invito per un'assemblea non riuscito (1 destinatario)")
         raise InvitoNonInviato from None
     return True
 
@@ -127,7 +141,7 @@ def aggiungi(
             assemblea=assemblea, avente=avente, nominato_da=gestore
         )
         utente = _collega_account(componente) if accesso else None
-    return componente, utente is not None and _invia_invito(utente, gestore, assemblea)
+    return componente, utente is not None and invia_invito(utente, gestore, assemblea)
 
 
 def dai_accesso(componente: OperatoreVoto, gestore: Utente) -> bool:
@@ -136,12 +150,19 @@ def dai_accesso(componente: OperatoreVoto, gestore: Utente) -> bool:
     _verifica(gestore, componente.assemblea)
     with transaction.atomic():
         utente = componente.utente or _collega_account(componente)
-    return _invia_invito(utente, gestore, componente.assemblea)
+    return invia_invito(utente, gestore, componente.assemblea)
 
 
 @transaction.atomic
 def rimuovi(componente: OperatoreVoto, gestore: Utente) -> None:
+    """Chi esce dal comitato elettorale non è più nemmeno scrutatore (D11)."""
     _verifica(gestore, componente.assemblea)
+    if componente.avente_id is not None:
+        IncaricoAssemblea.objects.filter(
+            assemblea=componente.assemblea,
+            avente_id=componente.avente_id,
+            ruolo=RuoloAssemblea.SCRUTATORE,
+        ).delete()
     componente.delete()
 
 

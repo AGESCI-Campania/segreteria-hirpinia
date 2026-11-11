@@ -24,7 +24,7 @@ from apps.voto import scrutinio as scrutinio_voto
 from apps.voto import urna as urna_voto
 from apps.voto import views as voto_banco
 
-from . import comitato, cruscotto, duplica, elenco, email_aventi, odg, prova, sedute
+from . import comitato, cruscotto, duplica, elenco, email_aventi, odg, presidenza, prova, sedute
 from . import deleghe as deleghe_ae
 from . import file as file_assemblea
 from . import quorum as quorum_assemblea
@@ -38,6 +38,7 @@ from .forms import (
     ComitatoAggiungiForm,
     ConvocazioneForm,
     DelegaForm,
+    DiscussioneForm,
     EmailAventeForm,
     ImportEmailForm,
     IncaricoDichiaratoFormSet,
@@ -55,16 +56,25 @@ from .models import (
     CanaleVoto,
     DelegaAE,
     ImportazioneEmail,
+    IncaricoAssemblea,
     ModalitaVoto,
     OperatoreVoto,
     PuntoOdG,
     RichiedenteVerifica,
+    RuoloAssemblea,
     Seduta,
     SistemaVoto,
     TipoAppello,
     Votazione,
 )
-from .permessi import accede_assemblee, assemblee_visibili, puo_gestire_assemblee, puo_operare
+from .permessi import (
+    accede_assemblee,
+    assemblee_visibili,
+    puo_compilare_verbale,
+    puo_gestire_assemblee,
+    puo_operare,
+    puo_vedere_odg,
+)
 from .quorum import stato_quorum
 
 
@@ -86,6 +96,18 @@ class AccedeAssembleeMixin(LoginRequiredMixin, UserPassesTestMixin):
     def test_func(self) -> bool:
         assert isinstance(self.request.user, Utente)
         return accede_assemblee(self.request.user)
+
+
+class CompilaVerbaleMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """Verbale dell'assemblea: gestori, presidenti e segretario (D12-bis)."""
+
+    request: HttpRequest
+    kwargs: dict
+
+    def test_func(self) -> bool:
+        assert isinstance(self.request.user, Utente)
+        assemblea = Assemblea.objects.filter(pk=self.kwargs["pk"]).first()
+        return assemblea is not None and puo_compilare_verbale(self.request.user, assemblea)
 
 
 class GestisceAssembleeMixin(LoginRequiredMixin, UserPassesTestMixin):
@@ -285,6 +307,12 @@ class AssembleaDettaglioView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             "totale_app": elenco.filter(vota_in_app=True).count(),
             "form_operatore": ComitatoAggiungiForm(assemblea=assemblea) if puo_gestire else None,
             "mailpit_configurato": mailpit_api.configurato(),
+            "incarichi_per_ruolo": [
+                (ruolo, presidenza.incarichi(assemblea, ruolo)) for ruolo in RuoloAssemblea
+            ],
+            "avvisi_presidenza": presidenza.avvisi(assemblea),
+            "ruoli": RuoloAssemblea.choices,
+            "puo_compilare": puo_compilare_verbale(request.user, assemblea),
             "sistemi_voto": SistemaVoto.choices,
             "modalita_voto": ModalitaVoto.choices,
             "sistema_modificabile": puo_gestire
@@ -300,19 +328,21 @@ LIMITE_RISULTATI_AUTOCOMPLETE = 15
 
 class ComitatoAutocompleteView(GestisceAssembleeMixin, View):
     """Ricerca fra gli aventi diritto dell'elenco di questa assemblea, per il
-    comitato elettorale. Perimetro diverso dalle ricerche soci sull'anagrafica
-    (CLAUDE.md § Ricerca soci): qui solo l'elenco, nome, cognome e gruppo,
-    mai recapiti."""
+    comitato elettorale (esclude chi ne fa già parte) e, con `?per=incarichi`,
+    per presidenza, segretario, comitato mozioni e scrutatori. Perimetro
+    diverso dalle ricerche soci sull'anagrafica (CLAUDE.md § Ricerca soci):
+    qui solo l'elenco, nome, cognome e gruppo, mai recapiti."""
 
     def get(self, request, pk):
         assemblea = get_object_or_404(Assemblea, pk=pk)
         query = request.GET.get("q", "").strip()
         if len(query) < MINIMO_CARATTERI_AUTOCOMPLETE:
             return JsonResponse({"risultati": []})
+        aventi = assemblea.aventi_diritto.nell_elenco()
+        if request.GET.get("per") != "incarichi":
+            aventi = aventi.exclude(comitato_elettorale__isnull=False)
         aventi = (
-            assemblea.aventi_diritto.nell_elenco()
-            .exclude(comitato_elettorale__isnull=False)
-            .filter(
+            aventi.filter(
                 Q(nome__icontains=query)
                 | Q(cognome__icontains=query)
                 | Q(codice_socio__icontains=query)
@@ -387,6 +417,68 @@ class ComitatoAccessoView(GestisceAssembleeMixin, View):
             else:
                 messages.info(request, f"{componente.nome_completo} ha già un account attivo.")
         return redirect(reverse("assemblee:assemblea_dettaglio", args=[pk]))
+
+
+class IncaricoAggiungiView(GestisceAssembleeMixin, View):
+    """Presidenti, segretario, comitato mozioni e scrutatori (presidenza.py)."""
+
+    def post(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        if assemblea.conclusa:
+            raise PermissionDenied("L'assemblea è conclusa.")
+        avente = AventeDiritto.objects.filter(
+            pk=request.POST.get("avente") or None, assemblea=assemblea
+        ).first()
+        ruolo = request.POST.get("ruolo", "")
+        if avente is None:
+            messages.error(request, "Scegli un capo dall'elenco degli aventi diritto.")
+            return redirect(reverse("assemblee:assemblea_dettaglio", args=[pk]) + "#presidenza")
+        try:
+            incarico, inviato = presidenza.aggiungi(
+                assemblea, ruolo, avente, request.user, accesso=request.POST.get("accesso") == "on"
+            )
+        except comitato.InvitoNonInviato:
+            messages.warning(
+                request,
+                f"{avente} aggiunto, ma l'email di invito non è partita: riprova con «Invia invito».",
+            )
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+        else:
+            testo = f"{avente}: {incarico.get_ruolo_display().lower()}."
+            if inviato:
+                testo += f" Gli è stato inviato l'invito per attivare l'account ({incarico.utente.email})."
+            messages.success(request, testo)
+        return redirect(reverse("assemblee:assemblea_dettaglio", args=[pk]) + "#presidenza")
+
+
+class IncaricoAccessoView(GestisceAssembleeMixin, View):
+    def post(self, request, pk, incarico_pk):
+        incarico = get_object_or_404(IncaricoAssemblea, pk=incarico_pk, assemblea_id=pk)
+        try:
+            inviato = presidenza.dai_accesso(incarico, request.user)
+        except comitato.InvitoNonInviato:
+            messages.warning(request, "L'email di invito non è partita: riprova più tardi.")
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+        else:
+            if inviato:
+                messages.success(request, f"Invito inviato a {incarico.utente.email}.")
+            else:
+                messages.info(request, f"{incarico.avente} ha già un account attivo.")
+        return redirect(reverse("assemblee:assemblea_dettaglio", args=[pk]) + "#presidenza")
+
+
+class IncaricoRimuoviView(GestisceAssembleeMixin, View):
+    def post(self, request, pk, incarico_pk):
+        incarico = get_object_or_404(IncaricoAssemblea, pk=incarico_pk, assemblea_id=pk)
+        try:
+            presidenza.rimuovi(incarico, request.user)
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+        else:
+            messages.success(request, f"{incarico.avente}: incarico tolto.")
+        return redirect(reverse("assemblee:assemblea_dettaglio", args=[pk]) + "#presidenza")
 
 
 class ComitatoRimuoviView(GestisceAssembleeMixin, View):
@@ -847,6 +939,7 @@ class SedutaView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             "verifica": verifica,
             "verifica_senza_quorum": quorum_assemblea.verifica_senza_quorum(seduta),
             "puo_gestire": puo_gestire_assemblee(request.user),
+            "puo_compilare": puo_compilare_verbale(request.user, assemblea),
             "stato_verifica": stato_quorum(seduta, verifica) if verifica else None,
             "verifiche_chiuse": seduta.appelli.filter(
                 tipo=TipoAppello.VERIFICA, chiuso_il__isnull=False
@@ -1617,7 +1710,9 @@ class VotazioneAzioneView(LoginRequiredMixin, View):
 # --- Ordine del giorno e verbale ---------------------------------------------------
 
 
-class OdgView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+class OdgView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
+    """Lo modificano i gestori (odg.py); presidenti e segretario lo vedono."""
+
     template_name = "assemblee/odg.html"
 
     @classmethod
@@ -1625,9 +1720,12 @@ class OdgView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
         return _breadcrumb_assemblea(request, {"label": "Ordine del giorno"})
 
     def get(self, request, pk):
-        assemblea = get_object_or_404(Assemblea, pk=pk)
+        assemblea = _assemblea_visibile(request, pk)
+        if not puo_vedere_odg(request.user, assemblea):
+            raise PermissionDenied
         titoli = set(assemblea.punti_odg.values_list("titolo", flat=True))
         contesto = {
+            "puo_gestire": puo_gestire_assemblee(request.user) and not assemblea.conclusa,
             "assemblea": assemblea,
             "punti": assemblea.punti_odg.order_by("ordine"),
             "proposte": [t for t in odg.PUNTI_TIPICI if t not in titoli],
@@ -1653,7 +1751,10 @@ class OdgView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
         return redirect(reverse("assemblee:odg", args=[pk]))
 
 
-class PuntoModificaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+class PuntoModificaView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
+    """I gestori cambiano titolo e discussione; presidenti e segretario (e i
+    gestori ad assemblea conclusa) scrivono solo la discussione (D12-bis)."""
+
     template_name = "assemblee/punto_modifica.html"
 
     @classmethod
@@ -1667,31 +1768,51 @@ class PuntoModificaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
             {"label": "Punto"},
         )
 
+    def _punto(self, request, pk, punto_pk) -> tuple[PuntoOdG, bool]:
+        assemblea = _assemblea_visibile(request, pk)
+        punto = get_object_or_404(PuntoOdG, pk=punto_pk, assemblea=assemblea)
+        if puo_gestire_assemblee(request.user) and not assemblea.conclusa:
+            return punto, True
+        if puo_compilare_verbale(request.user, assemblea):
+            return punto, False
+        raise PermissionDenied
+
+    def _render(self, request, punto, form, completo):
+        contesto = {
+            "punto": punto,
+            "assemblea": punto.assemblea,
+            "form": form,
+            "completo": completo,
+        }
+        return render(request, self.template_name, contesto)
+
     def get(self, request, pk, punto_pk):
-        punto = get_object_or_404(PuntoOdG, pk=punto_pk, assemblea_id=pk)
-        form = PuntoOdGForm(initial={"titolo": punto.titolo, "testo": punto.testo})
-        return render(
-            request,
-            self.template_name,
-            {"punto": punto, "assemblea": punto.assemblea, "form": form},
-        )
+        punto, completo = self._punto(request, pk, punto_pk)
+        if completo:
+            form = PuntoOdGForm(initial={"titolo": punto.titolo, "testo": punto.testo})
+        else:
+            form = DiscussioneForm(initial={"testo": punto.testo})
+        return self._render(request, punto, form, completo)
 
     def post(self, request, pk, punto_pk):
-        punto = get_object_or_404(PuntoOdG, pk=punto_pk, assemblea_id=pk)
-        form = PuntoOdGForm(request.POST)
+        punto, completo = self._punto(request, pk, punto_pk)
+        form = PuntoOdGForm(request.POST) if completo else DiscussioneForm(request.POST)
         if form.is_valid():
             try:
-                odg.modifica_punto(punto, request.user, **form.cleaned_data)
+                if completo:
+                    odg.modifica_punto(punto, request.user, **form.cleaned_data)
+                else:
+                    odg.scrivi_discussione(punto, request.user, form.cleaned_data["testo"])
             except ValidationError as errore:
                 form.add_error(None, errore)
             else:
                 messages.success(request, "Punto salvato.")
                 return redirect(reverse("assemblee:odg", args=[pk]))
-        return render(
-            request,
-            self.template_name,
-            {"punto": punto, "assemblea": punto.assemblea, "form": form},
-        )
+        return self._render(request, punto, form, completo)
+
+
+def _nomi_comitato(assemblea: Assemblea) -> list[str]:
+    return [c.nome_completo for c in comitato.componenti(assemblea)]
 
 
 def _suggerimenti_verbale(seduta: Seduta) -> dict:
@@ -1708,7 +1829,7 @@ def _suggerimenti_verbale(seduta: Seduta) -> dict:
     }
 
 
-class VerbaleView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+class VerbaleView(CompilaVerbaleMixin, BreadcrumbExtraMixin, View):
     template_name = "assemblee/verbale.html"
 
     @classmethod
@@ -1723,6 +1844,7 @@ class VerbaleView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
             "punti": seduta.assemblea.punti_odg.count(),
             "votazioni_chiuse": seduta.votazioni.filter(chiusa_il__isnull=False).count(),
             "votazioni_aperte": seduta.votazioni.filter(chiusa_il__isnull=True).count(),
+            "puo_gestire": puo_gestire_assemblee(self.request.user),
             **_suggerimenti_verbale(seduta),
         }
 
@@ -1731,14 +1853,25 @@ class VerbaleView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
         if seduta.costituita is not True:
             messages.error(request, "Il verbale si redige per una seduta validamente costituita.")
             return redirect(reverse("assemblee:seduta", args=[pk, seduta_pk]))
-        form = VerbaleForm(instance=verbale_assemblea.verbale_della_seduta(seduta))
+        form = VerbaleForm(
+            instance=verbale_assemblea.verbale_della_seduta(seduta),
+            nomi_comitato=_nomi_comitato(seduta.assemblea),
+        )
         return render(request, self.template_name, self._contesto(seduta, form))
 
     def post(self, request, pk, seduta_pk):
         seduta = get_object_or_404(Seduta, pk=seduta_pk, assemblea_id=pk)
         if seduta.costituita is not True:
             raise PermissionDenied
-        form = VerbaleForm(request.POST, instance=verbale_assemblea.verbale_della_seduta(seduta))
+        if request.POST.get("azione") == "riprendi":
+            verbale_assemblea.riprendi_dalla_preparazione(seduta, request.user)
+            messages.success(request, "Ufficio di presidenza ripreso dalla preparazione.")
+            return redirect(reverse("assemblee:verbale", args=[pk, seduta_pk]))
+        form = VerbaleForm(
+            request.POST,
+            instance=verbale_assemblea.verbale_della_seduta(seduta),
+            nomi_comitato=_nomi_comitato(seduta.assemblea),
+        )
         if form.is_valid():
             form.save()
             messages.success(request, "Dati del verbale salvati.")
@@ -1746,7 +1879,7 @@ class VerbaleView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
         return render(request, self.template_name, self._contesto(seduta, form))
 
 
-class VerbalePdfView(GestisceAssembleeMixin, View):
+class VerbalePdfView(CompilaVerbaleMixin, View):
     def get(self, request, pk, seduta_pk):
         seduta = get_object_or_404(Seduta, pk=seduta_pk, assemblea_id=pk)
         try:

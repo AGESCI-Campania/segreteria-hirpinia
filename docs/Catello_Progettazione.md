@@ -1329,6 +1329,19 @@ del giorno; non si copiano sedute, presenze, deleghe, votazioni, codici, seggi e
 né i passaggi a carta. L'anagrafica non si legge: l'elenco copiato si riallinea ai censiti
 solo con «aggiorna il gruppo».
 
+**Ufficio di presidenza e comitato mozioni in preparazione** (2026-11-11,
+`apps/assemblee/presidenza.py`, piano D7–D12): si indicano per l'assemblea, fra gli aventi
+diritto dell'elenco, presidenti (al massimo due, di sesso diverso: bloccante se entrambi
+noti, avviso se uno non è noto), segretario, comitato mozioni (sempre tre, raccolti fino a
+tre) e i due scrutatori, scelti fra i componenti del comitato elettorale. Precompilano il
+verbale di ogni seduta (modificabile, con «Riprendi dalla preparazione»); con due
+presidenti il verbale scrive «nelle persone di X e Y» e prevede due firme; i membri
+mancanti del comitato mozioni compaiono come «[…]». Presidenti e segretario possono avere
+l'accesso a Catello (account e invito come il comitato elettorale): vedono risultati,
+presenze e quorum, compilano e scaricano il verbale, scrivono la discussione dei punti
+dell'ordine del giorno ma non ne cambiano i punti; non fanno
+operazioni di voto né la variazione del rappresentante legale.
+
 **Dati dei capi, elenco vuoto, assemblee di prova** (2026-11-11, piano completo in
 `docs/plan_preparazione_assemblea.md`, D6–D29):
 - l'elenco ha anche il **sesso** (`AventeDiritto.sesso`), preso da `Capo.sesso` solo se
@@ -1398,7 +1411,10 @@ punti tipici del modello nazionale proposti. Presidenza, segretario, scrutatori,
 mozioni e RdZ firmatari (uno o due: un posto può essere vacante) sono testo libero con
 suggerimenti dall'elenco, comuni ai due verbali della seduta. I numeri della frase sul
 quorum sono quelli fotografati alla dichiarazione di seduta costituita. Ordine del giorno
-e verbali sono riservati ad ADMIN, SEGRETERIA e RdZ (non al comitato elettorale).
+e verbali sono riservati ad ADMIN, SEGRETERIA e RdZ (non al comitato elettorale); dal
+2026-11-11 presidenti e segretario indicati in preparazione, con l'accesso, compilano il
+verbale dell'assemblea e scrivono la discussione dei punti dell'ordine del giorno, senza
+cambiarne i punti (vedi sotto).
 
 ### D-71 — Voto elettronico di Catello per le elezioni
 

@@ -132,6 +132,10 @@
       <a href="{% url 'assemblee:email_aventi' assemblea.pk %}" class="btn-outline theme-primary">{% bs_icon "envelope" %} Email degli aventi (Excel per gruppo)</a>
       <a href="{% url 'assemblee:odg' assemblea.pk %}" class="btn-outline theme-primary">{% bs_icon "list-ol" %} Ordine del giorno</a>
     </div>
+  {% elif puo_compilare %}
+    <div class="d-flex flex-wrap gap-3 mb-7">
+      <a href="{% url 'assemblee:odg' assemblea.pk %}" class="btn-outline theme-primary">{% bs_icon "list-ol" %} Ordine del giorno</a>
+    </div>
   {% endif %}
 
   <h2 class="fs-xl">Comitato elettorale</h2>
@@ -185,13 +189,13 @@
       {% csrf_token %}
       <div class="row g-3 align-items-end">
         <div class="md:col-6">
-          <div class="mb-5 position-relative">
+          <div class="mb-5 position-relative" data-avente-autocomplete="{% url 'assemblee:comitato_cerca' assemblea.pk %}">
             <label for="ricerca-comitato" class="form-label">Capo (nome, cognome, gruppo o codice socio)</label>
-            <input type="text" id="ricerca-comitato" class="form-control" autocomplete="off" placeholder="Digita almeno 2 caratteri…">
-            <ul class="list-group position-absolute w-100" id="ricerca-comitato-risultati" style="z-index: 1000; display: none;"></ul>
-            <div class="form-text" id="ricerca-comitato-selezionato"></div>
+            <input type="text" id="ricerca-comitato" class="form-control js-cerca" autocomplete="off" placeholder="Digita almeno 2 caratteri…">
+            <ul class="list-group position-absolute w-100 js-risultati" style="z-index: 1000; display: none;"></ul>
+            <div class="form-text js-selezionato"></div>
+            {{ form_operatore.avente }}
           </div>
-          {{ form_operatore.avente }}
         </div>
         <div class="md:col-6">
           <div class="form-field mb-5">
@@ -203,12 +207,92 @@
       <button type="submit" class="btn-solid theme-primary">Aggiungi al comitato</button>
     </form>
   {% endif %}
+
+  <h2 class="fs-xl mt-7" id="presidenza">Ufficio di presidenza e comitato mozioni</h2>
+  <p class="fg-2">
+    Si indicano in preparazione e precompilano il verbale di ogni convocazione, dove restano
+    modificabili. Presidenti (al massimo due, di sesso diverso) e segretario possono avere
+    l'accesso a Catello: vedono risultati, presenze e ordine del giorno e compilano il verbale. Gli
+    scrutatori sono due, scelti fra i componenti del comitato elettorale.
+  </p>
+  {% if avvisi_presidenza and not assemblea.conclusa %}
+    <div class="alert theme-info" role="note"><div><ul class="mb-0">{% for avviso in avvisi_presidenza %}<li>{{ avviso.testo }}</li>{% endfor %}</ul></div></div>
+  {% endif %}
+  <div class="table-responsive mb-5">
+  <table class="table table-sm">
+    <thead><tr><th>Incarico</th><th>Capo</th><th>Accesso a Catello</th>{% if puo_gestire %}<th></th>{% endif %}</tr></thead>
+    <tbody>
+      {% for ruolo, incarichi in incarichi_per_ruolo %}
+        {% for incarico in incarichi %}
+          <tr>
+            <td>{{ ruolo.label }}</td>
+            <td>{{ incarico.avente.cognome }} {{ incarico.avente.nome }}{% if incarico.avente.sesso %} ({{ incarico.avente.sesso }}){% endif %}</td>
+            <td>
+              {% if incarico.ruolo != "PRESIDENTE" and incarico.ruolo != "SEGRETARIO" %}—
+              {% elif not incarico.utente %}{% ag_chip "Senza accesso" variant="secondary" %}
+              {% elif incarico.utente.has_usable_password %}{% ag_chip "Attivo" variant="success" %}
+              {% else %}{% ag_chip "Invito da attivare" variant="warning" %}{% endif %}
+            </td>
+            {% if puo_gestire %}
+              <td class="text-end">
+                {% if not assemblea.conclusa %}
+                  {% if incarico.ruolo == "PRESIDENTE" or incarico.ruolo == "SEGRETARIO" %}{% if not incarico.utente.has_usable_password %}
+                    <form method="post" action="{% url 'assemblee:incarico_accesso' assemblea.pk incarico.pk %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn-outline theme-primary btn-sm">{% if incarico.utente %}Invia invito{% else %}Crea account e invia invito{% endif %}</button>
+                    </form>
+                  {% endif %}{% endif %}
+                  <form method="post" action="{% url 'assemblee:incarico_rimuovi' assemblea.pk incarico.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-outline theme-danger btn-sm">Rimuovi</button>
+                  </form>
+                {% endif %}
+              </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+
+  {% if puo_gestire and not assemblea.conclusa %}
+    <form method="post" action="{% url 'assemblee:incarico_aggiungi' assemblea.pk %}">
+      {% csrf_token %}
+      <div class="row g-3 align-items-end">
+        <div class="md:col-3">
+          <div class="form-field mb-5">
+            <label for="incarico-ruolo">Incarico</label>
+            <select id="incarico-ruolo" name="ruolo" class="form-control">
+              {% for valore, etichetta in ruoli %}<option value="{{ valore }}">{{ etichetta }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="md:col-5">
+          <div class="mb-5 position-relative" data-avente-autocomplete="{% url 'assemblee:comitato_cerca' assemblea.pk %}?per=incarichi">
+            <label for="ricerca-incarico" class="form-label">Capo (nome, cognome, gruppo o codice socio)</label>
+            <input type="text" id="ricerca-incarico" class="form-control js-cerca" autocomplete="off" placeholder="Digita almeno 2 caratteri…">
+            <ul class="list-group position-absolute w-100 js-risultati" style="z-index: 1000; display: none;"></ul>
+            <div class="form-text js-selezionato"></div>
+            <input type="hidden" name="avente">
+          </div>
+        </div>
+        <div class="md:col-4">
+          <div class="form-field mb-5">
+            <label><input type="checkbox" name="accesso" class="check" checked> Crea l'account e invia l'invito</label>
+            <div class="form-text">Solo per presidenti e segretario.</div>
+          </div>
+        </div>
+      </div>
+      <button type="submit" class="btn-solid theme-primary">Aggiungi</button>
+    </form>
+  {% endif %}
 {% endblock %}
 
 {% block extra_js %}
   {{ block.super }}
   {% if puo_gestire and not assemblea.conclusa %}
     <script src="{% static 'js/ricerca-autocomplete-comune.js' %}" defer></script>
-    <script src="{% static 'js/comitato-elettorale-autocomplete.js' %}" defer data-url-autocomplete="{% url 'assemblee:comitato_cerca' assemblea.pk %}"></script>
+    <script src="{% static 'js/avente-autocomplete.js' %}" defer></script>
   {% endif %}
 {% endblock %}

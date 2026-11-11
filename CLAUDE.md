@@ -325,8 +325,19 @@ deve violare:
   solo da `apps/assemblee/comitato.py`, fra gli aventi diritto dell'elenco. L'account
   creato per un componente nasce **senza password** e passa dall'invito di D-20, mai una
   password generata o inviata in chiaro; `utente` vuoto = componente senza accesso, solo
-  nel verbale. L'autocompletamento (`ComitatoAutocompleteView`) cerca solo nell'elenco
-  dell'assemblea e non è una quarta ricerca soci: non riusarlo altrove.
+  nel verbale. L'autocompletamento (`ComitatoAutocompleteView`, anche con
+  `?per=incarichi` per presidenza e comitati) cerca solo nell'elenco dell'assemblea e non
+  è una ricerca soci sull'anagrafica: non riusarlo fuori dalla pagina dell'assemblea.
+- **Ufficio di presidenza e comitato mozioni** (R4): solo da
+  `apps/assemblee/presidenza.py`, fra gli aventi diritto dell'elenco (`IncaricoAssemblea`).
+  Al massimo due presidenti di sesso diverso, un segretario, tre membri del comitato
+  mozioni, due scrutatori scelti fra il comitato elettorale. Solo presidenti e segretario
+  hanno un accesso (stesso account e invito del comitato elettorale): vedono l'assemblea
+  anche conclusa, compilano il verbale (`permessi.puo_compilare_verbale()`), vedono
+  l'ordine del giorno senza cambiarne i punti e ne scrivono la discussione
+  (`odg.scrivi_discussione()`), ma **non** fanno operazioni di voto
+  (`puo_operare()` resta a gestori e comitato elettorale) né la variazione del
+  rappresentante legale (dati anagrafici dell'RdZ, solo gestori).
 - **Tempo reale = polling ogni 3 secondi**, nessuna infrastruttura nuova (D-17 vale
   ancora).
 - **Carta intestata dei PDF** (nota spese, foglio presenze, verbali): un solo partial,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import cast
 
 from django import forms
@@ -352,6 +353,13 @@ class PuntoOdGForm(forms.Form):
     )
 
 
+class DiscussioneForm(forms.Form):
+    """Solo la discussione: per chi compila il verbale senza poter cambiare i
+    punti."""
+
+    testo = PuntoOdGForm.base_fields["testo"]
+
+
 class VerbaleForm(forms.ModelForm):
     class Meta:
         model = VerbaleSeduta
@@ -360,6 +368,7 @@ class VerbaleForm(forms.ModelForm):
             "ora_chiusura",
             "luogo",
             "presidente",
+            "presidente_2",
             "segretario",
             "scrutatore_1",
             "scrutatore_2",
@@ -377,19 +386,36 @@ class VerbaleForm(forms.ModelForm):
         }
         help_texts = {
             "rdz_2": "Lascia vuoto se il posto è vacante.",
+            "presidente_2": "Solo se la presidenza è affidata a due persone, di sesso diverso.",
+            "comitato_mozioni": "I tre membri, separati da virgola.",
         }
         widgets = {
             "ora_apertura": forms.TimeInput(attrs={"type": "time"}),
             "ora_chiusura": forms.TimeInput(attrs={"type": "time"}),
             # Suggerimenti dall'elenco (datalist nel template), testo libero ammesso.
             "presidente": forms.TextInput(attrs={"list": "nomi-aventi"}),
+            "presidente_2": forms.TextInput(attrs={"list": "nomi-aventi"}),
             "segretario": forms.TextInput(attrs={"list": "nomi-aventi"}),
-            "scrutatore_1": forms.TextInput(attrs={"list": "nomi-scrutatori"}),
-            "scrutatore_2": forms.TextInput(attrs={"list": "nomi-scrutatori"}),
             "rdz_1": forms.TextInput(attrs={"list": "nomi-rdz"}),
             "rdz_2": forms.TextInput(attrs={"list": "nomi-rdz"}),
             "note_finali": forms.Textarea(attrs={"rows": 4}),
         }
+
+    def __init__(self, *args, nomi_comitato: Sequence[str] = (), **kwargs):
+        super().__init__(*args, **kwargs)
+        # Gli scrutatori si scelgono fra i componenti del comitato elettorale
+        # (D11); un nome già scritto prima resta selezionabile.
+        for campo in ("scrutatore_1", "scrutatore_2"):
+            nomi = list(nomi_comitato)
+            attuale = self.initial.get(campo) or ""
+            if attuale and attuale not in nomi:
+                nomi.append(attuale)
+            self.fields[campo] = forms.ChoiceField(
+                label=self.fields[campo].label,
+                required=False,
+                choices=[("", "—"), *[(n, n) for n in nomi]],
+                help_text="Fra i componenti del comitato elettorale.",
+            )
 
 
 class VariazioneRappresentanteForm(forms.ModelForm):

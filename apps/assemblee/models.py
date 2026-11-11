@@ -585,6 +585,74 @@ class DelegaAE(models.Model):
         return f"{self.delegante} → {self.delegato}"
 
 
+class RuoloAssemblea(models.TextChoices):
+    """Ufficio di presidenza e comitati indicati in preparazione
+    (docs/plan_preparazione_assemblea.md, R4)."""
+
+    PRESIDENTE = "PRESIDENTE", "Presidente"
+    SEGRETARIO = "SEGRETARIO", "Segretario"
+    MOZIONI = "MOZIONI", "Comitato mozioni"
+    SCRUTATORE = "SCRUTATORE", "Scrutatore"
+
+
+# Quanti per ruolo (D-10/D10-bis: comitato mozioni sempre di tre, si raccoglie
+# fino a tre; D11: due scrutatori; R4: al massimo due presidenti).
+POSTI_RUOLO_ASSEMBLEA = {
+    RuoloAssemblea.PRESIDENTE: 2,
+    RuoloAssemblea.SEGRETARIO: 1,
+    RuoloAssemblea.MOZIONI: 3,
+    RuoloAssemblea.SCRUTATORE: 2,
+}
+# Ruoli che possono avere un accesso a Catello (D12): vedono risultati e
+# ordine del giorno, compilano il verbale.
+RUOLI_CON_ACCESSO = (RuoloAssemblea.PRESIDENTE, RuoloAssemblea.SEGRETARIO)
+
+
+class IncaricoAssemblea(models.Model):
+    """Un avente diritto nell'ufficio di presidenza o in un comitato
+    dell'assemblea (R4). Si indica in preparazione e precompila il verbale di
+    ogni seduta. Solo presidenti e segretario possono avere `utente`."""
+
+    assemblea = models.ForeignKey(Assemblea, on_delete=models.CASCADE, related_name="incarichi")
+    ruolo = models.CharField(max_length=15, choices=RuoloAssemblea.choices)
+    avente = models.ForeignKey(
+        AventeDiritto, on_delete=models.CASCADE, related_name="incarichi_assemblea"
+    )
+    utente = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="incarichi_assemblea",
+    )
+    nominato_il = models.DateTimeField(auto_now_add=True)
+    nominato_da = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+
+    class Meta:
+        verbose_name = "incarico dell'assemblea"
+        verbose_name_plural = "incarichi dell'assemblea"
+        ordering = ["assemblea", "ruolo", "nominato_il"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["assemblea", "ruolo", "avente"], name="incarico_assemblea_unico"
+            ),
+            models.CheckConstraint(
+                condition=Q(utente__isnull=True)
+                | Q(ruolo__in=[RuoloAssemblea.PRESIDENTE, RuoloAssemblea.SEGRETARIO]),
+                name="incarico_assemblea_accesso_solo_presidenza",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.get_ruolo_display()}: {self.avente}"
+
+
 class PuntoOdG(models.Model):
     """Punto all'ordine del giorno dell'assemblea, con il testo della
     discussione per il verbale."""
@@ -746,6 +814,8 @@ class VerbaleSeduta(models.Model):
     ora_chiusura = models.TimeField(null=True, blank=True)
     luogo = models.CharField(max_length=255, blank=True)
     presidente = models.CharField(max_length=300, blank=True)
+    # Il secondo presidente, se la presidenza è affidata a due persone (R4/D9).
+    presidente_2 = models.CharField("Secondo presidente", max_length=300, blank=True)
     segretario = models.CharField(max_length=200, blank=True)
     scrutatore_1 = models.CharField(max_length=200, blank=True)
     scrutatore_2 = models.CharField(max_length=200, blank=True)

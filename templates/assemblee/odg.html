@@ -4,7 +4,7 @@
 
 {% block content %}
   <h1 class="mb-3">Ordine del giorno</h1>
-  <p class="fg-2 mb-5">{{ assemblea }}. Per ogni punto si scrive la discussione per il verbale; le votazioni si collegano al punto quando si aprono.</p>
+  <p class="fg-2 mb-5">{{ assemblea }}. Per ogni punto si scrive la discussione per il verbale; le votazioni si collegano al punto quando si aprono.{% if not puo_gestire %} I punti li cambiano solo i gestori dell'assemblea.{% endif %}</p>
 
   <div class="table-responsive mb-7">
   <table class="table">
@@ -16,12 +16,17 @@
             <strong>{{ punto.titolo }}</strong><br>
             <small class="fg-2">{% if punto.testo %}Discussione scritta{% else %}Discussione da scrivere{% endif %} — {{ punto.votazioni.count }} votazioni collegate</small>
           </td>
+          {% if not puo_gestire %}
+          <td class="text-nowrap"><a href="{% url 'assemblee:punto' assemblea.pk punto.pk %}" class="btn-outline theme-primary btn-sm">Discussione</a></td>
+          {% endif %}
+          {% if puo_gestire %}
           <td class="text-nowrap">
             <a href="{% url 'assemblee:punto' assemblea.pk punto.pk %}" class="btn-outline theme-primary btn-sm">Modifica</a>
             <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="punto" value="{{ punto.pk }}"><button type="submit" name="azione" value="su" class="btn-outline theme-secondary btn-sm" aria-label="Sposta su"{% if forloop.first %} disabled{% endif %}>↑</button></form>
             <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="punto" value="{{ punto.pk }}"><button type="submit" name="azione" value="giu" class="btn-outline theme-secondary btn-sm" aria-label="Sposta giù"{% if forloop.last %} disabled{% endif %}>↓</button></form>
             <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="punto" value="{{ punto.pk }}"><button type="submit" name="azione" value="elimina" class="btn-outline theme-danger btn-sm">Elimina</button></form>
           </td>
+          {% endif %}
         </tr>
       {% empty %}
         <tr><td>Nessun punto all'ordine del giorno.</td></tr>
@@ -30,6 +35,7 @@
   </table>
   </div>
 
+  {% if puo_gestire %}
   <h2 class="fs-xl">Aggiungi un punto</h2>
   <form method="post" class="row g-3 align-items-end mb-5">
     {% csrf_token %}<input type="hidden" name="azione" value="aggiungi">
@@ -47,5 +53,6 @@
         </form>
       {% endfor %}
     </div>
+  {% endif %}
   {% endif %}
 {% endblock %}

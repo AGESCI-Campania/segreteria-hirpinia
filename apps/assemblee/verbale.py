@@ -13,7 +13,7 @@ from django.template.loader import render_to_string
 from apps.accounts.models import Utente
 from apps.core.pdf import contesto_carta_intestata
 
-from . import comitato
+from . import comitato, presidenza
 from .models import (
     AventeDiritto,
     Seduta,
@@ -23,7 +23,7 @@ from .models import (
     VerbaleSeduta,
     Votazione,
 )
-from .permessi import puo_gestire_assemblee
+from .permessi import puo_compilare_verbale, puo_gestire_assemblee
 from .quorum import verifica_senza_quorum
 from .votazioni import frase_esito, soglie_correnti
 
@@ -44,12 +44,29 @@ def _votazioni(qs) -> list[VotazioneVerbale]:
 
 
 def verbale_della_seduta(seduta: Seduta) -> VerbaleSeduta:
-    """Il verbale della seduta, creato vuoto (con il luogo della seduta) la
-    prima volta che serve."""
+    """Il verbale della seduta, creato la prima volta che serve con il luogo
+    della seduta e l'ufficio di presidenza indicato in preparazione (D7)."""
     verbale, _ = VerbaleSeduta.objects.get_or_create(
-        seduta=seduta, defaults={"luogo": seduta.luogo}
+        seduta=seduta,
+        defaults={"luogo": seduta.luogo, **presidenza.dati_per_verbale(seduta.assemblea)},
     )
     return verbale
+
+
+def riprendi_dalla_preparazione(seduta: Seduta, utente: Utente) -> None:
+    """Riporta nel verbale presidenza, segretario, comitato mozioni e
+    scrutatori come sono ora nella preparazione dell'assemblea."""
+    if not puo_compilare_verbale(utente, seduta.assemblea):
+        raise PermissionDenied
+    verbale = verbale_della_seduta(seduta)
+    dati = presidenza.dati_per_verbale(seduta.assemblea)
+    for campo, valore in dati.items():
+        setattr(verbale, campo, valore)
+    verbale.save(update_fields=[*dati, "aggiornato_il"])
+
+
+def _membri_mozioni(testo: str) -> int:
+    return len([n for n in testo.split(",") if n.strip()])
 
 
 def contesto_verbale(seduta: Seduta) -> dict:
@@ -81,6 +98,10 @@ def contesto_verbale(seduta: Seduta) -> dict:
         "verifica_senza_quorum": verifica_senza_quorum(seduta),
         "ci_sono_mozioni": mozioni,
         "comitato_elettorale": [c.nome_completo for c in comitato.componenti(assemblea)],
+        # Il comitato mozioni è sempre di tre (D10): i mancanti in rosso.
+        "mozioni_mancanti": range(
+            max(0, 3 - _membri_mozioni(verbale_della_seduta(seduta).comitato_mozioni))
+        ),
         **contesto_carta_intestata(),
     }
 
@@ -88,7 +109,7 @@ def contesto_verbale(seduta: Seduta) -> dict:
 def genera_verbale_pdf(seduta: Seduta, utente: Utente) -> bytes:
     from weasyprint import HTML
 
-    if not puo_gestire_assemblee(utente):
+    if not puo_compilare_verbale(utente, seduta.assemblea):
         raise PermissionDenied
     html = render_to_string("assemblee/verbale_pdf.html", contesto_verbale(seduta))
     return HTML(string=html).write_pdf()
