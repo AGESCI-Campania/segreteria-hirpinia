@@ -381,6 +381,11 @@ Regole complete in D-71 e in `docs/plan_voto.md`. Qui ciò che il codice non dev
   timestamp; `Votante` nemmeno timestamp. Un test sul `_meta` lo verifica: non
   aggiungere campi «per comodità». Nessun log registra codici, ricevute o scelte, e
   nessun modello di `apps/voto` va registrato in auditlog o in Django admin.
+- **Più urne aperte insieme**: si aprono in un colpo solo (`scrutinio.apri_urne()`, mai
+  un'urna nuova con altre già aperte: la scheda in compilazione cambierebbe), si votano in
+  una pagina con una sola conferma (`urna.vota_insieme()`, che chiama `vota()` per
+  ciascuna, tutte o nessuna) e si chiudono tutte insieme (`scrutinio.chiudi_urne()`). I
+  campi della scheda hanno il prefisso `<votazione>_<scheda>`.
 - **Unici punti delle regole**: `urna.vota()` per votare, `codici` per emettere e
   revocare, `scrutinio` per aprire/chiudere l'urna, interpretare i nomi scritti, contare
   e pubblicare la bacheca, `postazioni` per i seggi, `sistema` per sistema e modalità di

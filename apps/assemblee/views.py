@@ -1684,6 +1684,17 @@ class VotazioniView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             "puo_votare": puo_operare(request.user, seduta.assemblea)
             and seduta.aperta
             and seduta.costituita is True,
+            # Voto in app: le urne si aprono insieme da qui, solo se non ce ne
+            # sono già di aperte (regola in apps/voto/scrutinio.apri_urne()).
+            "urne_aperte": urna_voto.votazioni_aperte(seduta),
+            "apribili": [
+                v
+                for v in votazioni_seduta
+                if seduta.assemblea.voto_catello
+                and urna_voto.votazioni_in_app(v)
+                and v.aperta_in_app_il is None
+                and not v.chiusa
+            ],
         }
         return render(request, self.template_name, contesto)
 
@@ -1772,7 +1783,11 @@ class VotazioneView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
                     len(scrutinio_voto.nomi_da_interpretare(votazione)) if in_app else 0
                 ),
                 "nomi_scritti": len(scrutinio_voto.nomi_scritti(votazione)) if in_app else 0,
-                "altra_aperta": (urna_voto.votazione_aperta(votazione.seduta) if in_app else None),
+                "altre_aperte": (
+                    [v for v in urna_voto.votazioni_aperte(votazione.seduta) if v != votazione]
+                    if in_app
+                    else []
+                ),
                 "nota": scrutinio_voto.nota_verbale(votazione) if in_app else "",
             },
             "assemblea": votazione.seduta.assemblea,

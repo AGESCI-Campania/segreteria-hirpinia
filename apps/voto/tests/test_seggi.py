@@ -110,7 +110,11 @@ class TestChiosco:
             client.post("/voto/accedi/", {"codice": codice})
             ricevuta = client.post(
                 "/voto/scheda/",
-                {"votazione": elezione.pk, "azione": "conferma", "esito_0": "BIANCA"},
+                {
+                    "votazioni": str(elezione.pk),
+                    "azione": "conferma",
+                    f"esito_{elezione.pk}_0": "BIANCA",
+                },
             )
             testo = ricevuta.content.decode()
             assert 'http-equiv="refresh"' in testo

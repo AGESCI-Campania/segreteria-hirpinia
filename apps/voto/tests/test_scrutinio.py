@@ -82,7 +82,67 @@ class TestUrna:
         with pytest.raises(ValidationError):
             scrutinio.apri_urna(elezione, segreteria)
 
-    def test_una_sola_urna_aperta_per_seduta(self, elezione, costituita, assemblea, segreteria):
+    def test_piu_urne_aperte_si_votano_insieme_e_si_chiudono_insieme(
+        self, elezione, costituita, assemblea, segreteria
+    ):
+        seconda = votazioni.apri_votazione(
+            costituita,
+            segreteria,
+            tipo=TipoVotazione.ELEZIONE,
+            oggetto="Altra",
+            incarico="X",
+            candidati=["Tizio"],
+        )
+        scrutinio.apri_urne(costituita, [elezione, seconda], segreteria)
+        assert urna.votazioni_aperte(costituita) == [elezione, seconda]
+
+        codici.emetti(costituita, avente(assemblea, "Rossi"), segreteria)
+        codice = codici.codice_attivo(costituita, avente(assemblea, "Rossi"))
+        assert [v for v, _ in urna.da_votare(codice)] == [elezione, seconda]
+        voto_uno = {elezione.pk: [urna.Scelte(candidati=(_candidato(elezione, "Verdi"),))]}
+        # Tutte o nessuna: una sola delle due non basta.
+        with pytest.raises(ValidationError, match="cambiate"):
+            urna.vota_insieme(codice.pk, voto_uno)
+        esiti = urna.vota_insieme(
+            codice.pk, {**voto_uno, seconda.pk: [urna.Scelte(esito=urna.ESITO_BIANCA)]}
+        )
+        assert [v for v, _ in esiti] == [elezione, seconda]
+        assert scrutinio.numero_votanti(elezione) == scrutinio.numero_votanti(seconda) == 1
+        assert urna.da_votare(codice) == []
+
+        assert scrutinio.chiudi_urne(costituita, segreteria) == [elezione, seconda]
+        assert urna.votazioni_aperte(costituita) == []
+        with pytest.raises(ValidationError):
+            scrutinio.chiudi_urne(costituita, segreteria)
+
+    def test_un_errore_in_una_scheda_non_registra_nulla(
+        self, elezione, costituita, assemblea, segreteria
+    ):
+        seconda = votazioni.apri_votazione(
+            costituita,
+            segreteria,
+            tipo=TipoVotazione.ELEZIONE,
+            oggetto="Altra",
+            incarico="X",
+            candidati=["Tizio"],
+        )
+        scrutinio.apri_urne(costituita, [elezione, seconda], segreteria)
+        codici.emetti(costituita, avente(assemblea, "Rossi"), segreteria)
+        codice = codici.codice_attivo(costituita, avente(assemblea, "Rossi"))
+        with pytest.raises(ValidationError):
+            urna.vota_insieme(
+                codice.pk,
+                {
+                    elezione.pk: [urna.Scelte(esito=urna.ESITO_BIANCA)],
+                    seconda.pk: [urna.Scelte(candidati=(999999,))],
+                },
+            )
+        assert Scheda.objects.count() == 0
+        assert scrutinio.numero_votanti(elezione) == 0
+
+    def test_con_urne_aperte_non_se_ne_aprono_altre(
+        self, elezione, costituita, assemblea, segreteria
+    ):
         scrutinio.apri_urna(elezione, segreteria)
         seconda = votazioni.apri_votazione(
             costituita,
@@ -92,8 +152,31 @@ class TestUrna:
             incarico="X",
             candidati=["Tizio"],
         )
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match="già urne aperte"):
             scrutinio.apri_urna(seconda, segreteria)
+        scrutinio.chiudi_urne(costituita, segreteria)
+        scrutinio.apri_urna(seconda, segreteria)
+
+    def test_apertura_insieme_dall_elenco(
+        self, client, elezione, costituita, assemblea, segreteria
+    ):
+        seconda = votazioni.apri_votazione(
+            costituita,
+            segreteria,
+            tipo=TipoVotazione.ELEZIONE,
+            oggetto="Altra",
+            incarico="X",
+            candidati=["Tizio"],
+        )
+        client.force_login(segreteria)
+        base = f"/assemblee/{assemblea.pk}/sedute/{costituita.pk}"
+        assert "Apri le urne selezionate" in client.get(f"{base}/votazioni/").content.decode()
+        client.post(
+            f"/voto/gestione/{assemblea.pk}/sedute/{costituita.pk}/urne/apri/",
+            {"votazioni": [elezione.pk, seconda.pk]},
+        )
+        assert urna.votazioni_aperte(costituita) == [elezione, seconda]
+        assert "Urne aperte" in client.get(f"{base}/votazioni/").content.decode()
 
     def test_le_palesi_non_hanno_urna(self, costituita, segreteria):
         mozione = votazioni.apri_votazione(

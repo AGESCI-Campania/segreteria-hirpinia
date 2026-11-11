@@ -14,12 +14,27 @@
     <div class="alert theme-info" role="note"><p class="mb-0">Si vota solo dopo aver dichiarato la seduta validamente costituita.</p></div>
   {% endif %}
 
+  {% if puo_votare and urne_aperte %}
+    <div class="alert theme-success" role="status"><p class="mb-0">
+      Urne aperte: {% for v in urne_aperte %}«{{ v.oggetto }}»{% if not forloop.last %}, {% endif %}{% endfor %}. Per aprirne altre, prima chiudile (dalla pagina di una delle votazioni).
+    </p></div>
+  {% elif puo_votare and apribili %}
+    <form method="post" action="{% url 'voto:apri_urne' assemblea.pk seduta.pk %}" id="form-apri-urne" class="d-flex flex-wrap align-items-center gap-3 mb-5">
+      {% csrf_token %}
+      <button type="submit" class="btn-solid theme-primary">Apri le urne selezionate</button>
+      <span class="fg-2">Spunta le elezioni da votare in app: chi vota le trova tutte nella stessa pagina e le conferma insieme. Finché sono aperte non se ne aprono altre.</span>
+    </form>
+  {% endif %}
+
   <div class="table-responsive">
   <table class="table">
-    <thead><tr><th>Ora</th><th>Votazione</th><th>Esito</th><th></th></tr></thead>
+    <thead><tr>{% if puo_votare and apribili and not urne_aperte %}<th></th>{% endif %}<th>Ora</th><th>Votazione</th><th>Esito</th><th></th></tr></thead>
     <tbody>
       {% for votazione, frase in votazioni %}
         <tr>
+          {% if puo_votare and apribili and not urne_aperte %}
+            <td>{% if votazione in apribili %}<input type="checkbox" name="votazioni" value="{{ votazione.pk }}" form="form-apri-urne" class="check" aria-label="Apri l'urna di {{ votazione.oggetto }}">{% endif %}</td>
+          {% endif %}
           <td>{{ votazione.aperta_il|time:"H:i" }}</td>
           <td>
             <strong>{{ votazione.get_tipo_display }}</strong>: {{ votazione.oggetto }}

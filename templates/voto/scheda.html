@@ -7,61 +7,71 @@
   <div class="row justify-content-center">
     <div class="md:col-8">
       {% include "voto/_messaggi.html" %}
-      {% if votazione and spettanti %}
-        {% include "voto/_testata_scheda.html" %}
+      {% if votazioni %}
+        <p class="fg-2 mb-1">{{ assemblea }} — {{ seduta.get_convocazione_display }}</p>
+        <h1 class="mb-5">{% if votazioni|length == 1 %}Scheda{% else %}Schede: {{ votazioni|length }} votazioni{% endif %}</h1>
+        {% if votazioni|length > 1 %}<p class="mb-5">Ci sono più votazioni aperte: compila tutte le schede, poi rivedi e conferma una volta sola.</p>{% endif %}
         {% if errore %}<div class="alert theme-danger mb-5" role="alert">{{ errore }}</div>{% endif %}
         <form method="post" action="{% url 'voto:scheda' %}">
           {% csrf_token %}
-          <input type="hidden" name="votazione" value="{{ votazione.pk }}">
+          <input type="hidden" name="votazioni" value="{{ chiave }}">
           <input type="hidden" name="azione" value="rivedi">
-          {% for spettante in spettanti %}
-            {% with indice=forloop.counter0 %}
-              <fieldset class="card mb-7">
-                <legend class="card-header fs-lg">{% if spettante.per_delega %}Scheda per delega di {{ spettante.avente.cognome }} {{ spettante.avente.nome }}{% else %}La tua scheda{% endif %}</legend>
-                <div class="card-body">
-                  {% for candidato in candidati %}
-                    <div class="form-field mb-3">
-                      <input id="c{{ indice }}-{{ candidato.pk }}" type="checkbox" name="candidati_{{ indice }}" value="{{ candidato.pk }}" class="check">
-                      <label for="c{{ indice }}-{{ candidato.pk }}" class="fs-lg">{{ candidato.nome }}{% if quote and candidato.sesso %} <small class="fg-2">({{ candidato.get_sesso_display|lower }})</small>{% endif %}</label>
-                    </div>
-                  {% endfor %}
-                  {% if votazione.tipo != "BALLOTTAGGIO" %}{% for _ in posti %}
-                    <div class="form-field mb-3">
-                      <label for="l{{ indice }}-{{ forloop.counter }}">Altro nome (facoltativo)</label>
-                      <input id="l{{ indice }}-{{ forloop.counter }}" type="text" name="liberi_{{ indice }}" maxlength="100" class="form-control" autocomplete="off">
-                    </div>
-                    {% if quote %}
-                      <div class="form-field mb-5">
-                        <label for="s{{ indice }}-{{ forloop.counter }}">Per un posto</label>
-                        <select id="s{{ indice }}-{{ forloop.counter }}" name="sessi_liberi_{{ indice }}" class="form-control">
-                          <option value="">—</option>
-                          {% for valore, etichetta in sessi %}<option value="{{ valore }}">{{ etichetta|lower }}</option>{% endfor %}
-                        </select>
+          {% for voce in votazioni %}
+            {% with votazione=voce.votazione %}
+            <section class="mb-7">
+              {% include "voto/_testata_scheda.html" %}
+              {% for spettante in voce.spettanti %}
+                {% with chiave=votazione.pk|stringformat:"s" n=forloop.counter0|stringformat:"s" %}
+                {% with indice=chiave|add:"_"|add:n %}
+                <fieldset class="card mb-5">
+                  <legend class="card-header fs-lg">{% if spettante.per_delega %}Scheda per delega di {{ spettante.avente.cognome }} {{ spettante.avente.nome }}{% else %}La tua scheda{% endif %}</legend>
+                  <div class="card-body">
+                    {% for candidato in voce.candidati %}
+                      <div class="form-field mb-3">
+                        <input id="c{{ indice }}-{{ candidato.pk }}" type="checkbox" name="candidati_{{ indice }}" value="{{ candidato.pk }}" class="check">
+                        <label for="c{{ indice }}-{{ candidato.pk }}" class="fs-lg">{{ candidato.nome }}{% if voce.quote and candidato.sesso %} <small class="fg-2">({{ candidato.get_sesso_display|lower }})</small>{% endif %}</label>
                       </div>
-                    {% endif %}
-                  {% endfor %}{% endif %}
-                  <div class="form-field mt-5 mb-3">
-                    <input id="e{{ indice }}-voto" type="radio" name="esito_{{ indice }}" value="VOTO" class="check" checked>
-                    <label for="e{{ indice }}-voto">Voto le preferenze indicate</label>
+                    {% endfor %}
+                    {% if votazione.tipo != "BALLOTTAGGIO" %}{% for _ in voce.posti %}
+                      <div class="form-field mb-3">
+                        <label for="l{{ indice }}-{{ forloop.counter }}">Altro nome (facoltativo)</label>
+                        <input id="l{{ indice }}-{{ forloop.counter }}" type="text" name="liberi_{{ indice }}" maxlength="100" class="form-control" autocomplete="off">
+                      </div>
+                      {% if voce.quote %}
+                        <div class="form-field mb-5">
+                          <label for="s{{ indice }}-{{ forloop.counter }}">Per un posto</label>
+                          <select id="s{{ indice }}-{{ forloop.counter }}" name="sessi_liberi_{{ indice }}" class="form-control">
+                            <option value="">—</option>
+                            {% for valore, etichetta in sessi %}<option value="{{ valore }}">{{ etichetta|lower }}</option>{% endfor %}
+                          </select>
+                        </div>
+                      {% endif %}
+                    {% endfor %}{% endif %}
+                    <div class="form-field mt-5 mb-3">
+                      <input id="e{{ indice }}-voto" type="radio" name="esito_{{ indice }}" value="VOTO" class="check" checked>
+                      <label for="e{{ indice }}-voto">Voto le preferenze indicate</label>
+                    </div>
+                    <div class="form-field mb-3">
+                      <input id="e{{ indice }}-bianca" type="radio" name="esito_{{ indice }}" value="BIANCA" class="check">
+                      <label for="e{{ indice }}-bianca">Scheda bianca</label>
+                    </div>
+                    <div class="form-field mb-0">
+                      <input id="e{{ indice }}-nulla" type="radio" name="esito_{{ indice }}" value="NULLA" class="check">
+                      <label for="e{{ indice }}-nulla">Annullo la scheda</label>
+                    </div>
                   </div>
-                  <div class="form-field mb-3">
-                    <input id="e{{ indice }}-bianca" type="radio" name="esito_{{ indice }}" value="BIANCA" class="check">
-                    <label for="e{{ indice }}-bianca">Scheda bianca</label>
-                  </div>
-                  <div class="form-field mb-0">
-                    <input id="e{{ indice }}-nulla" type="radio" name="esito_{{ indice }}" value="NULLA" class="check">
-                    <label for="e{{ indice }}-nulla">Annullo la scheda</label>
-                  </div>
-                </div>
-              </fieldset>
+                </fieldset>
+                {% endwith %}{% endwith %}
+              {% endfor %}
+            </section>
             {% endwith %}
           {% endfor %}
           <button type="submit" class="btn-solid theme-primary w-100 mb-5">Rivedi prima di votare</button>
         </form>
       {% else %}
-        <h1 class="mb-5">{% if votazione %}Hai votato{% else %}In attesa{% endif %}</h1>
-        <p class="mb-5" data-voto-stato="{% url 'voto:stato' %}" data-votazione="{{ votazione.pk|default:'' }}" data-intervallo="3000">
-          {% if votazione %}Il tuo voto per «{{ votazione.oggetto }}» è nell'urna.{% endif %}
+        <h1 class="mb-5">{% if aperte %}Hai votato{% else %}In attesa{% endif %}</h1>
+        <p class="mb-5" data-voto-stato="{% url 'voto:stato' %}" data-votazione="{{ chiave_aperte }}" data-intervallo="3000">
+          {% if aperte %}Il tuo voto è nell'urna{% if aperte|length == 1 %} per «{{ aperte.0.oggetto }}»{% endif %}.{% endif %}
           Tieni aperta questa pagina: quando si apre una votazione la scheda compare da sola.
         </p>
         <p class="fg-2">{{ codice.avente.cognome }} {{ codice.avente.nome }} — {{ assemblea }}</p>

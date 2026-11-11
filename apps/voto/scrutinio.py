@@ -1,8 +1,10 @@
 """Apertura, chiusura e scrutinio dell'urna elettronica (docs/plan_voto.md,
 flusso 4): unico punto delle regole.
 
-- Una sola urna aperta per seduta. Durante il voto si vede solo il numero dei
-  votanti, mai risultati parziali.
+- Più urne si aprono insieme, in un colpo solo (`apri_urne()`; con urne già
+  aperte non se ne aprono altre), l'elettore le vota in un passaggio e si
+  chiudono tutte insieme (`chiudi_urne()`). Durante
+  il voto si vede solo il numero dei votanti, mai risultati parziali.
 - Alla chiusura: verifica bloccante schede = votanti, poi **rimescolamento**
   (le schede si riscrivono in ordine casuale con id nuovi, in un'unica
   transazione), che cancella la traccia fisica dell'ordine di inserimento.
@@ -28,7 +30,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import Utente
-from apps.assemblee.models import AventeDiritto, Candidato, Votazione
+from apps.assemblee.models import AventeDiritto, Candidato, Seduta, Votazione
 from apps.assemblee.permessi import puo_operare
 
 from . import urna
@@ -54,21 +56,44 @@ def numero_votanti(votazione: Votazione) -> int:
 
 @transaction.atomic
 def apri_urna(votazione: Votazione, utente: Utente) -> None:
-    _verifica_operatore(utente, votazione)
+    apri_urne(votazione.seduta, [votazione], utente)
+
+
+def _verifica_apribile(votazione: Votazione) -> None:
     seduta = votazione.seduta
     if not seduta.assemblea.voto_catello:
         raise ValidationError("Questa assemblea non usa il voto in app.")
     if not urna.votazioni_in_app(votazione):
-        raise ValidationError("Questa votazione non si vota in app.")
+        raise ValidationError(f"«{votazione.oggetto}» non si vota in app.")
     if not seduta.aperta or seduta.costituita is not True:
         raise ValidationError("Si vota solo in una seduta costituita e aperta.")
     if votazione.chiusa or urna_usata(votazione):
-        raise ValidationError("L'urna di questa votazione è già stata aperta.")
-    altra = urna.votazione_aperta(seduta)
-    if altra is not None:
-        raise ValidationError(f"C'è già un'urna aperta: «{altra.oggetto}». Chiudila prima.")
-    votazione.aperta_in_app_il = timezone.now()
-    votazione.save(update_fields=["aperta_in_app_il"])
+        raise ValidationError(f"L'urna di «{votazione.oggetto}» è già stata aperta.")
+
+
+@transaction.atomic
+def apri_urne(seduta: Seduta, votazioni: list[Votazione], utente: Utente) -> None:
+    """Apre insieme le urne di una o più votazioni della seduta: chi vota le
+    trova tutte nella stessa pagina. Con urne già aperte non se ne aprono
+    altre (la scheda di chi sta votando cambierebbe sotto gli occhi): prima
+    si chiudono quelle aperte."""
+    if not votazioni:
+        raise ValidationError("Scegli almeno una votazione.")
+    for votazione in votazioni:
+        _verifica_operatore(utente, votazione)
+        if votazione.seduta_id != seduta.pk:
+            raise ValidationError("La votazione non è di questa seduta.")
+        _verifica_apribile(votazione)
+    aperte = urna.votazioni_aperte(seduta)
+    if aperte:
+        elenco = ", ".join(f"«{v.oggetto}»" for v in aperte)
+        raise ValidationError(
+            f"Ci sono già urne aperte ({elenco}): chiudile prima di aprirne altre."
+        )
+    adesso = timezone.now()
+    for votazione in votazioni:
+        votazione.aperta_in_app_il = adesso
+        votazione.save(update_fields=["aperta_in_app_il"])
 
 
 def _rimescola(votazione: Votazione) -> None:
@@ -81,6 +106,17 @@ def _rimescola(votazione: Votazione) -> None:
         Scheda(id=uuid.uuid4(), votazione=votazione, ricevuta=s["ricevuta"], scelte=s["scelte"])
         for s in schede
     )
+
+
+@transaction.atomic
+def chiudi_urne(seduta: Seduta, utente: Utente) -> list[Votazione]:
+    """Chiude tutte le urne aperte della seduta: o tutte o nessuna."""
+    aperte = urna.votazioni_aperte(seduta)
+    if not aperte:
+        raise ValidationError("Non ci sono urne aperte in questa seduta.")
+    for votazione in aperte:
+        chiudi_urna(votazione, utente)
+    return aperte
 
 
 @transaction.atomic

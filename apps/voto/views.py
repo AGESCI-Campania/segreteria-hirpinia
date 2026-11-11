@@ -158,13 +158,47 @@ class UrnaAzioneView(LoginRequiredMixin, View):
                 scrutinio.apri_urna(votazione, request.user)
                 messages.success(request, "Urna aperta: si vota dal telefono e ai seggi.")
             elif azione == "chiudi" and request.POST.get("conferma") == "1":
-                scrutinio.chiudi_urna(votazione, request.user)
-                messages.success(request, "Urna chiusa: le schede sono state rimescolate.")
+                # Le urne aperte della seduta si chiudono tutte insieme.
+                chiuse = scrutinio.chiudi_urne(votazione.seduta, request.user)
+                messages.success(
+                    request,
+                    (
+                        "Urna chiusa: le schede sono state rimescolate."
+                        if len(chiuse) == 1
+                        else f"{len(chiuse)} urne chiuse: le schede sono state rimescolate."
+                    ),
+                )
             else:
                 messages.error(request, "Azione non riconosciuta o non confermata.")
         except ValidationError as errore:
             messages.error(request, " ".join(errore.messages))
         return _alla_votazione(votazione)
+
+
+class ApriUrneView(LoginRequiredMixin, View):
+    """Apertura insieme delle urne scelte nell'elenco delle votazioni della
+    seduta (permessi e regole in scrutinio.apri_urne())."""
+
+    def post(self, request, pk, seduta_pk):
+        seduta = get_object_or_404(Seduta, pk=seduta_pk, assemblea_id=pk)
+        scelte = request.POST.getlist("votazioni")
+        votazioni = list(
+            Votazione.objects.filter(seduta=seduta, pk__in=[v for v in scelte if v.isdigit()])
+        )
+        try:
+            scrutinio.apri_urne(seduta, votazioni, request.user)
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+        else:
+            messages.success(
+                request,
+                (
+                    "Urna aperta: si vota dal telefono e ai seggi."
+                    if len(votazioni) == 1
+                    else f"{len(votazioni)} urne aperte: chi vota le trova tutte nella stessa pagina."
+                ),
+            )
+        return redirect(reverse("assemblee:votazioni", args=[pk, seduta_pk]))
 
 
 class NomiScrittiView(LoginRequiredMixin, BreadcrumbExtraMixin, View):

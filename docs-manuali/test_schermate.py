@@ -224,10 +224,12 @@ def _scenario():
             arrivata_il=datetime.date(2027, 3, 20),
         )
     candidature.aggiungi_candidatura(comitato_zona, segreteria, avente=avente("Mancini"))
-    candidature.aggiungi_posizione(
+    foca = candidature.aggiungi_posizione(
         assemblea, segreteria, incarico="Incaricato alla Formazione Capi", posti_indifferenti=1
     )
-    return segreteria, assemblea, seduta, avente, comitato_zona
+    for cognome in ("Greco", "Marino"):
+        candidature.aggiungi_candidatura(foca, segreteria, avente=avente(cognome))
+    return segreteria, assemblea, seduta, avente, comitato_zona, foca
 
 
 def _in_corso(segreteria, assemblea, seduta, avente):
@@ -253,7 +255,7 @@ def _verifica_autocompletamento(browser, campo: str, testo: str, atteso: str) ->
 def test_schermate(live_server, browser, settings):
     settings.SITE_URL = live_server.url
     f = Fotografo(browser, live_server.url)
-    segreteria, assemblea, seduta, avente, posizione = _scenario()
+    segreteria, assemblea, seduta, avente, posizione, foca = _scenario()
     pk, spk = assemblea.pk, seduta.pk
 
     # --- Manuale di gestione: preparazione ---------------------------------------
@@ -311,7 +313,14 @@ def test_schermate(live_server, browser, settings):
     vpk = elezione.pk
     f.apri(f"/assemblee/{pk}/sedute/{spk}/votazioni/{vpk}/")
     f.scatta("gestione", "votazione-aperta")
-    scrutinio.apri_urna(elezione, segreteria)
+    # Due elezioni con l'urna aperta insieme: si votano nella stessa pagina.
+    elezione_foca = votazioni.apri_votazione(
+        seduta, segreteria, tipo="", oggetto="", posizione=foca
+    )
+    f.apri(f"/assemblee/{pk}/sedute/{spk}/votazioni/")
+    f.scatta("gestione", "votazioni-apri-urne")
+    scrutinio.apri_urne(seduta, [elezione, elezione_foca], segreteria)
+    candidato_foca = {c.nome.split()[0]: c.pk for c in elezione_foca.candidati.all()}
 
     # --- Manuale di voto: l'elettore -------------------------------------------------
     candidato = {c.nome.split()[0]: c.pk for c in elezione.candidati.all()}
@@ -323,12 +332,13 @@ def test_schermate(live_server, browser, settings):
     browser.find_element("name", "codice").send_keys(codici.formatta(codice))
     browser.find_element("css selector", "form button[type=submit]").click()
     f.scatta("voto", "scheda", TELEFONO)
-    browser.find_element("id", f"c0-{candidato['Rossi']}").click()
-    campo = browser.find_elements("name", "liberi_0")[0]
+    browser.find_element("id", f"c{vpk}_0-{candidato['Rossi']}").click()
+    campo = browser.find_elements("name", f"liberi_{vpk}_0")[0]
     campo.send_keys("Anna Conti")
     from selenium.webdriver.support.ui import Select
 
-    Select(browser.find_elements("name", "sessi_liberi_0")[0]).select_by_value("F")
+    Select(browser.find_elements("name", f"sessi_liberi_{vpk}_0")[0]).select_by_value("F")
+    browser.find_element("id", f"c{elezione_foca.pk}_0-{candidato_foca['Greco']}").click()
     f.scatta("voto", "scheda-compilata", TELEFONO)
     browser.find_element(
         "css selector", "form[action$='/voto/scheda/'] button[type=submit]"
@@ -353,7 +363,13 @@ def test_schermate(live_server, browser, settings):
         if not votante.presenze.exists():
             continue
         codici.emetti(seduta, votante, segreteria)
-        urna.vota(codici.codice_attivo(seduta, votante).pk, elezione, [scelte])
+        urna.vota_insieme(
+            codici.codice_attivo(seduta, votante).pk,
+            {
+                elezione.pk: [scelte],
+                elezione_foca.pk: [urna.Scelte(candidati=(candidato_foca["Marino"],))],
+            },
+        )
 
     # Il banco: codice a schermo con l'etichetta.
     f.accedi(segreteria)
@@ -366,7 +382,8 @@ def test_schermate(live_server, browser, settings):
 
     f.apri(f"/assemblee/{pk}/sedute/{spk}/votazioni/{vpk}/")
     f.scatta("gestione", "votazione-urna-aperta")
-    scrutinio.chiudi_urna(elezione, segreteria)
+    scrutinio.chiudi_urne(seduta, segreteria)
+    elezione.refresh_from_db()
     f.apri(f"/voto/gestione/{pk}/sedute/{spk}/votazioni/{vpk}/nomi/")
     f.scatta("gestione", "nomi-scritti")
     scrutinio.interpreta(elezione, "Anna Conti", avente("Conti"), segreteria)

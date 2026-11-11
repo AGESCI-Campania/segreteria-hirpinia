@@ -1,5 +1,7 @@
 """Urna elettronica (docs/plan_voto.md, flusso 2): `vota()` è l'unico punto in
-cui si vota.
+cui si vota. Con più urne aperte insieme nella stessa seduta l'elettore le
+vota tutte in un passaggio (`vota_insieme()`, che chiama `vota()` per
+ciascuna).
 
 Un codice è accettato solo se è attivo e della seduta, la votazione è aperta
 in app, l'avente è fra i presenti dell'ultimo appello valido
@@ -94,15 +96,20 @@ def votazioni_in_app(votazione: Votazione) -> bool:
     ) and CanaleVoto.APP in canali(votazione)
 
 
-def votazione_aperta(seduta: Seduta) -> Votazione | None:
-    """L'unica votazione con l'urna aperta nella seduta, se c'è."""
-    return (
+def votazioni_aperte(seduta: Seduta) -> list[Votazione]:
+    """Le votazioni con l'urna aperta nella seduta: possono essere più d'una
+    (si votano insieme, `vota_insieme()`), nell'ordine di apertura."""
+    return list(
         seduta.votazioni.filter(
             aperta_in_app_il__isnull=False, chiusa_in_app_il__isnull=True, chiusa_il__isnull=True
-        )
-        .order_by("aperta_in_app_il")
-        .first()
+        ).order_by("aperta_in_app_il", "pk")
     )
+
+
+def chiave_votazioni(votazioni: list[Votazione]) -> str:
+    """Identifica l'insieme delle urne aperte: se cambia (se ne apre o chiude
+    una) la scheda dell'elettore va ricaricata."""
+    return ",".join(str(v.pk) for v in votazioni)
 
 
 def accedi(codice_in_chiaro: str) -> CodiceVoto | None:
@@ -290,6 +297,46 @@ def vota(
             )
         )
     return esito
+
+
+def da_votare(codice: CodiceVoto) -> list[tuple[Votazione, list[SchedaDaEsprimere]]]:
+    """Le urne aperte in cui il titolare del codice ha ancora schede da
+    esprimere, con le schede spettanti in ciascuna."""
+    risultato = []
+    for votazione in votazioni_aperte(codice.seduta):
+        if not votazioni_in_app(votazione):
+            continue
+        spettanti = schede_spettanti(codice, votazione)
+        if spettanti:
+            risultato.append((votazione, spettanti))
+    return risultato
+
+
+@transaction.atomic
+def vota_insieme(
+    codice_id: int,
+    scelte: dict[int, list[Scelte]],
+    postazione: Postazione | None = None,
+) -> list[tuple[Votazione, EsitoVoto]]:
+    """Tutte le urne aperte da votare in un solo passaggio: `scelte` ha una
+    voce per ogni votazione di `da_votare()` (chiave: id della votazione),
+    nessuna esclusa. Ogni votazione passa da `vota()`, unico punto delle
+    regole; o si registrano tutte o nessuna."""
+    codice = (
+        CodiceVoto.objects.select_for_update()
+        .select_related("seduta__assemblea", "avente")
+        .filter(pk=codice_id)
+        .first()
+    )
+    if not codice_valido(codice):
+        raise ValidationError("Codice non valido o non più attivo.")
+    assert codice is not None
+    attese = [votazione for votazione, _ in da_votare(codice)]
+    if not attese:
+        raise ValidationError("Non ci sono votazioni da votare.")
+    if {v.pk for v in attese} != set(scelte):
+        raise ValidationError("Le votazioni aperte sono cambiate: ricontrolla la scheda.")
+    return [(v, vota(codice_id, v, scelte[v.pk], postazione)) for v in attese]
 
 
 def ha_votato_in_app_in_corso(avente: AventeDiritto) -> bool:

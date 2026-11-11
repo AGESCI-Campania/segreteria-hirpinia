@@ -1500,8 +1500,14 @@ seduta, l'urna della votazione è aperta, l'avente è fra i presenti dell'appell
 (`quorum.presenti()`), non è passato a carta e non ha già votato. Con una delega
 registrata il delegato esprime anche la scheda del delegante (al massimo due). Scheda:
 fino a N preferenze (N = posti) contando i nomi scritti, oppure bianca, oppure nulla. Due
-passi: riepilogo e conferma; poi una ricevuta per scheda. Una sola urna aperta per seduta;
-durante il voto si vede solo il numero dei votanti.
+passi: riepilogo e conferma; poi una ricevuta per scheda. Più urne della stessa seduta si
+aprono **insieme**, in un colpo solo dall'elenco delle votazioni (`scrutinio.apri_urne()`):
+con urne già aperte non se ne aprono altre, così la scheda di chi sta votando non cambia.
+L'elettore le vota tutte nella stessa pagina, con un solo riepilogo e una sola conferma
+(`urna.vota_insieme()`, che passa da `vota()` per ciascuna; tutte o nessuna, bianca e nulla
+ammesse), e le urne si chiudono tutte insieme (`scrutinio.chiudi_urne()`) (decisione del
+2026-11-11; prima: una sola urna aperta per seduta). Durante il voto si vede solo il numero
+dei votanti.
 
 **Seggi** (`apps/voto/postazioni.py`). Postazioni per seduta attivate con un link monouso
 (segreto nel fragment); il dispositivo riceve un cookie firmato di cui si salva solo

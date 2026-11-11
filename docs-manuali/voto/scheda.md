@@ -3,6 +3,10 @@
 Quando la presidenza apre l'urna compare la scheda. In alto ci sono l'incarico da eleggere
 e quante preferenze puoi dare.
 
+Se si votano **più elezioni insieme**, le schede sono tutte nella stessa pagina, una sotto
+l'altra: compilale tutte (anche bianche, se vuoi), poi rivedi e conferma una volta sola.
+Ricevi una ricevuta per ogni scheda.
+
 - **Spunta** i candidati che vuoi votare, fino al numero di preferenze indicato.
 - Puoi anche **scrivere un nome** nei campi «Altro nome»: un capo che non è fra i
   candidati. Sarà la commissione elettorale a ricondurlo alla persona.

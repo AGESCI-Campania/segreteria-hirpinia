@@ -200,10 +200,10 @@ class TestPagine:
         pagina = client.get("/voto/scheda/").content.decode()
         assert "Carlo Esterni" in pagina and "Elezione del Comitato" in pagina
         dati = {
-            "votazione": elezione.pk,
-            "candidati_0": [_candidato(elezione, "Verdi")],
-            "liberi_0": ["Gino Liberi", ""],
-            "esito_0": "VOTO",
+            "votazioni": str(elezione.pk),
+            f"candidati_{elezione.pk}_0": [_candidato(elezione, "Verdi")],
+            f"liberi_{elezione.pk}_0": ["Gino Liberi", ""],
+            f"esito_{elezione.pk}_0": "VOTO",
         }
         riepilogo = client.post("/voto/scheda/", {**dati, "azione": "rivedi"})
         assert "Conferma il voto" in riepilogo.content.decode()
@@ -217,7 +217,8 @@ class TestPagine:
     def test_errore_resta_sulla_scheda(self, client, elezione, costituita, assemblea, segreteria):
         self._accedi(client, costituita, assemblea, "Rossi", segreteria)
         risposta = client.post(
-            "/voto/scheda/", {"votazione": elezione.pk, "azione": "rivedi", "esito_0": "VOTO"}
+            "/voto/scheda/",
+            {"votazioni": str(elezione.pk), "azione": "rivedi", f"esito_{elezione.pk}_0": "VOTO"},
         )
         assert "Scegli almeno un candidato" in risposta.content.decode()
 
@@ -233,7 +234,7 @@ class TestPagine:
         self._accedi(client, costituita, assemblea, "Rossi", segreteria)
         assert client.get("/voto/stato.json").json() == {
             "accesso": True,
-            "votazione": elezione.pk,
+            "votazione": str(elezione.pk),
         }
 
     def test_in_attesa_senza_votazioni(self, client, costituita, assemblea, segreteria):

@@ -120,20 +120,23 @@ class AccediView(View):
         return redirect("voto:scheda")
 
 
-def _scelte_dal_post(request: HttpRequest, numero: int) -> list[urna.Scelte]:
+def _scelte_dal_post(request: HttpRequest, prefisso: str, numero: int) -> list[urna.Scelte]:
+    """Le schede di una votazione: i campi hanno il prefisso `<votazione>_<scheda>`
+    perché nella pagina ci sono le schede di tutte le urne aperte."""
     scelte = []
     for indice in range(numero):
+        chiave = f"{prefisso}_{indice}"
         try:
-            candidati = tuple(int(v) for v in request.POST.getlist(f"candidati_{indice}"))
+            candidati = tuple(int(v) for v in request.POST.getlist(f"candidati_{chiave}"))
         except ValueError:
             raise ValidationError("Scelta non valida.") from None
         scelte.append(
             urna.Scelte(
-                esito=request.POST.get(f"esito_{indice}", urna.ESITO_VOTO),
+                esito=request.POST.get(f"esito_{chiave}", urna.ESITO_VOTO),
                 candidati=candidati,
-                liberi=tuple(request.POST.getlist(f"liberi_{indice}")),
+                liberi=tuple(request.POST.getlist(f"liberi_{chiave}")),
                 # Un menu per ogni campo nome, nello stesso ordine (solo con le quote).
-                sessi_liberi=tuple(request.POST.getlist(f"sessi_liberi_{indice}")),
+                sessi_liberi=tuple(request.POST.getlist(f"sessi_liberi_{chiave}")),
             )
         )
     return scelte
@@ -157,25 +160,33 @@ def _riepilogo(votazione: Votazione, scelte: urna.Scelte) -> list[str]:
 
 @method_decorator(never_cache, name="dispatch")
 class SchedaView(View):
-    """La scheda della votazione aperta, oppure l'attesa con il polling.
-    POST in due passi: «rivedi» mostra il riepilogo, «conferma» vota."""
+    """Le schede di tutte le urne aperte da votare, in una pagina sola,
+    oppure l'attesa con il polling. POST in due passi: «rivedi» mostra il
+    riepilogo, «conferma» vota tutte le schede insieme (`urna.vota_insieme()`)."""
 
     def _contesto(self, codice: CodiceVoto) -> dict:
-        votazione = urna.votazione_aperta(codice.seduta)
-        spettanti = []
-        if votazione is not None and urna.votazioni_in_app(votazione):
-            spettanti = urna.schede_spettanti(codice, votazione)
-        else:
-            votazione = None
+        aperte = urna.votazioni_aperte(codice.seduta)
+        da_votare = urna.da_votare(codice)
+        votazioni = [
+            {
+                "votazione": votazione,
+                "candidati": list(votazione.candidati.all()),
+                "spettanti": spettanti,
+                "posti": range(votazione.posti),
+                "quote": bool(votazione.posti_maschili or votazione.posti_femminili),
+            }
+            for votazione, spettanti in da_votare
+        ]
         return {
             "codice": codice,
             "assemblea": codice.seduta.assemblea,
             "seduta": codice.seduta,
-            "votazione": votazione,
-            "candidati": list(votazione.candidati.all()) if votazione else [],
-            "spettanti": spettanti,
-            "posti": range(votazione.posti) if votazione else range(0),
-            "quote": bool(votazione and (votazione.posti_maschili or votazione.posti_femminili)),
+            "votazioni": votazioni,
+            # Le urne da votare (per accettare il modulo) e quelle aperte (per
+            # il polling della pagina di attesa): se cambiano si ricarica.
+            "chiave": urna.chiave_votazioni([votazione for votazione, _ in da_votare]),
+            "chiave_aperte": urna.chiave_votazioni(aperte),
+            "aperte": aperte,
             "sessi": Sesso.choices,
         }
 
@@ -190,29 +201,45 @@ class SchedaView(View):
         if codice is None:
             return redirect("voto:urna")
         contesto = self._contesto(codice)
-        votazione = contesto["votazione"]
-        if votazione is None or str(votazione.pk) != request.POST.get("votazione"):
-            messages.warning(request, "La votazione è cambiata: ricontrolla la scheda.")
+        if not contesto["votazioni"] or contesto["chiave"] != request.POST.get("votazioni"):
+            messages.warning(request, "Le votazioni aperte sono cambiate: ricontrolla la scheda.")
             return redirect("voto:scheda")
         azione = request.POST.get("azione")
         postazione = postazione_della_richiesta(request)
         try:
-            scelte = _scelte_dal_post(request, len(contesto["spettanti"]))
+            scelte = {
+                voce["votazione"].pk: _scelte_dal_post(
+                    request, str(voce["votazione"].pk), len(voce["spettanti"])
+                )
+                for voce in contesto["votazioni"]
+            }
             if azione == "conferma":
-                esito = urna.vota(codice.pk, votazione, scelte, postazione)
+                esiti = urna.vota_insieme(codice.pk, scelte, postazione)
             else:
-                scelte = [urna.valida_scelte(votazione, s) for s in scelte]
+                scelte = {
+                    voce["votazione"].pk: [
+                        urna.valida_scelte(voce["votazione"], s)
+                        for s in scelte[voce["votazione"].pk]
+                    ]
+                    for voce in contesto["votazioni"]
+                }
         except ValidationError as errore:
             contesto["errore"] = " ".join(errore.messages)
             return render(request, "voto/scheda.html", contesto)
         if azione == "conferma":
             ricevute = [
                 {
-                    "ricevuta": r.ricevuta,
-                    "per_delega_di": r.per_delega_di,
-                    "righe": _riepilogo(votazione, r.scelte),
+                    "votazione": votazione,
+                    "ricevute": [
+                        {
+                            "ricevuta": r.ricevuta,
+                            "per_delega_di": r.per_delega_di,
+                            "righe": _riepilogo(votazione, r.scelte),
+                        }
+                        for r in esito.ricevute
+                    ],
                 }
-                for r in esito.ricevute
+                for votazione, esito in esiti
             ]
             al_seggio = postazione is not None
             if al_seggio:
@@ -224,24 +251,29 @@ class SchedaView(View):
                 "voto/ricevuta.html",
                 {
                     **contesto,
-                    "ricevute": ricevute,
-                    "votazione": votazione,
+                    "per_votazione": ricevute,
                     "al_seggio": al_seggio,
                     "secondi_ricevuta": SECONDI_RICEVUTA_SEGGIO,
                 },
             )
-        schede = [
+        riepilogo = [
             {
-                "indice": indice,
-                "spettante": spettante,
-                "scelte": scelta,
-                "righe": _riepilogo(votazione, scelta),
+                "votazione": voce["votazione"],
+                "schede": [
+                    {
+                        "chiave": f"{voce['votazione'].pk}_{indice}",
+                        "spettante": spettante,
+                        "scelte": scelta,
+                        "righe": _riepilogo(voce["votazione"], scelta),
+                    }
+                    for indice, (spettante, scelta) in enumerate(
+                        zip(voce["spettanti"], scelte[voce["votazione"].pk], strict=True)
+                    )
+                ],
             }
-            for indice, (spettante, scelta) in enumerate(
-                zip(contesto["spettanti"], scelte, strict=True)
-            )
+            for voce in contesto["votazioni"]
         ]
-        return render(request, "voto/riepilogo.html", {**contesto, "schede": schede})
+        return render(request, "voto/riepilogo.html", {**contesto, "riepilogo": riepilogo})
 
 
 @method_decorator(never_cache, name="dispatch")
@@ -256,8 +288,9 @@ class StatoView(View):
         chiave = f"voto:stato:{codice.seduta_id}"
         votazione_id = cache.get(chiave, "assente")
         if votazione_id == "assente":
-            votazione = urna.votazione_aperta(codice.seduta)
-            votazione_id = votazione.pk if votazione else None
+            # Con più urne aperte: la chiave dell'insieme (cambia se se ne apre
+            # o chiude una), confrontata dalla pagina in attesa.
+            votazione_id = urna.chiave_votazioni(urna.votazioni_aperte(codice.seduta)) or None
             cache.set(chiave, votazione_id, CACHE_STATO_SECONDI)
         return JsonResponse({"accesso": True, "votazione": votazione_id})
 

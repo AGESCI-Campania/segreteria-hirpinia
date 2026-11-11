@@ -36,13 +36,14 @@
         {% if not votazione.aperta_in_app_il %}
           <p class="mb-3">Non ancora aperta: chi ha il codice vedrà la scheda appena la apri.</p>
           {% if puo_operare and not votazione.chiusa %}
-            {% if urna.altra_aperta %}
-              <p class="fg-2 mb-0">C'è già un'urna aperta in questa seduta: «{{ urna.altra_aperta.oggetto }}».</p>
+            {% if urna.altre_aperte %}
+              <p class="fg-2 mb-0">Ci sono già urne aperte in questa seduta ({% for v in urna.altre_aperte %}«{{ v.oggetto }}»{% if not forloop.last %}, {% endif %}{% endfor %}): chiudile prima di aprire questa.</p>
             {% else %}
               <form method="post" action="{% url 'voto:urna_azione' assemblea.pk seduta.pk votazione.pk %}">
                 {% csrf_token %}<input type="hidden" name="azione" value="apri">
                 <button type="submit" class="btn-solid theme-primary">Apri l'urna</button>
               </form>
+              <p class="fg-2 mt-3 mb-0">Per aprire insieme le urne di più elezioni usa l'<a href="{% url 'assemblee:votazioni' assemblea.pk seduta.pk %}">elenco delle votazioni</a>.</p>
             {% endif %}
           {% endif %}
         {% elif not votazione.chiusa_in_app_il %}
@@ -53,9 +54,9 @@
               {% csrf_token %}<input type="hidden" name="azione" value="chiudi">
               <div class="form-field mb-0">
                 <input type="checkbox" name="conferma" value="1" id="conferma-chiudi-urna" class="check" required>
-                <label for="conferma-chiudi-urna">Hanno votato tutti quelli che volevano votare in app</label>
+                <label for="conferma-chiudi-urna">Hanno votato tutti quelli che volevano votare in app{% if urna.altre_aperte %} (si chiudono anche le altre {{ urna.altre_aperte|length }} urne aperte){% endif %}</label>
               </div>
-              <button type="submit" class="btn-solid theme-warning">Chiudi l'urna</button>
+              <button type="submit" class="btn-solid theme-warning">{% if urna.altre_aperte %}Chiudi tutte le urne{% else %}Chiudi l'urna{% endif %}</button>
             </form>
           {% endif %}
         {% else %}

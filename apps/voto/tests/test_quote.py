@@ -303,19 +303,22 @@ def test_scheda_con_quote_dalla_pagina(client, costituita, assemblea, segreteria
     codice = codici.emetti(costituita, avente(assemblea, "Verdi"), segreteria)
     client.post("/voto/accedi/", {"codice": codici.formatta(codice)})
     pagina = client.get("/voto/scheda/").content.decode()
-    assert "Posti maschili 1, femminili 1" in pagina and 'name="sessi_liberi_0"' in pagina
+    assert (
+        "Posti maschili 1, femminili 1" in pagina
+        and f'name="sessi_liberi_{elezione.pk}_0"' in pagina
+    )
     dati = {
-        "votazione": elezione.pk,
-        "candidati_0": [_c(elezione, "Bianchi")],
-        "liberi_0": ["Luca Verdi", ""],
-        "sessi_liberi_0": ["M", ""],
-        "esito_0": "VOTO",
+        "votazioni": str(elezione.pk),
+        f"candidati_{elezione.pk}_0": [_c(elezione, "Bianchi")],
+        f"liberi_{elezione.pk}_0": ["Luca Verdi", ""],
+        f"sessi_liberi_{elezione.pk}_0": ["M", ""],
+        f"esito_{elezione.pk}_0": "VOTO",
     }
     riepilogo = client.post("/voto/scheda/", {**dati, "azione": "rivedi"}).content.decode()
     assert "«Luca Verdi» (nome scritto, posto maschile)" in riepilogo
     troppi = client.post(
         "/voto/scheda/",
-        {**dati, "candidati_0": [_c(elezione, "Rossi")], "azione": "rivedi"},
+        {**dati, f"candidati_{elezione.pk}_0": [_c(elezione, "Rossi")], "azione": "rivedi"},
     ).content.decode()
     assert "al massimo 1 preferenza maschile" in troppi
     # La conferma riparte dal riepilogo: deve portarsi dietro il sesso dichiarato.
@@ -324,14 +327,14 @@ def test_scheda_con_quote_dalla_pagina(client, costituita, assemblea, segreteria
     conferma = client.post(
         "/voto/scheda/",
         {
-            "votazione": elezione.pk,
+            "votazioni": str(elezione.pk),
             "azione": "conferma",
-            "esito_0": "VOTO",
-            "candidati_0": [_c(elezione, "Bianchi")],
-            "liberi_0": ["Luca Verdi"],
-            "sessi_liberi_0": ["M"],
+            f"esito_{elezione.pk}_0": "VOTO",
+            f"candidati_{elezione.pk}_0": [_c(elezione, "Bianchi")],
+            f"liberi_{elezione.pk}_0": ["Luca Verdi"],
+            f"sessi_liberi_{elezione.pk}_0": ["M"],
         },
     )
     assert conferma.status_code == 200
     assert Scheda.objects.get(votazione=elezione).scelte["sessi_liberi"] == ["M"]
-    assert 'name="sessi_liberi_0" value="M"' in riepilogo
+    assert f'name="sessi_liberi_{elezione.pk}_0" value="M"' in riepilogo

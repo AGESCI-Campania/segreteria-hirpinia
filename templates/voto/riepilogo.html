@@ -5,23 +5,29 @@
 {% block content %}
   <div class="row justify-content-center">
     <div class="md:col-8">
-      {% include "voto/_testata_scheda.html" %}
+      <p class="fg-2 mb-1">{{ assemblea }} — {{ seduta.get_convocazione_display }}</p>
+      <h1 class="mb-3">Riepilogo</h1>
       <p class="fs-lg mb-5"><strong>Controlla e conferma.</strong> Dopo la conferma il voto non si può cambiare.</p>
       <form method="post" action="{% url 'voto:scheda' %}">
         {% csrf_token %}
-        <input type="hidden" name="votazione" value="{{ votazione.pk }}">
+        <input type="hidden" name="votazioni" value="{{ chiave }}">
         <input type="hidden" name="azione" value="conferma">
-        {% for scheda in schede %}
-          <div class="card mb-5">
-            <div class="card-body">
-              <h2 class="fs-lg">{% if scheda.spettante.per_delega %}Per delega di {{ scheda.spettante.avente.cognome }} {{ scheda.spettante.avente.nome }}{% else %}La tua scheda{% endif %}</h2>
-              <ul class="mb-0">{% for riga in scheda.righe %}<li>{{ riga }}</li>{% endfor %}</ul>
-              <input type="hidden" name="esito_{{ scheda.indice }}" value="{{ scheda.scelte.esito }}">
-              {% for candidato in scheda.scelte.candidati %}<input type="hidden" name="candidati_{{ scheda.indice }}" value="{{ candidato }}">{% endfor %}
-              {% for nome in scheda.scelte.liberi %}<input type="hidden" name="liberi_{{ scheda.indice }}" value="{{ nome }}">{% endfor %}
-              {% for sesso in scheda.scelte.sessi_liberi %}<input type="hidden" name="sessi_liberi_{{ scheda.indice }}" value="{{ sesso }}">{% endfor %}
+        {% for voce in riepilogo %}
+          {% with votazione=voce.votazione %}
+          {% include "voto/_testata_scheda.html" %}
+          {% for scheda in voce.schede %}
+            <div class="card mb-5">
+              <div class="card-body">
+                <h3 class="fs-lg">{% if scheda.spettante.per_delega %}Per delega di {{ scheda.spettante.avente.cognome }} {{ scheda.spettante.avente.nome }}{% else %}La tua scheda{% endif %}</h3>
+                <ul class="mb-0">{% for riga in scheda.righe %}<li>{{ riga }}</li>{% endfor %}</ul>
+                <input type="hidden" name="esito_{{ scheda.chiave }}" value="{{ scheda.scelte.esito }}">
+                {% for candidato in scheda.scelte.candidati %}<input type="hidden" name="candidati_{{ scheda.chiave }}" value="{{ candidato }}">{% endfor %}
+                {% for nome in scheda.scelte.liberi %}<input type="hidden" name="liberi_{{ scheda.chiave }}" value="{{ nome }}">{% endfor %}
+                {% for sesso in scheda.scelte.sessi_liberi %}<input type="hidden" name="sessi_liberi_{{ scheda.chiave }}" value="{{ sesso }}">{% endfor %}
+              </div>
             </div>
-          </div>
+          {% endfor %}
+          {% endwith %}
         {% endfor %}
         <button type="submit" class="btn-solid theme-success w-100 mb-3">Conferma il voto</button>
       </form>

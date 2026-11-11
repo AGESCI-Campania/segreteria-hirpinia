@@ -41,6 +41,11 @@ urlpatterns = [
         name="nomi_scritti",
     ),
     path(
+        "gestione/<int:pk>/sedute/<int:seduta_pk>/urne/apri/",
+        views.ApriUrneView.as_view(),
+        name="apri_urne",
+    ),
+    path(
         "gestione/<int:pk>/sedute/<int:seduta_pk>/seggi/",
         views.SeggiView.as_view(),
         name="seggi",

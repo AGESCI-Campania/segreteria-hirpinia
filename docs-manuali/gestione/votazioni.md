@@ -13,9 +13,18 @@ la piattaforma fotografa presenti e aventi diritto: sono la base della maggioran
 
 ## L'urna elettronica
 
-Con il voto in app, **Apri l'urna**: chi ha il codice vede la scheda. Durante il voto si
-vede solo quanti hanno votato. Quando hanno votato tutti quelli che volevano votare in
-app, spunta la conferma e **Chiudi l'urna**. Si può tenere aperta un'urna alla volta.
+Con il voto in app, **Apri l'urna** dalla pagina della votazione: chi ha il codice vede
+la scheda. Durante il voto si vede solo quanti hanno votato.
+
+Per votare **più elezioni insieme**, nell'elenco delle **Votazioni** spunta le elezioni e
+premi **Apri le urne selezionate**: chi vota le trova tutte nella stessa pagina e le
+conferma insieme. Finché ci sono urne aperte non se ne aprono altre: vanno aperte tutte
+nello stesso momento.
+
+![Apertura delle urne dall'elenco](img/votazioni-apri-urne.jpg)
+
+Quando hanno votato tutti quelli che volevano votare in app, spunta la conferma e **Chiudi
+l'urna** (o **Chiudi tutte le urne**, se ce n'è più d'una aperta: si chiudono insieme).
 
 ![Urna aperta](img/votazione-urna-aperta.jpg)
 
