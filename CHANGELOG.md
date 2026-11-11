@@ -8,6 +8,15 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.10.0] - 2026-11-11
+
+### Modificato
+
+- Presenze durante le votazioni: chi arriva (o è presente per delega) mentre
+  una votazione è aperta vota e si aggiunge ai presenti di quella votazione;
+  finché ci sono votazioni aperte non si può annullare una presenza né revocare
+  una delega.
+
 ## [1.9.0] - 2026-11-11
 
 ### Aggiunto
