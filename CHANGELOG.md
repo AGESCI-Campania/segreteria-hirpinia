@@ -8,6 +8,21 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.11.0] - 2026-11-11
+
+### Aggiunto
+
+- Urne aperte: la pagina della votazione, il cruscotto e il proiettore mostrano,
+  aggiornati da soli, quanti hanno votato in app e quanti mancano; pagina della
+  votazione e cruscotto anche chi deve ancora votare (il proiettore solo i
+  numeri).
+
+### Modificato
+
+- Seggio: la ricevuta torna a restare a schermo 30 secondi; il pulsante di
+  chiusura è in evidenza in cima e in fondo alla pagina, anche sul dispositivo
+  personale.
+
 ## [1.10.1] - 2026-11-11
 
 ### Modificato

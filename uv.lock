@@ -220,7 +220,7 @@ wheels = [
 
 [[package]]
 name = "catello-hirpinia"
-version = "1.10.1"
+version = "1.11.0"
 source = { editable = "." }
 dependencies = [
     { name = "bleach", extra = ["css"] },
