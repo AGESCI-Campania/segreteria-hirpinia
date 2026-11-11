@@ -1,5 +1,7 @@
 """Apertura, chiusura e scrutinio dell'urna (apps/voto/scrutinio.py)."""
 
+import hashlib
+
 import pytest
 from django.core.exceptions import ValidationError
 
@@ -279,7 +281,8 @@ class TestBachecaEVerifica:
 
     def test_nota_nel_verbale(self, scrutinata, costituita):
         nota = scrutinio.nota_verbale(scrutinata)
-        assert scrutinata.hash_bacheca in nota
+        # L'impronta sta in bacheca, non nel verbale.
+        assert scrutinata.hash_bacheca not in nota and "SHA" not in nota
         assert "1 attribuiti" in nota and "rossi" not in nota.lower()
         voci = verbale.contesto_verbale(costituita)["senza_punto"]
         assert voci[0].nota_app == nota
@@ -288,6 +291,12 @@ class TestBachecaEVerifica:
         risposta = client.get(f"/voto/bacheca/{scrutinata.pk}/")
         assert risposta.status_code == 200
         assert scrutinata.hash_bacheca in risposta.content.decode()
+        assert "shasum -a 256" in risposta.content.decode()
+        assert "no-cache" in risposta["Cache-Control"] or "max-age=0" in risposta["Cache-Control"]
+        # Il file scaricato è esattamente ciò di cui si calcola l'impronta.
+        testo = client.get(f"/voto/bacheca/{scrutinata.pk}/elenco.txt")
+        assert testo["Content-Type"] == "text/plain; charset=utf-8"
+        assert hashlib.sha256(testo.content).hexdigest() == scrutinata.hash_bacheca
         ricevuta = Scheda.objects.first().ricevuta
         verifica = client.post("/voto/verifica/", {"ricevuta": ricevuta})
         assert "è stata contata così" in verifica.content.decode()

@@ -15,7 +15,7 @@ import time
 from django.contrib import messages
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.http import HttpRequest, JsonResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.decorators import method_decorator
@@ -301,17 +301,23 @@ class EsciView(View):
         return redirect(reverse("voto:urna"))
 
 
+def _votazione_in_bacheca(votazione_pk: int) -> Votazione:
+    return get_object_or_404(
+        Votazione.objects.select_related("seduta__assemblea"),
+        pk=votazione_pk,
+        chiusa_il__isnull=False,
+        aperta_in_app_il__isnull=False,
+    )
+
+
+@method_decorator(never_cache, name="dispatch")
 class BachecaView(View):
     """Bacheca pubblica di una votazione, a risultati registrati: ricevuta →
-    scheda interpretata, con l'impronta riportata nel verbale."""
+    scheda interpretata, con l'impronta fissata alla registrazione dei
+    risultati e le indicazioni per ricalcolarla sull'elenco scaricato."""
 
     def get(self, request, votazione_pk):
-        votazione = get_object_or_404(
-            Votazione.objects.select_related("seduta__assemblea"),
-            pk=votazione_pk,
-            chiusa_il__isnull=False,
-            aperta_in_app_il__isnull=False,
-        )
+        votazione = _votazione_in_bacheca(votazione_pk)
         righe = scrutinio.righe_bacheca(votazione)
         return render(
             request,
@@ -320,10 +326,23 @@ class BachecaView(View):
                 "votazione": votazione,
                 "assemblea": votazione.seduta.assemblea,
                 "righe": righe,
-                "impronta": scrutinio.impronta(righe),
+                "impronta": votazione.hash_bacheca,
                 "frase_esito": frase_esito(votazione),
             },
         )
+
+
+@method_decorator(never_cache, name="dispatch")
+class BachecaTestoView(View):
+    """L'elenco della bacheca come file di testo, byte per byte quello di cui
+    si calcola l'impronta: chiunque può ricalcolarla."""
+
+    def get(self, request, votazione_pk):
+        votazione = _votazione_in_bacheca(votazione_pk)
+        testo = scrutinio.testo_bacheca(scrutinio.righe_bacheca(votazione))
+        risposta = HttpResponse(testo.encode("utf-8"), content_type="text/plain; charset=utf-8")
+        risposta["Content-Disposition"] = f'attachment; filename="bacheca-{votazione.pk}.txt"'
+        return risposta
 
 
 @method_decorator(never_cache, name="dispatch")

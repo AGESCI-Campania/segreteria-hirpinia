@@ -15,5 +15,14 @@
   <ul class="list-unstyled font-monospace mb-7">
     {% for riga in righe %}<li>{{ riga }}</li>{% empty %}<li>Nessuna scheda in app.</li>{% endfor %}
   </ul>
-  <p class="fg-2 text-break">Impronta SHA-256 dell'elenco (riportata nel verbale): <span class="font-monospace">{{ impronta }}</span></p>
+  <h2 class="fs-lg">Impronta dell'elenco</h2>
+  <p class="text-break mb-3">Impronta SHA-256, fissata quando sono stati registrati i risultati: <span class="font-monospace">{{ impronta }}</span></p>
+  <div class="fg-2 mb-5">
+    <p class="mb-2">Se anche una sola riga dell'elenco cambiasse, l'impronta non corrisponderebbe più. Per controllarla:</p>
+    <ol class="mb-0">
+      <li><a href="{% url 'voto:bacheca_testo' votazione.pk %}">Scarica l'elenco come testo</a> (<span class="font-monospace">bacheca-{{ votazione.pk }}.txt</span>): sono le righe qui sopra, senza modifiche.</li>
+      <li>Calcolane l'impronta SHA-256: su macOS e Linux <span class="font-monospace">shasum -a 256 bacheca-{{ votazione.pk }}.txt</span>, su Windows <span class="font-monospace">certutil -hashfile bacheca-{{ votazione.pk }}.txt SHA256</span>.</li>
+      <li>Il risultato deve coincidere con l'impronta qui sopra (maiuscole e minuscole non contano).</li>
+    </ol>
+  </div>
 {% endblock %}

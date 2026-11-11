@@ -474,8 +474,12 @@ regole lì senza chiedere.
 **Eccezione dichiarata**: TinyMCE (editor rich text di `TemplateEmail.corpo_html`, M8)
 porta il proprio CSS/JS di toolbar, vendorizzato in `static/vendor/tinymce/` (nessuna
 API key, nessun CDN esterno — build self-hosted, licenza GPL in
-`static/vendor/tinymce/LICENSE-tinymce.md`). Limitata alla sola pagina di modifica
-template email: non toccare né estendere per altre parti del tema. I plugin `table` e
+`static/vendor/tinymce/LICENSE-tinymce.md`). Limitata alla pagina di modifica
+template email, alla firma email in Impostazioni e alle **note finali del verbale**
+dell'assemblea (`templates/assemblee/verbale.html`, solo `lists`, niente immagini né
+incolla di immagini; sanificate con `apps/assemblee/verbale.py::sanifica_note_finali()`,
+vocabolario ridotto distinto da quello delle email): non estendere ad altre pagine
+senza chiedere. I plugin `table` e
 `image` sono vendorizzati (stessa versione 8.8.2 del core, stessa fonte, stesso file di
 licenza) — se serve un altro plugin, stessa procedura: scaricare **la stessa versione
 esatta** del core, mai `latest`.

@@ -1443,10 +1443,13 @@ Nazionale ha invece un pulsante "Aggiorna".
 modelli nazionali: verbale dell'assemblea per punti all'ordine del giorno, con il numero
 dei presenti nella frase sul quorum e la frase di esito di ogni votazione calcolata;
 verbale per la variazione del rappresentante legale, se viene eletto un RdZ, con i dati
-del RL precompilati dall'anagrafica e modificabili. L'ordine del giorno è libero, con i
+del RL precompilati dall'anagrafica e modificabili; il RL si sceglie fra tutti gli aventi
+diritto dell'elenco (chi è appena eletto RdZ non ne ha ancora la qualifica), con prima gli
+eletti della seduta e poi gli RdZ in carica (decisione del 2026-11-11). L'ordine del giorno è libero, con i
 punti tipici del modello nazionale proposti. Presidenza, segretario, scrutatori, comitato
-mozioni e RdZ firmatari (uno o due: un posto può essere vacante) sono testo libero con
-suggerimenti dall'elenco, comuni ai due verbali della seduta. I numeri della frase sul
+mozioni e RdZ firmatari (la Responsabile e il Responsabile di Zona, un posto può essere
+vacante; precompilati con gli RdZ in carica nell'elenco, uno per sesso, decisione del
+2026-11-11) sono testo libero con suggerimenti da tutto l'elenco, comuni ai due verbali della seduta. I numeri della frase sul
 quorum sono quelli fotografati alla dichiarazione di seduta costituita. Ordine del giorno
 e verbali sono riservati ad ADMIN, SEGRETERIA e RdZ (non al comitato elettorale); dal
 2026-11-11 presidenti e segretario indicati in preparazione, con l'accesso, compilano il
@@ -1526,8 +1529,10 @@ transazione). I nomi scritti li interpreta la **commissione elettorale**, per te
 avente diritto (che diventa candidato) o nulli; una scheda senza preferenze valide è
 nulla; finché resta un nome da interpretare il conteggio non parte. Bacheca pubblica a
 risultati registrati (ricevuta → scheda interpretata, **mai il testo scritto**: potrebbe
-fare da segno di riconoscimento) con impronta SHA-256 riportata nel verbale; verifica
-personale della ricevuta.
+fare da segno di riconoscimento) con impronta SHA-256 fissata alla registrazione dei
+risultati, mostrata in bacheca con l'elenco scaricabile come testo e le indicazioni per
+ricalcolarla, non nel verbale (decisione del 2026-11-11); verifica personale della
+ricevuta.
 
 **Anonimato: cosa garantisce e cosa no.** Nessun legame nel modello fra `Scheda` e
 `Votante` (niente FK, id casuali, nessun timestamp); il rimescolamento cancella nel dato a

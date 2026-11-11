@@ -14,6 +14,11 @@ urlpatterns = [
     path("verifica/", views_urna.VerificaView.as_view(), name="verifica"),
     path("seggio/", views_urna.AttivaPostazioneView.as_view(), name="attiva_postazione"),
     path("bacheca/<int:votazione_pk>/", views_urna.BachecaView.as_view(), name="bacheca"),
+    path(
+        "bacheca/<int:votazione_pk>/elenco.txt",
+        views_urna.BachecaTestoView.as_view(),
+        name="bacheca_testo",
+    ),
     # Banco e gestione (login): stessa struttura di URL delle assemblee.
     path(
         "gestione/<int:pk>/sistema/",

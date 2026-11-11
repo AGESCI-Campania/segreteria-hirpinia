@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% load static %}
 {% block page_title %}Verbale — {{ seduta }}{% endblock %}
 
 {% block content %}
@@ -27,7 +28,7 @@
   <form method="post" class="mb-5">
     {% csrf_token %}
     <input type="hidden" name="azione" value="riprendi">
-    <p class="fg-2 mb-3">Presidenza, segretario, comitato mozioni e scrutatori si precompilano da quanto indicato nella pagina dell'assemblea; se lì sono cambiati dopo, riprendili.</p>
+    <p class="fg-2 mb-3">Presidenza, segretario, comitato mozioni e scrutatori si precompilano da quanto indicato nella pagina dell'assemblea, i Responsabili di Zona da quelli in carica nell'elenco degli aventi diritto; se sono cambiati dopo, riprendili.</p>
     <button type="submit" class="btn-outline theme-secondary btn-sm">Riprendi dalla preparazione</button>
   </form>
 
@@ -46,5 +47,30 @@
 
   <datalist id="nomi-aventi">{% for nome in nomi_aventi %}<option value="{{ nome }}">{% endfor %}</datalist>
   <datalist id="nomi-scrutatori">{% for nome in nomi_scrutatori %}<option value="{{ nome }}">{% endfor %}</datalist>
-  <datalist id="nomi-rdz">{% for nome in nomi_rdz %}<option value="{{ nome }}">{% endfor %}</datalist>
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script src="{% static 'vendor/tinymce/tinymce.min.js' %}"></script>
+  <script>
+    // Note finali: solo formattazione del testo, nessuna immagine (né plugin
+    // né incolla/trascina). Il server sanifica comunque con
+    // apps/assemblee/verbale.py::sanifica_note_finali().
+    if (window.tinymce) {
+      tinymce.init({
+        selector: "#id_note_finali",
+        license_key: "gpl",
+        base_url: "{% get_static_prefix %}vendor/tinymce",
+        suffix: ".min",
+        plugins: "lists",
+        toolbar: "undo redo | bold italic underline | bullist numlist",
+        menubar: false,
+        branding: false,
+        height: 260,
+        valid_elements: "p,br,strong/b,em/i,u,ul,ol,li",
+        paste_data_images: false,
+        block_unsupported_drop: true,
+      });
+    }
+  </script>
 {% endblock %}

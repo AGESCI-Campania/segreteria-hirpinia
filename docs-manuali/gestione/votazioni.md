@@ -54,7 +54,8 @@ diverso, quella preferenza non conta.
 
 In **Registra i voti** si inseriscono solo i voti **su carta** (e schede bianche e nulle):
 quelli in app si contano da soli. **Registra e chiudi la votazione** calcola l'esito,
-pubblica la bacheca e ne fissa l'impronta per il verbale.
+pubblica la bacheca e ne fissa l'impronta, che si vede in bacheca con le indicazioni per
+ricalcolarla.
 
 Nelle votazioni per **alzata di mano** (mozioni, bilanci, mozioni d'ordine…) si chiedono
 prima i contrari, poi gli astenuti: se non ce ne sono, premi **Palese**. La votazione è

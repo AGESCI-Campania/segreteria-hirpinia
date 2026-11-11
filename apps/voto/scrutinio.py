@@ -395,8 +395,14 @@ def righe_bacheca(votazione: Votazione) -> list[str]:
     ]
 
 
+def testo_bacheca(righe: list[str]) -> str:
+    """L'elenco della bacheca come testo, una riga per scheda e nessun a capo
+    finale: è esattamente ciò di cui si calcola l'impronta."""
+    return "\n".join(righe)
+
+
 def impronta(righe: list[str]) -> str:
-    return hashlib.sha256("\n".join(righe).encode("utf-8")).hexdigest()
+    return hashlib.sha256(testo_bacheca(righe).encode("utf-8")).hexdigest()
 
 
 def pubblica_bacheca(votazione: Votazione) -> None:
@@ -435,8 +441,9 @@ def verifica_ricevuta(ricevuta: str) -> EsitoVerifica:
 
 
 def nota_verbale(votazione: Votazione) -> str:
-    """Frase per il verbale sul voto elettronico: numeri e impronta, mai i
-    testi scritti dagli elettori."""
+    """Frase per il verbale sul voto elettronico: solo numeri, mai i testi
+    scritti dagli elettori. L'impronta della bacheca non va nel verbale: sta
+    in bacheca, con le indicazioni per ricalcolarla."""
     if not urna_usata(votazione) or not votazione.hash_bacheca:
         return ""
     nomi = nomi_scritti(votazione)
@@ -448,5 +455,4 @@ def nota_verbale(votazione: Votazione) -> str:
             f"nomi scritti interpretati dalla commissione elettorale: {attribuiti} attribuiti, "
             f"{nulli} nulli"
         )
-    parti.append(f"impronta SHA-256 della bacheca {votazione.hash_bacheca}")
     return "; ".join(parti) + "."

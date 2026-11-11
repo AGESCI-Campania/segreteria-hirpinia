@@ -15,5 +15,9 @@ bacheca) e scrivi la ricevuta:
 
 ![Verifica della ricevuta](img/verifica.jpg){ width="320" }
 
-In fondo alla bacheca c'è l'**impronta** dell'elenco, riportata anche nel verbale: se
-qualcuno cambiasse anche una sola riga, l'impronta non corrisponderebbe più.
+In fondo alla bacheca c'è l'**impronta** SHA-256 dell'elenco, fissata quando sono stati
+registrati i risultati: se qualcuno cambiasse anche una sola riga, l'impronta non
+corrisponderebbe più. Per controllarla, scarica l'elenco con **Scarica l'elenco come
+testo** e calcolane l'impronta: su macOS e Linux `shasum -a 256 bacheca-N.txt`, su
+Windows `certutil -hashfile bacheca-N.txt SHA256` (N è il numero nel nome del file). Il
+risultato deve coincidere con quello della bacheca; maiuscole e minuscole non contano.

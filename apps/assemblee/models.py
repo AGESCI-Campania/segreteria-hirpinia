@@ -844,7 +844,8 @@ class Votazione(models.Model):
     # rispetto alla votazione, che si chiude solo con i risultati registrati.
     aperta_in_app_il = models.DateTimeField(null=True, blank=True)
     chiusa_in_app_il = models.DateTimeField(null=True, blank=True)
-    # SHA-256 dell'elenco ordinato delle schede pubblicato in bacheca: va nel verbale.
+    # SHA-256 dell'elenco ordinato delle schede, fissato alla registrazione dei
+    # risultati e mostrato in bacheca (non nel verbale).
     hash_bacheca = models.CharField(max_length=64, blank=True)
     # Alzata di mano senza contrari né astenuti: approvata «palese», senza
     # contare i favorevoli (votazioni.registra_palese()).
@@ -947,9 +948,19 @@ class VerbaleSeduta(models.Model):
     comitato_mozioni = models.CharField(
         max_length=500, blank=True, help_text="I tre membri, separati da virgola."
     )
-    # Uno o due: un posto di Responsabile di Zona può essere vacante.
-    rdz_1 = models.CharField("Responsabile di Zona", max_length=200, blank=True)
-    rdz_2 = models.CharField("Secondo Responsabile di Zona", max_length=200, blank=True)
+    # Una Responsabile e un Responsabile di Zona; un posto può essere vacante.
+    rdz_femminile = models.CharField(
+        "Responsabile di Zona femminile",
+        max_length=200,
+        blank=True,
+        help_text="Lascia vuoto se il posto è vacante.",
+    )
+    rdz_maschile = models.CharField(
+        "Responsabile di Zona maschile",
+        max_length=200,
+        blank=True,
+        help_text="Lascia vuoto se il posto è vacante.",
+    )
     note_finali = models.TextField(
         blank=True, help_text="Testo libero prima della chiusura (es. dichiarazioni a verbale)."
     )

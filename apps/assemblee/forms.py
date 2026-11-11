@@ -21,6 +21,7 @@ from .models import (
     VariazioneRappresentante,
     VerbaleSeduta,
 )
+from .verbale import note_finali_html, sanifica_note_finali
 from .votazioni import voci as voci_risultati
 
 
@@ -475,8 +476,8 @@ class VerbaleForm(forms.ModelForm):
             "scrutatore_1",
             "scrutatore_2",
             "comitato_mozioni",
-            "rdz_1",
-            "rdz_2",
+            "rdz_femminile",
+            "rdz_maschile",
             "note_finali",
         ]
         labels = {
@@ -487,7 +488,6 @@ class VerbaleForm(forms.ModelForm):
             "comitato_mozioni": "Comitato mozioni",
         }
         help_texts = {
-            "rdz_2": "Lascia vuoto se il posto è vacante.",
             "presidente_2": "Solo se la presidenza è affidata a due persone, di sesso diverso.",
             "comitato_mozioni": "I tre membri, separati da virgola.",
         }
@@ -498,9 +498,10 @@ class VerbaleForm(forms.ModelForm):
             "presidente": forms.TextInput(attrs={"list": "nomi-aventi"}),
             "presidente_2": forms.TextInput(attrs={"list": "nomi-aventi"}),
             "segretario": forms.TextInput(attrs={"list": "nomi-aventi"}),
-            "rdz_1": forms.TextInput(attrs={"list": "nomi-rdz"}),
-            "rdz_2": forms.TextInput(attrs={"list": "nomi-rdz"}),
-            "note_finali": forms.Textarea(attrs={"rows": 4}),
+            "rdz_femminile": forms.TextInput(attrs={"list": "nomi-aventi"}),
+            "rdz_maschile": forms.TextInput(attrs={"list": "nomi-aventi"}),
+            # Editor TinyMCE nel template (solo formattazione, niente immagini).
+            "note_finali": forms.Textarea(attrs={"rows": 8}),
         }
 
     def __init__(self, *args, nomi_comitato: Sequence[str] = (), **kwargs):
@@ -518,6 +519,13 @@ class VerbaleForm(forms.ModelForm):
                 choices=[("", "—"), *[(n, n) for n in nomi]],
                 help_text="Fra i componenti del comitato elettorale.",
             )
+        # Le note scritte prima dell'editor sono testo semplice: nell'editor
+        # arrivano già divise in paragrafi.
+        if self.instance.pk:
+            self.initial["note_finali"] = note_finali_html(self.instance.note_finali)
+
+    def clean_note_finali(self) -> str:
+        return sanifica_note_finali(self.cleaned_data["note_finali"]).strip()
 
 
 class VariazioneRappresentanteForm(forms.ModelForm):

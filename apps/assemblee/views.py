@@ -2083,7 +2083,6 @@ def _suggerimenti_verbale(seduta: Seduta) -> dict:
     return {
         "nomi_aventi": nomi(elenco_qs),
         "nomi_scrutatori": nomi(elenco_qs.filter(comitato_elettorale__isnull=False)),
-        "nomi_rdz": nomi(elenco_qs.filter(rdz=True)),
     }
 
 
@@ -2178,9 +2177,7 @@ class VariazioneRappresentanteView(GestisceAssembleeMixin, BreadcrumbExtraMixin,
             "seduta": seduta,
             "form": form,
             "variazione": verbale_assemblea.variazione_della_seduta(seduta),
-            "rdz": seduta.assemblea.aventi_diritto.nell_elenco()
-            .filter(rdz=True)
-            .order_by("cognome", "nome"),
+            "scelte": verbale_assemblea.scelte_rappresentante(seduta),
         }
 
     def get(self, request, pk, seduta_pk):

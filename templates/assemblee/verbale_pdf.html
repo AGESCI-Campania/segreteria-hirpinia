@@ -100,7 +100,8 @@
   {% if ci_sono_mozioni %}
     <p>Tutte le mozioni e le raccomandazioni sono allegate al presente verbale, di cui costituiscono parte integrante.</p>
   {% endif %}
-  {% if verbale.note_finali %}{{ verbale.note_finali|linebreaks }}{% endif %}
+  {# Già sanificate da verbale.note_finali_html(). #}
+  {% if note_finali %}{{ note_finali|safe }}{% endif %}
 
   {% if not verifica_senza_quorum %}
     <p>
@@ -116,10 +117,10 @@
       {% if verbale.presidente_2 %}<td>Il Presidente<br>{{ verbale.presidente_2 }}<div class="linea"></div></td>{% endif %}
       <td>Il Segretario<br>{{ verbale.segretario }}<div class="linea"></div></td>
     </tr>
-    {% if verbale.rdz_1 or verbale.rdz_2 %}
+    {% if verbale.rdz_femminile or verbale.rdz_maschile %}
       <tr>
-        {% if verbale.rdz_1 %}<td>Responsabile di Zona<br>{{ verbale.rdz_1 }}<div class="linea"></div></td>{% endif %}
-        {% if verbale.rdz_2 %}<td>Responsabile di Zona<br>{{ verbale.rdz_2 }}<div class="linea"></div></td>{% endif %}
+        {% if verbale.rdz_femminile %}<td>Responsabile di Zona<br>{{ verbale.rdz_femminile }}<div class="linea"></div></td>{% endif %}
+        {% if verbale.rdz_maschile %}<td>Responsabile di Zona<br>{{ verbale.rdz_maschile }}<div class="linea"></div></td>{% endif %}
       </tr>
     {% endif %}
   </table>
