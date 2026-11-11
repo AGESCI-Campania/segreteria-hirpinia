@@ -33,7 +33,7 @@ def _verifica_operatore(utente: Utente, seduta: Seduta) -> None:
     if not puo_operare(utente, seduta.assemblea):
         raise PermissionDenied
     if not seduta.assemblea.voto_catello:
-        raise ValidationError("Questa assemblea non usa il voto elettronico di Catello.")
+        raise ValidationError("Questa assemblea non usa il voto in app.")
 
 
 @transaction.atomic

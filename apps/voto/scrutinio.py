@@ -57,7 +57,7 @@ def apri_urna(votazione: Votazione, utente: Utente) -> None:
     _verifica_operatore(utente, votazione)
     seduta = votazione.seduta
     if not seduta.assemblea.voto_catello:
-        raise ValidationError("Questa assemblea non usa il voto elettronico di Catello.")
+        raise ValidationError("Questa assemblea non usa il voto in app.")
     if not urna.votazioni_in_app(votazione):
         raise ValidationError("Questa votazione non si vota in app.")
     if not seduta.aperta or seduta.costituita is not True:

@@ -31,7 +31,7 @@ class SistemaVoto(models.TextChoices):
     elettronico di Catello (`apps/voto`)."""
 
     NAZIONALE = "NAZIONALE", "App del Nazionale"
-    CATELLO = "CATELLO", "Voto elettronico di Catello"
+    CATELLO = "CATELLO", "Voto in app"
 
 
 class ModalitaVoto(models.TextChoices):
@@ -387,12 +387,26 @@ class IncaricoDichiarato(models.Model):
 
 
 class OperatoreVoto(models.Model):
-    """Utente incaricato delle operazioni di voto di una sola assemblea (D-70):
-    registra presenze, deleghe e risultati, non modifica l'elenco."""
+    """Componente del comitato elettorale di una sola assemblea (D-70): un
+    avente diritto scelto da chi gestisce le assemblee. Con l'account
+    (`utente`) registra presenze, deleghe e risultati, ma non modifica
+    l'elenco; senza account compare solo nel verbale. Le righe precedenti al
+    comitato elettorale hanno solo `utente`, senza `avente`."""
 
     assemblea = models.ForeignKey(Assemblea, on_delete=models.CASCADE, related_name="operatori")
+    avente = models.ForeignKey(
+        AventeDiritto,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="comitato_elettorale",
+    )
     utente = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="operatore_assemblee"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="operatore_assemblee",
     )
     nominato_il = models.DateTimeField(auto_now_add=True)
     nominato_da = models.ForeignKey(
@@ -404,16 +418,30 @@ class OperatoreVoto(models.Model):
     )
 
     class Meta:
-        verbose_name = "operatore di voto"
-        verbose_name_plural = "operatori di voto"
+        verbose_name = "componente del comitato elettorale"
+        verbose_name_plural = "comitato elettorale"
         constraints = [
             models.UniqueConstraint(
                 fields=["assemblea", "utente"], name="operatore_unico_per_assemblea"
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["assemblea", "avente"], name="comitato_avente_unico_per_assemblea"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(avente__isnull=False) | models.Q(utente__isnull=False),
+                name="comitato_avente_o_utente",
+            ),
         ]
 
     def __str__(self) -> str:
-        return str(self.utente)
+        return self.nome_completo
+
+    @property
+    def nome_completo(self) -> str:
+        if self.avente is not None:
+            return f"{self.avente.cognome} {self.avente.nome}"
+        assert self.utente is not None  # garantito dal vincolo comitato_avente_o_utente
+        return self.utente.get_full_name() or str(self.utente)
 
 
 class TipoFile(models.TextChoices):

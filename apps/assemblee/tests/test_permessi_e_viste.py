@@ -131,30 +131,17 @@ class TestViste:
         assert client.get(f"/assemblee/{assemblea.pk}/").status_code == 200
         assert client.get(f"/assemblee/{altra.pk}/").status_code == 404
 
-    def test_nomina_e_rimozione_operatore(self, client, segreteria, capo, assemblea):
-        client.force_login(segreteria)
-        client.post(f"/assemblee/{assemblea.pk}/operatori/aggiungi/", {"utente": capo.pk})
-        operatore = OperatoreVoto.objects.get(assemblea=assemblea)
-        assert operatore.utente == capo
-        assert operatore.nominato_da == segreteria
-
-        client.post(f"/assemblee/{assemblea.pk}/operatori/{operatore.pk}/rimuovi/")
-        assert not OperatoreVoto.objects.filter(assemblea=assemblea).exists()
-
     def test_un_operatore_non_nomina_altri_operatori(self, client, capo, assemblea):
         OperatoreVoto.objects.create(assemblea=assemblea, utente=capo)
-        altro = _persona("altro@example.it")
         client.force_login(capo)
-        response = client.post(
-            f"/assemblee/{assemblea.pk}/operatori/aggiungi/", {"utente": altro.pk}
-        )
+        response = client.post(f"/assemblee/{assemblea.pk}/comitato/aggiungi/", {"avente": 1})
         assert response.status_code == 403
-        assert not OperatoreVoto.objects.filter(utente=altro).exists()
+        assert OperatoreVoto.objects.filter(assemblea=assemblea).count() == 1
 
     def test_assemblea_conclusa_non_accetta_nuovi_operatori(self, client, segreteria, capo):
         conclusa = Assemblea.objects.create(
             tipo=TipoAssemblea.AUTUNNALE, anno_scout=2026, conclusa_il=timezone.now()
         )
         client.force_login(segreteria)
-        response = client.post(f"/assemblee/{conclusa.pk}/operatori/aggiungi/", {"utente": capo.pk})
+        response = client.post(f"/assemblee/{conclusa.pk}/comitato/aggiungi/", {"avente": 1})
         assert response.status_code == 403

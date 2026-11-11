@@ -4,7 +4,6 @@ from typing import cast
 
 from django import forms
 
-from apps.accounts.models import StatoUtente, TipoUtente, Utente
 from apps.anagrafica.models import BrancaUnita, FunzioneIncarico
 from apps.organizzazione.models import Gruppo, anno_scout_corrente
 
@@ -42,10 +41,7 @@ class AssembleaCreaForm(forms.ModelForm):
                 "Per le votazioni a scrutinio segreto. Si può cambiare fino all'apertura della "
                 "prima votazione."
             ),
-            "modalita_voto": (
-                "Solo per il voto elettronico di Catello; si può cambiare anche il giorno "
-                "stesso."
-            ),
+            "modalita_voto": "Solo per il voto in app; si può cambiare anche il giorno stesso.",
         }
 
     def __init__(self, *args, **kwargs):
@@ -75,19 +71,27 @@ class AssembleaCreaForm(forms.ModelForm):
         return assemblea
 
 
-class OperatoreAggiungiForm(forms.Form):
-    utente = forms.ModelChoiceField(
-        label="Utente",
-        queryset=Utente.objects.none(),
-        help_text="Utente di Catello che registrerà presenze e risultati delle votazioni.",
+class ComitatoAggiungiForm(forms.Form):
+    """Nuovo componente del comitato elettorale: un avente diritto scelto con
+    l'autocompletamento (il campo nascosto porta l'id)."""
+
+    avente = forms.ModelChoiceField(queryset=AventeDiritto.objects.none(), widget=forms.HiddenInput)
+    accesso = forms.BooleanField(
+        label="Crea l'account e invia l'invito",
+        required=False,
+        initial=True,
+        help_text=(
+            "Serve per registrare presenze, deleghe e risultati. Senza, il capo compare solo "
+            "nel verbale."
+        ),
     )
 
     def __init__(self, *args, assemblea: Assemblea, **kwargs):
         super().__init__(*args, **kwargs)
-        cast(forms.ModelChoiceField, self.fields["utente"]).queryset = (
-            Utente.objects.filter(tipo=TipoUtente.PERSONA, stato=StatoUtente.ATTIVO)
-            .exclude(operatore_assemblee__assemblea=assemblea)
-            .order_by("last_name", "first_name", "email")
+        cast(
+            forms.ModelChoiceField, self.fields["avente"]
+        ).queryset = assemblea.aventi_diritto.nell_elenco().exclude(
+            comitato_elettorale__isnull=False
         )
 
 
@@ -114,6 +118,8 @@ class AventeInserisciForm(forms.Form):
         cast(forms.ModelChoiceField, self.fields["gruppo"]).queryset = Gruppo.objects.attivi(
             assemblea.anno_scout
         ).order_by("nome")
+        if assemblea.voto_catello:
+            self.fields["codice_socio"].help_text = "Facoltativo: con il voto in app non serve."
 
 
 class EmailAventeForm(forms.Form):

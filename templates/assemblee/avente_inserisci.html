@@ -7,8 +7,9 @@
     <div class="lg:col-8">
       <h1>Nuovo capo</h1>
       <p class="fg-2">
-        Per i capi non ancora censiti. Vota in app solo se il codice socio è fra i censiti già
-        presenti in Catello; altrimenti vota su carta.
+        Per i capi non ancora censiti.
+        {% if assemblea.voto_catello %}Vota in app come tutti gli altri, anche senza codice socio.{% else %}Vota in app solo se il codice socio è fra i censiti già
+        presenti in Catello; altrimenti vota su carta.{% endif %}
       </p>
       <form method="post">
         {% csrf_token %}

@@ -298,6 +298,12 @@ deve violare:
   censiti della Zona dell'anno da cui è importato il gruppo (autunnale: anno scelto
   gruppo per gruppo), più il passaggio manuale a carta; nel tracciato il gruppo è quello
   di origine, anche dopo un trasferimento.
+- **Comitato elettorale** (ex «operatori di voto», modello `OperatoreVoto`): si nomina
+  solo da `apps/assemblee/comitato.py`, fra gli aventi diritto dell'elenco. L'account
+  creato per un componente nasce **senza password** e passa dall'invito di D-20, mai una
+  password generata o inviata in chiaro; `utente` vuoto = componente senza accesso, solo
+  nel verbale. L'autocompletamento (`ComitatoAutocompleteView`) cerca solo nell'elenco
+  dell'assemblea e non è una quarta ricerca soci: non riusarlo altrove.
 - **Tempo reale = polling ogni 3 secondi**, nessuna infrastruttura nuova (D-17 vale
   ancora).
 - **Carta intestata dei PDF** (nota spese, foglio presenze, verbali): un solo partial,

@@ -65,6 +65,10 @@
     {% if verbale.scrutatore_1 or verbale.scrutatore_2 %}{{ verbale.scrutatore_1 }}{% if verbale.scrutatore_1 and verbale.scrutatore_2 %} e {% endif %}{{ verbale.scrutatore_2 }}{% else %}<span class="mancante">[…]</span>{% endif %}
     e del Comitato mozioni formato da {% if verbale.comitato_mozioni %}{{ verbale.comitato_mozioni }}{% else %}<span class="mancante">[…]</span>{% endif %}.
   </p>
+  <p>
+    Il Comitato elettorale è composto da
+    {% if comitato_elettorale %}{{ comitato_elettorale|join:", " }}{% else %}<span class="mancante">[…]</span>{% endif %}.
+  </p>
 
   {% for verifica, maggioranza in verifiche %}
     <p>

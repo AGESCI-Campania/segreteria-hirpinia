@@ -51,7 +51,7 @@ def imposta_modalita(assemblea: Assemblea, modalita: str, utente: Utente) -> Non
     if modalita not in ModalitaVoto.values:
         raise ValidationError("Modalità di voto non valida.")
     if not assemblea.voto_catello:
-        raise ValidationError("La modalità vale solo per il voto elettronico di Catello.")
+        raise ValidationError("La modalità vale solo per il voto in app.")
     if assemblea.conclusa:
         raise ValidationError("L'assemblea è conclusa.")
     assemblea.modalita_voto = modalita

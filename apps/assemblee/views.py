@@ -23,7 +23,7 @@ from apps.voto import scrutinio as scrutinio_voto
 from apps.voto import urna as urna_voto
 from apps.voto import views as voto_banco
 
-from . import cruscotto, elenco, email_aventi, odg, sedute
+from . import comitato, cruscotto, duplica, elenco, email_aventi, odg, sedute
 from . import deleghe as deleghe_ae
 from . import file as file_assemblea
 from . import quorum as quorum_assemblea
@@ -32,12 +32,12 @@ from . import votazioni as voto
 from .forms import (
     AssembleaCreaForm,
     AventeInserisciForm,
+    ComitatoAggiungiForm,
     ConvocazioneForm,
     DelegaForm,
     EmailAventeForm,
     ImportEmailForm,
     IncaricoDichiaratoFormSet,
-    OperatoreAggiungiForm,
     PuntoOdGForm,
     QualificheForm,
     TrasferisciForm,
@@ -128,6 +128,46 @@ class AssembleaCreaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
         return redirect(reverse("assemblee:assemblea_dettaglio", args=[assemblea.pk]))
 
 
+class AssembleaDuplicaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+    """Nuova assemblea con l'elenco, il comitato elettorale e l'ordine del
+    giorno di un'altra; niente votazioni (duplica.py)."""
+
+    template_name = "assemblee/assemblea_duplica.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return [*_breadcrumb_assemblee(), {"label": "Duplica assemblea"}]
+
+    def get(self, request, pk):
+        origine = get_object_or_404(Assemblea, pk=pk)
+        prima = origine.sedute.order_by("convocazione").first()
+        iniziali = {
+            "tipo": origine.tipo,
+            "anno_scout": origine.anno_scout,
+            "sessione": origine.sessione,
+            "sistema_voto": origine.sistema_voto,
+            "modalita_voto": origine.modalita_voto,
+            "ora_convocazione": prima.ora if prima else None,
+            "luogo": prima.luogo if prima else "",
+        }
+        form = AssembleaCreaForm(initial=iniziali)
+        return render(request, self.template_name, {"form": form, "origine": origine})
+
+    def post(self, request, pk):
+        origine = get_object_or_404(Assemblea, pk=pk)
+        form = AssembleaCreaForm(request.POST)
+        if not form.is_valid():
+            return render(request, self.template_name, {"form": form, "origine": origine})
+        form.instance.creata_da = request.user
+        with transaction.atomic():
+            nuova = form.save()
+            copiati = duplica.copia_in(origine, nuova, request.user)
+        messages.success(
+            request, f"{nuova} creata come copia di {origine}: {copiati} aventi diritto copiati."
+        )
+        return redirect(reverse("assemblee:assemblea_dettaglio", args=[nuova.pk]))
+
+
 class AssembleaDettaglioView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
     """Riepilogo dell'assemblea: un cruscotto con le sue sedute, gli operatori
     di voto e un pulsante per ciascuna funzione del modulo."""
@@ -146,11 +186,11 @@ class AssembleaDettaglioView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
         contesto = {
             "assemblea": assemblea,
             "sedute": assemblea.sedute.all(),
-            "operatori": assemblea.operatori.select_related("utente"),
+            "operatori": comitato.componenti(assemblea),
             "puo_gestire": puo_gestire,
             "totale_aventi_diritto": elenco.count(),
             "totale_app": elenco.filter(vota_in_app=True).count(),
-            "form_operatore": OperatoreAggiungiForm(assemblea=assemblea) if puo_gestire else None,
+            "form_operatore": ComitatoAggiungiForm(assemblea=assemblea) if puo_gestire else None,
             "sistemi_voto": SistemaVoto.choices,
             "modalita_voto": ModalitaVoto.choices,
             "sistema_modificabile": puo_gestire
@@ -160,29 +200,112 @@ class AssembleaDettaglioView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
         return render(request, self.template_name, contesto)
 
 
-class OperatoreAggiungiView(GestisceAssembleeMixin, View):
+MINIMO_CARATTERI_AUTOCOMPLETE = 2
+LIMITE_RISULTATI_AUTOCOMPLETE = 15
+
+
+class ComitatoAutocompleteView(GestisceAssembleeMixin, View):
+    """Ricerca fra gli aventi diritto dell'elenco di questa assemblea, per il
+    comitato elettorale. Perimetro diverso dalle ricerche soci sull'anagrafica
+    (CLAUDE.md § Ricerca soci): qui solo l'elenco, nome, cognome e gruppo,
+    mai recapiti."""
+
+    def get(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        query = request.GET.get("q", "").strip()
+        if len(query) < MINIMO_CARATTERI_AUTOCOMPLETE:
+            return JsonResponse({"risultati": []})
+        aventi = (
+            assemblea.aventi_diritto.nell_elenco()
+            .exclude(comitato_elettorale__isnull=False)
+            .filter(
+                Q(nome__icontains=query)
+                | Q(cognome__icontains=query)
+                | Q(codice_socio__icontains=query)
+                | Q(gruppo__nome__icontains=query)
+            )
+            .select_related("gruppo")
+            .order_by("cognome", "nome")[:LIMITE_RISULTATI_AUTOCOMPLETE]
+        )
+        return JsonResponse(
+            {
+                "risultati": [
+                    {"id": a.pk, "nome": a.nome, "cognome": a.cognome, "gruppo": a.gruppo.nome}
+                    for a in aventi
+                ]
+            }
+        )
+
+
+def _messaggio_invito(request, componente, inviato: bool) -> None:
+    if inviato:
+        messages.success(
+            request,
+            f"{componente.nome_completo} è nel comitato elettorale: gli è stato inviato "
+            f"l'invito per attivare l'account ({componente.utente.email}).",
+        )
+    else:
+        messages.success(request, f"{componente.nome_completo} è nel comitato elettorale.")
+
+
+class ComitatoAggiungiView(GestisceAssembleeMixin, View):
     def post(self, request, pk):
         assemblea = get_object_or_404(Assemblea, pk=pk)
         if assemblea.conclusa:
             raise PermissionDenied("L'assemblea è conclusa.")
-        form = OperatoreAggiungiForm(request.POST, assemblea=assemblea)
-        if form.is_valid():
-            OperatoreVoto.objects.create(
-                assemblea=assemblea, utente=form.cleaned_data["utente"], nominato_da=request.user
+        form = ComitatoAggiungiForm(request.POST, assemblea=assemblea)
+        if not form.is_valid():
+            messages.error(request, "Scegli un capo dall'elenco degli aventi diritto.")
+            return redirect(reverse("assemblee:assemblea_dettaglio", args=[pk]))
+        avente = form.cleaned_data["avente"]
+        try:
+            componente, inviato = comitato.aggiungi(
+                assemblea, avente, request.user, accesso=form.cleaned_data["accesso"]
             )
-            messages.success(request, f"{form.cleaned_data['utente']} è ora operatore di voto.")
+        except comitato.InvitoNonInviato:
+            messages.warning(
+                request,
+                f"{avente.cognome} {avente.nome} è nel comitato elettorale, ma l'email di "
+                "invito non è partita: riprova con «Invia invito».",
+            )
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
         else:
-            messages.error(request, "Seleziona un utente valido.")
-        return redirect(reverse("assemblee:assemblea_dettaglio", args=[assemblea.pk]))
+            _messaggio_invito(request, componente, inviato)
+        return redirect(reverse("assemblee:assemblea_dettaglio", args=[pk]))
 
 
-class OperatoreRimuoviView(GestisceAssembleeMixin, View):
+class ComitatoAccessoView(GestisceAssembleeMixin, View):
+    """Account e invito per un componente che non li ha, o nuovo invito per
+    chi non ha ancora impostato la password."""
+
     def post(self, request, pk, operatore_pk):
-        operatore = get_object_or_404(OperatoreVoto, pk=operatore_pk, assemblea_id=pk)
-        if operatore.assemblea.conclusa:
-            raise PermissionDenied("L'assemblea è conclusa.")
-        operatore.delete()
-        messages.success(request, f"{operatore.utente} non è più operatore di voto.")
+        componente = get_object_or_404(OperatoreVoto, pk=operatore_pk, assemblea_id=pk)
+        try:
+            inviato = comitato.dai_accesso(componente, request.user)
+        except comitato.InvitoNonInviato:
+            messages.warning(request, "L'email di invito non è partita: riprova più tardi.")
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+        else:
+            if inviato:
+                _messaggio_invito(request, componente, inviato)
+            else:
+                messages.info(request, f"{componente.nome_completo} ha già un account attivo.")
+        return redirect(reverse("assemblee:assemblea_dettaglio", args=[pk]))
+
+
+class ComitatoRimuoviView(GestisceAssembleeMixin, View):
+    def post(self, request, pk, operatore_pk):
+        componente = get_object_or_404(OperatoreVoto, pk=operatore_pk, assemblea_id=pk)
+        try:
+            comitato.rimuovi(componente, request.user)
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+        else:
+            messages.success(
+                request, f"{componente.nome_completo} non fa più parte del comitato elettorale."
+            )
         return redirect(reverse("assemblee:assemblea_dettaglio", args=[pk]))
 
 
@@ -1346,16 +1469,13 @@ class PuntoModificaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
 def _suggerimenti_verbale(seduta: Seduta) -> dict:
     """Nomi proposti nei campi del verbale (testo libero comunque ammesso)."""
     elenco_qs = seduta.assemblea.aventi_diritto.nell_elenco().order_by("cognome", "nome")
-    codici_operatori = seduta.assemblea.operatori.exclude(utente__codice_socio=None).values_list(
-        "utente__codice_socio", flat=True
-    )
 
     def nomi(qs) -> list[str]:
         return [f"{a.cognome} {a.nome}" for a in qs]
 
     return {
         "nomi_aventi": nomi(elenco_qs),
-        "nomi_scrutatori": nomi(elenco_qs.filter(codice_socio__in=list(codici_operatori))),
+        "nomi_scrutatori": nomi(elenco_qs.filter(comitato_elettorale__isnull=False)),
         "nomi_rdz": nomi(elenco_qs.filter(rdz=True)),
     }
 

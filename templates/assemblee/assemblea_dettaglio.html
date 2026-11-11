@@ -1,10 +1,15 @@
 {% extends "base.html" %}
-{% load bootstrap_icons %}
+{% load static bootstrap_icons agesci_components %}
 
 {% block page_title %}{{ assemblea }}{% endblock %}
 
 {% block content %}
-  <h1 class="mb-3">{{ assemblea }}</h1>
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <h1 class="mb-0">{{ assemblea }}</h1>
+    {% if puo_gestire %}
+      <a href="{% url 'assemblee:assemblea_duplica' assemblea.pk %}" class="btn-outline theme-primary">{% bs_icon "copy" %} Duplica assemblea</a>
+    {% endif %}
+  </div>
   <p class="fg-2 mb-7">
     Sessione {{ assemblea.get_sessione_display|lower }} —
     {% if assemblea.conclusa %}conclusa il {{ assemblea.conclusa_il|date:"d/m/Y" }}{% else %}in preparazione{% endif %}
@@ -39,9 +44,9 @@
     <div class="col">
       <div class="card h-100">
         <div class="card-body">
-          <h2 class="fs-lg">{% bs_icon "person-check" %} Operatori di voto</h2>
+          <h2 class="fs-lg">{% bs_icon "person-check" %} Comitato elettorale</h2>
           <p class="fs-2xl mb-0">{{ operatori|length }}</p>
-          <p class="fg-2 mb-0">registrano presenze e risultati</p>
+          <p class="fg-2 mb-0">componenti, nel verbale</p>
         </div>
       </div>
     </div>
@@ -50,7 +55,7 @@
   <h2 class="fs-xl">Sistema di voto</h2>
   <p class="mb-3">
     <strong>{{ assemblea.get_sistema_voto_display }}</strong>{% if assemblea.voto_catello %} — {{ assemblea.get_modalita_voto_display|lower }}{% endif %}.
-    {% if assemblea.voto_catello %}Chi è presente riceve un codice per votare dal telefono o al seggio; chi vota su carta resta su carta.{% else %}Tracciato per l'app del Nazionale e risultati copiati a mano; su carta chi ha problemi.{% endif %}
+    {% if assemblea.voto_catello %}Votano tutti in app: chi è presente riceve un codice per votare dal telefono o al seggio. Si passa a carta solo in caso di problemi.{% else %}Tracciato per l'app del Nazionale e risultati copiati a mano; su carta chi ha problemi.{% endif %}
   </p>
   {% if puo_gestire and not assemblea.conclusa %}
     <form method="post" action="{% url 'voto:sistema' assemblea.pk %}" class="row g-3 align-items-end mb-7">
@@ -96,26 +101,38 @@
     </div>
   {% endif %}
 
-  <h2 class="fs-xl">Operatori di voto</h2>
+  <h2 class="fs-xl">Comitato elettorale</h2>
   <p class="fg-2">
-    Registrano presenze, deleghe e risultati delle votazioni di questa assemblea, ma non
-    modificano l'elenco degli aventi diritto. Gli operatori che sono capi fanno parte del
-    comitato elettorale.
+    Capi con diritto di voto in questa assemblea; l'elenco va nel verbale. Chi ha l'accesso
+    registra presenze, deleghe e risultati delle votazioni, ma non modifica l'elenco degli
+    aventi diritto: l'account si crea da solo e il capo riceve per email l'invito ad attivarlo.
   </p>
   <div class="table-responsive mb-5">
   <table class="table table-sm">
     <thead>
-      <tr><th>Utente</th><th>Nominato il</th>{% if puo_gestire %}<th></th>{% endif %}</tr>
+      <tr><th>Capo</th><th>Gruppo</th><th>Accesso a Catello</th><th>Nominato il</th>{% if puo_gestire %}<th></th>{% endif %}</tr>
     </thead>
     <tbody>
       {% for operatore in operatori %}
         <tr>
-          <td>{{ operatore.utente }}</td>
+          <td>{{ operatore.nome_completo }}</td>
+          <td>{{ operatore.avente.gruppo.nome|default:"—" }}</td>
+          <td>
+            {% if not operatore.utente %}{% ag_chip "Senza accesso" variant="secondary" %}
+            {% elif operatore.utente.has_usable_password %}{% ag_chip "Attivo" variant="success" %}
+            {% else %}{% ag_chip "Invito da attivare" variant="warning" %}{% endif %}
+          </td>
           <td>{{ operatore.nominato_il|date:"d/m/Y H:i" }}</td>
           {% if puo_gestire %}
-            <td>
+            <td class="text-end">
               {% if not assemblea.conclusa %}
-                <form method="post" action="{% url 'assemblee:operatore_rimuovi' assemblea.pk operatore.pk %}">
+                {% if operatore.avente and not operatore.utente.has_usable_password %}
+                  <form method="post" action="{% url 'assemblee:operatore_accesso' assemblea.pk operatore.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-outline theme-primary btn-sm">{% if operatore.utente %}Invia invito{% else %}Crea account e invia invito{% endif %}</button>
+                  </form>
+                {% endif %}
+                <form method="post" action="{% url 'assemblee:operatore_rimuovi' assemblea.pk operatore.pk %}" class="d-inline">
                   {% csrf_token %}
                   <button type="submit" class="btn-outline theme-danger btn-sm">Rimuovi</button>
                 </form>
@@ -124,24 +141,41 @@
           {% endif %}
         </tr>
       {% empty %}
-        <tr><td colspan="3">Nessun operatore nominato.</td></tr>
+        <tr><td colspan="5">Nessun componente nominato.</td></tr>
       {% endfor %}
     </tbody>
   </table>
   </div>
 
   {% if puo_gestire and not assemblea.conclusa %}
-    <form method="post" action="{% url 'assemblee:operatore_aggiungi' assemblea.pk %}" class="row g-3 align-items-end">
+    <form method="post" action="{% url 'assemblee:operatore_aggiungi' assemblea.pk %}">
       {% csrf_token %}
-      <div class="md:col-6">
-        <div class="form-field">
-          {{ form_operatore.utente.label_tag }}
-          {{ form_operatore.utente }}
+      <div class="row g-3 align-items-end">
+        <div class="md:col-6">
+          <div class="mb-5 position-relative">
+            <label for="ricerca-comitato" class="form-label">Capo (nome, cognome, gruppo o codice socio)</label>
+            <input type="text" id="ricerca-comitato" class="form-control" autocomplete="off" placeholder="Digita almeno 2 caratteri…">
+            <ul class="list-group position-absolute w-100" id="ricerca-comitato-risultati" style="z-index: 1000; display: none;"></ul>
+            <div class="form-text" id="ricerca-comitato-selezionato"></div>
+          </div>
+          {{ form_operatore.avente }}
+        </div>
+        <div class="md:col-6">
+          <div class="form-field mb-5">
+            <label>{{ form_operatore.accesso }} {{ form_operatore.accesso.label }}</label>
+            <div class="form-text">{{ form_operatore.accesso.help_text }}</div>
+          </div>
         </div>
       </div>
-      <div class="md:col-auto">
-        <button type="submit" class="btn-solid theme-primary">Nomina operatore</button>
-      </div>
+      <button type="submit" class="btn-solid theme-primary">Aggiungi al comitato</button>
     </form>
+  {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  {% if puo_gestire and not assemblea.conclusa %}
+    <script src="{% static 'js/ricerca-autocomplete-comune.js' %}" defer></script>
+    <script src="{% static 'js/comitato-elettorale-autocomplete.js' %}" defer data-url-autocomplete="{% url 'assemblee:comitato_cerca' assemblea.pk %}"></script>
   {% endif %}
 {% endblock %}

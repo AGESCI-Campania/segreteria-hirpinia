@@ -13,6 +13,7 @@ from django.template.loader import render_to_string
 from apps.accounts.models import Utente
 from apps.core.pdf import contesto_carta_intestata
 
+from . import comitato
 from .models import (
     AventeDiritto,
     Seduta,
@@ -79,6 +80,7 @@ def contesto_verbale(seduta: Seduta) -> dict:
         "verifiche": verifiche,
         "verifica_senza_quorum": verifica_senza_quorum(seduta),
         "ci_sono_mozioni": mozioni,
+        "comitato_elettorale": [c.nome_completo for c in comitato.componenti(assemblea)],
         **contesto_carta_intestata(),
     }
 

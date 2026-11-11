@@ -87,6 +87,15 @@ def test_elenco_visibile_all_operatore_senza_azioni_di_gestione(client, assemble
     assert response.status_code == 200
     assert not response.context["puo_gestire"]
     assert response.context["puo_operare"]
+    assert 'id="seleziona-tutti"' not in response.content.decode()
+
+
+def test_selezione_di_tutti_i_visibili(client, segreteria, assemblea):
+    client.force_login(segreteria)
+    pagina = client.get(f"/assemblee/{assemblea.pk}/elenco/").content.decode()
+    assert 'id="seleziona-tutti"' in pagina
+    assert 'id="conteggio-selezionati"' in pagina
+    assert "js/elenco-selezione.js" in pagina
 
 
 def test_eliminazione_multipla(client, segreteria, assemblea):

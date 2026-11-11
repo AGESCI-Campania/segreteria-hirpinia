@@ -82,7 +82,7 @@ def _verifica_emissione(seduta: Seduta, avente: AventeDiritto, utente: Utente) -
     if not puo_operare(utente, assemblea):
         raise PermissionDenied
     if not assemblea.voto_catello:
-        raise ValidationError("Questa assemblea non usa il voto elettronico di Catello.")
+        raise ValidationError("Questa assemblea non usa il voto in app.")
     if not seduta.aperta:
         raise ValidationError("La seduta non è aperta.")
     if avente.assemblea_id != assemblea.pk or avente.eliminato:

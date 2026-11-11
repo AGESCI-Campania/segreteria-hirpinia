@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block page_title %}Duplica assemblea{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="md:col-6">
+      <h1>Duplica assemblea</h1>
+      <p class="fg-2">
+        Nuova assemblea a partire da <a href="{% url 'assemblee:assemblea_dettaglio' origine.pk %}">{{ origine }}</a>:
+        si copiano l'elenco degli aventi diritto così com'è (con eliminazioni, trasferimenti, email,
+        qualifiche e incarichi), il comitato elettorale e i titoli dei punti all'ordine del giorno.
+        Non si copiano convocazioni, presenze, deleghe, votazioni, codici di voto e verbali; chi era
+        passato a carta torna a votare come prima. L'elenco non si riallinea ai censiti: per farlo
+        usa «aggiorna il gruppo» nell'elenco della nuova assemblea, dove compare per i gruppi con nuovi censiti.
+      </p>
+      <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn-solid theme-primary">Crea la copia</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

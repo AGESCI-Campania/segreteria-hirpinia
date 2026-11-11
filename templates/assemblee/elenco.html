@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load agesci_components %}
+{% load static agesci_components %}
 
 {% block page_title %}Aventi diritto — {{ assemblea }}{% endblock %}
 
@@ -74,6 +74,7 @@
       {% csrf_token %}
       <input type="hidden" name="next" value="{{ request.get_full_path }}">
       <button type="submit" class="btn-outline theme-danger btn-sm">Elimina i selezionati</button>
+      <span id="conteggio-selezionati" class="fg-2 ms-3" aria-live="polite" hidden></span>
     </form>
   {% endif %}
 
@@ -81,7 +82,7 @@
   <table class="table table-sm">
     <thead>
       <tr>
-        {% if puo_gestire %}<th></th>{% endif %}
+        {% if puo_gestire %}<th><input type="checkbox" id="seleziona-tutti" class="check" aria-label="Seleziona tutti gli aventi diritto visibili"></th>{% endif %}
         <th>Cognome e nome</th>
         <th>Codice socio</th>
         <th>Email</th>
@@ -163,4 +164,11 @@
     </tbody>
   </table>
   </div>
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  {% if puo_gestire %}
+    <script src="{% static 'js/elenco-selezione.js' %}" defer></script>
+  {% endif %}
 {% endblock %}

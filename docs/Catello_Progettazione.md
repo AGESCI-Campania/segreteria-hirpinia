@@ -1310,10 +1310,24 @@ capi da aggiungere in autunno spesso non hanno ancora un codice socio (che è la
   verificare che non vi abbia già votato spetta a chi gestisce l'app.
 
 **Permessi.** Gestiscono l'elenco e scaricano i file ADMIN, SEGRETERIA e RdZ. Per ogni
-assemblea possono nominare **operatori di voto** (utenti di Catello) che registrano
-presenze, deleghe e risultati ma non modificano l'elenco; gli operatori che sono capi
-fanno anche parte del comitato elettorale (scrutatori). Un capo che si presenta senza
-essere in elenco lo inseriscono solo ADMIN, SEGRETERIA o RdZ.
+assemblea nominano il **comitato elettorale** (correzione del 2026-11-11, prima «operatori
+di voto»): qualsiasi avente diritto dell'elenco, scelto con l'autocompletamento, in
+qualunque momento prima della conclusione. Di norma il componente riceve l'accesso: se non
+ha già un account personale (cercato per codice socio, poi per email) gliene viene creato
+uno senza password, con l'invito di attivazione di D-20; con l'accesso registra presenze,
+deleghe e risultati ma non modifica l'elenco. Si può aggiungere anche senza accesso (o
+senza email): compare solo nel verbale, che riporta l'elenco dell'intero comitato. Toglierlo
+dal comitato non tocca l'account. Unico punto: `apps/assemblee/comitato.py`. Un capo che si
+presenta senza essere in elenco lo inseriscono solo ADMIN, SEGRETERIA o RdZ.
+
+**Duplicazione** (2026-11-11, `apps/assemblee/duplica.py`). Chi gestisce le assemblee può
+creare una nuova assemblea come copia di un'altra, anche conclusa: tipo, anno, sistema e
+modalità di voto proposti dall'originale e modificabili, nuova prima convocazione. Si
+copiano l'elenco così com'è (eliminazioni, trasferimenti, email, qualifiche, incarichi
+dichiarati), il comitato elettorale con gli stessi account e i titoli dei punti all'ordine
+del giorno; non si copiano sedute, presenze, deleghe, votazioni, codici, seggi e verbali,
+né i passaggi a carta. L'anagrafica non si legge: l'elenco copiato si riallinea ai censiti
+solo con «aggiorna il gruppo».
 
 **Sedute e quorum costitutivo (art. 4).** Ogni convocazione (1ª, 2ª, 3ª) è una seduta
 separata, con data, luogo e presenze proprie; l'elenco degli aventi diritto è unico per
@@ -1365,7 +1379,7 @@ punti tipici del modello nazionale proposti. Presidenza, segretario, scrutatori,
 mozioni e RdZ firmatari (uno o due: un posto può essere vacante) sono testo libero con
 suggerimenti dall'elenco, comuni ai due verbali della seduta. I numeri della frase sul
 quorum sono quelli fotografati alla dichiarazione di seduta costituita. Ordine del giorno
-e verbali sono riservati ad ADMIN, SEGRETERIA e RdZ (non agli operatori di voto).
+e verbali sono riservati ad ADMIN, SEGRETERIA e RdZ (non al comitato elettorale).
 
 ### D-71 — Voto elettronico di Catello per le elezioni
 
@@ -1381,6 +1395,9 @@ di Catello* (`Assemblea.sistema_voto`). Si cambia fino all'apertura della prima 
 tornando al Nazionale i codici emessi si revocano. Con il voto di Catello si sceglie anche
 la modalità, modificabile il giorno stesso: dispositivi personali e seggi, oppure solo
 seggi (`modalita_voto`).
+Nell'interfaccia il voto di Catello si chiama **«Voto in app»** (correzione del
+2026-11-11): di default votano tutti in app, la carta è solo per chi ha problemi (passaggio
+manuale a carta, `elenco.passa_a_carta()`).
 
 **Deviazioni da D-70** (solo con il voto di Catello):
 - *vota in app* non significa più «ha dati da BuonaStrada» ma «vota con il codice»: vota

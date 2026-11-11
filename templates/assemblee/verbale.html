@@ -15,6 +15,11 @@
     questi dati, la discussione di ogni punto dell'<a href="{% url 'assemblee:odg' assemblea.pk %}">ordine del giorno</a>
     ({{ punti }} punti) e l'esito delle {{ votazioni_chiuse }} votazioni concluse. I dati mancanti compaiono in rosso come «[…]».
   </p>
+  <p class="mb-5">
+    <strong>Comitato elettorale</strong>:
+    {% if nomi_scrutatori %}{{ nomi_scrutatori|join:", " }}{% else %}nessun componente{% endif %}
+    — si modifica dalla <a href="{% url 'assemblee:assemblea_dettaglio' assemblea.pk %}">pagina dell'assemblea</a>.
+  </p>
   {% if votazioni_aperte %}
     <div class="alert theme-warning" role="note"><p class="mb-0">{{ votazioni_aperte }} votazioni non hanno ancora i risultati: nel verbale non compaiono.</p></div>
   {% endif %}

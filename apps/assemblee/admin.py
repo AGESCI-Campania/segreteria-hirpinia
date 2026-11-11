@@ -11,6 +11,7 @@ class SedutaInline(admin.TabularInline):
 class OperatoreVotoInline(admin.TabularInline):
     model = OperatoreVoto
     extra = 0
+    raw_id_fields = ["avente", "utente"]
     readonly_fields = ["nominato_il", "nominato_da"]
 
 
