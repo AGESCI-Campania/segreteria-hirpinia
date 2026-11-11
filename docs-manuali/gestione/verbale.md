@@ -26,7 +26,8 @@ copia i suoi dati, da controllare e completare con la provincia di nascita.
 
 Dalla pagina dell'assemblea:
 
-- **Foglio presenze (PDF)**, sulla carta intestata, da firmare all'ingresso;
+- **Foglio presenze (PDF)**, sulla carta intestata, con l'email di ogni avente
+  da controllare all'ingresso;
 - **Email degli aventi (Excel per gruppo)**, da far verificare ai capigruppo e
   reimportare;
 - **Tracciato per l'app di voto**, solo con l'app del Nazionale.

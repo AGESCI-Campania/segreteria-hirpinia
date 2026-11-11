@@ -1,0 +1,5 @@
+<h1>Foglio presenze — {{ assemblea }}</h1>
+<p class="sottotitolo">
+  {% if seduta %}{{ seduta.get_convocazione_display }} del {{ seduta.data|date:"d/m/Y" }}{% if seduta.ora %} ore {{ seduta.ora|time:"H:i" }}{% endif %}{% if seduta.luogo %} — {{ seduta.luogo }}{% endif %}<br>{% endif %}
+  Aventi diritto: {{ totale }} ({{ totale_app }} con voto in app) — elenco del {{ generato_il|date:"d/m/Y H:i" }}
+</p>

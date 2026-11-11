@@ -149,9 +149,17 @@ class TestFoglioPresenze:
     def test_pdf(self, assemblea, segreteria):
         contenuto = file_assemblea.genera_foglio_presenze_pdf(assemblea, segreteria)
         assert contenuto[:5] == b"%PDF-"
-        testo = "".join(p.extract_text() for p in PdfReader(io.BytesIO(contenuto)).pages)
+        pagine = [p.extract_text() for p in PdfReader(io.BytesIO(contenuto)).pages]
+        testo = "".join(pagine)
         assert "Neri Sara" in testo
+        # Ogni gruppo inizia un foglio nuovo.
+        assert len(pagine) == 2
+        assert "ARIANO 1" in pagine[0] and "AVELLINO 1" not in pagine[0]
+        assert "AVELLINO 1" in pagine[1]
+        assert all("Foglio presenze" in pagina for pagina in pagine)
         assert "Aventi diritto: 4" in testo
+        assert "mario@example.it" in testo
+        assert "Firma" not in testo
         assert ScaricamentoFile.objects.get().tipo == TipoFile.FOGLIO_PRESENZE
 
 

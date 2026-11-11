@@ -21,12 +21,19 @@
   .sottotitolo { color: #555; margin: 0 0 0.4cm 0; }
 
   table { width: 100%; border-collapse: collapse; }
+  .foglio-gruppo + .foglio-gruppo { break-before: page; }
   thead { display: table-header-group; }
   th {
     text-align: left;
     font-size: 8.5pt;
     border-bottom: 1.5px solid #333;
     padding: 0.12cm 0.15cm;
+  }
+  th.titolo {
+    font-size: 9.5pt;
+    font-weight: normal;
+    border-bottom: none;
+    padding: 0;
   }
   td {
     border-bottom: 1px solid #bbb;
@@ -35,18 +42,18 @@
     vertical-align: middle;
   }
   tr { break-inside: avoid; }
-  tr.gruppo td {
+  tr.gruppo th {
     background: #ece9f4;
-    font-weight: bold;
+    font-size: 9.5pt;
     border-bottom: 1px solid #5C5291;
-    padding-top: 0.25cm;
-    break-after: avoid;
+    padding: 0.25cm 0.15cm 0.18cm;
   }
   .num { width: 0.9cm; text-align: right; color: #555; }
-  .nome { width: 5.8cm; }
+  .nome { width: 4.6cm; }
   .codice { width: 2.2cm; }
   .voto { width: 1.3cm; }
   .presente { width: 1.5cm; text-align: center; }
+  .email { font-size: 8.5pt; overflow-wrap: anywhere; }
   .casella {
     display: inline-block;
     width: 0.38cm;
@@ -60,26 +67,25 @@
 
   {% include "pdf/carta_intestata.html" %}
 
-  <h1>Foglio presenze — {{ assemblea }}</h1>
-  <p class="sottotitolo">
-    {% if seduta %}{{ seduta.get_convocazione_display }} del {{ seduta.data|date:"d/m/Y" }}{% if seduta.ora %} ore {{ seduta.ora|time:"H:i" }}{% endif %}{% if seduta.luogo %} — {{ seduta.luogo }}{% endif %}<br>{% endif %}
-    Aventi diritto: {{ totale }} ({{ totale_app }} con voto in app) — elenco del {{ generato_il|date:"d/m/Y H:i" }}
-  </p>
-
-  <table>
-    <thead>
-      <tr>
-        <th class="num">N°</th>
-        <th class="nome">Cognome e nome</th>
-        <th class="codice">Codice socio</th>
-        <th class="voto">Voto</th>
-        <th class="presente">Presente</th>
-        <th>Firma</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for nome_gruppo, righe in gruppi %}
-        <tr class="gruppo"><td colspan="6">{{ nome_gruppo }} ({{ righe|length }})</td></tr>
+  {% for nome_gruppo, righe in gruppi %}
+    {# Una tabella per gruppo: ogni gruppo inizia un foglio nuovo. #}
+    {# Titolo e gruppo stanno nel thead, così si ripetono su ogni pagina. #}
+    <table class="foglio-gruppo">
+      <thead>
+        <tr>
+          <th class="titolo" colspan="6">{% include "assemblee/foglio_presenze_titolo.html" %}</th>
+        </tr>
+        <tr>
+          <th class="num">N°</th>
+          <th class="nome">Cognome e nome</th>
+          <th class="codice">Codice socio</th>
+          <th class="voto">Voto</th>
+          <th class="presente">Presente</th>
+          <th class="email">Email</th>
+        </tr>
+        <tr class="gruppo"><th colspan="6">{{ nome_gruppo }} ({{ righe|length }})</th></tr>
+      </thead>
+      <tbody>
         {% for numero, avente in righe %}
           <tr>
             <td class="num">{{ numero }}</td>
@@ -87,7 +93,7 @@
             <td class="codice">{{ avente.codice_socio|default:"—" }}</td>
             <td class="voto">{% if avente.vota_in_app %}App{% else %}Carta{% endif %}</td>
             <td class="presente"><span class="casella"></span></td>
-            <td></td>
+            <td class="email">{{ avente.email }}</td>
           </tr>
         {% endfor %}
         {% for vuota in righe_vuote %}
@@ -97,14 +103,15 @@
             <td class="codice"></td>
             <td class="voto"></td>
             <td class="presente"><span class="casella"></span></td>
-            <td></td>
+            <td class="email"></td>
           </tr>
         {% endfor %}
-      {% empty %}
-        <tr><td colspan="6">Nessun avente diritto nell'elenco.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </tbody>
+    </table>
+  {% empty %}
+    {% include "assemblee/foglio_presenze_titolo.html" %}
+    <p>Nessun avente diritto nell'elenco.</p>
+  {% endfor %}
 
 </body>
 </html>
