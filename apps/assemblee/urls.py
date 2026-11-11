@@ -176,6 +176,11 @@ urlpatterns = [
         name="votazioni",
     ),
     path(
+        "<int:pk>/sedute/<int:seduta_pk>/votazioni/elezioni/",
+        views.CreaElezioniView.as_view(),
+        name="crea_elezioni",
+    ),
+    path(
         "<int:pk>/sedute/<int:seduta_pk>/votazioni/nuova/",
         views.NuovaVotazioneView.as_view(),
         name="votazione_nuova",

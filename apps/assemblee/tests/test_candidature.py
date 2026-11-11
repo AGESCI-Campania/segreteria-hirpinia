@@ -240,3 +240,41 @@ def test_duplicazione_copia_posizioni_e_candidature(assemblea, segreteria):
     assert copia.punto.assemblea == nuova
     assert sorted(c.nome_completo for c in copia.candidature.all()) == ["C0 Nome", "Esterno"]
     assert all(c.avente is None or c.avente.assemblea == nuova for c in copia.candidature.all())
+
+
+class TestCreazioneInsieme:
+    def _due(self, assemblea, segreteria):
+        prima = _comitato(assemblea, segreteria, posti_indifferenti=1)
+        candidature.aggiungi_candidatura(prima, segreteria, avente=_a(assemblea, 0))
+        seconda = candidature.aggiungi_posizione(
+            assemblea, segreteria, incarico="Incaricato Fo.Ca.", posti_indifferenti=1
+        )
+        candidature.aggiungi_candidatura(seconda, segreteria, avente=_a(assemblea, 1))
+        return prima, seconda
+
+    def test_crea_tutte_o_nessuna(self, assemblea, segreteria):
+        prima, seconda = self._due(assemblea, segreteria)
+        vuota = _comitato(assemblea, segreteria, posti_indifferenti=1)
+        seduta = _seduta(assemblea, segreteria)
+        assert votazioni.posizioni_da_votare(seduta) == [prima, seconda, vuota]
+        with pytest.raises(ValidationError):
+            votazioni.crea_elezioni(seduta, segreteria, [prima, vuota])
+        assert not seduta.votazioni.exists()
+        create = votazioni.crea_elezioni(seduta, segreteria, [prima, seconda])
+        assert [v.posizione for v in create] == [prima, seconda]
+        assert votazioni.posizioni_da_votare(seduta) == [vuota]
+
+    def test_dalla_pagina_con_apertura_delle_urne(self, client, assemblea, segreteria):
+        from apps.assemblee.models import SistemaVoto
+        from apps.voto import urna
+
+        assemblea.sistema_voto = SistemaVoto.CATELLO
+        assemblea.save()
+        prima, seconda = self._due(assemblea, segreteria)
+        seduta = _seduta(assemblea, segreteria)
+        client.force_login(segreteria)
+        base = f"/assemblee/{assemblea.pk}/sedute/{seduta.pk}/votazioni/"
+        assert "Elezioni preparate" in client.get(base).content.decode()
+        client.post(base + "elezioni/", {"posizioni": [prima.pk, seconda.pk], "apri_urne": "1"})
+        aperte = urna.votazioni_aperte(seduta)
+        assert [v.posizione for v in aperte] == [prima, seconda]

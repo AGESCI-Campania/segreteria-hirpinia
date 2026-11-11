@@ -218,6 +218,27 @@ def _verifica_seduta(seduta: Seduta) -> None:
 
 
 @transaction.atomic
+def crea_elezioni(
+    seduta: Seduta, utente: Utente, posizioni: Iterable[PosizioneVoto]
+) -> list[Votazione]:
+    """Crea insieme le elezioni di più posizioni preparate (R1), ciascuna con
+    `apri_votazione(posizione=...)`: o tutte o nessuna. L'urna in app si apre a
+    parte (apps/voto/scrutinio.apri_urne())."""
+    posizioni = list(posizioni)
+    if not posizioni:
+        raise ValidationError("Scegli almeno un'elezione preparata.")
+    return [
+        apri_votazione(seduta, utente, tipo="", oggetto="", posizione=posizione)
+        for posizione in posizioni
+    ]
+
+
+def posizioni_da_votare(seduta: Seduta) -> list[PosizioneVoto]:
+    """Posizioni preparate dell'assemblea per cui non c'è ancora un'elezione."""
+    return list(seduta.assemblea.posizioni.filter(votazioni__isnull=True).order_by("creata_il"))
+
+
+@transaction.atomic
 def apri_votazione(
     seduta: Seduta,
     utente: Utente,

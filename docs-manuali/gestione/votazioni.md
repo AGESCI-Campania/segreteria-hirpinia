@@ -11,6 +11,11 @@ la piattaforma fotografa presenti e aventi diritto: sono la base della maggioran
 
 ![Votazione aperta](img/votazione-aperta.jpg)
 
+Le **elezioni preparate** si possono anche creare insieme: nell'elenco delle
+**Votazioni**, in «Elezioni preparate», spunta le posizioni e premi **Crea le elezioni
+selezionate**; con il voto in app, lasciando spuntato **e apri subito le urne** si aprono
+anche le urne, tutte insieme.
+
 ## L'urna elettronica
 
 Con il voto in app, **Apri l'urna** dalla pagina della votazione: chi ha il codice vede

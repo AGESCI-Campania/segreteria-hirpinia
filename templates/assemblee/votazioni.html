@@ -14,6 +14,31 @@
     <div class="alert theme-info" role="note"><p class="mb-0">Si vota solo dopo aver dichiarato la seduta validamente costituita.</p></div>
   {% endif %}
 
+  {% if puo_votare and posizioni_da_votare %}
+    <div class="card mb-5">
+      <div class="card-body">
+        <h2 class="fs-lg">Elezioni preparate</h2>
+        <p class="fg-2">Spunta le elezioni da creare insieme: per ciascuna si fotografano presenti e aventi diritto. Il voto in app comincia solo quando si apre l'urna.</p>
+        <form method="post" action="{% url 'assemblee:crea_elezioni' assemblea.pk seduta.pk %}">
+          {% csrf_token %}
+          {% for posizione in posizioni_da_votare %}
+            <div class="form-field mb-3">
+              <input type="checkbox" name="posizioni" value="{{ posizione.pk }}" id="posizione-{{ posizione.pk }}" class="check">
+              <label for="posizione-{{ posizione.pk }}">{{ posizione.incarico }} <small class="fg-2">({{ posizione.posti }} {% if posizione.posti == 1 %}posto{% else %}posti{% endif %}, {{ posizione.candidature.count }} candidature)</small></label>
+            </div>
+          {% endfor %}
+          {% if assemblea.voto_catello %}
+            <div class="form-field mb-5">
+              <input type="checkbox" name="apri_urne" value="1" id="apri-urne-subito" class="check"{% if urne_aperte %} disabled{% else %} checked{% endif %}>
+              <label for="apri-urne-subito">e apri subito le urne{% if urne_aperte %} (non si può: ci sono già urne aperte){% endif %}</label>
+            </div>
+          {% endif %}
+          <button type="submit" class="btn-solid theme-primary">Crea le elezioni selezionate</button>
+        </form>
+      </div>
+    </div>
+  {% endif %}
+
   {% if puo_votare and urne_aperte %}
     <div class="alert theme-success" role="status"><p class="mb-0">
       Urne aperte: {% for v in urne_aperte %}«{{ v.oggetto }}»{% if not forloop.last %}, {% endif %}{% endfor %}. Per aprirne altre, prima chiudile (dalla pagina di una delle votazioni).

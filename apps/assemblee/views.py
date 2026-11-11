@@ -1694,6 +1694,7 @@ class VotazioniView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             # Voto in app: le urne si aprono insieme da qui, solo se non ce ne
             # sono già di aperte (regola in apps/voto/scrutinio.apri_urne()).
             "urne_aperte": urna_voto.votazioni_aperte(seduta),
+            "posizioni_da_votare": voto.posizioni_da_votare(seduta),
             "apribili": [
                 v
                 for v in votazioni_seduta
@@ -1704,6 +1705,37 @@ class VotazioniView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             ],
         }
         return render(request, self.template_name, contesto)
+
+
+class CreaElezioniView(LoginRequiredMixin, View):
+    """Crea insieme le elezioni preparate scelte e, se richiesto, ne apre
+    subito le urne: tutto o niente (regole in votazioni.crea_elezioni() e
+    apps/voto/scrutinio.apri_urne())."""
+
+    def post(self, request, pk, seduta_pk):
+        seduta = _seduta_visibile(request, pk, seduta_pk)
+        scelte = [v for v in request.POST.getlist("posizioni") if v.isdigit()]
+        posizioni = list(seduta.assemblea.posizioni.filter(pk__in=scelte).order_by("creata_il"))
+        apri_urne = request.POST.get("apri_urne") == "1" and seduta.assemblea.voto_catello
+        try:
+            with transaction.atomic():
+                create = voto.crea_elezioni(seduta, request.user, posizioni)
+                if apri_urne:
+                    scrutinio_voto.apri_urne(seduta, create, request.user)
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+        else:
+            testo = f"{len(create)} {'elezione creata' if len(create) == 1 else 'elezioni create'}"
+            messages.success(
+                request,
+                testo
+                + (
+                    ": urne aperte, chi vota le trova tutte nella stessa pagina."
+                    if apri_urne
+                    else "."
+                ),
+            )
+        return redirect(reverse("assemblee:votazioni", args=[pk, seduta_pk]))
 
 
 class NuovaVotazioneView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):

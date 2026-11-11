@@ -7,15 +7,17 @@
     <div class="lg:col-8">
       <h1>Nuova votazione</h1>
       <p class="fg-2">
-        All'apertura Catello fotografa presenti e aventi diritto: sono la base della maggioranza
-        e non cambiano dopo. Mozioni, raccomandazioni, bilanci e mozioni d'ordine si votano per
+        Alla creazione la piattaforma fotografa presenti e aventi diritto: sono la base della
+        maggioranza e non cambiano dopo. Con il voto in app si vota solo dopo aver aperto l'urna,
+        dalla pagina della votazione; per creare e aprire insieme più elezioni preparate usa
+        l'elenco delle votazioni. Mozioni, raccomandazioni, bilanci e mozioni d'ordine si votano per
         alzata di mano; elezioni e revoche a scrutinio segreto, in app e su carta.
       </p>
       <form method="post">
         {% csrf_token %}
         {{ form.as_p }}
         <div class="d-flex gap-3">
-          <button type="submit" class="btn-solid theme-primary">Apri la votazione</button>
+          <button type="submit" class="btn-solid theme-primary">Crea la votazione</button>
           <a href="{% url 'assemblee:votazioni' assemblea.pk seduta.pk %}" class="btn-outline theme-secondary">Annulla</a>
         </div>
       </form>
