@@ -8,6 +8,16 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.15.4] - 2026-11-11
+
+### Modificato
+
+- Voto: i soci leggono «segreteria» al posto di «banco», nella pagina di
+  accesso all'urna, nell'email con il codice e nei messaggi di errore
+  dell'urna, come nei manuali di voto in app e al seggio.
+- Manuali di voto in app e al seggio: nuovo riquadro «Un'urna chiusa non si
+  riapre».
+
 ## [1.15.3] - 2026-11-11
 
 ### Corretto
