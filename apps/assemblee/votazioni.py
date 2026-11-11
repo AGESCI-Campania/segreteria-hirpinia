@@ -499,18 +499,74 @@ def frase_esito(votazione: Votazione) -> str:
         nomi = ", ".join(c.nome for c in e.eletti)
         parti.append(f"{'eletto' if len(e.eletti) == 1 else 'eletti'}: {nomi}")
     if e.posti_vacanti:
-        if e.ballottaggio_proposto:
-            nomi = " e ".join(c.nome for c in e.ballottaggio_proposto)
-            parti.append(f"ballottaggio fra {nomi}")
-        elif e.vacanti_per_sesso:
-            etichette = {Sesso.MASCHILE: "maschil", Sesso.FEMMINILE: "femminil", "": "indifferent"}
-            dettaglio = ", ".join(
-                f"{n} {etichette[k]}{'e' if n == 1 else 'i'}"
-                for k, n in e.vacanti_per_sesso.items()
-            )
-            parti.append(
-                f"{_voti(e.posti_vacanti, 'posto vacante', 'posti vacanti')} ({dettaglio})"
-            )
-        else:
-            parti.append(f"{_voti(e.posti_vacanti, 'posto vacante', 'posti vacanti')}")
+        parti.append(_frase_vacanti(e))
     return "; ".join(parti) + f" ({base})."
+
+
+def _frase_vacanti(e: Esito) -> str:
+    """Ballottaggio proposto o posti vacanti di un'elezione."""
+    if e.ballottaggio_proposto:
+        nomi = " e ".join(c.nome for c in e.ballottaggio_proposto)
+        return f"ballottaggio fra {nomi}"
+    if e.vacanti_per_sesso:
+        etichette = {Sesso.MASCHILE: "maschil", Sesso.FEMMINILE: "femminil", "": "indifferent"}
+        dettaglio = ", ".join(
+            f"{n} {etichette[k]}{'e' if n == 1 else 'i'}" for k, n in e.vacanti_per_sesso.items()
+        )
+        return f"{_voti(e.posti_vacanti, 'posto vacante', 'posti vacanti')} ({dettaglio})"
+    return _voti(e.posti_vacanti, "posto vacante", "posti vacanti")
+
+
+# --- Risultati da proiettare --------------------------------------------------------
+#
+# Vista proiettore dei risultati: elezioni e ballottaggi chiusi della seduta,
+# al massimo tre affiancati (una colonna ciascuno). Esito e soglie restano in
+# esito(): qui solo la forma dei dati per la pagina.
+
+MAX_RISULTATI_PROIETTATI = 3
+TIPI_PROIETTABILI = (TipoVotazione.ELEZIONE, TipoVotazione.BALLOTTAGGIO)
+
+
+def proiettabili(seduta: Seduta) -> list[Votazione]:
+    return list(
+        seduta.votazioni.filter(chiusa_il__isnull=False, tipo__in=TIPI_PROIETTABILI).order_by(
+            "aperta_il"
+        )
+    )
+
+
+def da_proiettare(seduta: Seduta, scelte: Iterable[int]) -> list[Votazione]:
+    scelte = set(scelte)
+    votazioni = [v for v in proiettabili(seduta) if v.pk in scelte]
+    if not votazioni or len(votazioni) != len(scelte):
+        raise ValidationError("Scegli da una a tre elezioni chiuse di questa seduta.")
+    if len(votazioni) > MAX_RISULTATI_PROIETTATI:
+        raise ValidationError(
+            f"Si proiettano al massimo {MAX_RISULTATI_PROIETTATI} elezioni alla volta."
+        )
+    return votazioni
+
+
+def risultati_per_proiettore(votazione: Votazione) -> dict:
+    e = esito(votazione)
+    eletti = {c.pk for c in e.eletti}
+    ballottaggio = {c.pk for c in e.ballottaggio_proposto}
+    candidati = sorted(votazione.candidati.all(), key=lambda c: (-c.voti, c.nome))
+    return {
+        "votazione": votazione,
+        "candidati": [
+            {
+                "nome": c.nome,
+                "voti": c.voti,
+                "eletto": c.pk in eletti,
+                "ballottaggio": c.pk in ballottaggio,
+            }
+            for c in candidati
+        ],
+        "bianche": e.totali.bianche,
+        "nulle": e.totali.nulle,
+        "base": e.base,
+        "base_nome": e.base_nome,
+        "soglia": e.soglia,
+        "vacanti": _frase_vacanti(e) if e.posti_vacanti else "",
+    }

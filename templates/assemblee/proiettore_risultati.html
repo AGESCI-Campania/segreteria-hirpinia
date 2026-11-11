@@ -1,0 +1,49 @@
+{% load static bootstrap_icons %}
+{% comment %}
+Risultati di una o più elezioni chiuse da proiettare in sala, una per colonna
+(al massimo tre), con una corona accanto agli eletti. Pagina statica, senza
+aggiornamento automatico: i risultati sono definitivi. Autonoma come
+assemblee/proiettore.html.
+{% endcomment %}
+<!DOCTYPE html>
+<html lang="it" data-bs-theme="light" data-branca="{{ agesci_theme_branca|default:'capi' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Risultati — {{ assemblea }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
+  <link href="{% static 'agesci_theme/css/agesci.min.css' %}" rel="stylesheet">
+</head>
+<body class="d-flex flex-column min-vh-100">
+  <main class="container-fluid px-7 py-7 flex-grow-1">
+    <div class="d-flex align-items-center justify-content-center gap-5 mb-7">
+      <img src="{% static 'pdf/img/logo_zona.png' %}" alt="AGESCI Zona Hirpinia" width="96" height="96">
+      <div>
+        <p class="fs-3xl fw-bold mb-0">Risultati</p>
+        <p class="fs-lg mb-0">{{ assemblea }} — {{ seduta.get_convocazione_display }}</p>
+      </div>
+    </div>
+    <div class="row g-7">
+      {% for r in risultati %}
+        <section class="{% if risultati|length == 1 %}lg:col-8 mx-auto{% elif risultati|length == 2 %}md:col-6{% else %}lg:col-4{% endif %}">
+          <h2 class="fs-2xl mb-5">{{ r.votazione.oggetto }}</h2>
+          <table class="table fs-xl">
+            <tbody>
+              {% for c in r.candidati %}
+                <tr>
+                  <td class="{% if c.eletto %}fw-bold{% endif %}">{% if c.eletto %}<span class="fg-warning me-2" title="Eletto">{% md_icon "crown" size="32" %}</span>{% endif %}{{ c.nome }}{% if c.eletto %}<span class="visually-hidden"> (eletto)</span>{% elif c.ballottaggio %} <span class="badge theme-warning">Ballottaggio</span>{% endif %}</td>
+                  <td class="text-end{% if c.eletto %} fw-bold{% endif %}">{{ c.voti }}</td>
+                </tr>
+              {% endfor %}
+              <tr><td class="fg-2">Schede bianche</td><td class="text-end fg-2">{{ r.bianche }}</td></tr>
+              <tr><td class="fg-2">Schede nulle</td><td class="text-end fg-2">{{ r.nulle }}</td></tr>
+            </tbody>
+          </table>
+          <p class="fs-lg mb-1">Maggioranza richiesta: {{ r.soglia }} su {{ r.base }} {{ r.base_nome }}.</p>
+          {% if r.vacanti %}<p class="fs-lg fw-bold mb-0">{{ r.vacanti|capfirst }}.</p>{% endif %}
+        </section>
+      {% endfor %}
+    </div>
+  </main>
+</body>
+</html>

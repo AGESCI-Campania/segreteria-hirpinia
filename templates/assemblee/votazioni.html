@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load bootstrap_icons %}
 
 {% block page_title %}Votazioni — {{ seduta }}{% endblock %}
 
@@ -51,14 +52,24 @@
     </form>
   {% endif %}
 
+  {% if proiettabili %}
+    <form method="get" action="{% url 'assemblee:proiettore_risultati' assemblea.pk seduta.pk %}" target="_blank" id="form-proietta" class="d-flex flex-wrap align-items-center gap-3 mb-5">
+      <button type="submit" class="btn-outline theme-primary">{% bs_icon "display" %} Proietta i risultati</button>
+      <span class="fg-2">Spunta fino a {{ max_proiettati }} elezioni chiuse: si aprono in una pagina da proiettare, una per colonna.</span>
+    </form>
+  {% endif %}
+
   <div class="table-responsive">
   <table class="table">
-    <thead><tr>{% if puo_votare and apribili and not urne_aperte %}<th></th>{% endif %}<th>Ora</th><th>Votazione</th><th>Esito</th><th></th></tr></thead>
+    <thead><tr>{% if puo_votare and apribili and not urne_aperte or proiettabili %}<th></th>{% endif %}<th>Ora</th><th>Votazione</th><th>Esito</th><th></th></tr></thead>
     <tbody>
       {% for votazione, frase in votazioni %}
         <tr>
-          {% if puo_votare and apribili and not urne_aperte %}
-            <td>{% if votazione in apribili %}<input type="checkbox" name="votazioni" value="{{ votazione.pk }}" form="form-apri-urne" class="check" aria-label="Apri l'urna di {{ votazione.oggetto }}">{% endif %}</td>
+          {% if puo_votare and apribili and not urne_aperte or proiettabili %}
+            <td>
+              {% if puo_votare and votazione in apribili and not urne_aperte %}<input type="checkbox" name="votazioni" value="{{ votazione.pk }}" form="form-apri-urne" class="check" aria-label="Apri l'urna di {{ votazione.oggetto }}">
+              {% elif votazione in proiettabili %}<input type="checkbox" name="v" value="{{ votazione.pk }}" form="form-proietta" class="check" aria-label="Proietta i risultati di {{ votazione.oggetto }}">{% endif %}
+            </td>
           {% endif %}
           <td>{{ votazione.aperta_il|time:"H:i" }}</td>
           <td>

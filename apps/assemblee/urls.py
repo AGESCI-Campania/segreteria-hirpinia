@@ -161,6 +161,11 @@ urlpatterns = [
         name="cruscotto",
     ),
     path(
+        "<int:pk>/sedute/<int:seduta_pk>/proiettore/risultati/",
+        views.ProiettoreRisultatiView.as_view(),
+        name="proiettore_risultati",
+    ),
+    path(
         "<int:pk>/sedute/<int:seduta_pk>/proiettore/",
         views.ProiettoreView.as_view(),
         name="proiettore",

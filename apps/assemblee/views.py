@@ -1643,6 +1643,28 @@ class ProiettoreView(AccedeAssembleeMixin, View):
         return render(request, self.template_name, contesto)
 
 
+class ProiettoreRisultatiView(AccedeAssembleeMixin, View):
+    """Risultati di una o più elezioni chiuse (al massimo tre, una per colonna),
+    da proiettare in sala; le scelte arrivano dall'elenco delle votazioni."""
+
+    template_name = "assemblee/proiettore_risultati.html"
+
+    def get(self, request, pk, seduta_pk):
+        seduta = _seduta_visibile(request, pk, seduta_pk)
+        scelte = [int(v) for v in request.GET.getlist("v") if v.isdigit()]
+        try:
+            votazioni = voto.da_proiettare(seduta, scelte)
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+            return redirect(reverse("assemblee:votazioni", args=[pk, seduta_pk]))
+        contesto = {
+            "assemblea": seduta.assemblea,
+            "seduta": seduta,
+            "risultati": [voto.risultati_per_proiettore(v) for v in votazioni],
+        }
+        return render(request, self.template_name, contesto)
+
+
 class AbilitazioneAppView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
     """Presenti che votano in app, per chi li abilita sull'app nazionale:
     pulsante "Aggiorna", nessun aggiornamento automatico."""
@@ -1695,6 +1717,8 @@ class VotazioniView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             # sono già di aperte (regola in apps/voto/scrutinio.apri_urne()).
             "urne_aperte": urna_voto.votazioni_aperte(seduta),
             "posizioni_da_votare": voto.posizioni_da_votare(seduta),
+            "proiettabili": voto.proiettabili(seduta),
+            "max_proiettati": voto.MAX_RISULTATI_PROIETTATI,
             "apribili": [
                 v
                 for v in votazioni_seduta

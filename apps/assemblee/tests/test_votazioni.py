@@ -314,3 +314,44 @@ class TestVerificaDelQuorum:
         v = votazioni.apri_votazione(seduta, segreteria, tipo=TipoVotazione.MOZIONE, oggetto="X")
         assert v.presenti == 4
         assert _palese(v, segreteria, 2, 2, 0).soglia == 3
+
+
+class TestRisultatiDaProiettare:
+    def test_solo_elezioni_chiuse_al_massimo_tre(self, seduta, segreteria):
+        chiuse = []
+        for nome in ("Anna", "Bruno", "Carla", "Dario"):
+            v = _votazione(seduta, TipoVotazione.ELEZIONE, candidati=[nome, "Zeta"])
+            _elezione(v, segreteria, {nome: 70, "Zeta": 40})
+            chiuse.append(v)
+        aperta = _votazione(seduta, TipoVotazione.ELEZIONE, candidati=["Ugo"])
+        mozione = _palese(_votazione(seduta, TipoVotazione.MOZIONE), segreteria, 70, 10, 0)
+        assert mozione.approvata
+        assert votazioni.proiettabili(seduta) == chiuse
+        assert votazioni.da_proiettare(seduta, [chiuse[0].pk, chiuse[2].pk]) == [
+            chiuse[0],
+            chiuse[2],
+        ]
+        with pytest.raises(ValidationError, match="al massimo 3"):
+            votazioni.da_proiettare(seduta, [v.pk for v in chiuse])
+        with pytest.raises(ValidationError):
+            votazioni.da_proiettare(seduta, [aperta.pk])
+        with pytest.raises(ValidationError):
+            votazioni.da_proiettare(seduta, [])
+
+    def test_pagina_con_voti_ed_eletti(self, client, seduta, segreteria):
+        v = _votazione(seduta, TipoVotazione.ELEZIONE, candidati=["Anna", "Bruno", "Carla"])
+        _elezione(v, segreteria, {"Anna": 55, "Bruno": 50, "Carla": 10}, bianche=3)
+        risultati = votazioni.risultati_per_proiettore(v)
+        assert [c["nome"] for c in risultati["candidati"]] == ["Anna", "Bruno", "Carla"]
+        assert risultati["vacanti"] == "ballottaggio fra Anna e Bruno"
+        client.force_login(segreteria)
+        base = f"/assemblee/{seduta.assemblea_id}/sedute/{seduta.pk}"
+        assert "Proietta i risultati" in client.get(f"{base}/votazioni/").content.decode()
+        pagina = client.get(f"{base}/proiettore/risultati/?v={v.pk}").content.decode()
+        assert "Carla" in pagina and "Ballottaggio fra Anna e Bruno" in pagina
+        eletta = _votazione(seduta, TipoVotazione.ELEZIONE, candidati=["Dora", "Ezio"])
+        _elezione(eletta, segreteria, {"Dora": 70, "Ezio": 40})
+        pagina = client.get(f"{base}/proiettore/risultati/?v={v.pk}&v={eletta.pk}").content.decode()
+        assert pagina.count('id="mdi-crown"') == 1 and "Dora" in pagina
+        # Una votazione non proiettabile riporta all'elenco.
+        assert client.get(f"{base}/proiettore/risultati/?v=999999").status_code == 302

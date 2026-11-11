@@ -58,6 +58,16 @@ pubblica la bacheca e ne fissa l'impronta per il verbale.
 
 ![Esito della votazione](img/votazione-esito.jpg)
 
+## Proiettare i risultati
+
+Per mostrare in sala i risultati delle elezioni, nell'elenco delle **Votazioni** spunta
+fino a tre elezioni o ballottaggi già chiusi e premi **Proietta i risultati**: si apre una
+pagina da proiettare, una elezione per colonna, con i voti di ogni candidato, una corona
+accanto agli eletti, schede bianche e nulle, maggioranza richiesta ed eventuale
+ballottaggio o posto vacante. I risultati sono definitivi: la pagina non si aggiorna.
+
+![Risultati da proiettare](img/proiettore-risultati.jpg)
+
 Con posti maschili e femminili si eleggono prima i posti di ciascun sesso, ognuno con la
 sua graduatoria, poi quelli indifferenti fra i rimanenti. Su carta, una scheda con più
 preferenze di un sesso di quante ne ammettono i posti è nulla. Se un posto resta

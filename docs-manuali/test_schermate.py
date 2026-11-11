@@ -398,6 +398,19 @@ def test_schermate(live_server, browser, settings):
     )
     f.apri(f"/assemblee/{pk}/sedute/{spk}/votazioni/{vpk}/")
     f.scatta("gestione", "votazione-esito")
+    elezione_foca.refresh_from_db()
+    votazioni.registra_risultati(
+        elezione_foca,
+        segreteria,
+        per_canale={CanaleVoto.CARTA.value: {"bianche": 0, "nulle": 0}},
+        # Su carta Marino arriva alla maggioranza: la schermata mostra un eletto.
+        voti_candidati={
+            c.pk: {"voti_carta": 3 if c.nome.startswith("Marino") else 0}
+            for c in elezione_foca.candidati.all()
+        },
+    )
+    f.apri(f"/assemblee/{pk}/sedute/{spk}/proiettore/risultati/?v={vpk}&v={elezione_foca.pk}")
+    f.scatta("gestione", "proiettore-risultati", intera=False)
     f.apri(f"/assemblee/{pk}/sedute/{spk}/verbale/")
     f.scatta("gestione", "verbale")
 
