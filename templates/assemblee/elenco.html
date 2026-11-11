@@ -12,7 +12,7 @@
           <a href="{% url 'assemblee:riallinea' assemblea.pk %}" class="btn-outline theme-primary">Riallinea con l'anagrafica</a>
           <a href="{% url 'assemblee:aggiungi_anagrafica' assemblea.pk %}" class="btn-outline theme-primary">Aggiungi dall'anagrafica</a>
         {% endif %}
-        <a href="{% url 'assemblee:inserisci' assemblea.pk %}{% if filtro_gruppo %}?gruppo={{ filtro_gruppo }}{% endif %}" class="btn-solid theme-primary">Nuovo capo</a>
+        <a href="{% url 'assemblee:inserisci' assemblea.pk %}?{% if filtro_gruppo %}gruppo={{ filtro_gruppo|urlencode }}&amp;{% endif %}next={{ request.get_full_path|urlencode }}" class="btn-solid theme-primary">Nuovo capo</a>
       </div>
     {% endif %}
   </div>

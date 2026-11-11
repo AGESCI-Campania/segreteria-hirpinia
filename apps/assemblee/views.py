@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+from urllib.parse import urlencode
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -634,17 +635,18 @@ def _torna_all_elenco(request: HttpRequest, assemblea: Assemblea):
     return redirect(reverse("assemblee:elenco", args=[assemblea.pk]))
 
 
-def _ritorno_elenco(request: HttpRequest, avente: AventeDiritto) -> str:
+def _ritorno_elenco(request: HttpRequest, assemblea_id: int, gruppo_id: str | None = None) -> str:
     """Indirizzo dell'elenco da cui si è arrivati a una pagina del singolo
-    avente, con i suoi filtri (`next` in GET o POST); se manca o non è
-    l'elenco di questa assemblea, l'elenco filtrato sul gruppo del capo."""
-    elenco_url = reverse("assemblee:elenco", args=[avente.assemblea_id])
+    avente o all'inserimento, con i suoi filtri (`next` in GET o POST); se
+    manca o non è l'elenco di questa assemblea, l'elenco filtrato sul gruppo
+    del capo (`gruppo_id`), se c'è."""
+    elenco_url = reverse("assemblee:elenco", args=[assemblea_id])
     destinazione = request.POST.get("next") or request.GET.get("next", "")
     if destinazione.split("?")[0] == elenco_url and url_has_allowed_host_and_scheme(
         destinazione, allowed_hosts={request.get_host()}
     ):
         return destinazione
-    return f"{elenco_url}?gruppo={avente.gruppo_id}"
+    return f"{elenco_url}?gruppo={gruppo_id}" if gruppo_id else elenco_url
 
 
 def _breadcrumb_assemblea(request, *ultimi: dict) -> list[dict]:
@@ -790,7 +792,7 @@ class TrasferisciView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
             "avente": avente,
             "assemblea": avente.assemblea,
             "form": form,
-            "ritorno": _ritorno_elenco(self.request, avente),
+            "ritorno": _ritorno_elenco(self.request, avente.assemblea_id, avente.gruppo_id),
         }
 
     def get(self, request, pk, avente_pk):
@@ -809,7 +811,7 @@ class TrasferisciView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
             form.add_error(None, errore)
             return render(request, self.template_name, self._contesto(avente, form))
         messages.success(request, f"{avente} trasferito a {avente.gruppo}.")
-        return redirect(_ritorno_elenco(request, avente))
+        return redirect(_ritorno_elenco(request, avente.assemblea_id, avente.gruppo_id))
 
 
 class InserisciView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
@@ -834,6 +836,7 @@ class InserisciView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
                 assemblea=assemblea, initial={"gruppo": request.GET.get("gruppo")}
             ),
             "incarichi": IncaricoDichiaratoFormSet(prefix="incarichi"),
+            "ritorno": _ritorno_elenco(request, pk),
         }
         return render(request, self.template_name, contesto)
 
@@ -854,14 +857,17 @@ class InserisciView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
             else:
                 modalita = "in app" if avente.vota_in_app else "su carta"
                 messages.success(request, f"{avente} aggiunto all'elenco (vota {modalita}).")
+                ritorno = _ritorno_elenco(request, pk, avente.gruppo_id)
                 if request.POST.get("altro") == "1":
-                    return redirect(
-                        reverse("assemblee:inserisci", args=[pk]) + f"?gruppo={avente.gruppo_id}"
-                    )
-                return redirect(
-                    reverse("assemblee:elenco", args=[pk]) + f"?gruppo={avente.gruppo_id}"
-                )
-        contesto = {"assemblea": assemblea, "form": form, "incarichi": incarichi}
+                    parametri = urlencode({"gruppo": avente.gruppo_id, "next": ritorno})
+                    return redirect(reverse("assemblee:inserisci", args=[pk]) + f"?{parametri}")
+                return redirect(ritorno)
+        contesto = {
+            "assemblea": assemblea,
+            "form": form,
+            "incarichi": incarichi,
+            "ritorno": _ritorno_elenco(request, pk),
+        }
         return render(request, self.template_name, contesto)
 
 
@@ -1403,7 +1409,7 @@ class QualificheView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
             "assemblea": avente.assemblea,
             "form": form,
             "ae_gruppo": deleghe_ae.e_ae_gruppo(avente),
-            "ritorno": _ritorno_elenco(request, avente),
+            "ritorno": _ritorno_elenco(request, avente.assemblea_id, avente.gruppo_id),
         }
         return render(request, self.template_name, contesto)
 
@@ -1417,13 +1423,13 @@ class QualificheView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
                 form.add_error(None, errore)
             else:
                 messages.success(request, f"Qualifiche di {avente} aggiornate.")
-                return redirect(_ritorno_elenco(request, avente))
+                return redirect(_ritorno_elenco(request, avente.assemblea_id, avente.gruppo_id))
         contesto = {
             "avente": avente,
             "assemblea": avente.assemblea,
             "form": form,
             "ae_gruppo": deleghe_ae.e_ae_gruppo(avente),
-            "ritorno": _ritorno_elenco(request, avente),
+            "ritorno": _ritorno_elenco(request, avente.assemblea_id, avente.gruppo_id),
         }
         return render(request, self.template_name, contesto)
 
@@ -1594,7 +1600,11 @@ class AventeEmailView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
         return render(request, self.template_name, self._contesto(request, avente, form))
 
     def _contesto(self, request, avente, form):
-        return {"avente": avente, "form": form, "ritorno": _ritorno_elenco(request, avente)}
+        return {
+            "avente": avente,
+            "form": form,
+            "ritorno": _ritorno_elenco(request, avente.assemblea_id, avente.gruppo_id),
+        }
 
     def post(self, request, pk, avente_pk):
         avente = self._avente(request, pk, avente_pk)
@@ -1607,7 +1617,7 @@ class AventeEmailView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
                 form.add_error(None, errore)
             else:
                 messages.success(request, f"Dati di {avente} aggiornati.")
-                return redirect(_ritorno_elenco(request, avente))
+                return redirect(_ritorno_elenco(request, avente.assemblea_id, avente.gruppo_id))
         return render(request, self.template_name, self._contesto(request, avente, form))
 
 

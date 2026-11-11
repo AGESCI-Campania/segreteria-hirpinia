@@ -94,3 +94,52 @@ class TestRitornoAllElenco:
         client.force_login(segreteria)
         risposta = client.post(_pagina(avente, "email"), {"email": "", "sesso": "F", "next": next_})
         assert risposta.url == f"{_elenco(avente)}?gruppo={avente.gruppo_id}"
+
+
+def _nuovo_capo(gruppo, **altri) -> dict:
+    return {
+        "cognome": "Gialli",
+        "nome": "Paolo",
+        "gruppo": gruppo.pk,
+        "provenienza": Provenienza.PASSAGGIO_CLAN,
+        "incarichi-TOTAL_FORMS": "0",
+        "incarichi-INITIAL_FORMS": "0",
+        **altri,
+    }
+
+
+class TestNuovoCapo:
+    def test_il_link_dell_elenco_porta_i_filtri(self, client, segreteria, avente):
+        client.force_login(segreteria)
+        filtrato = f"{_elenco(avente)}?gruppo={avente.gruppo_id}&q=Neri"
+        html = client.get(filtrato).content.decode()
+        inserisci = f"/assemblee/{avente.assemblea_id}/elenco/nuovo/"
+        assert f"{inserisci}?gruppo={avente.gruppo_id}&amp;next={quote(filtrato, safe='/')}" in html
+
+    def test_torna_ai_filtri(self, client, segreteria, avente):
+        client.force_login(segreteria)
+        avellino = Gruppo.objects.get(codice="E0133")
+        filtrato = f"{_elenco(avente)}?q=Neri&incompleti=1"
+        risposta = client.post(
+            f"/assemblee/{avente.assemblea_id}/elenco/nuovo/",
+            _nuovo_capo(avellino, next=filtrato),
+        )
+        assert risposta.url == filtrato
+
+    def test_inseriscine_un_altro_conserva_i_filtri(self, client, segreteria, avente):
+        client.force_login(segreteria)
+        avellino = Gruppo.objects.get(codice="E0133")
+        filtrato = f"{_elenco(avente)}?q=Neri"
+        inserisci = f"/assemblee/{avente.assemblea_id}/elenco/nuovo/"
+        risposta = client.post(inserisci, _nuovo_capo(avellino, next=filtrato, altro="1"))
+        assert risposta.url == f"{inserisci}?gruppo={avellino.pk}&next={quote(filtrato, safe='')}"
+        pagina = client.get(risposta.url).content.decode()
+        assert 'value="/assemblee/' in pagina and "?q=Neri" in pagina
+
+    def test_senza_next_il_gruppo_del_capo(self, client, segreteria, avente):
+        client.force_login(segreteria)
+        avellino = Gruppo.objects.get(codice="E0133")
+        risposta = client.post(
+            f"/assemblee/{avente.assemblea_id}/elenco/nuovo/", _nuovo_capo(avellino)
+        )
+        assert risposta.url == f"{_elenco(avente)}?gruppo={avellino.pk}"
