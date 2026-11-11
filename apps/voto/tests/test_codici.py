@@ -8,7 +8,7 @@ from django.core import mail
 from django.core.exceptions import PermissionDenied, ValidationError
 
 from apps.assemblee import elenco, sedute
-from apps.assemblee.models import SistemaVoto, TipoVotazione, Votazione
+from apps.assemblee.models import ModalitaVoto, SistemaVoto, TipoVotazione, Votazione
 from apps.voto import codici, sistema
 from apps.voto.models import CodiceVoto
 
@@ -217,3 +217,22 @@ def test_mostra_non_rimanda_fuori_dal_sito(client, seduta, assemblea, operatore)
     url = f"/voto/gestione/{assemblea.pk}/sedute/{seduta.pk}/codici/{gialli.pk}/mostra/"
     testo = client.post(url, {"next": "javascript:alert(1)"}).content.decode()
     assert "javascript:" not in testo
+
+
+class TestEmailSecondoLaModalita:
+    def test_con_dispositivi_personali_c_e_il_link(self, seduta, assemblea, segreteria):
+        rossi = avente(assemblea, "Rossi")
+        assert codici.invia(seduta, rossi, segreteria) == codici.EsitoInvio.INVIATO
+        corpo = mail.outbox[-1].body
+        assert "/voto/#c=" in corpo and "seggio in sala" in corpo
+
+    def test_solo_seggi_senza_link(self, seduta, assemblea, segreteria):
+        assemblea.modalita_voto = ModalitaVoto.SOLO_SEGGIO
+        assemblea.save()
+        rossi = avente(assemblea, "Rossi")
+        assert codici.invia(seduta, rossi, segreteria) == codici.EsitoInvio.INVIATO
+        corpo = mail.outbox[-1].body
+        assert "/voto/" not in corpo and "#c=" not in corpo
+        assert "si vota solo ai seggi in sala" in corpo
+        # Il codice c'è comunque.
+        assert re.search(r"[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{2}", corpo)

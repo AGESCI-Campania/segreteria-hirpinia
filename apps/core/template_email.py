@@ -56,7 +56,7 @@ VARIABILI_PER_CODICE: dict[str, list[str]] = {
     CodiceTemplateEmail.NOTA_SPESE_RESPINTA: ["numero", "evento", "causale", "link"],
     CodiceTemplateEmail.NOTA_SPESE_LIQUIDATA: ["numero", "evento", "link"],
     CodiceTemplateEmail.NOTA_SPESE_PROMEMORIA: ["elenco", "elenco_html", "link"],
-    CodiceTemplateEmail.CODICE_VOTO: ["nome", "assemblea", "codice", "link"],
+    CodiceTemplateEmail.CODICE_VOTO: ["nome", "assemblea", "codice", "come_votare", "link"],
     CodiceTemplateEmail.NOTA_SPESE_REPORT_GESTORI: [
         "numero_note",
         "elenco",
@@ -193,6 +193,11 @@ def contesto_esempio(codice: str) -> dict[str, str]:
         contesto["link"] = f"{settings.SITE_URL}{reverse('note_spese:nota_lista')}"
     elif codice == CodiceTemplateEmail.CODICE_VOTO:
         contesto["link"] = f"{settings.SITE_URL}{reverse('voto:urna')}#c=K7QMR4XP2W"
+        contesto["come_votare"] = (
+            "Per votare apri questo link quando la votazione viene aperta in sala (il\n"
+            f"codice è già inserito):\n{contesto['link']}\n\n"
+            "Puoi anche votare a un seggio in sala, inserendo il codice."
+        )
     elif codice == CodiceTemplateEmail.NOTA_SPESE_REPORT_GESTORI:
         contesto["link"] = f"{settings.SITE_URL}{reverse('note_spese:nota_verifica_lista')}"
     return contesto

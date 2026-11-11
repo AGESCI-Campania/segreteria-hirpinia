@@ -5,9 +5,7 @@ personale per votare:
 
     {{ codice }}
 
-Per votare apri questo link quando la votazione viene aperta in sala (il
-codice è già inserito):
-{{ link }}
+{{ come_votare }}
 
 Il codice vale per tutte le votazioni a scrutinio segreto di questa seduta.
 Non condividerlo: chi lo conosce può votare al posto tuo. Se lo perdi, chiedi

@@ -28,7 +28,7 @@ from django.utils.crypto import salted_hmac
 
 from apps.accounts.models import Utente
 from apps.assemblee import prova
-from apps.assemblee.models import AventeDiritto, Seduta
+from apps.assemblee.models import AventeDiritto, ModalitaVoto, Seduta
 from apps.assemblee.permessi import puo_operare
 from apps.core.invio_email import invia_email_template
 from apps.core.models import CodiceTemplateEmail
@@ -122,6 +122,37 @@ class EsitoInvio(enum.Enum):
     NON_PREVISTO = "non previsto"
 
 
+def come_votare(seduta: Seduta, codice: str) -> tuple[str, str]:
+    """Paragrafo «come votare» dell'email del codice e link all'urna. Con la
+    modalità «solo seggi» niente link: dal telefono il codice non funziona, si
+    porta al seggio in sala (il link è vuoto anche per un template
+    personalizzato che lo usasse)."""
+    if seduta.assemblea.modalita_voto == ModalitaVoto.SOLO_SEGGIO:
+        return (
+            "In questa assemblea si vota solo ai seggi in sala: quando la votazione\n"
+            "viene aperta, vai a un seggio e inserisci il codice.",
+            "",
+        )
+    link = link_urna(codice)
+    return (
+        "Per votare apri questo link quando la votazione viene aperta in sala (il\n"
+        f"codice è già inserito):\n{link}\n\n"
+        "Puoi anche votare a un seggio in sala, inserendo il codice.",
+        link,
+    )
+
+
+def contesto_email(seduta: Seduta, avente: AventeDiritto, codice: str) -> dict[str, str]:
+    paragrafo, link = come_votare(seduta, codice)
+    return {
+        "nome": f"{avente.nome} {avente.cognome}",
+        "assemblea": str(seduta.assemblea),
+        "codice": formatta(codice),
+        "come_votare": paragrafo,
+        "link": link,
+    }
+
+
 def invia(seduta: Seduta, avente: AventeDiritto, utente: Utente) -> EsitoInvio:
     """Emette un nuovo codice e lo manda all'email dell'avente. Se l'invio
     fallisce il codice appena emesso si revoca: un codice che nessuno ha
@@ -133,12 +164,7 @@ def invia(seduta: Seduta, avente: AventeDiritto, utente: Utente) -> EsitoInvio:
         invia_email_template(
             codice_template=CodiceTemplateEmail.CODICE_VOTO,
             destinatari=[avente.email],
-            contesto={
-                "nome": f"{avente.nome} {avente.cognome}",
-                "assemblea": str(seduta.assemblea),
-                "codice": formatta(codice),
-                "link": link_urna(codice),
-            },
+            contesto=contesto_email(seduta, avente, codice),
             fail_silently=False,
             **prova.opzioni_invio(seduta.assemblea, prova.ETICHETTA_CODICE_VOTO),
         )
