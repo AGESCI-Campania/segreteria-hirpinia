@@ -127,6 +127,19 @@ in uso) il contrassegno non cambia nulla: lì il provider non è mai reale per c
 raggiungibile con un tunnel SSH, mai da internet
 (`docs/email/mailpit-override-produzione.md`).
 
+### R11 — Manuali in PDF allegati alla release
+
+- **Manuale di voto** (solo il voto) e **manuale di gestione dell'assemblea**, in PDF,
+  allegati alla release.
+
+*Oggi*: `mkdocs.yml` genera da `docs-utente/` la guida dei capigruppo
+(`site/pdf/guida-capigruppo.pdf`, plugin `with-pdf`), e
+`.github/workflows/release-manuale.yml` la allega a ogni release pubblicata.
+*Proposta tecnica*: una configurazione MkDocs per manuale (un PDF per configurazione con
+`with-pdf`), stesse dipendenze (`uv sync --group docs`); il workflow li genera tutti e li
+allega insieme alla guida dei capigruppo. Modificando il workflow si verificano le
+ultime versioni delle action (istruzioni globali).
+
 ## Dubbi da chiarire
 
 Tutti risolti il 2026-11-11: le risposte sono in «Decisioni prese» (D1–D25), che
@@ -314,3 +327,14 @@ prevalgono sulle proposte scritte nei requisiti.
   *Conseguenza*: un componente di un'assemblea di prova senza account attivo non riceve
   il codice di attivazione; per farlo entrare si toglie temporaneamente «solo Mailpit» e
   si usa «Invia invito», oppure si usano account già attivi.
+- **D30 (2026-11-11)**: **manuale di voto** per elettori **e** seggi: per chi vota (codice
+  via email, QR o tagliando; voto da telefono e al seggio; preferenze e quote per sesso;
+  nomi scritti con il sesso dichiarato; ricevuta e verifica in bacheca; cosa fare se
+  qualcosa non va) più una parte per banco e seggi (attivazione postazioni, «Rigenera e
+  mostra», etichetta, passaggio a carta).
+- **D31 (2026-11-11)**: **manuale di gestione** per gestori (ADMIN, SEGRETERIA, RdZ),
+  comitato elettorale e presidenza/segretario, una sezione per ruolo.
+- **D32 (2026-11-11)**: **con schermate**, catturate da un'assemblea di prova con dati
+  fittizi (mai dati reali di soci, CLAUDE.md § Dati sensibili), salvate nel repository.
+- **D33 (2026-11-11)**: i manuali si scrivono **in fondo**, a funzioni finite (ultimo
+  passo del piano), insieme alla modifica del workflow di release.
