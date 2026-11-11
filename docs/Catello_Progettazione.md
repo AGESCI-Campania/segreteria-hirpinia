@@ -1514,7 +1514,7 @@ dei votanti.
 
 **Seggi** (`apps/voto/postazioni.py`). Postazioni per seduta attivate con un link monouso
 (segreto nel fragment); il dispositivo riceve un cookie firmato di cui si salva solo
-l'hash. Al seggio la ricevuta resta 30 secondi e la pagina si azzera. Con «solo seggi»
+l'hash. Al seggio la ricevuta resta 10 secondi e la pagina si azzera. Con «solo seggi»
 l'urna rifiuta i dispositivi personali.
 
 **Scrutinio** (`apps/voto/scrutinio.py`). Alla chiusura: verifica bloccante schede =

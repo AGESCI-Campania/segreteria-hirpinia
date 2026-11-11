@@ -13,7 +13,7 @@ mozioni si votano per alzata di mano; la revoca di un mandato resta su carta.
    un'etichetta.
 2. Vai a un seggio e inserisci il codice.
 3. Compila la scheda, **rivedi** e **conferma**.
-4. Annota subito la **ricevuta**: dopo 30 secondi la pagina si azzera per il prossimo
+4. Annota subito la **ricevuta**: dopo 10 secondi la pagina si azzera per il prossimo
    votante.
 
 !!! info "Il voto è segreto"
