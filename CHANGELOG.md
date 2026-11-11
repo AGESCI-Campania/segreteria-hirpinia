@@ -8,6 +8,19 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.15.2] - 2026-11-11
+
+### Modificato
+
+- Foglio presenze: accanto al nome degli AE di gruppo compare «(AE)», accanto
+  a quello dell'AE di Zona «(AEZ)».
+
+### Corretto
+
+- Aventi diritto: dopo aver modificato dati, qualifiche o gruppo di un capo si
+  torna all'elenco con gli stessi filtri di prima, non più filtrato sul gruppo
+  del capo.
+
 ## [1.15.1] - 2026-11-11
 
 ### Modificato
