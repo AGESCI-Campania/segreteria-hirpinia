@@ -32,6 +32,7 @@ from . import (
     duplica,
     elenco,
     email_aventi,
+    nomina,
     odg,
     presidenza,
     programma,
@@ -504,6 +505,16 @@ def _messaggio_invito(request, componente, inviato: bool) -> None:
         messages.success(request, f"{componente.nome_completo} è nel comitato elettorale.")
 
 
+def _invia_nomina(request, assemblea: Assemblea, avente: AventeDiritto, incarico: str) -> None:
+    """Email di nomina con i manuali (nomina.py): se non parte la nomina resta,
+    lo si dice soltanto."""
+    if nomina.invia(assemblea, avente, incarico) is False:
+        messages.warning(
+            request,
+            f"L'email di nomina con i manuali per {avente.cognome} {avente.nome} non è partita.",
+        )
+
+
 class ComitatoAggiungiView(GestisceAssembleeMixin, View):
     def post(self, request, pk):
         assemblea = get_object_or_404(Assemblea, pk=pk)
@@ -524,10 +535,12 @@ class ComitatoAggiungiView(GestisceAssembleeMixin, View):
                 f"{avente.cognome} {avente.nome} è nel comitato elettorale, ma l'email di "
                 "invito non è partita: riprova con «Invia invito».",
             )
+            _invia_nomina(request, assemblea, avente, nomina.COMITATO_ELETTORALE)
         except ValidationError as errore:
             messages.error(request, " ".join(errore.messages))
         else:
             _messaggio_invito(request, componente, inviato)
+            _invia_nomina(request, assemblea, avente, nomina.COMITATO_ELETTORALE)
         return redirect(reverse("assemblee:assemblea_dettaglio", args=[pk]))
 
 
@@ -574,6 +587,7 @@ class IncaricoAggiungiView(GestisceAssembleeMixin, View):
                 request,
                 f"{avente} aggiunto, ma l'email di invito non è partita: riprova con «Invia invito».",
             )
+            _invia_nomina(request, assemblea, avente, ruolo)
         except ValidationError as errore:
             messages.error(request, " ".join(errore.messages))
         else:
@@ -581,6 +595,7 @@ class IncaricoAggiungiView(GestisceAssembleeMixin, View):
             if inviato:
                 testo += f" Gli è stato inviato l'invito per attivare l'account ({incarico.utente.email})."
             messages.success(request, testo)
+            _invia_nomina(request, assemblea, avente, ruolo)
         return redirect(reverse("assemblee:assemblea_dettaglio", args=[pk]) + "#presidenza")
 
 

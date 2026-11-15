@@ -57,6 +57,14 @@ VARIABILI_PER_CODICE: dict[str, list[str]] = {
     CodiceTemplateEmail.NOTA_SPESE_LIQUIDATA: ["numero", "evento", "link"],
     CodiceTemplateEmail.NOTA_SPESE_PROMEMORIA: ["elenco", "elenco_html", "link"],
     CodiceTemplateEmail.CODICE_VOTO: ["nome", "assemblea", "codice", "come_votare", "link"],
+    CodiceTemplateEmail.NOMINA_ASSEMBLEA: [
+        "nome",
+        "assemblea",
+        "incarico",
+        "data",
+        "manuali",
+        "link",
+    ],
     CodiceTemplateEmail.NOTA_SPESE_REPORT_GESTORI: [
         "numero_note",
         "elenco",
@@ -197,6 +205,17 @@ def contesto_esempio(codice: str) -> dict[str, str]:
             "Per votare apri questo link quando la votazione viene aperta in sala (il\n"
             f"codice è già inserito):\n{contesto['link']}\n\n"
             "Puoi anche votare a un seggio in sala, inserendo il codice."
+        )
+    elif codice == CodiceTemplateEmail.NOMINA_ASSEMBLEA:
+        from apps.assemblee.nomina import COMITATO_ELETTORALE, testo_manuali
+
+        contesto.update(
+            nome="Mario",
+            assemblea="Assemblea autunnale 2026/2027",
+            incarico="componente del comitato elettorale",
+            data="22/11/2026",
+            manuali=testo_manuali(COMITATO_ELETTORALE),
+            link=f"{settings.SITE_URL}{reverse('assemblee:assemblea_lista')}",
         )
     elif codice == CodiceTemplateEmail.NOTA_SPESE_REPORT_GESTORI:
         contesto["link"] = f"{settings.SITE_URL}{reverse('note_spese:nota_verifica_lista')}"

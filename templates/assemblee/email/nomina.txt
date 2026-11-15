@@ -1,0 +1,12 @@
+Ciao {{ nome }},
+
+per {{ assemblea }} ({{ data }}) hai l'incarico di {{ incarico }}.
+
+Qui trovi come si usa la piattaforma il giorno dell'assemblea, sempre aggiornato
+all'ultima versione:
+
+{{ manuali }}
+
+La pagina dell'assemblea è questa (serve l'accesso a Catello: se ti è stato dato,
+ricevi un'email a parte per attivare l'account):
+{{ link }}

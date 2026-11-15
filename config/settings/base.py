@@ -315,6 +315,13 @@ MAX_DELEGHE_ATTIVE_PER_RUOLO = 3
 # niente framework Sites, un solo valore letto dall'ambiente.
 SITE_URL = os.environ.get("SITE_URL", "http://localhost:8000")
 
+# Manuali dell'assemblea su Read the Docs, versione stable (ultima release):
+# i link nelle email di nomina (apps/assemblee/nomina.py).
+MANUALI_ASSEMBLEA_URL = os.environ.get(
+    "MANUALI_ASSEMBLEA_URL",
+    "https://segreteria-hirpinia.readthedocs.io/it/stable/assemblea/",
+)
+
 # ─── Tema (D-15) ────────────────────────────────────────────────────────────────
 AGESCI_THEME_BRANCA = "capi"
 AGESCI_THEME_NOME = "Zona Hirpinia"

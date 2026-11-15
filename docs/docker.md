@@ -233,6 +233,7 @@ container:
 | `POSTGRES_HOST` | **Non serve impostarlo**: `compose.prod.yaml` lo forza a `db` (il nome del servizio PostgreSQL nella rete Docker interna), sovrascrivendo qualunque valore in `.env` |
 | `DJANGO_SETTINGS_MODULE` | **Non serve impostarlo**: `compose.prod.yaml` lo forza a `config.settings.prod` allo stesso modo |
 | `EMAIL_PROVIDER` e le variabili del provider scelto | Vedi [`docs/email/README.md`](email/README.md) — `console`/`locmem` **non si avviano proprio**: `config/settings/prod.py` solleva `ImproperlyConfigured` all'avvio del container se sono impostati (non solo raccomandato, imposto) |
+| `MANUALI_ASSEMBLEA_URL` | Facoltativa: indirizzo dei manuali dell'assemblea nelle email di nomina. Se assente vale `https://segreteria-hirpinia.readthedocs.io/it/stable/assemblea/` (Read the Docs, ultima release). |
 | `SITE_URL` | `https://segreteria.agescihirpinia.it` — **non presente in `.env.example`**, va aggiunta a mano: usata per costruire i link assoluti nelle email (attivazione, recupero OTP). Se assente, `config/settings/base.py` la fa cadere su `http://localhost:8000`, che produce link rotti nelle email reali. |
 
 Variabili opzionali, lette solo da `config/settings/prod.py` o dall'entrypoint, anch'esse

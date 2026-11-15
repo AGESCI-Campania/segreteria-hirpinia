@@ -21,4 +21,14 @@ Presidenti e segretario possono avere l'accesso: vedono l'assemblea, i risultati
 l'ordine del giorno e compilano il verbale. Tutti questi nomi precompilano il verbale di
 ogni convocazione, dove si possono ancora correggere.
 
+## Email di nomina
+
+A ogni nomina nel comitato elettorale, come presidente, segretario o scrutatore, il capo
+riceve un'email con l'incarico e i link ai manuali che gli servono, sempre aggiornati
+all'ultima versione: banco e seggi e gestione per comitato elettorale e scrutatori,
+gestione per presidenti e segretario, e a tutti i manuali di voto da girare ai votanti.
+Arriva all'email dell'elenco degli aventi diritto, anche a chi ha già un account o non ha
+l'accesso; l'invito ad attivare l'account resta un'email a parte. Il comitato mozioni non
+la riceve. Il testo si cambia in **Impostazioni › Template email** («Assemblea — nomina»).
+
 ![Cosa vede un presidente](img/presidenza-assemblea.jpg)

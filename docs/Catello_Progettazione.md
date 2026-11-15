@@ -1473,6 +1473,16 @@ evidenzia le righe in corso secondo l'orologio, con il polling di 3 secondi (D-1
 riga senza fine dura fino all'inizio della successiva. Il comitato elettorale non lo vede,
 come l'ordine del giorno.
 
+**Email di nomina con i manuali** (decisione del 2026-11-15): a ogni nomina nel comitato
+elettorale, come presidente, segretario o scrutatore parte un'email (template «Assemblea —
+nomina», `apps/assemblee/nomina.py`) all'email dell'elenco, anche a chi ha già un account
+o non ha l'accesso, con i link ai manuali su Read the Docs, versione `stable` (ultima
+release): banco e seggi e gestione per comitato elettorale e scrutatori, gestione per
+presidenti e segretario, a tutti quelli di voto da girare ai votanti. Il comitato mozioni
+non la riceve. Un invio fallito non annulla la nomina. I manuali sono pubblicati nello
+stesso sito della guida dei capigruppo (`assemblea/`) e allegati in PDF solo alle release
+che li cambiano.
+
 ### D-71 — Voto elettronico di Catello per le elezioni
 
 Decisione del 2026-11-10 (piano completo e storia delle scelte in `docs/plan_voto.md`),
