@@ -20,6 +20,14 @@ build:
       # con `mkdocs` installato altrove, quel comando fallisce con
       # "No module named mkdocs".
       - UV_PROJECT_ENVIRONMENT=$READTHEDOCS_VIRTUALENV_PATH uv sync --group docs --no-install-project
+    # Manuali dell'assemblea (docs-manuali/), con i loro PDF, nella
+    # sottocartella assemblea/ dello stesso sito: la guida li collega dal menu
+    # e le email di nomina puntano alla versione stable (ultima release).
+    post_build:
+      - $READTHEDOCS_VIRTUALENV_PATH/bin/python -m mkdocs build -f mkdocs-gestione.yml --site-dir $READTHEDOCS_OUTPUT/html/assemblea/gestione
+      - $READTHEDOCS_VIRTUALENV_PATH/bin/python -m mkdocs build -f mkdocs-banco.yml --site-dir $READTHEDOCS_OUTPUT/html/assemblea/banco
+      - $READTHEDOCS_VIRTUALENV_PATH/bin/python -m mkdocs build -f mkdocs-voto-app.yml --site-dir $READTHEDOCS_OUTPUT/html/assemblea/voto-app
+      - $READTHEDOCS_VIRTUALENV_PATH/bin/python -m mkdocs build -f mkdocs-voto-seggio.yml --site-dir $READTHEDOCS_OUTPUT/html/assemblea/voto-seggio
 
 mkdocs:
   configuration: mkdocs.yml

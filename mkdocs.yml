@@ -22,6 +22,13 @@ nav:
       - IBAN e intestazione conto: capogruppo/iban-gruppo.md
       - Partecipazione al contributo Fo.Ca.: capogruppo/partecipazioni-foca.md
       - Riepilogo dei gruppi: capogruppo/riepilogo-contributi.md
+  # Manuali dell'assemblea: siti a parte (docs-manuali/), generati da
+  # .readthedocs.yaml nella sottocartella assemblea/ dello stesso sito.
+  - Assemblea di Zona:
+      - Manuale di gestione dell'assemblea: assemblea/gestione/
+      - Manuale per il banco e i seggi: assemblea/banco/
+      - Manuale di voto in app: assemblea/voto-app/
+      - Manuale di voto al seggio: assemblea/voto-seggio/
 
 plugins:
   - search

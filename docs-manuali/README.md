@@ -43,6 +43,19 @@ le immagini in `voto/img/` e `gestione/img/`; prova anche nel browser alcune fun
 mise run manuali-build   # site-voto-app/, site-voto-seggio/, site-banco/, site-gestione/
 ```
 
+## Read the Docs
+
+I quattro manuali sono pubblicati sullo stesso sito della guida dei capigruppo, nella
+sottocartella `assemblea/` (`.readthedocs.yaml`, passo `post_build`), e la guida li collega
+dal menu «Assemblea di Zona». La versione `stable` segue l'ultima release:
+
+| Manuale | Pagina | PDF |
+| --- | --- | --- |
+| Gestione | `https://segreteria-hirpinia.readthedocs.io/it/stable/assemblea/gestione/` | `…/assemblea/gestione/pdf/manuale-gestione.pdf` |
+| Banco e seggi | `…/it/stable/assemblea/banco/` | `…/assemblea/banco/pdf/manuale-banco.pdf` |
+| Voto in app | `…/it/stable/assemblea/voto-app/` | `…/assemblea/voto-app/pdf/manuale-voto-app.pdf` |
+| Voto al seggio | `…/it/stable/assemblea/voto-seggio/` | `…/assemblea/voto-seggio/pdf/manuale-voto-seggio.pdf` |
+
 Lo stile comune dei PDF (palette verde della Zona, limiti delle immagini) è in
 `pdf/styles.scss`, usato anche dalla guida dei capigruppo. Alla pubblicazione di una
 release il workflow `release-manuale.yml` genera e allega i quattro manuali insieme alla

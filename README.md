@@ -210,8 +210,9 @@ apps/
   [Read the Docs](https://segreteria-hirpinia.readthedocs.io) (linkata anche nel footer
   dell'applicazione come "Manuale d'uso") e distribuita anche in PDF
 - [`docs-manuali/`](docs-manuali/README.md) — manuali di **voto in app**, di **voto al
-  seggio**, per il **banco e i seggi** e di **gestione dell'assemblea**, in PDF allegati a
-  ogni release insieme alla guida dei capigruppo; si
+  seggio**, per il **banco e i seggi** e di **gestione dell'assemblea**, pubblicati con i
+  loro PDF sullo stesso sito di Read the Docs (sezione «Assemblea di Zona», sotto
+  `assemblea/`) e allegati in PDF alle release insieme alla guida dei capigruppo; si
   aggiornano solo quando cambiano le pagine che descrivono
 - [`docs/Catello_Progettazione.md`](docs/Catello_Progettazione.md) — documento di
   progettazione, fonte di verità per modello dati, regole di dominio e decisioni
