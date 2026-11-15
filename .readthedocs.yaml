@@ -28,6 +28,12 @@ build:
       - $READTHEDOCS_VIRTUALENV_PATH/bin/python -m mkdocs build -f mkdocs-banco.yml --site-dir $READTHEDOCS_OUTPUT/html/assemblea/banco
       - $READTHEDOCS_VIRTUALENV_PATH/bin/python -m mkdocs build -f mkdocs-voto-app.yml --site-dir $READTHEDOCS_OUTPUT/html/assemblea/voto-app
       - $READTHEDOCS_VIRTUALENV_PATH/bin/python -m mkdocs build -f mkdocs-voto-seggio.yml --site-dir $READTHEDOCS_OUTPUT/html/assemblea/voto-seggio
+      # I tre manuali di voto condividono docs-manuali/voto/, con un'introduzione
+      # diversa per ciascuno (index-banco.md…): senza index.html alla radice,
+      # un rimando tiene validi i link brevi assemblea/<manuale>/.
+      - printf '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=index-banco/"><a href="index-banco/">Manuale per il banco e i seggi</a>' > $READTHEDOCS_OUTPUT/html/assemblea/banco/index.html
+      - printf '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=index-app/"><a href="index-app/">Manuale di voto in app</a>' > $READTHEDOCS_OUTPUT/html/assemblea/voto-app/index.html
+      - printf '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=index-seggio/"><a href="index-seggio/">Manuale di voto al seggio</a>' > $READTHEDOCS_OUTPUT/html/assemblea/voto-seggio/index.html
 
 mkdocs:
   configuration: mkdocs.yml
