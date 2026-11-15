@@ -17,13 +17,13 @@
 
   <div class="table-responsive mb-7">
   <table class="table">
-    <thead><tr><th>Ora</th><th>Attività</th><th>Punto dell'OdG</th>{% if puo_modificare %}<th></th>{% endif %}</tr></thead>
+    <thead><tr><th>Ora</th><th>Attività</th><th>Punti dell'OdG</th>{% if puo_modificare %}<th></th>{% endif %}</tr></thead>
     <tbody>
       {% for riga in righe %}
         <tr data-riga="{{ riga.pk }}"{% if riga.pk in in_corso %} class="fw-bold"{% endif %}>
           <td class="text-nowrap">{{ riga.inizio|time:"H:i" }}{% if riga.fine %}–{{ riga.fine|time:"H:i" }}{% endif %}</td>
           <td>{{ riga.descrizione }} <span class="badge theme-success" data-in-corso{% if riga.pk not in in_corso %} hidden{% endif %}>In corso</span></td>
-          <td>{% if riga.punto %}{% if riga.attivita %}{{ riga.punto.ordine }}. {{ riga.punto.titolo }}{% else %}Punto {{ riga.punto.ordine }}{% endif %}{% endif %}</td>
+          <td>{% if riga.attivita %}{% for p in riga.punti_ordinati %}{{ p.ordine }}. {{ p.titolo }}{% if not forloop.last %}<br>{% endif %}{% endfor %}{% else %}{{ riga.numeri_punti }}{% endif %}</td>
           {% if puo_modificare %}
           <td class="text-nowrap">
             <a href="{% url 'assemblee:programma_riga' assemblea.pk seduta.pk riga.pk %}" class="btn-outline theme-primary btn-sm">Modifica</a>
@@ -54,9 +54,13 @@
       <div class="row g-3">
         <div class="md:col-2"><div class="form-field mb-5">{{ form.inizio.label_tag }}{{ form.inizio }}{{ form.inizio.errors }}</div></div>
         <div class="md:col-2"><div class="form-field mb-5">{{ form.fine.label_tag }}{{ form.fine }}{{ form.fine.errors }}</div></div>
-        <div class="md:col-4"><div class="form-field mb-5">{{ form.attivita.label_tag }}{{ form.attivita }}{{ form.attivita.errors }}</div></div>
-        <div class="md:col-4"><div class="form-field mb-5">{{ form.punto.label_tag }}{{ form.punto }}{{ form.punto.errors }}</div></div>
+        <div class="md:col-8"><div class="form-field mb-5">{{ form.attivita.label_tag }}{{ form.attivita }}{{ form.attivita.errors }}</div></div>
       </div>
+      <fieldset class="mb-5">
+        <legend class="fs-base fw-bold">{{ form.punti.label }}</legend>
+        <p class="fg-2">{{ form.punti.help_text }}</p>
+        {{ form.punti }}{{ form.punti.errors }}
+      </fieldset>
       <button type="submit" class="btn-solid theme-primary">Aggiungi</button>
     </form>
   {% endif %}

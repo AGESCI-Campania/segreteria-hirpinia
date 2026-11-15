@@ -684,23 +684,49 @@ class PuntoOdG(models.Model):
         return f"{self.ordine}. {self.titolo}"
 
 
+class SottopuntoOdG(models.Model):
+    """Riga di dettaglio di un punto all'ordine del giorno (a, b, …): solo
+    testo. Discussione, votazioni, posizioni al voto e programma dei lavori
+    restano collegati al punto."""
+
+    punto = models.ForeignKey(PuntoOdG, on_delete=models.CASCADE, related_name="sottopunti")
+    ordine = models.PositiveSmallIntegerField()
+    titolo = models.CharField(max_length=500)
+
+    class Meta:
+        verbose_name = "sottopunto all'ordine del giorno"
+        verbose_name_plural = "sottopunti all'ordine del giorno"
+        ordering = ["punto", "ordine"]
+
+    def __str__(self) -> str:
+        return f"{self.lettera}. {self.titolo}"
+
+    @property
+    def lettera(self) -> str:
+        """a, b, … z, poi aa, ab, … come gli elenchi puntati."""
+        numero, lettere = self.ordine, ""
+        while numero > 0:
+            numero, resto = divmod(numero - 1, 26)
+            lettere = chr(ord("a") + resto) + lettere
+        return lettere
+
+
 class RigaProgramma(models.Model):
     """Una riga del programma dei lavori della seduta (cronoprogramma): ora di
-    inizio, ora di fine facoltativa, attività e punto dell'OdG facoltativo.
-    Più righe possono riferirsi allo stesso punto; pause e accoglienza non
-    hanno punto. Le regole stanno in `programma.py`."""
+    inizio, ora di fine facoltativa, attività e punti dell'OdG facoltativi.
+    Più righe possono riferirsi allo stesso punto e una riga a più punti (es.
+    le votazioni di due elezioni); pause e accoglienza non hanno punti. Le
+    regole stanno in `programma.py`."""
 
     seduta = models.ForeignKey(Seduta, on_delete=models.CASCADE, related_name="programma")
     inizio = models.TimeField("Inizio")
     fine = models.TimeField("Fine", null=True, blank=True)
     attivita = models.CharField("Attività", max_length=300, blank=True)
-    punto = models.ForeignKey(
+    punti = models.ManyToManyField(
         PuntoOdG,
-        on_delete=models.SET_NULL,
-        null=True,
         blank=True,
         related_name="righe_programma",
-        verbose_name="Punto dell'ordine del giorno",
+        verbose_name="Punti dell'ordine del giorno",
     )
 
     class Meta:
@@ -712,11 +738,26 @@ class RigaProgramma(models.Model):
         return f"{self.inizio:%H:%M} {self.descrizione}"
 
     @property
+    def punti_ordinati(self) -> list[PuntoOdG]:
+        """I punti collegati per numero (usa il prefetch, se c'è)."""
+        return sorted(self.punti.all(), key=lambda p: p.ordine)
+
+    @property
     def descrizione(self) -> str:
-        """L'attività; se vuota, il titolo del punto collegato."""
+        """L'attività; se vuota, i titoli dei punti collegati."""
         if self.attivita:
             return self.attivita
-        return self.punto.titolo if self.punto else ""
+        return "; ".join(p.titolo for p in self.punti_ordinati)
+
+    @property
+    def numeri_punti(self) -> str:
+        """«Punto 2» o «Punti 1 e 2», per le righe senza attività propria."""
+        numeri = [str(p.ordine) for p in self.punti_ordinati]
+        if not numeri:
+            return ""
+        if len(numeri) == 1:
+            return f"Punto {numeri[0]}"
+        return f"Punti {', '.join(numeri[:-1])} e {numeri[-1]}"
 
 
 class PosizioneVoto(models.Model):

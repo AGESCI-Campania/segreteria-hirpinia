@@ -3,11 +3,11 @@ convocazione, che riparte dall'elenco degli aventi diritto di un'altra.
 
 Si copiano l'elenco così com'è (eliminazioni, trasferimenti, email, qualifiche
 e incarichi dichiarati compresi), il comitato elettorale, presidenza, segretario,
-comitato mozioni e scrutatori, i titoli dei punti all'ordine del giorno e le
-posizioni al voto con le candidature. Non si copiano sedute, presenze, deleghe, votazioni,
-codici di voto, seggi, verbali, né i passaggi a carta, che valgono solo per
-il giorno dell'assemblea: il voto in app si ricalcola con la regola di
-sempre. L'anagrafica non si legge né si scrive: per riallineare l'elenco ai
+comitato mozioni e scrutatori, i titoli dei punti all'ordine del giorno con i loro
+sottopunti e le posizioni al voto con le candidature. Non si copiano sedute, presenze,
+deleghe, votazioni, codici di voto, seggi, verbali, programmi dei lavori, né i passaggi
+a carta, che valgono solo per il giorno dell'assemblea: il voto in app si ricalcola
+con la regola di sempre. L'anagrafica non si legge né si scrive: per riallineare l'elenco ai
 censiti resta «Aggiorna gruppo»."""
 
 from __future__ import annotations
@@ -27,6 +27,7 @@ from .models import (
     OperatoreVoto,
     PosizioneVoto,
     PuntoOdG,
+    SottopuntoOdG,
 )
 from .permessi import puo_gestire_assemblee
 
@@ -104,9 +105,13 @@ def copia_in(origine: Assemblea, nuova: Assemblea, utente: Utente) -> int:
             )
 
     punti: dict[int, PuntoOdG] = {}
-    for punto in origine.punti_odg.all():
+    for punto in origine.punti_odg.prefetch_related("sottopunti"):
         punti[punto.pk] = PuntoOdG.objects.create(
             assemblea=nuova, ordine=punto.ordine, titolo=punto.titolo
+        )
+        SottopuntoOdG.objects.bulk_create(
+            SottopuntoOdG(punto=punti[punto.pk], ordine=s.ordine, titolo=s.titolo)
+            for s in punto.sottopunti.all()
         )
 
     # Posizioni al voto e candidature: si preparano come per l'originale.

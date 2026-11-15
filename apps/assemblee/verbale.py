@@ -116,7 +116,7 @@ def contesto_verbale(seduta: Seduta) -> dict:
     chiuse = seduta.votazioni.filter(chiusa_il__isnull=False).select_related("punto")
     punti = [
         (punto, _votazioni(chiuse.filter(punto=punto)))
-        for punto in assemblea.punti_odg.order_by("ordine")
+        for punto in assemblea.punti_odg.order_by("ordine").prefetch_related("sottopunti")
     ]
     aventi = seduta.aventi_alla_costituzione or 0
     verifiche = [

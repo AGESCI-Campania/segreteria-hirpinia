@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block page_title %}Sottopunto {{ punto.ordine }}.{{ sottopunto.lettera }} — {{ assemblea }}{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="lg:col-8">
+      <h1>Sottopunto {{ punto.ordine }}.{{ sottopunto.lettera }}</h1>
+      <p class="fs-lg mb-5">{{ punto.ordine }}. {{ punto.titolo }}</p>
+      <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="d-flex gap-3">
+          <button type="submit" class="btn-solid theme-primary">Salva</button>
+          <a href="{% url 'assemblee:odg' assemblea.pk %}" class="btn-outline theme-secondary">Annulla</a>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

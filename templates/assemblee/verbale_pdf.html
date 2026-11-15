@@ -15,6 +15,7 @@
   h2 { font-size: 11.5pt; margin: 0.6cm 0 0.2cm 0; break-after: avoid; }
   p { margin: 0 0 0.3cm 0; text-align: justify; }
   ol.odg { margin: 0 0 0.4cm 0; }
+  ol.odg ol, ol.sottopunti { margin: 0 0 0.2cm 0; list-style-type: lower-alpha; }
   ul.votazioni { margin: 0 0 0.3cm 0; padding-left: 0.6cm; }
   .mancante { color: #b00; }
   .firme { width: 100%; margin-top: 1.2cm; border-collapse: collapse; break-inside: avoid; }
@@ -36,7 +37,7 @@
     per deliberare sul seguente ordine del giorno:
   </p>
   <ol class="odg">
-    {% for punto, votazioni in punti %}<li>{{ punto.titolo }};</li>{% empty %}<li class="mancante">[ordine del giorno da compilare]</li>{% endfor %}
+    {% for punto, votazioni in punti %}<li>{{ punto.titolo }}{% if punto.sottopunti.all %}<ol type="a">{% for sotto in punto.sottopunti.all %}<li>{{ sotto.titolo }}{% if forloop.last %};{% endif %}</li>{% endfor %}</ol>{% else %};{% endif %}</li>{% empty %}<li class="mancante">[ordine del giorno da compilare]</li>{% endfor %}
   </ol>
 
   <p>
@@ -82,6 +83,7 @@
 
   {% for punto, votazioni in punti %}
     <h2>{{ punto.ordine }}. {{ punto.titolo }}</h2>
+    {% if punto.sottopunti.all %}<ol class="sottopunti" type="a">{% for sotto in punto.sottopunti.all %}<li>{{ sotto.titolo }}</li>{% endfor %}</ol>{% endif %}
     {% if punto.testo %}{{ punto.testo|linebreaks }}{% endif %}
     {% if votazioni %}
       <ul class="votazioni">

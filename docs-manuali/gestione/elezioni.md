@@ -6,14 +6,19 @@
 punto si scrive la discussione per il verbale: la possono scrivere anche presidenti e
 segretario, che però non cambiano i punti.
 
+Un punto può avere dei **sottopunti** (a, b, …), per esempio i nomi dei membri da
+sostituire: si aggiungono con **+ Sottopunto** sotto il punto e compaiono nel verbale.
+Sono solo testo: discussione, votazioni ed elezioni restano collegate al punto.
+
 ![Ordine del giorno](img/ordine-del-giorno.jpg)
 
 ## Programma dei lavori
 
 Ogni convocazione ha il suo **Programma dei lavori**, dalla pagina della seduta: il
-cronoprogramma della giornata, con ora di inizio, ora di fine (facoltativa), attività e,
-se c'è, il punto dell'ordine del giorno a cui si riferisce. Più righe possono riguardare lo
-stesso punto (per esempio presentazione e votazione); pause e accoglienza non hanno punto.
+cronoprogramma della giornata, con ora di inizio, ora di fine (facoltativa), attività e i
+punti dell'ordine del giorno a cui si riferisce. Più righe possono riguardare lo stesso
+punto (per esempio presentazione e votazione) e una riga può riguardare più punti (per
+esempio le votazioni di due elezioni); pause e accoglienza non hanno punti.
 Le righe si ordinano da sole per ora; una riga senza ora di fine dura fino all'inizio della
 successiva. Per la seconda o la terza convocazione, **Copia il programma** riprende quello
 della precedente.

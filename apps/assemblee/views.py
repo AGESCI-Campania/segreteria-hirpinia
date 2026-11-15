@@ -60,6 +60,7 @@ from .forms import (
     PuntoOdGForm,
     QualificheForm,
     RigaProgrammaForm,
+    SottopuntoOdGForm,
     TitoloAssembleaForm,
     TrasferisciForm,
     VariazioneRappresentanteForm,
@@ -84,6 +85,7 @@ from .models import (
     RuoloAssemblea,
     Seduta,
     SistemaVoto,
+    SottopuntoOdG,
     TipoAppello,
     Votazione,
 )
@@ -2017,7 +2019,7 @@ class OdgView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
         contesto = {
             "puo_gestire": puo_gestire_assemblee(request.user) and not assemblea.conclusa,
             "assemblea": assemblea,
-            "punti": assemblea.punti_odg.order_by("ordine"),
+            "punti": assemblea.punti_odg.order_by("ordine").prefetch_related("sottopunti"),
             "proposte": [t for t in odg.PUNTI_TIPICI if t not in titoli],
         }
         return render(request, self.template_name, contesto)
@@ -2036,6 +2038,19 @@ class OdgView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
                     odg.elimina_punto(punto, request.user)
                 else:
                     odg.sposta_punto(punto, request.user, su=azione == "su")
+            elif azione == "aggiungi_sottopunto":
+                punto = get_object_or_404(
+                    PuntoOdG, pk=request.POST.get("punto"), assemblea=assemblea
+                )
+                odg.aggiungi_sottopunto(punto, request.user, request.POST.get("titolo", ""))
+            elif azione in ("sotto_su", "sotto_giu", "sotto_elimina"):
+                sottopunto = get_object_or_404(
+                    SottopuntoOdG, pk=request.POST.get("sottopunto"), punto__assemblea=assemblea
+                )
+                if azione == "sotto_elimina":
+                    odg.elimina_sottopunto(sottopunto, request.user)
+                else:
+                    odg.sposta_sottopunto(sottopunto, request.user, su=azione == "sotto_su")
         except ValidationError as errore:
             messages.error(request, " ".join(errore.messages))
         return redirect(reverse("assemblee:odg", args=[pk]))
@@ -2099,6 +2114,55 @@ class PuntoModificaView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
                 messages.success(request, "Punto salvato.")
                 return redirect(reverse("assemblee:odg", args=[pk]))
         return self._render(request, punto, form, completo)
+
+
+class SottopuntoModificaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+    template_name = "assemblee/sottopunto_modifica.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_assemblea(
+            request,
+            {
+                "label": "Ordine del giorno",
+                "url": reverse("assemblee:odg", args=[request.resolver_match.kwargs["pk"]]),
+            },
+            {"label": "Sottopunto"},
+        )
+
+    def _render(self, request, sottopunto, form):
+        contesto = {
+            "sottopunto": sottopunto,
+            "punto": sottopunto.punto,
+            "assemblea": sottopunto.punto.assemblea,
+            "form": form,
+        }
+        return render(request, self.template_name, contesto)
+
+    def _sottopunto(self, pk, sottopunto_pk) -> SottopuntoOdG:
+        return get_object_or_404(
+            SottopuntoOdG.objects.select_related("punto__assemblea"),
+            pk=sottopunto_pk,
+            punto__assemblea_id=pk,
+        )
+
+    def get(self, request, pk, sottopunto_pk):
+        sottopunto = self._sottopunto(pk, sottopunto_pk)
+        form = SottopuntoOdGForm(initial={"titolo": sottopunto.titolo})
+        return self._render(request, sottopunto, form)
+
+    def post(self, request, pk, sottopunto_pk):
+        sottopunto = self._sottopunto(pk, sottopunto_pk)
+        form = SottopuntoOdGForm(request.POST)
+        if form.is_valid():
+            try:
+                odg.modifica_sottopunto(sottopunto, request.user, form.cleaned_data["titolo"])
+            except ValidationError as errore:
+                form.add_error(None, errore)
+            else:
+                messages.success(request, "Sottopunto salvato.")
+                return redirect(reverse("assemblee:odg", args=[pk]))
+        return self._render(request, sottopunto, form)
 
 
 # --- Programma dei lavori ----------------------------------------------------------
@@ -2197,7 +2261,7 @@ class RigaProgrammaModificaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, Vi
             "inizio": riga.inizio,
             "fine": riga.fine,
             "attivita": riga.attivita,
-            "punto": riga.punto,
+            "punti": list(riga.punti.all()),
         }
         form = RigaProgrammaForm(initial=iniziali, assemblea=riga.seduta.assemblea)
         return self._render(request, riga, form)

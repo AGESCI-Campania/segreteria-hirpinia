@@ -1456,10 +1456,16 @@ e verbali sono riservati ad ADMIN, SEGRETERIA e RdZ (non al comitato elettorale)
 verbale dell'assemblea e scrivono la discussione dei punti dell'ordine del giorno, senza
 cambiarne i punti (vedi sotto).
 
+**Sottopunti dell'ordine del giorno** (decisione del 2026-11-15): un punto può avere
+sottopunti a, b, … (`SottopuntoOdG`, regole in `odg.py`), solo testo: compaiono nell'OdG e
+nel verbale, si copiano duplicando l'assemblea; discussione, votazioni, posizioni al voto e
+programma dei lavori restano collegati al punto.
+
 **Programma dei lavori** (decisione del 2026-11-15): il cronoprogramma della giornata,
 **per seduta** (`RigaProgramma`, regole in `apps/assemblee/programma.py`). Ogni riga ha
-ora di inizio, ora di fine facoltativa, attività libera e punto dell'ordine del giorno
-facoltativo (più righe per lo stesso punto; pause e accoglienza senza punto). Lo
+ora di inizio, ora di fine facoltativa, attività libera e punti dell'ordine del giorno
+facoltativi (più righe per lo stesso punto e più punti per riga, es. le votazioni di due
+elezioni; pause e accoglienza senza punti). Lo
 modificano solo i gestori, anche durante i lavori, fino alla chiusura della seduta; la
 seduta successiva può copiare il programma della precedente. Presidenti e segretario lo
 vedono e lo scaricano in PDF (carta intestata); nel giorno della seduta la pagina

@@ -14,7 +14,31 @@
           <td class="fs-lg">{{ punto.ordine }}.</td>
           <td>
             <strong>{{ punto.titolo }}</strong><br>
+            {% if punto.sottopunti.all %}
+              <ol class="mb-3" type="a">
+                {% for sotto in punto.sottopunti.all %}
+                  <li>
+                    {{ sotto.titolo }}
+                    {% if puo_gestire %}
+                      <span class="text-nowrap ms-3">
+                        <a href="{% url 'assemblee:sottopunto' assemblea.pk sotto.pk %}" class="btn-outline theme-primary btn-sm">Modifica</a>
+                        <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="sottopunto" value="{{ sotto.pk }}"><button type="submit" name="azione" value="sotto_su" class="btn-outline theme-secondary btn-sm" aria-label="Sposta su"{% if forloop.first %} disabled{% endif %}>↑</button></form>
+                        <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="sottopunto" value="{{ sotto.pk }}"><button type="submit" name="azione" value="sotto_giu" class="btn-outline theme-secondary btn-sm" aria-label="Sposta giù"{% if forloop.last %} disabled{% endif %}>↓</button></form>
+                        <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="sottopunto" value="{{ sotto.pk }}"><button type="submit" name="azione" value="sotto_elimina" class="btn-outline theme-danger btn-sm">Elimina</button></form>
+                      </span>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ol>
+            {% endif %}
             <small class="fg-2">{% if punto.testo %}Discussione scritta{% else %}Discussione da scrivere{% endif %} — {{ punto.votazioni.count }} votazioni collegate</small>
+            {% if puo_gestire %}
+              <form method="post" class="d-flex gap-3 mt-3">
+                {% csrf_token %}<input type="hidden" name="azione" value="aggiungi_sottopunto"><input type="hidden" name="punto" value="{{ punto.pk }}">
+                <input name="titolo" class="form-control form-control-sm" maxlength="500" required aria-label="Nuovo sottopunto del punto {{ punto.ordine }}" placeholder="Nuovo sottopunto (a, b, …)">
+                <button type="submit" class="btn-outline theme-primary btn-sm text-nowrap">+ Sottopunto</button>
+              </form>
+            {% endif %}
           </td>
           {% if not puo_gestire %}
           <td class="text-nowrap"><a href="{% url 'assemblee:punto' assemblea.pk punto.pk %}" class="btn-outline theme-primary btn-sm">Discussione</a></td>

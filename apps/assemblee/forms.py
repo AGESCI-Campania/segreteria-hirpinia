@@ -456,6 +456,10 @@ class PuntoOdGForm(forms.Form):
     )
 
 
+class SottopuntoOdGForm(forms.Form):
+    titolo = forms.CharField(label="Titolo", max_length=500)
+
+
 class DiscussioneForm(forms.Form):
     """Solo la discussione: per chi compila il verbale senza poter cambiare i
     punti."""
@@ -474,19 +478,20 @@ class RigaProgrammaForm(forms.Form):
         label="Attività",
         max_length=300,
         required=False,
-        help_text="Se vuota, vale il titolo del punto dell'ordine del giorno.",
+        help_text="Se vuota, valgono i titoli dei punti dell'ordine del giorno.",
     )
-    punto = forms.ModelChoiceField(
-        label="Punto dell'ordine del giorno",
+    punti = forms.ModelMultipleChoiceField(
+        label="Punti dell'ordine del giorno",
         queryset=PuntoOdG.objects.none(),
         required=False,
-        empty_label="Nessuno (pausa, accoglienza…)",
+        widget=forms.CheckboxSelectMultiple,
+        help_text="Anche più di uno; nessuno per pause e accoglienza.",
     )
 
     def __init__(self, *args, assemblea: Assemblea, **kwargs):
         super().__init__(*args, **kwargs)
-        punto = cast(forms.ModelChoiceField, self.fields["punto"])
-        punto.queryset = assemblea.punti_odg.order_by("ordine")
+        punti = cast(forms.ModelMultipleChoiceField, self.fields["punti"])
+        punti.queryset = assemblea.punti_odg.order_by("ordine")
 
 
 class VerbaleForm(forms.ModelForm):

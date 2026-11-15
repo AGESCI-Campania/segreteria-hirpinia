@@ -11,7 +11,14 @@ from pypdf import PdfReader
 from apps.accounts.models import Ruolo, StatoUtente, TipoUtente, Utente
 from apps.anagrafica.models import Capo, CensimentoCapo
 from apps.assemblee import elenco, odg, sedute, verbale, votazioni
-from apps.assemblee.models import Assemblea, OperatoreVoto, Seduta, TipoAssemblea, TipoVotazione
+from apps.assemblee.models import (
+    Assemblea,
+    OperatoreVoto,
+    Seduta,
+    SottopuntoOdG,
+    TipoAssemblea,
+    TipoVotazione,
+)
 from apps.organizzazione.models import Gruppo
 
 pytestmark = pytest.mark.django_db
@@ -72,6 +79,62 @@ class TestOdg:
         OperatoreVoto.objects.create(assemblea=assemblea, utente=operatore)
         with pytest.raises(PermissionDenied):
             odg.aggiungi_punto(assemblea, operatore, "X")
+
+
+class TestSottopunti:
+    def test_aggiunta_ordine_spostamento_eliminazione(self, assemblea, segreteria):
+        punto = odg.aggiungi_punto(assemblea, segreteria, "Chiamata a servizio")
+        a = odg.aggiungi_sottopunto(punto, segreteria, "Angela De Marco (per fine mandato)")
+        b = odg.aggiungi_sottopunto(punto, segreteria, "Saverio Napolitano (dimissionario)")
+        assert (a.lettera, b.lettera) == ("a", "b")
+        odg.sposta_sottopunto(b, segreteria, su=True)
+        assert list(punto.sottopunti.values_list("ordine", "titolo")) == [
+            (1, "Saverio Napolitano (dimissionario)"),
+            (2, "Angela De Marco (per fine mandato)"),
+        ]
+        odg.modifica_sottopunto(b, segreteria, "Saverio Napolitano")
+        odg.elimina_sottopunto(b, segreteria)
+        a.refresh_from_db()
+        assert a.ordine == 1 and punto.sottopunti.count() == 1
+
+    def test_lettere_oltre_la_z(self):
+        assert [SottopuntoOdG(ordine=n).lettera for n in (1, 26, 27, 28)] == [
+            "a",
+            "z",
+            "aa",
+            "ab",
+        ]
+
+    def test_controlli_e_permessi(self, assemblea, segreteria):
+        punto = odg.aggiungi_punto(assemblea, segreteria, "Chiamata a servizio")
+        with pytest.raises(ValidationError):
+            odg.aggiungi_sottopunto(punto, segreteria, "  ")
+        operatore = Utente.objects.create(username="op", email="op@example.it")
+        OperatoreVoto.objects.create(assemblea=assemblea, utente=operatore)
+        with pytest.raises(PermissionDenied):
+            odg.aggiungi_sottopunto(punto, operatore, "X")
+
+    def test_dalla_pagina(self, client, assemblea, segreteria):
+        punto = odg.aggiungi_punto(assemblea, segreteria, "Chiamata a servizio")
+        client.force_login(segreteria)
+        base = f"/assemblee/{assemblea.pk}/odg/"
+        client.post(base, {"azione": "aggiungi_sottopunto", "punto": punto.pk, "titolo": "Primo"})
+        sotto = punto.sottopunti.get()
+        client.post(f"{base}sottopunti/{sotto.pk}/", {"titolo": "Primo corretto"})
+        sotto.refresh_from_db()
+        assert sotto.titolo == "Primo corretto"
+        assert "Primo corretto" in client.get(base).content.decode()
+        client.post(base, {"azione": "sotto_elimina", "sottopunto": sotto.pk})
+        assert not punto.sottopunti.exists()
+
+    def test_nel_verbale(self, seduta, segreteria, assemblea):
+        punto = odg.aggiungi_punto(assemblea, segreteria, "Chiamata a servizio")
+        odg.aggiungi_sottopunto(punto, segreteria, "Angela De Marco")
+        odg.aggiungi_sottopunto(punto, segreteria, "Saverio Napolitano")
+        contenuto = verbale.genera_verbale_pdf(seduta, segreteria)
+        testo = " ".join(p.extract_text() for p in PdfReader(io.BytesIO(contenuto)).pages)
+        # Nell'elenco iniziale e sotto il titolo del punto.
+        assert testo.count("Angela De Marco") == 2 and testo.count("Saverio Napolitano") == 2
 
 
 class TestVerbale:

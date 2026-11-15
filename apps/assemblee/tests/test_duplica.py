@@ -73,6 +73,8 @@ def origine(segreteria, gruppo) -> Assemblea:
     comitato.aggiungi(assemblea, aventi["101"], segreteria, accesso=False)
     punto = odg.aggiungi_punto(assemblea, segreteria, "Bilancio")
     odg.modifica_punto(punto, segreteria, titolo="Bilancio", testo="Discussione del giorno.")
+    odg.aggiungi_sottopunto(punto, segreteria, "Consuntivo")
+    odg.aggiungi_sottopunto(punto, segreteria, "Preventivo")
 
     seduta = assemblea.sedute.get()
     sedute.apri_seduta(seduta, segreteria)
@@ -114,6 +116,7 @@ def test_non_copia_il_voto(origine, segreteria):
     assert not nuova.aventi_diritto.filter(presenze__isnull=False).exists()
     punto = nuova.punti_odg.get()
     assert punto.titolo == "Bilancio" and punto.testo == ""
+    assert list(punto.sottopunti.values_list("titolo", flat=True)) == ["Consuntivo", "Preventivo"]
 
 
 def test_copia_il_comitato_con_gli_stessi_account(origine, segreteria):

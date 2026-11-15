@@ -1,5 +1,6 @@
 """Programma dei lavori della seduta (cronoprogramma): righe con ora di inizio,
-ora di fine facoltativa, attività e punto dell'OdG facoltativo. Lo preparano i
+ora di fine facoltativa, attività e punti dell'OdG facoltativi (anche più di
+uno per riga). Lo preparano i
 gestori, anche durante i lavori (ritardi), fino alla chiusura della seduta;
 presidenti e segretario lo vedono e lo stampano, come l'ordine del giorno."""
 
@@ -7,6 +8,7 @@ from __future__ import annotations
 
 import datetime
 import hashlib
+from collections.abc import Iterable
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
@@ -40,17 +42,17 @@ def _valida(
     inizio: datetime.time | None,
     fine: datetime.time | None,
     attivita: str,
-    punto: PuntoOdG | None,
+    punti: list[PuntoOdG],
 ) -> datetime.time:
     """Restituisce l'ora di inizio, che dopo i controlli c'è sempre."""
     if inizio is None:
         raise ValidationError("Indica l'ora di inizio.")
     if fine is not None and fine <= inizio:
         raise ValidationError("L'ora di fine deve venire dopo quella di inizio.")
-    if not attivita and punto is None:
-        raise ValidationError("Indica l'attività o il punto dell'ordine del giorno.")
-    if punto is not None and punto.assemblea_id != seduta.assemblea_id:
-        raise ValidationError("Il punto non è dell'ordine del giorno di questa assemblea.")
+    if not attivita and not punti:
+        raise ValidationError("Indica l'attività o almeno un punto dell'ordine del giorno.")
+    if any(p.assemblea_id != seduta.assemblea_id for p in punti):
+        raise ValidationError("Un punto non è dell'ordine del giorno di questa assemblea.")
     return inizio
 
 
@@ -62,14 +64,14 @@ def aggiungi_riga(
     inizio: datetime.time | None,
     fine: datetime.time | None = None,
     attivita: str = "",
-    punto: PuntoOdG | None = None,
+    punti: Iterable[PuntoOdG] = (),
 ) -> RigaProgramma:
     _verifica(utente, seduta)
-    attivita = attivita.strip()
-    inizio = _valida(seduta, inizio, fine, attivita, punto)
-    return RigaProgramma.objects.create(
-        seduta=seduta, inizio=inizio, fine=fine, attivita=attivita, punto=punto
-    )
+    attivita, punti = attivita.strip(), list(punti)
+    inizio = _valida(seduta, inizio, fine, attivita, punti)
+    riga = RigaProgramma.objects.create(seduta=seduta, inizio=inizio, fine=fine, attivita=attivita)
+    riga.punti.set(punti)
+    return riga
 
 
 @transaction.atomic
@@ -80,13 +82,14 @@ def modifica_riga(
     inizio: datetime.time | None,
     fine: datetime.time | None = None,
     attivita: str = "",
-    punto: PuntoOdG | None = None,
+    punti: Iterable[PuntoOdG] = (),
 ) -> None:
     _verifica(utente, riga.seduta)
-    attivita = attivita.strip()
-    inizio = _valida(riga.seduta, inizio, fine, attivita, punto)
-    riga.inizio, riga.fine, riga.attivita, riga.punto = inizio, fine, attivita, punto
-    riga.save(update_fields=["inizio", "fine", "attivita", "punto"])
+    attivita, punti = attivita.strip(), list(punti)
+    inizio = _valida(riga.seduta, inizio, fine, attivita, punti)
+    riga.inizio, riga.fine, riga.attivita = inizio, fine, attivita
+    riga.save(update_fields=["inizio", "fine", "attivita"])
+    riga.punti.set(punti)
 
 
 @transaction.atomic
@@ -112,20 +115,19 @@ def copia_dalla_precedente(seduta: Seduta, utente: Utente) -> int:
     if seduta.programma.exists():
         raise ValidationError("Il programma di questa seduta ha già delle righe.")
     precedente = seduta_precedente(seduta)
-    righe = list(precedente.programma.all()) if precedente else []
+    righe = list(precedente.programma.prefetch_related("punti")) if precedente else []
     if not righe:
         raise ValidationError("La convocazione precedente non ha un programma da copiare.")
-    RigaProgramma.objects.bulk_create(
-        RigaProgramma(
-            seduta=seduta, inizio=r.inizio, fine=r.fine, attivita=r.attivita, punto_id=r.punto_id
+    for r in righe:
+        copia = RigaProgramma.objects.create(
+            seduta=seduta, inizio=r.inizio, fine=r.fine, attivita=r.attivita
         )
-        for r in righe
-    )
+        copia.punti.set(r.punti.all())
     return len(righe)
 
 
 def righe(seduta: Seduta) -> list[RigaProgramma]:
-    return list(seduta.programma.select_related("punto").order_by("inizio", "pk"))
+    return list(seduta.programma.prefetch_related("punti").order_by("inizio", "pk"))
 
 
 def in_corso(seduta: Seduta, elenco: list[RigaProgramma], adesso: datetime.datetime) -> set[int]:
@@ -152,7 +154,8 @@ def firma(elenco: list[RigaProgramma]) -> str:
     """Impronta del contenuto del programma: la pagina di chi lo consulta si
     ricarica quando cambia (polling)."""
     testo = "\n".join(
-        f"{r.pk}\t{r.inizio:%H:%M}\t{r.fine or ''}\t{r.descrizione}\t{r.punto or ''}"
+        f"{r.pk}\t{r.inizio:%H:%M}\t{r.fine or ''}\t{r.descrizione}\t"
+        + ",".join(str(p) for p in r.punti_ordinati)
         for r in elenco
     )
     return hashlib.sha256(testo.encode()).hexdigest()[:16]

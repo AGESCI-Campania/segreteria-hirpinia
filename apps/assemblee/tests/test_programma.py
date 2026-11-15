@@ -80,12 +80,30 @@ def presidente(assemblea) -> Utente:
 class TestRighe:
     def test_ordinate_per_inizio_e_descrizione_dal_punto(self, seduta, segreteria, assemblea):
         punto = odg.aggiungi_punto(assemblea, segreteria, "Elezioni")
-        programma.aggiungi_riga(seduta, segreteria, inizio=ore(10, 30), punto=punto)
+        programma.aggiungi_riga(seduta, segreteria, inizio=ore(10, 30), punti=[punto])
         programma.aggiungi_riga(
             seduta, segreteria, inizio=ore(9), fine=ore(9, 30), attivita="Accoglienza"
         )
         righe = programma.righe(seduta)
         assert [r.descrizione for r in righe] == ["Accoglienza", "Elezioni"]
+
+    def test_piu_punti_per_riga(self, client, seduta, segreteria, assemblea):
+        primo = odg.aggiungi_punto(assemblea, segreteria, "Elezione RdZ")
+        secondo = odg.aggiungi_punto(assemblea, segreteria, "Elezione del Comitato")
+        riga = programma.aggiungi_riga(seduta, segreteria, inizio=ore(11), punti=[secondo, primo])
+        assert riga.punti_ordinati == [primo, secondo]
+        assert riga.descrizione == "Elezione RdZ; Elezione del Comitato"
+        assert riga.numeri_punti == "Punti 1 e 2"
+        client.force_login(segreteria)
+        base = f"/assemblee/{assemblea.pk}/sedute/{seduta.pk}/programma/"
+        client.post(
+            f"{base}{riga.pk}/",
+            {"inizio": "11:00", "attivita": "Votazioni", "punti": [primo.pk, secondo.pk]},
+        )
+        riga.refresh_from_db()
+        assert riga.attivita == "Votazioni" and riga.punti.count() == 2
+        pagina = client.get(base).content.decode()
+        assert "1. Elezione RdZ<br>2. Elezione del Comitato" in pagina
 
     def test_controlli(self, seduta, segreteria, assemblea):
         with pytest.raises(ValidationError):
@@ -97,7 +115,7 @@ class TestRighe:
         altra = Assemblea.objects.create(tipo=TipoAssemblea.PRIMAVERILE, anno_scout=2027)
         punto_altrui = odg.aggiungi_punto(altra, segreteria, "Bilancio")
         with pytest.raises(ValidationError):
-            programma.aggiungi_riga(seduta, segreteria, inizio=ore(10), punto=punto_altrui)
+            programma.aggiungi_riga(seduta, segreteria, inizio=ore(10), punti=[punto_altrui])
 
     def test_solo_gestori_e_seduta_non_chiusa(self, seduta, segreteria, assemblea, presidente):
         operatore = Utente.objects.create(username="op", email="op@example.it")
@@ -113,11 +131,11 @@ class TestRighe:
     def test_eliminando_il_punto_la_riga_resta(self, seduta, segreteria, assemblea):
         punto = odg.aggiungi_punto(assemblea, segreteria, "Elezioni")
         riga = programma.aggiungi_riga(
-            seduta, segreteria, inizio=ore(10), attivita="Votazioni", punto=punto
+            seduta, segreteria, inizio=ore(10), attivita="Votazioni", punti=[punto]
         )
         odg.elimina_punto(punto, segreteria)
         riga.refresh_from_db()
-        assert riga.punto is None and riga.descrizione == "Votazioni"
+        assert not riga.punti.exists() and riga.descrizione == "Votazioni"
 
 
 class TestInCorso:
@@ -166,7 +184,7 @@ class TestCopia:
     def test_dalla_convocazione_precedente(self, seduta, segreteria, assemblea):
         punto = odg.aggiungi_punto(assemblea, segreteria, "Elezioni")
         programma.aggiungi_riga(seduta, segreteria, inizio=ore(9), attivita="Accoglienza")
-        programma.aggiungi_riga(seduta, segreteria, inizio=ore(10), punto=punto)
+        programma.aggiungi_riga(seduta, segreteria, inizio=ore(10), punti=[punto])
         seconda = Seduta.objects.create(
             assemblea=assemblea, convocazione=2, data=GIORNO.replace(day=29)
         )
@@ -186,7 +204,7 @@ class TestPdfEViste:
         programma.aggiungi_riga(
             seduta, segreteria, inizio=ore(9), fine=ore(9, 30), attivita="Accoglienza"
         )
-        programma.aggiungi_riga(seduta, segreteria, inizio=ore(10), punto=punto)
+        programma.aggiungi_riga(seduta, segreteria, inizio=ore(10), punti=[punto])
         contenuto = programma.genera_programma_pdf(seduta, segreteria)
         testo = " ".join(p.extract_text() for p in PdfReader(io.BytesIO(contenuto)).pages)
         assert "Programma dei lavori" in testo
@@ -202,7 +220,7 @@ class TestPdfEViste:
     def test_pagine_del_gestore(self, client, seduta, segreteria, assemblea):
         client.force_login(segreteria)
         base = f"/assemblee/{assemblea.pk}/sedute/{seduta.pk}/programma/"
-        client.post(base, {"inizio": "09:00", "fine": "", "attivita": "Accoglienza", "punto": ""})
+        client.post(base, {"inizio": "09:00", "fine": "", "attivita": "Accoglienza"})
         riga = seduta.programma.get()
         risposta = client.post(base, {"inizio": "10:00", "fine": "09:00", "attivita": "X"})
         assert risposta.status_code == 200 and seduta.programma.count() == 1

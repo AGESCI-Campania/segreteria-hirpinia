@@ -3,13 +3,15 @@ modello nazionale di verbale. Lo gestiscono ADMIN, SEGRETERIA e RdZ."""
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Max
 
 from apps.accounts.models import Utente
 
-from .models import Assemblea, PuntoOdG
+from .models import Assemblea, PuntoOdG, SottopuntoOdG
 from .permessi import puo_compilare_verbale, puo_gestire_assemblee
 
 # Punti ricorrenti del modello nazionale di verbale dell'Assemblea di Zona.
@@ -89,8 +91,49 @@ def _rinumera(assemblea: Assemblea) -> None:
     _salva_ordine(list(assemblea.punti_odg.order_by("ordine")))
 
 
-def _salva_ordine(punti: list[PuntoOdG]) -> None:
+def _salva_ordine(punti: Sequence[PuntoOdG | SottopuntoOdG]) -> None:
     for numero, punto in enumerate(punti, start=1):
         if punto.ordine != numero:
             punto.ordine = numero
             punto.save(update_fields=["ordine"])
+
+
+# --- Sottopunti: solo testo, discussione e votazioni restano sul punto ----------------
+
+
+@transaction.atomic
+def aggiungi_sottopunto(punto: PuntoOdG, utente: Utente, titolo: str) -> SottopuntoOdG:
+    _verifica(utente, punto.assemblea)
+    titolo = titolo.strip()
+    if not titolo:
+        raise ValidationError("Il sottopunto deve avere un titolo.")
+    ultimo = punto.sottopunti.aggregate(m=Max("ordine"))["m"] or 0
+    return SottopuntoOdG.objects.create(punto=punto, ordine=ultimo + 1, titolo=titolo)
+
+
+@transaction.atomic
+def modifica_sottopunto(sottopunto: SottopuntoOdG, utente: Utente, titolo: str) -> None:
+    _verifica(utente, sottopunto.punto.assemblea)
+    if not titolo.strip():
+        raise ValidationError("Il sottopunto deve avere un titolo.")
+    sottopunto.titolo = titolo.strip()
+    sottopunto.save(update_fields=["titolo"])
+
+
+@transaction.atomic
+def elimina_sottopunto(sottopunto: SottopuntoOdG, utente: Utente) -> None:
+    punto = sottopunto.punto
+    _verifica(utente, punto.assemblea)
+    sottopunto.delete()
+    _salva_ordine(list(punto.sottopunti.order_by("ordine")))
+
+
+@transaction.atomic
+def sposta_sottopunto(sottopunto: SottopuntoOdG, utente: Utente, *, su: bool) -> None:
+    _verifica(utente, sottopunto.punto.assemblea)
+    sottopunti = list(sottopunto.punto.sottopunti.order_by("ordine"))
+    i = sottopunti.index(sottopunto)
+    j = i - 1 if su else i + 1
+    if 0 <= j < len(sottopunti):
+        sottopunti[i], sottopunti[j] = sottopunti[j], sottopunti[i]
+        _salva_ordine(sottopunti)

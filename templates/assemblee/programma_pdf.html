@@ -18,7 +18,7 @@
   td { border-bottom: 1px solid #bbb; padding: 0.2cm 0.15cm; vertical-align: top; }
   tr { break-inside: avoid; }
   td.ora { white-space: nowrap; width: 2.6cm; }
-  td.punto { width: 5.5cm; color: #444; }
+  td.punto { width: 7cm; color: #444; }
 </style>
 </head>
 <body>
@@ -31,13 +31,13 @@
   </p>
 
   <table>
-    <thead><tr><th>Ora</th><th>Attività</th><th>Punto dell'ordine del giorno</th></tr></thead>
+    <thead><tr><th>Ora</th><th>Attività</th><th>Punti dell'ordine del giorno</th></tr></thead>
     <tbody>
       {% for riga in righe %}
         <tr>
           <td class="ora">{{ riga.inizio|time:"H:i" }}{% if riga.fine %}–{{ riga.fine|time:"H:i" }}{% endif %}</td>
           <td>{{ riga.descrizione }}</td>
-          <td class="punto">{% if riga.punto %}{% if riga.attivita %}{{ riga.punto.ordine }}. {{ riga.punto.titolo }}{% else %}Punto {{ riga.punto.ordine }}{% endif %}{% endif %}</td>
+          <td class="punto">{% if riga.attivita %}{% for p in riga.punti_ordinati %}{{ p.ordine }}. {{ p.titolo }}{% if not forloop.last %}<br>{% endif %}{% endfor %}{% else %}{{ riga.numeri_punti }}{% endif %}</td>
         </tr>
       {% empty %}
         <tr><td colspan="3">Nessuna riga nel programma.</td></tr>
