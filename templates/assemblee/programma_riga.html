@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block page_title %}Programma dei lavori — {{ seduta }}{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="lg:col-8">
+      <h1>Riga del programma</h1>
+      <p class="fg-2 mb-5">{{ seduta.get_convocazione_display }} del {{ seduta.data|date:"d/m/Y" }}</p>
+      <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="d-flex gap-3">
+          <button type="submit" class="btn-solid theme-primary">Salva</button>
+          <a href="{% url 'assemblee:programma' assemblea.pk seduta.pk %}" class="btn-outline theme-secondary">Annulla</a>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

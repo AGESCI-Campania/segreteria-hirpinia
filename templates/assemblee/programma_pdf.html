@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Programma dei lavori — {{ assemblea }}</title>
+<style>
+  /* Margini e carta intestata da pdf/carta_intestata_stile.html. */
+  @page {
+    @bottom-right { content: "Pagina " counter(page) " di " counter(pages); font-family: sans-serif; font-size: 7.5pt; color: #555; }
+  }
+  body { font-family: sans-serif; font-size: 10.5pt; line-height: 1.4; color: #222; }
+  {% include "pdf/carta_intestata_stile.html" %}
+  h1 { font-size: 14pt; text-align: center; margin: 0 0 0.1cm 0; }
+  .sottotitolo { text-align: center; color: #555; margin: 0 0 0.6cm 0; }
+  table { width: 100%; border-collapse: collapse; }
+  thead { display: table-header-group; }
+  th { text-align: left; font-size: 9pt; border-bottom: 1.5px solid #333; padding: 0.12cm 0.15cm; }
+  td { border-bottom: 1px solid #bbb; padding: 0.2cm 0.15cm; vertical-align: top; }
+  tr { break-inside: avoid; }
+  td.ora { white-space: nowrap; width: 2.6cm; }
+  td.punto { width: 5.5cm; color: #444; }
+</style>
+</head>
+<body>
+  {% include "pdf/carta_intestata.html" %}
+
+  <h1>Programma dei lavori</h1>
+  <p class="sottotitolo">
+    {{ assemblea }} — {{ seduta.get_convocazione_display }}<br>
+    {{ seduta.data|date:"l j F Y"|lower }}{% if seduta.luogo %} — {{ seduta.luogo }}{% endif %}
+  </p>
+
+  <table>
+    <thead><tr><th>Ora</th><th>Attività</th><th>Punto dell'ordine del giorno</th></tr></thead>
+    <tbody>
+      {% for riga in righe %}
+        <tr>
+          <td class="ora">{{ riga.inizio|time:"H:i" }}{% if riga.fine %}–{{ riga.fine|time:"H:i" }}{% endif %}</td>
+          <td>{{ riga.descrizione }}</td>
+          <td class="punto">{% if riga.punto %}{% if riga.attivita %}{{ riga.punto.ordine }}. {{ riga.punto.titolo }}{% else %}Punto {{ riga.punto.ordine }}{% endif %}{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="3">Nessuna riga nel programma.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

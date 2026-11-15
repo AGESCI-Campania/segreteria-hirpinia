@@ -34,6 +34,7 @@ from . import (
     email_aventi,
     odg,
     presidenza,
+    programma,
     prova,
     sedute,
 )
@@ -58,6 +59,7 @@ from .forms import (
     PosizioneForm,
     PuntoOdGForm,
     QualificheForm,
+    RigaProgrammaForm,
     TitoloAssembleaForm,
     TrasferisciForm,
     VariazioneRappresentanteForm,
@@ -78,6 +80,7 @@ from .models import (
     PosizioneVoto,
     PuntoOdG,
     RichiedenteVerifica,
+    RigaProgramma,
     RuoloAssemblea,
     Seduta,
     SistemaVoto,
@@ -2096,6 +2099,147 @@ class PuntoModificaView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
                 messages.success(request, "Punto salvato.")
                 return redirect(reverse("assemblee:odg", args=[pk]))
         return self._render(request, punto, form, completo)
+
+
+# --- Programma dei lavori ----------------------------------------------------------
+
+
+class ProgrammaView(CompilaVerbaleMixin, BreadcrumbExtraMixin, View):
+    """Lo modificano i gestori (programma.py); presidenti e segretario lo
+    vedono, con la riga in corso aggiornata dal polling."""
+
+    template_name = "assemblee/programma.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_seduta(request, {"label": "Programma dei lavori"})
+
+    def _render(self, request, seduta, form):
+        elenco = programma.righe(seduta)
+        precedente = programma.seduta_precedente(seduta)
+        contesto = {
+            "assemblea": seduta.assemblea,
+            "seduta": seduta,
+            "righe": elenco,
+            "in_corso": programma.in_corso(seduta, elenco, timezone.now()),
+            "firma": programma.firma(elenco),
+            "puo_modificare": programma.puo_modificare(request.user, seduta),
+            "form": form,
+            "puo_copiare": not elenco and precedente and precedente.programma.exists(),
+            "precedente": precedente,
+            "intervallo_ms": cruscotto.INTERVALLO_AGGIORNAMENTO_MS,
+        }
+        return render(request, self.template_name, contesto)
+
+    def get(self, request, pk, seduta_pk):
+        seduta = _seduta_visibile(request, pk, seduta_pk)
+        return self._render(request, seduta, RigaProgrammaForm(assemblea=seduta.assemblea))
+
+    def post(self, request, pk, seduta_pk):
+        seduta = _seduta_visibile(request, pk, seduta_pk)
+        url = reverse("assemblee:programma", args=[pk, seduta_pk])
+        azione = request.POST.get("azione")
+        try:
+            if azione == "elimina":
+                riga = get_object_or_404(RigaProgramma, pk=request.POST.get("riga"), seduta=seduta)
+                programma.elimina_riga(riga, request.user)
+                return redirect(url)
+            if azione == "copia":
+                copiate = programma.copia_dalla_precedente(seduta, request.user)
+                messages.success(
+                    request, f"Righe copiate dalla convocazione precedente: {copiate}."
+                )
+                return redirect(url)
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+            return redirect(url)
+        form = RigaProgrammaForm(request.POST, assemblea=seduta.assemblea)
+        if form.is_valid():
+            try:
+                programma.aggiungi_riga(seduta, request.user, **form.cleaned_data)
+            except ValidationError as errore:
+                form.add_error(None, errore)
+            else:
+                return redirect(url)
+        return self._render(request, seduta, form)
+
+
+class RigaProgrammaModificaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+    template_name = "assemblee/programma_riga.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        kwargs = request.resolver_match.kwargs
+        return _breadcrumb_seduta(
+            request,
+            {
+                "label": "Programma dei lavori",
+                "url": reverse("assemblee:programma", args=[kwargs["pk"], kwargs["seduta_pk"]]),
+            },
+            {"label": "Riga"},
+        )
+
+    def _riga(self, pk, seduta_pk, riga_pk) -> RigaProgramma:
+        return get_object_or_404(
+            RigaProgramma.objects.select_related("seduta__assemblea"),
+            pk=riga_pk,
+            seduta_id=seduta_pk,
+            seduta__assemblea_id=pk,
+        )
+
+    def _render(self, request, riga, form):
+        contesto = {"riga": riga, "seduta": riga.seduta, "assemblea": riga.seduta.assemblea}
+        return render(request, self.template_name, {**contesto, "form": form})
+
+    def get(self, request, pk, seduta_pk, riga_pk):
+        riga = self._riga(pk, seduta_pk, riga_pk)
+        iniziali = {
+            "inizio": riga.inizio,
+            "fine": riga.fine,
+            "attivita": riga.attivita,
+            "punto": riga.punto,
+        }
+        form = RigaProgrammaForm(initial=iniziali, assemblea=riga.seduta.assemblea)
+        return self._render(request, riga, form)
+
+    def post(self, request, pk, seduta_pk, riga_pk):
+        riga = self._riga(pk, seduta_pk, riga_pk)
+        form = RigaProgrammaForm(request.POST, assemblea=riga.seduta.assemblea)
+        if form.is_valid():
+            try:
+                programma.modifica_riga(riga, request.user, **form.cleaned_data)
+            except ValidationError as errore:
+                form.add_error(None, errore)
+            else:
+                messages.success(request, "Riga salvata.")
+                return redirect(reverse("assemblee:programma", args=[pk, seduta_pk]))
+        return self._render(request, riga, form)
+
+
+class ProgrammaStatoView(CompilaVerbaleMixin, View):
+    """JSON per il polling della pagina del programma: righe in corso e
+    impronta del contenuto (la pagina si ricarica se cambia)."""
+
+    def get(self, request, pk, seduta_pk):
+        seduta = _seduta_visibile(request, pk, seduta_pk)
+        elenco = programma.righe(seduta)
+        dati = {
+            "in_corso": sorted(programma.in_corso(seduta, elenco, timezone.now())),
+            "firma": programma.firma(elenco),
+        }
+        risposta = JsonResponse(dati)
+        risposta["Cache-Control"] = "no-store"
+        return risposta
+
+
+class ProgrammaPdfView(CompilaVerbaleMixin, View):
+    def get(self, request, pk, seduta_pk):
+        seduta = _seduta_visibile(request, pk, seduta_pk)
+        contenuto = programma.genera_programma_pdf(seduta, request.user)
+        risposta = HttpResponse(contenuto, content_type="application/pdf")
+        nome = f"programma-assemblea-{seduta.assemblea.anno_scout}-{seduta.data:%Y%m%d}.pdf"
+        risposta["Content-Disposition"] = f'attachment; filename="{nome}"'
+        return risposta
 
 
 def _nomi_comitato(assemblea: Assemblea) -> list[str]:

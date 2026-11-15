@@ -1456,6 +1456,17 @@ e verbali sono riservati ad ADMIN, SEGRETERIA e RdZ (non al comitato elettorale)
 verbale dell'assemblea e scrivono la discussione dei punti dell'ordine del giorno, senza
 cambiarne i punti (vedi sotto).
 
+**Programma dei lavori** (decisione del 2026-11-15): il cronoprogramma della giornata,
+**per seduta** (`RigaProgramma`, regole in `apps/assemblee/programma.py`). Ogni riga ha
+ora di inizio, ora di fine facoltativa, attività libera e punto dell'ordine del giorno
+facoltativo (più righe per lo stesso punto; pause e accoglienza senza punto). Lo
+modificano solo i gestori, anche durante i lavori, fino alla chiusura della seduta; la
+seduta successiva può copiare il programma della precedente. Presidenti e segretario lo
+vedono e lo scaricano in PDF (carta intestata); nel giorno della seduta la pagina
+evidenzia le righe in corso secondo l'orologio, con il polling di 3 secondi (D-17): una
+riga senza fine dura fino all'inizio della successiva. Il comitato elettorale non lo vede,
+come l'ordine del giorno.
+
 ### D-71 — Voto elettronico di Catello per le elezioni
 
 Decisione del 2026-11-10 (piano completo e storia delle scelte in `docs/plan_voto.md`),

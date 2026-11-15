@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load static bootstrap_icons %}
+
+{% block page_title %}Programma dei lavori — {{ seduta }}{% endblock %}
+
+{% block content %}
+  <h1 class="mb-3">Programma dei lavori</h1>
+  <p class="fg-2 mb-5">
+    {{ assemblea }} — {{ seduta.get_convocazione_display }} del {{ seduta.data|date:"d/m/Y" }}{% if seduta.luogo %}, {{ seduta.luogo }}{% endif %}.
+    Nel giorno della seduta è evidenziata la riga in corso.{% if not puo_modificare %} Il programma lo cambiano solo i gestori dell'assemblea: la pagina si aggiorna da sola.{% endif %}
+  </p>
+
+  <div class="d-flex flex-wrap gap-3 mb-7">
+    <a href="{% url 'assemblee:programma_pdf' assemblea.pk seduta.pk %}" class="btn-outline theme-primary">{% bs_icon "file-earmark-pdf" %} Scarica il PDF</a>
+    <a href="{% url 'assemblee:odg' assemblea.pk %}" class="btn-outline theme-secondary">{% bs_icon "list-ol" %} Ordine del giorno</a>
+  </div>
+
+  <div class="table-responsive mb-7">
+  <table class="table">
+    <thead><tr><th>Ora</th><th>Attività</th><th>Punto dell'OdG</th>{% if puo_modificare %}<th></th>{% endif %}</tr></thead>
+    <tbody>
+      {% for riga in righe %}
+        <tr data-riga="{{ riga.pk }}"{% if riga.pk in in_corso %} class="fw-bold"{% endif %}>
+          <td class="text-nowrap">{{ riga.inizio|time:"H:i" }}{% if riga.fine %}–{{ riga.fine|time:"H:i" }}{% endif %}</td>
+          <td>{{ riga.descrizione }} <span class="badge theme-success" data-in-corso{% if riga.pk not in in_corso %} hidden{% endif %}>In corso</span></td>
+          <td>{% if riga.punto %}{% if riga.attivita %}{{ riga.punto.ordine }}. {{ riga.punto.titolo }}{% else %}Punto {{ riga.punto.ordine }}{% endif %}{% endif %}</td>
+          {% if puo_modificare %}
+          <td class="text-nowrap">
+            <a href="{% url 'assemblee:programma_riga' assemblea.pk seduta.pk riga.pk %}" class="btn-outline theme-primary btn-sm">Modifica</a>
+            <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="riga" value="{{ riga.pk }}"><button type="submit" name="azione" value="elimina" class="btn-outline theme-danger btn-sm">Elimina</button></form>
+          </td>
+          {% endif %}
+        </tr>
+      {% empty %}
+        <tr><td colspan="{% if puo_modificare %}4{% else %}3{% endif %}">Nessuna riga nel programma.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+
+  {% if puo_modificare %}
+    {% if puo_copiare %}
+      <form method="post" class="mb-7">
+        {% csrf_token %}
+        <button type="submit" name="azione" value="copia" class="btn-outline theme-primary">Copia il programma della {{ precedente.get_convocazione_display|lower }}</button>
+      </form>
+    {% endif %}
+
+    <h2 class="fs-xl">Aggiungi una riga</h2>
+    <p class="fg-2">Le righe si ordinano da sole per ora di inizio. Senza ora di fine, una riga dura fino all'inizio della successiva.</p>
+    <form method="post" class="mb-5">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <div class="row g-3">
+        <div class="md:col-2"><div class="form-field mb-5">{{ form.inizio.label_tag }}{{ form.inizio }}{{ form.inizio.errors }}</div></div>
+        <div class="md:col-2"><div class="form-field mb-5">{{ form.fine.label_tag }}{{ form.fine }}{{ form.fine.errors }}</div></div>
+        <div class="md:col-4"><div class="form-field mb-5">{{ form.attivita.label_tag }}{{ form.attivita }}{{ form.attivita.errors }}</div></div>
+        <div class="md:col-4"><div class="form-field mb-5">{{ form.punto.label_tag }}{{ form.punto }}{{ form.punto.errors }}</div></div>
+      </div>
+      <button type="submit" class="btn-solid theme-primary">Aggiungi</button>
+    </form>
+  {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script src="{% static 'js/assemblea-programma.js' %}" data-url-stato="{% url 'assemblee:programma_stato' assemblea.pk seduta.pk %}" data-firma="{{ firma }}" data-ricarica="{% if puo_modificare %}0{% else %}1{% endif %}" data-intervallo="{{ intervallo_ms }}" defer></script>
+{% endblock %}

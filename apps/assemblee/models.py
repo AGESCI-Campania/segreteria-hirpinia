@@ -684,6 +684,41 @@ class PuntoOdG(models.Model):
         return f"{self.ordine}. {self.titolo}"
 
 
+class RigaProgramma(models.Model):
+    """Una riga del programma dei lavori della seduta (cronoprogramma): ora di
+    inizio, ora di fine facoltativa, attività e punto dell'OdG facoltativo.
+    Più righe possono riferirsi allo stesso punto; pause e accoglienza non
+    hanno punto. Le regole stanno in `programma.py`."""
+
+    seduta = models.ForeignKey(Seduta, on_delete=models.CASCADE, related_name="programma")
+    inizio = models.TimeField("Inizio")
+    fine = models.TimeField("Fine", null=True, blank=True)
+    attivita = models.CharField("Attività", max_length=300, blank=True)
+    punto = models.ForeignKey(
+        PuntoOdG,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="righe_programma",
+        verbose_name="Punto dell'ordine del giorno",
+    )
+
+    class Meta:
+        verbose_name = "riga del programma dei lavori"
+        verbose_name_plural = "righe del programma dei lavori"
+        ordering = ["seduta", "inizio", "pk"]
+
+    def __str__(self) -> str:
+        return f"{self.inizio:%H:%M} {self.descrizione}"
+
+    @property
+    def descrizione(self) -> str:
+        """L'attività; se vuota, il titolo del punto collegato."""
+        if self.attivita:
+            return self.attivita
+        return self.punto.titolo if self.punto else ""
+
+
 class PosizioneVoto(models.Model):
     """Una posizione al voto preparata in anticipo (docs/plan_preparazione_
     assemblea.md, R1, D4): l'incarico da eleggere con i suoi posti, divisi in

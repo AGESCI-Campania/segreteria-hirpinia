@@ -463,6 +463,32 @@ class DiscussioneForm(forms.Form):
     testo = PuntoOdGForm.base_fields["testo"]
 
 
+class RigaProgrammaForm(forms.Form):
+    """Una riga del programma dei lavori; i controlli sono in programma.py."""
+
+    inizio = forms.TimeField(label="Inizio", widget=forms.TimeInput(attrs={"type": "time"}))
+    fine = forms.TimeField(
+        label="Fine", required=False, widget=forms.TimeInput(attrs={"type": "time"})
+    )
+    attivita = forms.CharField(
+        label="Attività",
+        max_length=300,
+        required=False,
+        help_text="Se vuota, vale il titolo del punto dell'ordine del giorno.",
+    )
+    punto = forms.ModelChoiceField(
+        label="Punto dell'ordine del giorno",
+        queryset=PuntoOdG.objects.none(),
+        required=False,
+        empty_label="Nessuno (pausa, accoglienza…)",
+    )
+
+    def __init__(self, *args, assemblea: Assemblea, **kwargs):
+        super().__init__(*args, **kwargs)
+        punto = cast(forms.ModelChoiceField, self.fields["punto"])
+        punto.queryset = assemblea.punti_odg.order_by("ordine")
+
+
 class VerbaleForm(forms.ModelForm):
     class Meta:
         model = VerbaleSeduta

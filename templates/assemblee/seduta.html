@@ -16,6 +16,12 @@
     {% endif %}
   </p>
 
+  {% if puo_compilare %}
+    <div class="d-flex flex-wrap gap-3 mb-7">
+      <a href="{% url 'assemblee:programma' assemblea.pk seduta.pk %}" class="btn-outline theme-primary">{% bs_icon "clock" %} Programma dei lavori</a>
+    </div>
+  {% endif %}
+
   <div class="row row-cols-1 md:row-cols-3 g-7 mb-7">
     <div class="col">
       <div class="card h-100"><div class="card-body">

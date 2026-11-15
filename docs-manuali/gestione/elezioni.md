@@ -8,6 +8,21 @@ segretario, che però non cambiano i punti.
 
 ![Ordine del giorno](img/ordine-del-giorno.jpg)
 
+## Programma dei lavori
+
+Ogni convocazione ha il suo **Programma dei lavori**, dalla pagina della seduta: il
+cronoprogramma della giornata, con ora di inizio, ora di fine (facoltativa), attività e,
+se c'è, il punto dell'ordine del giorno a cui si riferisce. Più righe possono riguardare lo
+stesso punto (per esempio presentazione e votazione); pause e accoglienza non hanno punto.
+Le righe si ordinano da sole per ora; una riga senza ora di fine dura fino all'inizio della
+successiva. Per la seconda o la terza convocazione, **Copia il programma** riprende quello
+della precedente.
+
+Lo preparano i gestori, che possono spostare gli orari anche durante i lavori, finché la
+seduta non è chiusa. Presidenti e segretario lo vedono per tutta l'assemblea (anche dal
+cruscotto) e lo scaricano in PDF; nel giorno della seduta la riga in corso è evidenziata e
+la pagina si aggiorna da sola quando il programma cambia.
+
 ## Elezioni e candidature
 
 **Elezioni e candidature** prepara in anticipo le posizioni al voto:

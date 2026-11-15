@@ -200,6 +200,26 @@ urlpatterns = [
         views.VotazioneAzioneView.as_view(),
         name="votazione_azione",
     ),
+    path(
+        "<int:pk>/sedute/<int:seduta_pk>/programma/",
+        views.ProgrammaView.as_view(),
+        name="programma",
+    ),
+    path(
+        "<int:pk>/sedute/<int:seduta_pk>/programma/<int:riga_pk>/",
+        views.RigaProgrammaModificaView.as_view(),
+        name="programma_riga",
+    ),
+    path(
+        "<int:pk>/sedute/<int:seduta_pk>/programma/stato.json",
+        views.ProgrammaStatoView.as_view(),
+        name="programma_stato",
+    ),
+    path(
+        "<int:pk>/sedute/<int:seduta_pk>/programma/pdf/",
+        views.ProgrammaPdfView.as_view(),
+        name="programma_pdf",
+    ),
     path("<int:pk>/odg/", views.OdgView.as_view(), name="odg"),
     path("<int:pk>/elezioni/", views.ElezioniView.as_view(), name="elezioni"),
     path("<int:pk>/odg/<int:punto_pk>/", views.PuntoModificaView.as_view(), name="punto"),
