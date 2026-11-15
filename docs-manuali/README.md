@@ -58,5 +58,8 @@ dal menu «Assemblea di Zona». La versione `stable` segue l'ultima release:
 
 Lo stile comune dei PDF (palette verde della Zona, limiti delle immagini) è in
 `pdf/styles.scss`, usato anche dalla guida dei capigruppo. Alla pubblicazione di una
-release il workflow `release-manuale.yml` genera e allega i quattro manuali insieme alla
-guida dei capigruppo.
+release il workflow `release-manuale.yml` genera e allega **solo i manuali cambiati**
+dalla release precedente (`manuali_cambiati.py`): testi, pagine descritte in
+`pagine.toml`, configurazione MkDocs, stile comune dei PDF o logo; per la guida dei
+capigruppo `docs-utente/` e `mkdocs.yml`. Una release che non tocca nessun manuale non ha
+PDF allegati: la versione sempre aggiornata resta quella di Read the Docs (`stable`).

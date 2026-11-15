@@ -10,16 +10,36 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Serve la storia con i tag per confrontare con la release precedente.
+          fetch-depth: 0
+
+      # Solo i manuali cambiati dalla release precedente (testi, pagine
+      # descritte, configurazione, stile dei PDF): docs-manuali/manuali_cambiati.py.
+      # Il link sempre aggiornato resta quello di Read the Docs (stable).
+      - name: Manuali cambiati
+        id: cambiati
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          precedente=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || true)
+          echo "Release precedente: ${precedente:-nessuna}"
+          python3 docs-manuali/manuali_cambiati.py "$precedente" "$TAG" > manuali.txt
+          cat manuali.txt
+          if [ -s manuali.txt ]; then echo "da_generare=true" >> "$GITHUB_OUTPUT"; fi
 
       - name: Installa uv
+        if: steps.cambiati.outputs.da_generare
         uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
 
       - name: Installa Python
+        if: steps.cambiati.outputs.da_generare
         run: uv python install 3.14
 
       - name: Installa le dipendenze di sistema di WeasyPrint
+        if: steps.cambiati.outputs.da_generare
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -27,24 +47,26 @@ jobs:
             libgdk-pixbuf-2.0-0 shared-mime-info
 
       - name: Installa le dipendenze della documentazione
+        if: steps.cambiati.outputs.da_generare
         run: uv sync --group docs --no-install-project
 
-      - name: Genera i manuali (MkDocs + PDF)
+      - name: Genera i manuali cambiati (MkDocs + PDF)
+        if: steps.cambiati.outputs.da_generare
         run: |
-          uv run mkdocs build
-          uv run mkdocs build -f mkdocs-voto-app.yml
-          uv run mkdocs build -f mkdocs-voto-seggio.yml
-          uv run mkdocs build -f mkdocs-banco.yml
-          uv run mkdocs build -f mkdocs-gestione.yml
+          while read -r configurazione; do
+            uv run mkdocs build -f "$configurazione" < /dev/null
+          done < manuali.txt
 
       - name: Allega i PDF alla release
+        if: steps.cambiati.outputs.da_generare
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh release upload "${{ github.event.release.tag_name }}"
-          site/pdf/guida-capigruppo.pdf
-          site-voto-app/pdf/manuale-voto-app.pdf
-          site-voto-seggio/pdf/manuale-voto-seggio.pdf
-          site-banco/pdf/manuale-banco.pdf
-          site-gestione/pdf/manuale-gestione.pdf
-          --clobber
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          pdf=()
+          while read -r configurazione; do
+            cartella=$(grep -m1 '^site_dir:' "$configurazione" | awk '{print $2}')
+            uscita=$(grep -m1 'output_path:' "$configurazione" | awk '{print $2}')
+            pdf+=("$cartella/$uscita")
+          done < manuali.txt
+          gh release upload "$TAG" "${pdf[@]}" --clobber
