@@ -8,6 +8,25 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.17.0] - 2026-11-15
+
+### Aggiunto
+
+- Assemblee: email di nomina con i link ai manuali, a ogni nomina nel
+  comitato elettorale, come presidente, segretario o scrutatore, anche per
+  chi ha già un account; il testo si cambia in Impostazioni › Template email
+  («Assemblea — nomina»).
+- Manuali dell'assemblea (gestione, banco e seggi, voto in app, voto al
+  seggio) pubblicati con i loro PDF su Read the Docs, nella sezione
+  «Assemblea di Zona» della guida.
+- L'email del codice di voto compare in Impostazioni › Template email e si
+  può modificare.
+
+### Modificato
+
+- Le release allegano i PDF dei soli manuali cambiati dalla release
+  precedente.
+
 ## [1.16.0] - 2026-11-15
 
 ### Aggiunto
