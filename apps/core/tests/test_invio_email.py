@@ -446,3 +446,16 @@ class TestNonRegressioneTemplateSeminati:
         for codice, atteso in self.ATTESI.items():
             corpo_html = TemplateEmail.objects.get(codice=codice).corpo_html
             assert sanifica_html(corpo_html) == atteso, codice
+
+
+def test_template_codice_voto_seminato_uguale_al_fallback():
+    """Il seed di 0017 deve cambiare solo la visibilità in Impostazioni, non
+    l'email inviata: stesso testo del file di fallback e niente HTML."""
+    from django.template.loader import get_template
+
+    template = TemplateEmail.objects.get(codice=CodiceTemplateEmail.CODICE_VOTO)
+    sorgente = get_template("voto/email/codice_voto.txt").template.source
+
+    assert template.oggetto == "Catello — il tuo codice di voto"
+    assert template.corpo_testo == sorgente
+    assert template.corpo_html == ""
