@@ -8,6 +8,20 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.16.0] - 2026-11-15
+
+### Aggiunto
+
+- Assemblee: programma dei lavori di ogni convocazione, con ora di inizio,
+  ora di fine facoltativa, attività e punti dell'ordine del giorno (anche più
+  di uno per riga). Lo preparano i gestori, anche durante i lavori, con la
+  copia dalla convocazione precedente; presidenti e segretario lo vedono
+  dalla seduta e dal cruscotto, con la riga in corso evidenziata, e lo
+  scaricano in PDF su carta intestata.
+- Assemblee: sottopunti dei punti dell'ordine del giorno (a, b, …), nella
+  pagina dell'ordine del giorno, nel verbale e nella duplicazione
+  dell'assemblea.
+
 ## [1.15.4] - 2026-11-11
 
 ### Modificato
