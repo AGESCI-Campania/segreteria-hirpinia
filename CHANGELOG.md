@@ -8,6 +8,27 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.18.0] - 2026-11-16
+
+### Aggiunto
+
+- Assemblee: pagina «Registro operazioni», solo per amministratori e
+  Responsabili di Zona, con chi ha fatto cosa e quando sull'assemblea
+  (indirizzo IP e valori cambiati), anche per le operazioni passate.
+- Assemblee: si registrano nel log anche posizioni al voto, candidature e
+  righe del programma dei lavori.
+
+### Modificato
+
+- Assemblee: la seduta di un'assemblea vera si apre solo dal giorno della
+  convocazione; prima la pagina indica la data. Le assemblee di prova si
+  aprono in qualunque momento.
+
+### Corretto
+
+- Le operazioni fatte in impersonificazione registrano di nuovo anche
+  l'identità reale di chi impersona.
+
 ## [1.17.0] - 2026-11-15
 
 ### Aggiunto
