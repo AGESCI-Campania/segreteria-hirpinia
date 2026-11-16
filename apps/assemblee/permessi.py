@@ -20,6 +20,15 @@ def puo_gestire_assemblee(utente: Utente) -> bool:
     return bool(tipi_ruolo_effettivi(utente) & RUOLI_GESTIONE_ASSEMBLEE)
 
 
+RUOLI_REGISTRO_OPERAZIONI = frozenset({Ruolo.Tipo.ADMIN, Ruolo.Tipo.RDZ})
+
+
+def puo_vedere_registro(utente: Utente) -> bool:
+    """Registro delle operazioni di un'assemblea (chi ha fatto cosa e quando):
+    solo amministratori e RdZ, non la Segreteria né il comitato elettorale."""
+    return bool(tipi_ruolo_effettivi(utente) & RUOLI_REGISTRO_OPERAZIONI)
+
+
 def e_operatore(utente: Utente, assemblea: Assemblea) -> bool:
     return OperatoreVoto.objects.filter(assemblea=assemblea, utente=utente).exists()
 

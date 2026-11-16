@@ -14,12 +14,15 @@ class AssembleeConfig(AppConfig):
             Assemblea,
             AventeDiritto,
             Candidato,
+            Candidatura,
             DelegaAE,
             IncaricoAssemblea,
             IncaricoDichiarato,
             OperatoreVoto,
+            PosizioneVoto,
             Presenza,
             PuntoOdG,
+            RigaProgramma,
             RisultatoCanale,
             Seduta,
             SottopuntoOdG,
@@ -30,6 +33,8 @@ class AssembleeConfig(AppConfig):
 
         # Eliminazioni, trasferimenti e nomine di operatori vanno tracciati (D-70):
         # la storia delle modifiche all'elenco sta nel log, non in campi duplicati.
+        # Il registro delle operazioni dell'assemblea (registro.py) legge da qui:
+        # un modello nuovo va registrato qui e in registro.GENITORE.
         auditlog.register(Assemblea)
         auditlog.register(Seduta)
         auditlog.register(AventeDiritto)
@@ -46,3 +51,6 @@ class AssembleeConfig(AppConfig):
         auditlog.register(Candidato)
         auditlog.register(VerbaleSeduta)
         auditlog.register(VariazioneRappresentante)
+        auditlog.register(RigaProgramma)
+        auditlog.register(PosizioneVoto)
+        auditlog.register(Candidatura)

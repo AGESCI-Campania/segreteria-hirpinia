@@ -12,6 +12,7 @@ urlpatterns = [
     path("<int:pk>/elimina/", views.AssembleaEliminaView.as_view(), name="assemblea_elimina"),
     path("<int:pk>/titolo/", views.AssembleaTitoloView.as_view(), name="assemblea_titolo"),
     path("<int:pk>/email-prova/", views.EmailProvaView.as_view(), name="email_prova"),
+    path("<int:pk>/registro/", views.RegistroOperazioniView.as_view(), name="registro"),
     path(
         "<int:pk>/comitato/cerca/",
         views.ComitatoAutocompleteView.as_view(),

@@ -33,6 +33,13 @@ comitato elettorale, ufficio di presidenza, ordine del giorno ed elezioni.
 
 ![Pagina dell'assemblea](img/assemblea-dettaglio.jpg)
 
+## Registro operazioni
+
+Amministratori e Responsabili di Zona vedono in alto anche **Registro operazioni**: chi ha
+fatto cosa e quando sull'assemblea (elenco, convocazioni, presenze, votazioni, verbale…),
+con l'indirizzo IP e i valori cambiati, dalla più recente. Si può filtrare per tipo di
+oggetto. La Segreteria e il comitato elettorale non lo vedono.
+
 ## Duplicare un'assemblea
 
 **Duplica assemblea** crea una nuova assemblea a partire da questa: copia l'elenco così

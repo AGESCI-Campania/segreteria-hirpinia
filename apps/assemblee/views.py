@@ -6,6 +6,7 @@ from urllib.parse import urlencode
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
@@ -37,6 +38,7 @@ from . import (
     presidenza,
     programma,
     prova,
+    registro,
     sedute,
 )
 from . import deleghe as deleghe_ae
@@ -97,6 +99,7 @@ from .permessi import (
     puo_gestire_assemblee,
     puo_operare,
     puo_vedere_odg,
+    puo_vedere_registro,
 )
 from .quorum import stato_quorum
 
@@ -446,6 +449,7 @@ class AssembleaDettaglioView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             "avvisi_presidenza": presidenza.avvisi(assemblea),
             "ruoli": RuoloAssemblea.choices,
             "puo_compilare": puo_compilare_verbale(request.user, assemblea),
+            "puo_vedere_registro": puo_vedere_registro(request.user),
             "sistemi_voto": SistemaVoto.choices,
             "modalita_voto": ModalitaVoto.choices,
             "sistema_modificabile": puo_gestire
@@ -453,6 +457,34 @@ class AssembleaDettaglioView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             and not Votazione.objects.filter(seduta__assemblea=assemblea).exists(),
         }
         return render(request, self.template_name, contesto)
+
+
+class RegistroOperazioniView(LoginRequiredMixin, UserPassesTestMixin, BreadcrumbExtraMixin, View):
+    """Chi ha fatto cosa e quando sull'assemblea: solo amministratori e RdZ."""
+
+    template_name = "assemblee/registro.html"
+    request: HttpRequest
+
+    def test_func(self) -> bool:
+        assert isinstance(self.request.user, Utente)
+        return puo_vedere_registro(self.request.user)
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_assemblea(request, {"label": "Registro operazioni"})
+
+    def get(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        tipi = registro.tipi_oggetto()
+        tipo = request.GET.get("tipo", "")
+        if tipo not in dict(tipi):
+            tipo = ""
+        pagina = Paginator(registro.voci(assemblea, tipo), 100).get_page(request.GET.get("pagina"))
+        return render(
+            request,
+            self.template_name,
+            {"assemblea": assemblea, "pagina": pagina, "tipi": tipi, "tipo": tipo},
+        )
 
 
 MINIMO_CARATTERI_AUTOCOMPLETE = 2

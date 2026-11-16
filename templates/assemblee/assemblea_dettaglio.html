@@ -8,6 +8,9 @@
     <h1 class="mb-0">{{ assemblea }}</h1>
     {% if puo_gestire %}
       <div class="d-flex flex-wrap gap-3">
+        {% if puo_vedere_registro %}
+          <a href="{% url 'assemblee:registro' assemblea.pk %}" class="btn-outline theme-primary">{% bs_icon "clock-history" %} Registro operazioni</a>
+        {% endif %}
         <a href="{% url 'assemblee:assemblea_duplica' assemblea.pk %}" class="btn-outline theme-primary">{% bs_icon "copy" %} Duplica assemblea</a>
         {% if assemblea.di_prova %}
           <a href="{% url 'assemblee:assemblea_elimina' assemblea.pk %}" class="btn-outline theme-danger">Elimina assemblea</a>

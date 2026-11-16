@@ -3,6 +3,7 @@ import datetime
 import pytest
 from django.core import mail
 from django.core.exceptions import PermissionDenied
+from django.test import RequestFactory
 from hijack.signals import hijack_ended, hijack_started
 
 from apps.accounts.audit import vieta_in_impersonificazione
@@ -164,6 +165,38 @@ class TestAzioniPrecluse:
     def test_azione_non_riconosciuta_solleva_value_error(self):
         with pytest.raises(ValueError):
             vieta_in_impersonificazione("azione-inesistente")
+
+
+class TestDoppiaIdentitaNelLog:
+    def _salva_con_middleware(self, request):
+        from apps.accounts.audit import CatelloAuditlogMiddleware
+        from apps.organizzazione.models import Gruppo
+
+        def vista(_request):
+            return Gruppo.objects.create(codice="E9999", nome="PROVA")
+
+        return CatelloAuditlogMiddleware(vista)(request)
+
+    def test_in_impersonificazione_registra_anche_l_identita_reale(self):
+        from auditlog.models import LogEntry
+
+        admin = _persona("admin@example.it")
+        request = RequestFactory().get("/")
+        request.session = FakeSession({"hijack_history": [str(admin.pk)]})
+        request.user = _persona("bersaglio@example.it")
+        gruppo = self._salva_con_middleware(request)
+        voce = LogEntry.objects.get_for_object(gruppo).get()
+        assert voce.actor == request.user
+        assert voce.additional_data == {"eseguito_da_reale": str(admin)}
+
+    def test_fuori_da_impersonificazione_nessun_dato_aggiuntivo(self):
+        from auditlog.models import LogEntry
+
+        request = RequestFactory().get("/")
+        request.session = FakeSession()
+        request.user = _persona("utente@example.it")
+        gruppo = self._salva_con_middleware(request)
+        assert LogEntry.objects.get_for_object(gruppo).get().additional_data is None
 
 
 class TestSessioneImpersonificazione:

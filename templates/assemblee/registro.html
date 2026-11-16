@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block page_title %}Registro operazioni{% endblock %}
+
+{% block content %}
+  <h1 class="mb-3">Registro operazioni</h1>
+  <p class="fg-2 mb-7">{{ assemblea }}: chi ha fatto cosa e quando, dalla più recente. Lo vedono solo amministratori e Responsabili di Zona.</p>
+
+  <form method="get" class="d-flex flex-wrap align-items-end gap-3 mb-7">
+    <div class="form-field mb-0">
+      <label for="tipo">Tipo di oggetto</label>
+      <select name="tipo" id="tipo" class="form-control">
+        <option value="">Tutti</option>
+        {% for valore, etichetta in tipi %}
+          <option value="{{ valore }}"{% if valore == tipo %} selected{% endif %}>{{ etichetta }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn-outline theme-primary">Filtra</button>
+  </form>
+
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr><th>Quando</th><th>Chi</th><th>Operazione</th><th>Oggetto</th><th>Dettagli</th></tr>
+      </thead>
+      <tbody>
+        {% for voce in pagina %}
+          <tr>
+            <td class="text-nowrap">{{ voce.quando|date:"d/m/Y H:i:s" }}</td>
+            <td>
+              {{ voce.autore }}
+              {% if voce.eseguito_da_reale %}<br><span class="fg-2">in impersonificazione da {{ voce.eseguito_da_reale }}</span>{% endif %}
+              {% if voce.indirizzo %}<br><span class="fg-2">IP {{ voce.indirizzo }}</span>{% endif %}
+            </td>
+            <td>{{ voce.azione }}</td>
+            <td>{{ voce.tipo }}<br><span class="fg-2">{{ voce.oggetto }}</span></td>
+            <td>
+              {% for modifica in voce.modifiche %}
+                <div><strong>{{ modifica.campo }}</strong>:
+                  {% if voce.azione == "Modifica" %}{{ modifica.prima }} → {{ modifica.dopo }}{% elif voce.azione == "Eliminazione" %}{{ modifica.prima }}{% else %}{{ modifica.dopo }}{% endif %}
+                </div>
+              {% endfor %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5">Nessuna operazione registrata.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pagina.has_other_pages %}
+    <nav class="d-flex flex-wrap align-items-center gap-3" aria-label="Pagine del registro">
+      {% if pagina.has_previous %}
+        <a href="?{% if tipo %}tipo={{ tipo }}&amp;{% endif %}pagina={{ pagina.previous_page_number }}" class="btn-outline theme-primary">Più recenti</a>
+      {% endif %}
+      <span class="fg-2">Pagina {{ pagina.number }} di {{ pagina.paginator.num_pages }}</span>
+      {% if pagina.has_next %}
+        <a href="?{% if tipo %}tipo={{ tipo }}&amp;{% endif %}pagina={{ pagina.next_page_number }}" class="btn-outline theme-primary">Meno recenti</a>
+      {% endif %}
+    </nav>
+  {% endif %}
+{% endblock %}

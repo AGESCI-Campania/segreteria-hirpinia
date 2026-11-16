@@ -60,5 +60,7 @@ class CatelloAuditlogMiddleware(AuditlogMiddleware):
         if history:
             utente_reale = get_user_model().objects.filter(pk=history[-1]).first()
             if utente_reale is not None:
-                dati["eseguito_da_reale"] = str(utente_reale)
+                # auditlog copia sulla voce solo le chiavi che sono attributi di
+                # LogEntry: una chiave propria verrebbe scartata in silenzio.
+                dati["additional_data"] = {"eseguito_da_reale": str(utente_reale)}
         return dati

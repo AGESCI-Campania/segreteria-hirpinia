@@ -349,6 +349,18 @@ deve violare:
   (`odg.scrivi_discussione()`), ma **non** fanno operazioni di voto
   (`puo_operare()` resta a gestori e comitato elettorale) né la variazione del
   rappresentante legale (dati anagrafici dell'RdZ, solo gestori).
+- **Una seduta di un'assemblea vera si apre solo dal giorno della convocazione** (conta
+  il giorno, non l'ora; quelle di prova sempre): la regola è solo in
+  `sedute.puo_aprire_oggi()`, controllata da `apri_seduta()`. Nei test la data di
+  riferimento è fissata dalla fixture autouse `apps/assemblee/tests/conftest.py::
+  sedute_apribili`, riusata da `apps/voto/tests` e dalle schermate dei manuali.
+- **Registro operazioni** (`apps/assemblee/registro.py`, pagina `assemblee:registro`):
+  legge le voci di `django-auditlog` dei modelli del modulo e le riconduce
+  all'assemblea con `registro.GENITORE` (catena delle FK; per gli oggetti eliminati dai
+  valori salvati nella voce). Solo ADMIN e RdZ (`permessi.puo_vedere_registro()`), non
+  la Segreteria. Un modello nuovo del modulo va registrato in auditlog in `apps.py`
+  **e** aggiunto a `GENITORE`. I `bulk_create` (import dell'elenco) non passano da
+  auditlog e quindi non compaiono.
 - **Tempo reale = polling ogni 3 secondi**, nessuna infrastruttura nuova (D-17 vale
   ancora).
 - **Carta intestata dei PDF** (nota spese, foglio presenze, verbali, riepilogo dei
