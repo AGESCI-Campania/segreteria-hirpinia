@@ -1118,6 +1118,7 @@ def _contesto_gestione_seduta(request, seduta: Seduta) -> dict:
         ).order_by("numero"),
         "richiedenti": RichiedenteVerifica.choices,
         "puo_operare": puo_operare(request.user, assemblea) and not assemblea.conclusa,
+        "puo_aprire_oggi": sedute.puo_aprire_oggi(seduta),
     }
 
 

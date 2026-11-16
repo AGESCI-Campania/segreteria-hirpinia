@@ -1,7 +1,9 @@
 {# Azioni sulla seduta (apertura, costituzione, chiusura, verifica del quorum), nella pagina della seduta e nel cruscotto. Dopo ogni azione si torna alla pagina di partenza (next). #}
   {% if puo_operare %}
     <div class="d-flex flex-wrap gap-3">
-      {% if not seduta.aperta_il %}
+      {% if not seduta.aperta_il and not puo_aprire_oggi %}
+        <p class="fg-2 mb-0">La seduta si potrà aprire dal {{ seduta.data|date:"d/m/Y" }}, giorno della convocazione.</p>
+      {% elif not seduta.aperta_il %}
         <form method="post" action="{% url 'assemblee:seduta_azione' assemblea.pk seduta.pk %}">
           {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="azione" value="apri">
           <button type="submit" class="btn-solid theme-primary">Apri la seduta</button>

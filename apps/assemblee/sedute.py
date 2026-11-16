@@ -46,6 +46,12 @@ def seduta_corrente(assemblea: Assemblea) -> Seduta | None:
     return assemblea.sedute.order_by("-convocazione").first()
 
 
+def puo_aprire_oggi(seduta: Seduta, oggi: datetime.date | None = None) -> bool:
+    """Un'assemblea vera si apre solo dal giorno della convocazione (conta il
+    giorno, non l'ora); quelle di prova in qualunque momento."""
+    return seduta.assemblea.di_prova or (oggi or timezone.localdate()) >= seduta.data
+
+
 @transaction.atomic
 def apri_seduta(seduta: Seduta, utente: Utente) -> None:
     """Apre la registrazione delle presenze, con l'appello d'ingresso."""
@@ -56,6 +62,10 @@ def apri_seduta(seduta: Seduta, utente: Utente) -> None:
         raise ValidationError("La seduta è già stata aperta.")
     if seduta != seduta_corrente(seduta.assemblea):
         raise ValidationError("Si può aprire solo l'ultima convocazione.")
+    if not puo_aprire_oggi(seduta):
+        raise ValidationError(
+            f"La seduta si può aprire solo dal giorno della convocazione ({seduta.data:%d/%m/%Y})."
+        )
     seduta.aperta_il = timezone.now()
     seduta.save(update_fields=["aperta_il"])
     Appello.objects.create(seduta=seduta, numero=1, tipo=TipoAppello.INGRESSO, aperto_da=utente)

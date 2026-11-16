@@ -36,6 +36,7 @@ from apps.assemblee.models import (
     TipoAssemblea,
     TipoVotazione,
 )
+from apps.assemblee.tests.conftest import sedute_apribili  # noqa: F401
 from apps.organizzazione.models import Gruppo
 from apps.voto import codici, scrutinio, urna
 

@@ -103,6 +103,36 @@ class TestPresenze:
         with pytest.raises(ValidationError):
             sedute.apri_seduta(prima, operatore)
 
+    def test_non_si_apre_prima_del_giorno_della_convocazione(self, prima, operatore):
+        prima.data = datetime.date(2099, 1, 1)
+        prima.save()
+        with pytest.raises(ValidationError, match="01/01/2099"):
+            sedute.apri_seduta(prima, operatore)
+        assert prima.aperta_il is None
+        assert not prima.appelli.exists()
+
+    def test_conta_il_giorno_non_l_ora(self, prima):
+        giorno = prima.data
+        assert not sedute.puo_aprire_oggi(prima, giorno - datetime.timedelta(days=1))
+        assert sedute.puo_aprire_oggi(prima, giorno)
+        assert sedute.puo_aprire_oggi(prima, giorno + datetime.timedelta(days=1))
+
+    def test_l_assemblea_di_prova_si_apre_in_anticipo(self, prima, operatore):
+        Assemblea.objects.filter(pk=prima.assemblea_id).update(di_prova=True)
+        prima.refresh_from_db()
+        prima.data = datetime.date(2099, 1, 1)
+        prima.save()
+        sedute.apri_seduta(prima, operatore)
+        assert prima.aperta
+
+    def test_prima_del_giorno_niente_pulsante(self, client, prima, operatore):
+        prima.data = datetime.date(2099, 1, 1)
+        prima.save()
+        client.force_login(operatore)
+        risposta = client.get(f"/assemblee/{prima.assemblea_id}/sedute/{prima.pk}/")
+        assert "Apri la seduta" not in risposta.text
+        assert "si potrà aprire dal 01/01/2099" in risposta.text
+
     def test_registrazione_e_quorum(self, prima, operatore):
         sedute.apri_seduta(prima, operatore)
         _presenti(prima, operatore, "Cognome1", "Cognome2", "Neri")

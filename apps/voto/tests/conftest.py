@@ -17,6 +17,7 @@ from apps.assemblee.models import (
     SistemaVoto,
     TipoAssemblea,
 )
+from apps.assemblee.tests.conftest import sedute_apribili  # noqa: F401
 from apps.organizzazione.models import Gruppo
 
 

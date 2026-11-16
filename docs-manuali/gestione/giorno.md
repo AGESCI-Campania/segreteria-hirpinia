@@ -3,7 +3,9 @@
 ## La seduta
 
 Dalla pagina dell'assemblea apri la convocazione. **Apri la seduta** abilita la
-registrazione delle presenze. Finché la seduta è aperta, la pagina dell'assemblea e
+registrazione delle presenze. Si può aprire solo dal giorno della convocazione: prima di
+quel giorno la pagina indica la data e il pulsante non c'è (le assemblee di prova si
+aprono in qualunque momento). Finché la seduta è aperta, la pagina dell'assemblea e
 l'elenco delle assemblee mostrano **Vai alla seduta** per arrivarci subito.
 
 ![Seduta da aprire](img/seduta-da-aprire.jpg)
