@@ -30,7 +30,7 @@
           <td>
             {% if assemblea.conclusa %}Conclusa{% elif assemblea.seduta_aperta %}
               <a href="{% url 'assemblee:seduta' assemblea.pk assemblea.seduta_aperta.pk %}" class="btn-solid theme-success btn-sm">{{ assemblea.seduta_aperta.get_convocazione_display }} aperta: vai</a>
-            {% else %}In preparazione{% endif %}
+            {% elif assemblea.lavori_chiusi %}Lavori chiusi, da concludere{% else %}In preparazione{% endif %}
           </td>
           <td><a href="{% url 'assemblee:assemblea_dettaglio' assemblea.pk %}" class="btn-outline theme-primary btn-sm">Apri</a></td>
         </tr>

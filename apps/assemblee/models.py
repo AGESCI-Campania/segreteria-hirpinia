@@ -139,6 +139,14 @@ class Assemblea(models.Model):
         sedute già caricate con prefetch_related, se ci sono."""
         return next((s for s in self.sedute.all() if s.aperta), None)
 
+    @property
+    def lavori_chiusi(self) -> bool:
+        """L'ultima convocazione è chiusa (lavori chiusi, costituita o no): da
+        qui l'assemblea si può concludere (`sedute.concludi_assemblea()`).
+        Usa le sedute già caricate con prefetch_related, se ci sono."""
+        ultima = max(self.sedute.all(), key=lambda s: s.convocazione, default=None)
+        return ultima is not None and ultima.chiusa_il is not None
+
 
 class Seduta(models.Model):
     """Una convocazione dell'assemblea (D-70): la 2ª e la 3ª esistono solo se la

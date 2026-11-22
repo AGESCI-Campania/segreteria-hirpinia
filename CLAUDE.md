@@ -368,6 +368,11 @@ deve violare:
   (`odg.scrivi_discussione()`), ma **non** fanno operazioni di voto
   (`puo_operare()` resta a gestori e comitato elettorale) né la variazione del
   rappresentante legale (dati anagrafici dell'RdZ, solo gestori).
+- **Conclusione dell'assemblea**: solo da `sedute.concludi_assemblea()` (gestori, a
+  lavori chiusi dell'ultima convocazione, senza votazioni aperte: regola in
+  `motivo_non_concludibile()`) e `riapri_assemblea()` (tutti i gestori, per decisione di
+  Andrea). Il resto del modulo legge solo `Assemblea.conclusa`: un controllo nuovo «ad
+  assemblea conclusa» va nel service layer della funzione bloccata, non qui.
 - **Il tipo di una votazione si corregge solo con `votazioni.correggi_tipo()`**, fra
   `TIPI_CORREGGIBILI` (le deliberazioni dell'art. 14: stesse voci, canale e soglia, un
   test lo verifica). Come `collega_punto()`, anche a votazione chiusa e ad assemblea

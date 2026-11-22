@@ -367,6 +367,27 @@ class ElezioniView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
         return redirect(reverse("assemblee:elezioni", args=[pk]) + ancora)
 
 
+class AssembleaConclusioneView(GestisceAssembleeMixin, View):
+    """Concludi (con conferma) o riapri l'assemblea: le regole sono in
+    `sedute.concludi_assemblea()`/`riapri_assemblea()`."""
+
+    def post(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        azione = request.POST.get("azione")
+        try:
+            if azione == "concludi" and request.POST.get("conferma") == "1":
+                sedute.concludi_assemblea(assemblea, request.user)
+                messages.success(request, "Assemblea conclusa: resta da completare il verbale.")
+            elif azione == "riapri":
+                sedute.riapri_assemblea(assemblea, request.user)
+                messages.success(request, "Assemblea riaperta.")
+            else:
+                messages.error(request, "Azione non riconosciuta o non confermata.")
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+        return redirect(reverse("assemblee:assemblea_dettaglio", args=[pk]))
+
+
 class AssembleaTitoloView(GestisceAssembleeMixin, View):
     """Titolo dell'assemblea: cambia solo il nome mostrato (pagine, PDF,
     email), anche ad assemblea conclusa."""
@@ -452,6 +473,9 @@ class AssembleaDettaglioView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
             "puo_vedere_registro": puo_vedere_registro(request.user),
             "sistemi_voto": SistemaVoto.choices,
             "modalita_voto": ModalitaVoto.choices,
+            "motivo_non_concludibile": (
+                sedute.motivo_non_concludibile(assemblea) if puo_gestire else None
+            ),
             "sistema_modificabile": puo_gestire
             and not assemblea.conclusa
             and not Votazione.objects.filter(seduta__assemblea=assemblea).exists(),

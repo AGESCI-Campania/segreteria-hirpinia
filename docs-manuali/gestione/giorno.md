@@ -15,6 +15,13 @@ Quando i presenti bastano, **Dichiara validamente costituita**; se il quorum man
 **Chiudi i lavori**. Una **verifica del quorum** si può aprire in qualsiasi momento: si
 rifà l'appello dalla pagina delle presenze.
 
+Chiusi i lavori, la pagina dell'assemblea indica **lavori chiusi, da concludere**: con
+tutte le votazioni registrate, spunta la conferma e premi **Concludi l'assemblea**. Da
+quel momento elenco, ordine del giorno, sedute, comitati e candidature non si modificano
+più e il comitato elettorale non vede più l'assemblea; resta da completare il verbale
+(gestori, presidenti e segretario), con la discussione dei punti e il punto e il tipo
+delle votazioni. Se l'hai conclusa per errore, **Riapri l'assemblea** dalla stessa pagina.
+
 ![Seduta costituita](img/seduta-costituita.jpg)
 
 ## Presenze e codici

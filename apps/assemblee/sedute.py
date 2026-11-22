@@ -1,6 +1,6 @@
 """Sedute e presenze (D-70): apertura, registrazione all'ingresso, esito sul
-quorum costitutivo, convocazione successiva. Unico punto delle regole; le
-view chiamano solo queste funzioni."""
+quorum costitutivo, convocazione successiva, conclusione dell'assemblea.
+Unico punto delle regole; le view chiamano solo queste funzioni."""
 
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ from .models import (
     RichiedenteVerifica,
     Seduta,
     TipoAppello,
+    Votazione,
 )
 from .permessi import puo_gestire_assemblee, puo_operare
 from .quorum import (
@@ -257,3 +258,46 @@ def annulla_verifica(seduta: Seduta, utente: Utente) -> None:
     if verifica is None:
         raise ValidationError("Nessuna verifica del quorum in corso.")
     verifica.delete()
+
+
+# --- Conclusione dell'assemblea ----------------------------------------------------
+
+
+def motivo_non_concludibile(assemblea: Assemblea) -> str | None:
+    """Perché `assemblea` non si può ancora concludere, o None. Si conclude a
+    lavori chiusi (l'ultima convocazione chiusa, costituita o no) e senza
+    votazioni in corso."""
+    if assemblea.conclusa:
+        return "L'assemblea è già conclusa."
+    if not assemblea.lavori_chiusi:
+        return "Si conclude solo dopo aver chiuso i lavori dell'ultima convocazione."
+    if Votazione.objects.filter(seduta__assemblea=assemblea, chiusa_il__isnull=True).exists():
+        return "Ci sono votazioni senza risultati registrati."
+    return None
+
+
+@transaction.atomic
+def concludi_assemblea(assemblea: Assemblea, utente: Utente) -> None:
+    """Chiude l'assemblea: da qui elenco, ordine del giorno, sedute, comitato e
+    candidature non cambiano più e il comitato elettorale non la vede; restano
+    il verbale (gestori, presidenti e segretario), la discussione dei punti,
+    il punto e il tipo delle votazioni, il titolo. Solo i gestori."""
+    if not puo_gestire_assemblee(utente):
+        raise PermissionDenied
+    motivo = motivo_non_concludibile(assemblea)
+    if motivo:
+        raise ValidationError(motivo)
+    assemblea.conclusa_il = timezone.now()
+    assemblea.save(update_fields=["conclusa_il"])
+
+
+@transaction.atomic
+def riapri_assemblea(assemblea: Assemblea, utente: Utente) -> None:
+    """Rimedio a una conclusione per errore: tutti i gestori (decisione di
+    Andrea, 22/11/2026). Resta nel registro operazioni (auditlog)."""
+    if not puo_gestire_assemblee(utente):
+        raise PermissionDenied
+    if not assemblea.conclusa:
+        raise ValidationError("L'assemblea non è conclusa.")
+    assemblea.conclusa_il = None
+    assemblea.save(update_fields=["conclusa_il"])

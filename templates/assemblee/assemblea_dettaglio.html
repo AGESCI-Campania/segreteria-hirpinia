@@ -66,8 +66,38 @@
   {% endif %}
   <p class="fg-2 mb-7">
     {% if assemblea.titolo %}Assemblea {{ assemblea.get_tipo_display|lower }} {{ assemblea.anno_scout|add:"-1" }}/{{ assemblea.anno_scout }} — {% endif %}Sessione {{ assemblea.get_sessione_display|lower }} —
-    {% if assemblea.conclusa %}conclusa il {{ assemblea.conclusa_il|date:"d/m/Y" }}{% else %}in preparazione{% endif %}
+    {% if assemblea.conclusa %}conclusa il {{ assemblea.conclusa_il|date:"d/m/Y" }}{% elif seduta_aperta %}in corso{% elif assemblea.lavori_chiusi %}lavori chiusi, da concludere{% else %}in preparazione{% endif %}
   </p>
+
+  {% if puo_gestire and assemblea.conclusa %}
+    <div class="alert theme-info mb-7" role="note">
+      <div>
+        <p class="mb-3"><strong>Assemblea conclusa.</strong> Elenco, ordine del giorno, sedute, comitati e candidature non si modificano più; il verbale si completa ancora. Se l'hai conclusa per errore, riaprila.</p>
+        <form method="post" action="{% url 'assemblee:assemblea_conclusione' assemblea.pk %}">
+          {% csrf_token %}<input type="hidden" name="azione" value="riapri">
+          <button type="submit" class="btn-outline theme-primary">Riapri l'assemblea</button>
+        </form>
+      </div>
+    </div>
+  {% elif puo_gestire and assemblea.lavori_chiusi %}
+    <div class="alert theme-warning mb-7" role="note">
+      <div>
+        <p class="mb-3"><strong>I lavori sono chiusi.</strong> Concludi l'assemblea: elenco, ordine del giorno, sedute, comitati e candidature non si modificheranno più, il comitato elettorale non la vedrà più e resterà da completare il verbale.</p>
+        {% if motivo_non_concludibile %}
+          <p class="mb-0">{{ motivo_non_concludibile }}</p>
+        {% else %}
+          <form method="post" action="{% url 'assemblee:assemblea_conclusione' assemblea.pk %}" class="d-flex flex-wrap align-items-center gap-3">
+            {% csrf_token %}<input type="hidden" name="azione" value="concludi">
+            <div class="form-field mb-0">
+              <input type="checkbox" name="conferma" value="1" id="conferma-conclusione" class="check" required>
+              <label for="conferma-conclusione">Confermo: i lavori sono finiti</label>
+            </div>
+            <button type="submit" class="btn-solid theme-primary">Concludi l'assemblea</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
 
   <div class="row row-cols-1 md:row-cols-3 g-7 mb-7">
     <div class="col">

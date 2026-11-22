@@ -282,3 +282,86 @@ def test_chiusura_senza_conferma_rifiutata(client, prima, operatore):
     client.post(url, {"azione": "non_costituita", "conferma": "1"})
     prima.refresh_from_db()
     assert prima.costituita is False and not prima.aperta
+
+
+class TestConclusione:
+    """Assemblea di Zona del 22/11/2026: a lavori chiusi l'assemblea restava
+    «in preparazione»."""
+
+    @pytest.fixture
+    def lavori_chiusi(self, prima, operatore):
+        sedute.apri_seduta(prima, operatore)
+        _presenti(prima, operatore, "Cognome1", "Cognome2", "Cognome3")
+        sedute.dichiara_costituita(prima, operatore)
+        sedute.chiudi_lavori(prima, operatore)
+        return prima
+
+    def test_conclude_e_riapre(self, client, assemblea, segreteria, lavori_chiusi):
+        client.force_login(segreteria)
+        url = f"/assemblee/{assemblea.pk}/"
+        pagina = client.get(url).content.decode()
+        assert "lavori chiusi, da concludere" in pagina and 'value="concludi"' in pagina
+        client.post(url + "conclusione/", {"azione": "concludi"})
+        assemblea.refresh_from_db()
+        assert not assemblea.conclusa, "senza conferma non conclude"
+        client.post(url + "conclusione/", {"azione": "concludi", "conferma": "1"})
+        assemblea.refresh_from_db()
+        assert assemblea.conclusa
+        assert "Riapri l'assemblea" in client.get(url).content.decode()
+        client.post(url + "conclusione/", {"azione": "riapri"})
+        assemblea.refresh_from_db()
+        assert not assemblea.conclusa
+
+    def test_conclusa_blocca_l_elenco(self, assemblea, segreteria, lavori_chiusi, avellino):
+        sedute.concludi_assemblea(assemblea, segreteria)
+        with pytest.raises(ValidationError):
+            elenco.inserisci(
+                assemblea,
+                segreteria,
+                nome="Anna",
+                cognome="Blu",
+                gruppo=avellino,
+                provenienza=Provenienza.NON_NOTA,
+            )
+
+    def test_non_prima_della_chiusura_dei_lavori(self, assemblea, prima, operatore, segreteria):
+        with pytest.raises(ValidationError):
+            sedute.concludi_assemblea(assemblea, segreteria)
+        sedute.apri_seduta(prima, operatore)
+        with pytest.raises(ValidationError):
+            sedute.concludi_assemblea(assemblea, segreteria)
+
+    def test_non_con_votazioni_senza_risultati(self, assemblea, segreteria, lavori_chiusi):
+        from apps.assemblee.models import TipoVotazione, Votazione
+
+        Votazione.objects.create(
+            seduta=lavori_chiusi,
+            tipo=TipoVotazione.MOZIONE,
+            oggetto="x",
+            presenti=3,
+            aventi_diritto=5,
+        )
+        assert sedute.motivo_non_concludibile(assemblea)
+        with pytest.raises(ValidationError):
+            sedute.concludi_assemblea(assemblea, segreteria)
+
+    def test_senza_quorum_in_seconda_convocazione_ancora_aperta(
+        self, assemblea, prima, operatore, segreteria
+    ):
+        """Dopo una seduta senza quorum con la convocazione successiva creata,
+        l'ultima convocazione non è chiusa: non si conclude."""
+        sedute.apri_seduta(prima, operatore)
+        sedute.dichiara_non_costituita(prima, operatore)
+        assert assemblea.lavori_chiusi
+        sedute.crea_convocazione_successiva(assemblea, segreteria, data=GIORNO)
+        assemblea = Assemblea.objects.get(pk=assemblea.pk)
+        assert not assemblea.lavori_chiusi
+        with pytest.raises(ValidationError):
+            sedute.concludi_assemblea(assemblea, segreteria)
+
+    def test_solo_i_gestori(self, assemblea, operatore, segreteria, lavori_chiusi):
+        with pytest.raises(PermissionDenied):
+            sedute.concludi_assemblea(assemblea, operatore)
+        sedute.concludi_assemblea(assemblea, segreteria)
+        with pytest.raises(PermissionDenied):
+            sedute.riapri_assemblea(assemblea, operatore)
