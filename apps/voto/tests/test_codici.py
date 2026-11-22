@@ -9,6 +9,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 
 from apps.assemblee import elenco, sedute
 from apps.assemblee.models import ModalitaVoto, SistemaVoto, TipoVotazione, Votazione
+from apps.core.models import CodiceTemplateEmail, TemplateEmail
 from apps.voto import codici, sistema
 from apps.voto.models import CodiceVoto
 
@@ -236,3 +237,46 @@ class TestEmailSecondoLaModalita:
         assert "si vota solo ai seggi in sala" in corpo
         # Il codice c'è comunque.
         assert re.search(r"[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{2}", corpo)
+
+
+class TestTemplateSenzaCodice:
+    """Assemblea di Zona del 22/11/2026: con l'email del codice senza codice
+    molti hanno dovuto farselo rimandare. Presenze e invii si fermano."""
+
+    @pytest.fixture
+    def template_senza_codice(self):
+        TemplateEmail.objects.filter(codice=CodiceTemplateEmail.CODICE_VOTO).update(
+            corpo_html="<p>Ciao {{ nome }}</p>"
+        )
+
+    def test_presenza_rifiutata(self, seduta, assemblea, operatore, template_senza_codice):
+        rossi = avente(assemblea, "Rossi")
+        with pytest.raises(ValidationError, match=r"\{\{ codice \}\}"):
+            sedute.registra_presenza(seduta, rossi, operatore)
+        assert not seduta.appelli.get().presenze.exists()
+
+    def test_invio_rifiutato_senza_emettere(
+        self, seduta, assemblea, operatore, template_senza_codice
+    ):
+        with pytest.raises(ValidationError):
+            codici.invia(seduta, avente(assemblea, "Rossi"), operatore)
+        assert not CodiceVoto.objects.exists()
+        assert mail.outbox == []
+
+    def test_con_l_app_nazionale_non_blocca(
+        self, seduta, assemblea, segreteria, template_senza_codice
+    ):
+        sistema.imposta_sistema(assemblea, SistemaVoto.NAZIONALE, segreteria)
+        seduta.refresh_from_db()
+        assert sedute.registra_presenza(seduta, avente(assemblea, "Rossi"), segreteria)
+
+    def test_pagina_presenze_avvisa(
+        self, client, seduta, assemblea, operatore, template_senza_codice
+    ):
+        client.force_login(operatore)
+        rossi = avente(assemblea, "Rossi")
+        client.post(f"/assemblee/{assemblea.pk}/sedute/{seduta.pk}/presenze/{rossi.pk}/")
+        risposta = client.get(f"/assemblee/{assemblea.pk}/sedute/{seduta.pk}/presenze/")
+        contenuto = risposta.content.decode()
+        assert "Le presenze sono bloccate" in contenuto
+        assert mail.outbox == []

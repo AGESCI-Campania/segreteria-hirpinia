@@ -287,6 +287,25 @@ nelle fixture di test.
   Django, che romperebbe gli URL con `&` nella querystring) con lo stesso motore ridotto.
   `corpo_html` va sempre sanitizzato con `apps/core/invio_email.py::sanifica_html()`
   (bleach) prima dell'invio.
+- **Placeholder obbligatori** (regola generale, dopo l'Assemblea di Zona del 22/11/2026):
+  se un'email serve a un'azione solo grazie a un dato (il codice di voto, il link di
+  attivazione…), quel placeholder va in `apps/core/template_email.py::
+  PLACEHOLDER_OBBLIGATORI`. La regola è una sola, `apps/core/invio_email.py::
+  problemi_corpi()`: il placeholder deve stare nel testo e, se c'è, nell'HTML. La usano
+  il salvataggio del template (`TemplateEmailForm.clean()`) e, tramite
+  `problemi_template()`, **l'azione che invia l'email, che non procede** finché il
+  template non è corretto (es. `apps/voto/codici.py::verifica_template_email()`, chiamata
+  da `registra_presenza()` e `codici.invia()`). Ogni nuovo template email deve dichiarare
+  i suoi placeholder obbligatori, e ogni nuova azione che lo invia deve chiamare il
+  controllo prima di scrivere qualcosa. Supera, solo per questi placeholder, la decisione
+  precedente «un placeholder mancante non blocca mai»: resta vera per tutti gli altri, e
+  `invia_email_template()`/`sostituisci_placeholder()` continuano a non bloccare mai
+  l'invio (un placeholder sconosciuto diventa vuoto, il template vuoto usa il testo
+  predefinito). Si blocca prima, l'azione o il salvataggio del template, mai l'invio a
+  metà di un'azione già fatta. Quali placeholder sono indispensabili si decide email per
+  email con Andrea, non per deduzione. Un HTML che non mostra nulla
+  (`html_senza_contenuto()`) non si invia, nemmeno con la sola firma: i programmi di
+  posta lo mostrerebbero al posto del testo.
 - **`config/settings/prod.py` blocca l'avvio se `EMAIL_PROVIDER` è `console` o
   `locmem`** (`ImproperlyConfigured`, subito dopo `DEBUG = False`): non è codice morto
   né una ridondanza col controllo di `base.py` su `EMAIL_USE_TLS`/`EMAIL_USE_SSL` — è

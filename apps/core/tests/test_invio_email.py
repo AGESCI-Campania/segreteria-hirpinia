@@ -4,7 +4,14 @@ bleach, sempre multipart quando è configurato un corpo HTML."""
 import pytest
 from django.core import mail
 
-from apps.core.invio_email import invia_email_template, sanifica_html
+from apps.core.forms import TemplateEmailForm
+from apps.core.invio_email import (
+    html_senza_contenuto,
+    invia_email_template,
+    problemi_corpi,
+    problemi_template,
+    sanifica_html,
+)
 from apps.core.models import CodiceTemplateEmail, ImpostazioniPiattaforma, TemplateEmail
 
 pytestmark = pytest.mark.django_db
@@ -357,7 +364,9 @@ class TestFirmaComune:
         assert "<script>" not in html
         assert html.startswith("<p>Corpo</p><p>Saluti</p>")
 
-    def test_firma_html_senza_corpo_html_genera_comunque_alternativa(self):
+    def test_firma_html_senza_corpo_html_nessuna_alternativa(self):
+        """Una versione HTML con la sola firma nasconderebbe il corpo testo,
+        perché i programmi di posta mostrano l'HTML."""
         ImpostazioniPiattaforma.objects.update_or_create(
             pk=1, defaults={"firma_html": "<p>Solo firma</p>"}
         )
@@ -371,7 +380,8 @@ class TestFirmaComune:
             contesto={"ruolo": "Capogruppo", "delegato": "Mario Rossi"},
         )
 
-        assert mail.outbox[0].alternatives[0][0] == "<p>Solo firma</p>"
+        assert mail.outbox[0].alternatives == []
+        assert mail.outbox[0].body.startswith("Corpo testuale")
 
     def test_nessuna_firma_configurata_nessun_cambiamento(self):
         ImpostazioniPiattaforma.objects.update_or_create(
@@ -459,3 +469,88 @@ def test_template_codice_voto_seminato_uguale_al_fallback():
     assert template.oggetto == "Catello — il tuo codice di voto"
     assert template.corpo_testo == sorgente
     assert template.corpo_html == ""
+
+
+class TestHtmlSenzaContenuto:
+    """Un HTML che non mostra nulla non si invia: i programmi di posta lo
+    mostrerebbero al posto del testo (assemblea di Zona del 22/11/2026)."""
+
+    @pytest.mark.parametrize("corpo", ["", "   ", "<p></p>", "<p>&nbsp;</p>", "<p>\xa0</p><br>"])
+    def test_vuoti(self, corpo):
+        assert html_senza_contenuto(corpo)
+
+    @pytest.mark.parametrize("corpo", ["<p>Ciao</p>", '<p><img src="x.png"></p>', "{{ codice }}"])
+    def test_con_contenuto(self, corpo):
+        assert not html_senza_contenuto(corpo)
+
+    def test_html_vuoto_con_firma_nessuna_alternativa(self):
+        ImpostazioniPiattaforma.objects.update_or_create(
+            pk=1, defaults={"firma_html": "<p>Solo firma</p>"}
+        )
+        TemplateEmail.objects.filter(codice=CodiceTemplateEmail.DELEGA_CREATA).update(
+            corpo_html="<p>&nbsp;</p>", corpo_testo="Corpo testuale"
+        )
+
+        invia_email_template(
+            codice_template=CodiceTemplateEmail.DELEGA_CREATA,
+            destinatari=["mario@campania.agesci.it"],
+            contesto={"ruolo": "Capogruppo", "delegato": "Mario Rossi"},
+        )
+
+        assert mail.outbox[0].alternatives == []
+
+
+class TestPlaceholderObbligatori:
+    """Regola generale: senza i placeholder di `PLACEHOLDER_OBBLIGATORI`
+    l'email non serve al suo scopo e l'azione non procede."""
+
+    VOTO = CodiceTemplateEmail.CODICE_VOTO
+
+    def test_template_predefinito_va_bene(self):
+        assert problemi_template(self.VOTO) == []
+
+    def test_corpi_vuoti_usano_il_predefinito(self):
+        assert problemi_corpi(self.VOTO, "", "") == []
+
+    def test_manca_nel_testo(self):
+        assert problemi_corpi(self.VOTO, "Ciao {{ nome }}", "") == [
+            "il testo dell'email non contiene {{ codice }}"
+        ]
+
+    def test_manca_nell_html(self):
+        assert problemi_corpi(self.VOTO, "Codice: {{codice}}", "<p>Ciao</p>") == [
+            "la versione HTML dell'email non contiene {{ codice }}"
+        ]
+
+    def test_html_vuoto_non_conta(self):
+        assert problemi_corpi(self.VOTO, "Codice: {{ codice }}", "<p>&nbsp;</p>") == []
+
+    def test_template_senza_obbligatori(self):
+        assert problemi_corpi(CodiceTemplateEmail.DELEGA_CREATA, "Ciao", "<p>Ciao</p>") == []
+
+    def test_dal_database(self):
+        TemplateEmail.objects.filter(codice=self.VOTO).update(corpo_html="<p>Solo firma</p>")
+        assert problemi_template(self.VOTO) == [
+            "la versione HTML dell'email non contiene {{ codice }}"
+        ]
+
+    def test_il_form_non_salva(self):
+        template = TemplateEmail.objects.get(codice=self.VOTO)
+        form = TemplateEmailForm(
+            data={"oggetto": "Codice", "corpo_testo": "Ciao {{ nome }}", "corpo_html": ""},
+            instance=template,
+        )
+        assert not form.is_valid()
+        assert "{{ codice }}" in str(form.non_field_errors())
+
+    def test_il_form_salva_con_il_codice(self):
+        template = TemplateEmail.objects.get(codice=self.VOTO)
+        form = TemplateEmailForm(
+            data={
+                "oggetto": "Codice",
+                "corpo_testo": "Codice: {{ codice }}",
+                "corpo_html": "<p>Codice: <strong>{{ codice }}</strong></p>",
+            },
+            instance=template,
+        )
+        assert form.is_valid(), form.errors

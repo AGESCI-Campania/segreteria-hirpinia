@@ -30,7 +30,7 @@ from apps.accounts.models import Utente
 from apps.assemblee import prova
 from apps.assemblee.models import AventeDiritto, ModalitaVoto, Seduta
 from apps.assemblee.permessi import puo_operare
-from apps.core.invio_email import invia_email_template
+from apps.core.invio_email import invia_email_template, problemi_template
 from apps.core.models import CodiceTemplateEmail
 
 from .models import CodiceVoto
@@ -153,12 +153,34 @@ def contesto_email(seduta: Seduta, avente: AventeDiritto, codice: str) -> dict[s
     }
 
 
+def problemi_template_email() -> list[str]:
+    """Cosa manca al template dell'email del codice di voto perché il codice
+    arrivi (placeholder obbligatori, `apps/core/invio_email.py::
+    problemi_template()`). Assemblea di Zona del 22/11/2026: con un template
+    senza codice molti hanno dovuto farselo rimandare."""
+    return problemi_template(CodiceTemplateEmail.CODICE_VOTO)
+
+
+def verifica_template_email() -> None:
+    """Rifiuta presenze e invii dei codici finché il template dell'email del
+    codice di voto non contiene il codice: chi viene registrato riceverebbe
+    un'email senza codice."""
+    problemi = problemi_template_email()
+    if problemi:
+        raise ValidationError(
+            "Non si possono registrare presenze né inviare codici di voto: "
+            + "; ".join(problemi)
+            + ". Correggi il template in Impostazioni › Template email."
+        )
+
+
 def invia(seduta: Seduta, avente: AventeDiritto, utente: Utente) -> EsitoInvio:
     """Emette un nuovo codice e lo manda all'email dell'avente. Se l'invio
     fallisce il codice appena emesso si revoca: un codice che nessuno ha
     ricevuto non deve restare valido."""
     if not avente.email:
         return EsitoInvio.SENZA_EMAIL
+    verifica_template_email()
     codice = emetti(seduta, avente, utente)
     try:
         invia_email_template(

@@ -83,6 +83,12 @@ def registra_presenza(seduta: Seduta, avente: AventeDiritto, utente: Utente) -> 
     _verifica_operatore(utente, seduta)
     _verifica_aperta(seduta)
     _avente_della_seduta(seduta, avente)
+    if seduta.assemblea.voto_catello:
+        # Con il voto di Catello la presenza fa partire l'email del codice:
+        # niente presenze finché quell'email non contiene il codice.
+        from apps.voto.codici import verifica_template_email
+
+        verifica_template_email()
     appello = appello_attivo(seduta)
     assert appello is not None
     _, creata = Presenza.objects.get_or_create(

@@ -3,6 +3,7 @@ import re
 from django import forms
 from django.conf import settings
 
+from .invio_email import problemi_corpi
 from .models import ImpostazioniPiattaforma, TemplateEmail
 from .template_email import VARIABILE_PREFISSO_OGGETTO
 
@@ -57,6 +58,19 @@ class TemplateEmailForm(forms.ModelForm):
                 f"nella firma)."
             )
         return oggetto
+
+    def clean(self):
+        dati = super().clean()
+        problemi = problemi_corpi(
+            self.instance.codice, dati.get("corpo_testo", ""), dati.get("corpo_html", "")
+        )
+        if problemi:
+            raise forms.ValidationError(
+                "Senza questi segnaposto l'email non serve al suo scopo: "
+                + "; ".join(problemi)
+                + "."
+            )
+        return dati
 
 
 class CaricaImmagineTemplateEmailForm(forms.Form):

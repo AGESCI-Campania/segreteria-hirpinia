@@ -25,6 +25,16 @@
     </div>
   {% endif %}
 
+  {% if problemi_template_codice %}
+    <div class="alert theme-danger mb-5" role="alert">
+      <div>
+        <strong>Le presenze sono bloccate</strong>: chi viene registrato riceverebbe un'email senza il codice di voto.
+        <ul class="mb-0">{% for problema in problemi_template_codice %}<li>{{ problema|capfirst }}.</li>{% endfor %}</ul>
+        Correggi il template «Assemblea — codice di voto» in Impostazioni › Template email.
+      </div>
+    </div>
+  {% endif %}
+
   {% if not seduta.aperta %}
     <div class="alert theme-info" role="note"><p class="mb-0">La seduta non è aperta: le presenze sono in sola lettura.</p></div>
   {% endif %}

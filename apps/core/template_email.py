@@ -98,6 +98,16 @@ def _contesto_esempio_invito_attivazione() -> dict[str, str]:
     }
 
 
+# Placeholder senza i quali l'email non serve al suo scopo (regola generale,
+# vedi CLAUDE.md, «Email»): l'azione che la invia non procede se il template
+# configurato non li contiene, nel testo e, se c'è, nell'HTML. Il controllo è
+# `apps/core/invio_email.py::problemi_template()`; ogni azione lo chiama prima
+# di fare qualcosa che non si può più disfare senza l'email.
+PLACEHOLDER_OBBLIGATORI: dict[str, list[str]] = {
+    CodiceTemplateEmail.CODICE_VOTO: ["codice"],
+}
+
+
 _CONTESTO_ESEMPIO_STATICO: dict[str, dict[str, str]] = {
     CodiceTemplateEmail.CODICE_VOTO: {
         "nome": "Mario Rossi",
@@ -220,6 +230,12 @@ def contesto_esempio(codice: str) -> dict[str, str]:
     elif codice == CodiceTemplateEmail.NOTA_SPESE_REPORT_GESTORI:
         contesto["link"] = f"{settings.SITE_URL}{reverse('note_spese:nota_verifica_lista')}"
     return contesto
+
+
+def placeholder_usati(testo: str) -> set[str]:
+    """Nomi dei placeholder `{{ variabile }}` presenti in `testo`, riconosciuti
+    con la stessa regola di `sostituisci_placeholder()`."""
+    return set(_RE_PLACEHOLDER.findall(testo))
 
 
 def sostituisci_placeholder(testo: str, contesto: dict[str, str]) -> str:

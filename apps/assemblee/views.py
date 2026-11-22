@@ -1341,9 +1341,10 @@ class PresenzeView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
 def _stato_codici(seduta: Seduta) -> dict:
     """Chi ha già un codice di voto attivo, e come l'ha avuto (solo voto di Catello)."""
     if not seduta.assemblea.voto_catello:
-        return {"codici_email": set(), "codici_banco": set()}
+        return {"codici_email": set(), "codici_banco": set(), "problemi_template_codice": []}
     attivi = codici_voto.aventi_con_codice(seduta)
     return {
+        "problemi_template_codice": codici_voto.problemi_template_email(),
         "codici_email": {a for a, c in attivi.items() if c.inviato_per_email},
         "codici_banco": {a for a, c in attivi.items() if not c.inviato_per_email},
     }

@@ -10,19 +10,24 @@ sceglie mai il trasporto: `EMAIL_PROVIDER` resta l'unico selettore
 
 from __future__ import annotations
 
+import html
 import logging
+import re
 from collections.abc import Sequence
 
 import bleach
 from bleach.css_sanitizer import CSSSanitizer
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
+from django.utils.html import strip_tags
 
 from .email.override import HEADER_SOLO_MAILPIT
 from .models import CodiceTemplateEmail, ImpostazioniPiattaforma, TemplateEmail
 from .template_email import (
+    PLACEHOLDER_OBBLIGATORI,
     applica_prefisso_oggetto,
     contesto_con_variabili_globali,
+    placeholder_usati,
     sostituisci_placeholder,
 )
 
@@ -153,6 +158,51 @@ def sanifica_html(html: str) -> str:
     )
 
 
+_RE_IMMAGINE = re.compile(r"<img\b", re.IGNORECASE)
+
+
+def html_senza_contenuto(corpo_html: str) -> bool:
+    """Vero se l'HTML non mostra nulla: vuoto, solo spazi o tag senza testo
+    (per esempio il `<p>&nbsp;</p>` che l'editor lascia) e senza immagini.
+    Un HTML così non va inviato: i programmi di posta lo mostrerebbero al
+    posto del testo."""
+    if _RE_IMMAGINE.search(corpo_html):
+        return False
+    return not html.unescape(strip_tags(corpo_html)).replace("\xa0", " ").strip()
+
+
+def problemi_corpi(codice_template: str, corpo_testo: str, corpo_html: str) -> list[str]:
+    """Placeholder obbligatori (`PLACEHOLDER_OBBLIGATORI`) che mancano a un
+    template con questi corpi, come frasi da mostrare all'utente. Unica
+    regola, usata al salvataggio del template (`TemplateEmailForm`) e prima
+    delle azioni che inviano l'email (`problemi_template()`). Con i corpi
+    vuoti vale il testo predefinito, che li contiene (stessa condizione di
+    `invia_email_template()`); altrimenti devono stare nel testo e, se c'è,
+    nell'HTML: i programmi di posta mostrano l'HTML, il testo resta per chi
+    non lo legge."""
+    obbligatori = PLACEHOLDER_OBBLIGATORI.get(codice_template, [])
+    if not obbligatori or not (corpo_testo.strip() or corpo_html.strip()):
+        return []
+    parti = [("il testo", corpo_testo)]
+    if not html_senza_contenuto(corpo_html):
+        parti.append(("la versione HTML", corpo_html))
+    problemi = []
+    for parte, corpo in parti:
+        mancanti = [p for p in obbligatori if p not in placeholder_usati(corpo)]
+        if mancanti:
+            tag = ", ".join("{{ " + p + " }}" for p in mancanti)
+            problemi.append(f"{parte} dell'email non contiene {tag}")
+    return problemi
+
+
+def problemi_template(codice_template: str) -> list[str]:
+    """`problemi_corpi()` sul template configurato per `codice_template`."""
+    template = TemplateEmail.objects.filter(codice=codice_template).first()
+    if template is None:
+        return []
+    return problemi_corpi(codice_template, template.corpo_testo, template.corpo_html)
+
+
 def _contenuto_fallback(codice_template: str) -> tuple[str, str]:
     oggetto_default, percorso = _FALLBACK[codice_template]
     # .template.source legge la sorgente grezza del file, mai renderizzata
@@ -186,7 +236,13 @@ def comporre_contenuto(
             f"{corpo_testo_finale}\n\n"
             f"{sostituisci_placeholder(impostazioni.firma_testo, contesto_esteso)}"
         )
-    if impostazioni.firma_html.strip():
+    # La firma HTML si aggiunge solo a un corpo HTML: senza corpo, una versione
+    # HTML con la sola firma sarebbe quella mostrata dai programmi di posta, e
+    # il contenuto (per esempio il codice di voto) resterebbe nascosto nella
+    # versione testo. Successo all'assemblea di Zona del 22/11/2026.
+    if html_senza_contenuto(corpo_html_finale):
+        corpo_html_finale = ""
+    elif impostazioni.firma_html.strip():
         corpo_html_finale = (
             f"{corpo_html_finale}"
             f"{sostituisci_placeholder(impostazioni.firma_html, contesto_esteso)}"
@@ -205,7 +261,8 @@ def invia_email_template(
     etichette: Sequence[str] = (),
 ) -> None:
     """Sempre multipart: il corpo testo è sempre presente, l'HTML è
-    un'alternativa solo se il corpo o la firma configurano contenuto HTML. Se
+    un'alternativa solo se il corpo configura contenuto HTML (la firma HTML da
+    sola non basta, vedi `comporre_contenuto()`). Se
     il record manca o è vuoto usa il fallback hardcoded (mai bloccare un
     invio critico come l'attivazione account). `solo_mailpit`: il messaggio
     va sempre su Mailpit in produzione (assemblee di prova, D26), mai al
