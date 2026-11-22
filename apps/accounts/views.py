@@ -1,3 +1,5 @@
+import logging
+
 from allauth.usersessions.models import UserSession
 from axes.decorators import axes_dispatch
 from django.contrib import messages
@@ -34,6 +36,8 @@ from .permessi import puo_impersonare_qualcuno, ruoli_effettivi
 # perso la creazione (RUOLI_INVITO_DIRETTO) — "può solo delegare".
 RUOLI_CHE_INVITANO = frozenset({Ruolo.Tipo.ADMIN, Ruolo.Tipo.SEGRETERIA, Ruolo.Tipo.RDZ})
 RUOLI_INVITO_DIRETTO = frozenset({Ruolo.Tipo.ADMIN, Ruolo.Tipo.SEGRETERIA})
+
+logger = logging.getLogger(__name__)
 
 
 class AttesaView(TemplateView):
@@ -86,7 +90,18 @@ class RecuperoOtpView(FormView):
     success_url = reverse_lazy("accounts:recupero")
 
     def form_valid(self, form):
-        inviti_service.richiedi_recupero(form.cleaned_data["email"])
+        try:
+            inviti_service.richiedi_recupero(form.cleaned_data["email"])
+        except ValidationError:
+            # Stesso messaggio per ogni indirizzo (anti-enumerazione): il
+            # dettaglio è per la segreteria, non per chi chiede il recupero.
+            logger.error("Recupero OTP non disponibile: template dell'invito incompleto")
+            messages.error(
+                self.request,
+                "Il servizio non è momentaneamente disponibile: riprova più tardi o "
+                "contatta la segreteria di Zona.",
+            )
+            return super().form_valid(form)
         messages.info(
             self.request,
             "Se l'indirizzo è censito su Catello, riceverai a breve una nuova email "
@@ -116,11 +131,15 @@ class InvitoCreaView(BreadcrumbExtraMixin, RuoloRequiredMixin, FormView):
         ]
 
     def form_valid(self, form):
-        inviti_service.crea_invito(
-            email=form.cleaned_data["email"],
-            creato_da=self.request.user,
-            ruolo_proposto=form.cleaned_data["ruolo_proposto"],
-        )
+        try:
+            inviti_service.crea_invito(
+                email=form.cleaned_data["email"],
+                creato_da=self.request.user,
+                ruolo_proposto=form.cleaned_data["ruolo_proposto"],
+            )
+        except ValidationError as errore:
+            form.add_error(None, errore)
+            return self.form_invalid(form)
         messages.success(self.request, f"Invito inviato a {form.cleaned_data['email']}.")
         return super().form_valid(form)
 
@@ -193,13 +212,17 @@ class DelegaCreaView(RuoloRequiredMixin, FormView):
         return kwargs
 
     def form_valid(self, form):
-        deleghe_service.crea_delega(
-            delegante=self.request.user,
-            ruolo=form.cleaned_data["ruolo"],
-            email_delegato=form.cleaned_data["email_delegato"],
-            data_fine=form.cleaned_data["data_fine"],
-            note=form.cleaned_data.get("note", ""),
-        )
+        try:
+            deleghe_service.crea_delega(
+                delegante=self.request.user,
+                ruolo=form.cleaned_data["ruolo"],
+                email_delegato=form.cleaned_data["email_delegato"],
+                data_fine=form.cleaned_data["data_fine"],
+                note=form.cleaned_data.get("note", ""),
+            )
+        except ValidationError as errore:
+            form.add_error(None, errore)
+            return self.form_invalid(form)
         messages.success(self.request, "Delega creata.")
         return super().form_valid(form)
 

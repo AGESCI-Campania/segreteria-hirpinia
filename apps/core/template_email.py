@@ -99,12 +99,21 @@ def _contesto_esempio_invito_attivazione() -> dict[str, str]:
 
 
 # Placeholder senza i quali l'email non serve al suo scopo (regola generale,
-# vedi CLAUDE.md, «Email»): l'azione che la invia non procede se il template
-# configurato non li contiene, nel testo e, se c'è, nell'HTML. Il controllo è
-# `apps/core/invio_email.py::problemi_template()`; ogni azione lo chiama prima
-# di fare qualcosa che non si può più disfare senza l'email.
-PLACEHOLDER_OBBLIGATORI: dict[str, list[str]] = {
-    CodiceTemplateEmail.CODICE_VOTO: ["codice"],
+# vedi CLAUDE.md, «Email»; elenco deciso con Andrea il 22/11/2026). Ogni voce è
+# un gruppo di alternative: basta una per gruppo, nel testo e, se c'è,
+# nell'HTML (es. `elenco` nel testo, `elenco_html` nell'HTML). Il template non
+# si salva senza (`TemplateEmailForm`); le azioni che creano qualcosa che
+# senza l'email non serve (un codice, una nota rimandata indietro) chiamano
+# `apps/core/invio_email.py::verifica_template()` prima di scrivere. Le email
+# solo informative non hanno placeholder obbligatori.
+PLACEHOLDER_OBBLIGATORI: dict[str, list[tuple[str, ...]]] = {
+    CodiceTemplateEmail.INVITO_ATTIVAZIONE: [("codice",), ("link_attivazione",)],
+    CodiceTemplateEmail.CODICE_VOTO: [("codice",)],
+    CodiceTemplateEmail.NOTA_SPESE_RILIEVO: [("motivo",), ("link",)],
+    CodiceTemplateEmail.NOTA_SPESE_RESPINTA: [("causale",)],
+    CodiceTemplateEmail.NOTA_SPESE_PROMEMORIA: [("elenco", "elenco_html"), ("link",)],
+    CodiceTemplateEmail.NOTA_SPESE_REPORT_GESTORI: [("elenco", "elenco_html"), ("link",)],
+    CodiceTemplateEmail.NOMINA_ASSEMBLEA: [("link",)],
 }
 
 

@@ -3,6 +3,7 @@ bleach, sempre multipart quando è configurato un corpo HTML."""
 
 import pytest
 from django.core import mail
+from django.core.exceptions import ValidationError
 
 from apps.core.forms import TemplateEmailForm
 from apps.core.invio_email import (
@@ -11,6 +12,7 @@ from apps.core.invio_email import (
     problemi_corpi,
     problemi_template,
     sanifica_html,
+    verifica_template,
 )
 from apps.core.models import CodiceTemplateEmail, ImpostazioniPiattaforma, TemplateEmail
 
@@ -554,3 +556,37 @@ class TestPlaceholderObbligatori:
             instance=template,
         )
         assert form.is_valid(), form.errors
+
+
+class TestPlaceholderObbligatoriTuttiITemplate:
+    """Elenco deciso con Andrea il 22/11/2026 (PLACEHOLDER_OBBLIGATORI)."""
+
+    @pytest.mark.parametrize("codice", list(CodiceTemplateEmail))
+    def test_i_template_seminati_vanno_bene(self, codice):
+        assert problemi_template(codice) == []
+
+    @pytest.mark.parametrize("codice", list(CodiceTemplateEmail))
+    def test_i_testi_predefiniti_vanno_bene(self, codice):
+        from apps.core.invio_email import _contenuto_fallback
+
+        _, testo = _contenuto_fallback(codice)
+        assert problemi_corpi(codice, testo, "") == []
+
+    def test_alternative_elenco_e_elenco_html(self):
+        promemoria = CodiceTemplateEmail.NOTA_SPESE_PROMEMORIA
+        assert (
+            problemi_corpi(
+                promemoria, "{{ elenco }} {{ link }}", "<div>{{ elenco_html }}</div>{{ link }}"
+            )
+            == []
+        )
+        assert problemi_corpi(promemoria, "{{ link }}", "") == [
+            "il testo dell'email non contiene {{ elenco }} o {{ elenco_html }}"
+        ]
+
+    def test_verifica_template_nomina_il_template(self):
+        TemplateEmail.objects.filter(codice=CodiceTemplateEmail.NOTA_SPESE_RESPINTA).update(
+            corpo_testo="Respinta."
+        )
+        with pytest.raises(ValidationError, match="«Nota spese — respinta»"):
+            verifica_template(CodiceTemplateEmail.NOTA_SPESE_RESPINTA, cosa="Non si può")

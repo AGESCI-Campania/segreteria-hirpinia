@@ -47,6 +47,11 @@ def crea_delega(
     delegato = Utente.objects.filter(email__iexact=email_delegato).first()
     nuovo_delegato = delegato is None
     if nuovo_delegato:
+        from .inviti import verifica_template_invito
+
+        # Prima di creare account e delega: senza invito valido resterebbero
+        # un account e una delega che nessuno può attivare.
+        verifica_template_invito()
         delegato = Utente(
             email=email_delegato,
             username=email_delegato,

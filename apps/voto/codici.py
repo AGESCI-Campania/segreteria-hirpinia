@@ -30,7 +30,7 @@ from apps.accounts.models import Utente
 from apps.assemblee import prova
 from apps.assemblee.models import AventeDiritto, ModalitaVoto, Seduta
 from apps.assemblee.permessi import puo_operare
-from apps.core.invio_email import invia_email_template, problemi_template
+from apps.core.invio_email import invia_email_template, problemi_template, verifica_template
 from apps.core.models import CodiceTemplateEmail
 
 from .models import CodiceVoto
@@ -165,13 +165,10 @@ def verifica_template_email() -> None:
     """Rifiuta presenze e invii dei codici finché il template dell'email del
     codice di voto non contiene il codice: chi viene registrato riceverebbe
     un'email senza codice."""
-    problemi = problemi_template_email()
-    if problemi:
-        raise ValidationError(
-            "Non si possono registrare presenze né inviare codici di voto: "
-            + "; ".join(problemi)
-            + ". Correggi il template in Impostazioni › Template email."
-        )
+    verifica_template(
+        CodiceTemplateEmail.CODICE_VOTO,
+        cosa="Non si possono registrare presenze né inviare codici di voto",
+    )
 
 
 def invia(seduta: Seduta, avente: AventeDiritto, utente: Utente) -> EsitoInvio:

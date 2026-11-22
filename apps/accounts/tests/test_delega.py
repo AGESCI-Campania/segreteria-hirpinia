@@ -143,3 +143,35 @@ class TestRevoca:
         assert conteggio == 2
         for d in delegati:
             assert Delega.objects.get(delegato=d).attiva is False
+
+
+class TestDelegaConTemplateInvitoIncompleto:
+    def test_nessun_account_ne_delega(self, delegante, ruolo_delegante):
+        from apps.core.models import CodiceTemplateEmail, TemplateEmail
+
+        TemplateEmail.objects.filter(codice=CodiceTemplateEmail.INVITO_ATTIVAZIONE).update(
+            corpo_testo="Il tuo codice: {{ codice }}"
+        )
+        with pytest.raises(ValidationError, match="link_attivazione"):
+            crea_delega(
+                delegante=delegante,
+                ruolo=ruolo_delegante,
+                email_delegato="nuovo@example.com",
+                data_fine=DOMANI,
+            )
+        assert not Utente.objects.filter(email="nuovo@example.com").exists()
+        assert not Delega.objects.exists()
+
+    def test_verso_utente_esistente_non_serve_l_invito(self, delegante, ruolo_delegante):
+        from apps.core.models import CodiceTemplateEmail, TemplateEmail
+
+        TemplateEmail.objects.filter(codice=CodiceTemplateEmail.INVITO_ATTIVAZIONE).update(
+            corpo_testo="Vuoto"
+        )
+        delegato = _persona("delegato@campania.agesci.it")
+        assert crea_delega(
+            delegante=delegante,
+            ruolo=ruolo_delegante,
+            email_delegato=delegato.email,
+            data_fine=DOMANI,
+        )

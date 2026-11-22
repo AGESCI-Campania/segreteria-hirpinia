@@ -125,7 +125,8 @@ Per l'assemblea primaverile. Piano in `docs/plan_voto.md`, decisioni in D-71.
 - [x] Email del codice di voto: senza corpo HTML niente versione HTML (prima partiva con la sola firma e il codice restava nascosto); presenze, invio dei codici e salvataggio del template bloccati se il template non contiene `{{ codice }}`
 - [x] Correzione del tipo di una votazione già fatta (es. Mozione → Bilancio) fra tipi con le stesse regole
 - [x] «Concludi assemblea» da interfaccia (e «Riapri», per tutti i gestori)
-- [ ] Placeholder obbligatori in tutti i template email (`PLACEHOLDER_OBBLIGATORI`): verificare i template esistenti e le azioni che li inviano, oggi c'è solo il codice di voto
+- [x] Placeholder obbligatori in tutti i template email (`PLACEHOLDER_OBBLIGATORI`): invito, codice di voto, rilievo e respingimento bloccano l'azione; promemoria, report e nomina solo il salvataggio del template
+- [ ] Firme nel verbale: il segretario va sotto i presidenti, non in una terza colonna schiacciata
 
 ## Gap noti (scoperti in verifica, non da una milestone)
 - [ ] `apps/core/email/microsoft.py` (provider `microsoft_graph`) non è implementato:

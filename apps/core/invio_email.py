@@ -17,6 +17,7 @@ from collections.abc import Sequence
 
 import bleach
 from bleach.css_sanitizer import CSSSanitizer
+from django.core.exceptions import ValidationError
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 from django.utils.html import strip_tags
@@ -188,9 +189,10 @@ def problemi_corpi(codice_template: str, corpo_testo: str, corpo_html: str) -> l
         parti.append(("la versione HTML", corpo_html))
     problemi = []
     for parte, corpo in parti:
-        mancanti = [p for p in obbligatori if p not in placeholder_usati(corpo)]
+        usati = placeholder_usati(corpo)
+        mancanti = [gruppo for gruppo in obbligatori if not usati.intersection(gruppo)]
         if mancanti:
-            tag = ", ".join("{{ " + p + " }}" for p in mancanti)
+            tag = ", ".join(" o ".join("{{ " + p + " }}" for p in gruppo) for gruppo in mancanti)
             problemi.append(f"{parte} dell'email non contiene {tag}")
     return problemi
 
@@ -201,6 +203,19 @@ def problemi_template(codice_template: str) -> list[str]:
     if template is None:
         return []
     return problemi_corpi(codice_template, template.corpo_testo, template.corpo_html)
+
+
+def verifica_template(codice_template: str, *, cosa: str) -> None:
+    """Rifiuta l'azione descritta da `cosa` («Non si può …») se il template
+    non contiene i placeholder obbligatori: da chiamare prima di scrivere,
+    nelle azioni che senza l'email lascerebbero qualcosa di inutilizzabile."""
+    problemi = problemi_template(codice_template)
+    if problemi:
+        nome = CodiceTemplateEmail(codice_template).label
+        raise ValidationError(
+            f"{cosa}: {'; '.join(problemi)}. Correggi il template «{nome}» in "
+            "Impostazioni › Template email."
+        )
 
 
 def _contenuto_fallback(codice_template: str) -> tuple[str, str]:

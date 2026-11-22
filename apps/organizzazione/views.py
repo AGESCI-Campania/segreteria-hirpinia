@@ -229,10 +229,14 @@ class AllowlistInvitoMassivoView(RuoloRequiredMixin, View):
             messages.warning(request, "Nessun destinatario selezionato o ancora invitabile.")
             return redirect(reverse("organizzazione:allowlist_lista"))
 
-        risultati = invia_inviti_multipli(
-            [{"email": c.voce.email, "gruppo": c.gruppo} for c in da_invitare],
-            creato_da=request.user,
-        )
+        try:
+            risultati = invia_inviti_multipli(
+                [{"email": c.voce.email, "gruppo": c.gruppo} for c in da_invitare],
+                creato_da=request.user,
+            )
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+            return redirect(reverse("organizzazione:allowlist_lista"))
         successi = sum(1 for _, esito, _ in risultati if esito)
         falliti = [email for email, esito, _ in risultati if not esito]
         if successi:

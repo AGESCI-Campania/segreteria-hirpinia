@@ -22,7 +22,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.models import Utente
-from apps.core.invio_email import invia_email_template
+from apps.core.invio_email import invia_email_template, verifica_template
 from apps.core.models import CodiceTemplateEmail
 
 from .allegati import valida_allegati_obbligatori
@@ -139,6 +139,8 @@ def richiedi_integrazione(
     _richiedi_permesso_gestione(utente)
     if riga.nota_id != nota.pk:
         raise ValidationError("La riga indicata non appartiene a questa nota.")
+    # Senza motivo e link il capo non saprebbe cosa correggere né dove.
+    verifica_template(CodiceTemplateEmail.NOTA_SPESE_RILIEVO, cosa="Non si può inviare il rilievo")
     nota.rilievo_riga = riga
     nota.rilievo_nota = testo
     nota.rilievo_il = timezone.now()
@@ -158,6 +160,8 @@ def richiedi_conferma(nota: NotaSpese, utente: Utente, riga: RigaSpesa, testo: s
     _richiedi_permesso_gestione(utente)
     if riga.nota_id != nota.pk:
         raise ValidationError("La riga indicata non appartiene a questa nota.")
+    # Senza motivo e link il capo non saprebbe cosa correggere né dove.
+    verifica_template(CodiceTemplateEmail.NOTA_SPESE_RILIEVO, cosa="Non si può inviare il rilievo")
     nota.rilievo_riga = riga
     nota.rilievo_nota = testo
     nota.rilievo_il = timezone.now()
@@ -333,6 +337,8 @@ def respingi(nota: NotaSpese, utente: Utente, causale: str) -> NotaSpese:
     _richiedi_permesso_gestione(utente)
     if not causale.strip():
         raise ValidationError("Un respingimento richiede sempre una causale.")
+    # La causale deve arrivare anche al capo (D-24), non solo restare sulla nota.
+    verifica_template(CodiceTemplateEmail.NOTA_SPESE_RESPINTA, cosa="Non si può respingere la nota")
     nota.causale_respinta = causale
     nota.respingi()
     nota.save()

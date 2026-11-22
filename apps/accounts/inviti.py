@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import urlencode
 
-from apps.core.invio_email import invia_email_template
+from apps.core.invio_email import invia_email_template, verifica_template
 from apps.core.models import CodiceTemplateEmail
 from apps.organizzazione.models import AllowlistGruppo, Gruppo, anno_scout_corrente
 
@@ -43,7 +43,10 @@ def crea_invito(
     """Un nuovo invito per la stessa email revoca il precedente (D-20). La
     scrittura su database è in una propria transazione, separata dall'invio
     dell'email: un fallimento dell'invio (per esempio nel lotto massivo) non
-    deve far perdere l'invito già creato, che resta riemettibile."""
+    deve far perdere l'invito già creato, che resta riemettibile. Senza
+    codice e link nel template non si crea nulla: l'invito sarebbe
+    inutilizzabile (placeholder obbligatori, CLAUDE.md «Email»)."""
+    verifica_template_invito()
     with transaction.atomic():
         InvitoAttivazione.objects.filter(email__iexact=email, stato=StatoInvito.INVIATO).update(
             stato=StatoInvito.REVOCATO
@@ -62,6 +65,10 @@ def crea_invito(
 
     _invia_email_invito(invito, codice, solo_mailpit=solo_mailpit, etichette=etichette)
     return invito
+
+
+def verifica_template_invito() -> None:
+    verifica_template(CodiceTemplateEmail.INVITO_ATTIVAZIONE, cosa="Non si possono inviare inviti")
 
 
 def _invia_email_invito(
@@ -112,6 +119,7 @@ def invia_inviti_multipli(
     """Invio massivo (D-20): un fallimento su un destinatario non deve
     interrompere gli altri. Ogni voce è un dict con almeno 'email' e
     opzionalmente 'gruppo'/'ruolo_proposto'. Ritorna (email, esito, errore)."""
+    verifica_template_invito()  # una volta per tutto il lotto, prima del primo invito
     risultati: list[tuple[str, bool, str | None]] = []
     for voce in voci:
         try:
@@ -242,7 +250,10 @@ def richiedi_recupero(email: str) -> None:
     """Recupero autonomo di un OTP scaduto (D-25): risposta sempre identica
     verso l'utente (anti-enumerazione), gestita dalla view chiamante. Qui la
     logica interna: emette un nuovo invito solo se ne esiste uno recuperabile
-    e il gruppo/ruolo associato è ancora attivo."""
+    e il gruppo/ruolo associato è ancora attivo. Il template si verifica
+    prima di cercare l'invito: così l'errore è lo stesso per ogni indirizzo e
+    non rivela quali sono censiti."""
+    verifica_template_invito()
     invito = _ultimo_invito(email, [StatoInvito.INVIATO, StatoInvito.SCADUTO])
     if invito is None:
         return

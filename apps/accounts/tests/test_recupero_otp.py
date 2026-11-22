@@ -72,3 +72,34 @@ class TestRichiediRecupero:
         richiedi_recupero("a@campania.agesci.it")
 
         assert len(mail.outbox) == 0
+
+
+class TestTemplateInvitoIncompleto:
+    """Placeholder obbligatori: senza codice nell'email l'invito non serve."""
+
+    @pytest.fixture
+    def senza_codice(self):
+        from apps.core.models import CodiceTemplateEmail, TemplateEmail
+
+        TemplateEmail.objects.filter(codice=CodiceTemplateEmail.INVITO_ATTIVAZIONE).update(
+            corpo_testo="Attiva qui: {{ link_attivazione }}"
+        )
+
+    def test_nessun_invito_creato(self, gruppo, senza_codice):
+        from django.core.exceptions import ValidationError
+
+        with pytest.raises(ValidationError, match=r"\{\{ codice \}\}"):
+            crea_invito(email="a@campania.agesci.it", creato_da=None, gruppo=gruppo)
+        assert not InvitoAttivazione.objects.exists()
+        assert mail.outbox == []
+
+    def test_recupero_stesso_messaggio_per_ogni_indirizzo(self, client, gruppo, senza_codice):
+        InvitoAttivazione.objects.create(email="censito@campania.agesci.it", gruppo=gruppo)
+        risposte = [
+            client.post("/accounts/recupero/", {"email": email}, follow=True)
+            .content.decode()
+            .count("non è momentaneamente disponibile")
+            for email in ("censito@campania.agesci.it", "mai-censito@campania.agesci.it")
+        ]
+        assert risposte == [1, 1]
+        assert mail.outbox == []

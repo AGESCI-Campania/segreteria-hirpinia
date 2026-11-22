@@ -290,14 +290,17 @@ nelle fixture di test.
 - **Placeholder obbligatori** (regola generale, dopo l'Assemblea di Zona del 22/11/2026):
   se un'email serve a un'azione solo grazie a un dato (il codice di voto, il link di
   attivazione…), quel placeholder va in `apps/core/template_email.py::
-  PLACEHOLDER_OBBLIGATORI`. La regola è una sola, `apps/core/invio_email.py::
-  problemi_corpi()`: il placeholder deve stare nel testo e, se c'è, nell'HTML. La usano
-  il salvataggio del template (`TemplateEmailForm.clean()`) e, tramite
-  `problemi_template()`, **l'azione che invia l'email, che non procede** finché il
-  template non è corretto (es. `apps/voto/codici.py::verifica_template_email()`, chiamata
-  da `registra_presenza()` e `codici.invia()`). Ogni nuovo template email deve dichiarare
-  i suoi placeholder obbligatori, e ogni nuova azione che lo invia deve chiamare il
-  controllo prima di scrivere qualcosa. Supera, solo per questi placeholder, la decisione
+  PLACEHOLDER_OBBLIGATORI` (gruppi di alternative: `elenco` o `elenco_html`). La regola è
+  una sola, `apps/core/invio_email.py::problemi_corpi()`: un placeholder per gruppo nel
+  testo e, se c'è, nell'HTML. Il salvataggio del template (`TemplateEmailForm.clean()`) la
+  applica sempre; **l'azione che invia l'email non procede** con
+  `verifica_template()`, chiamata prima di scrivere, solo dove senza l'email resterebbe
+  qualcosa di inutilizzabile: invito (`inviti.verifica_template_invito()`, anche nel
+  recupero, prima di cercare l'invito per non rivelare gli indirizzi censiti, e nella
+  delega a un nuovo account), codice di voto (`registra_presenza()`, `codici.invia()`),
+  rilievo e respingimento delle note spese. Promemoria, report ai gestori e nomina si
+  proteggono solo al salvataggio; le email solo informative non hanno obbligatori. Ogni
+  nuovo template email deve dichiarare i suoi placeholder obbligatori, decisi con Andrea. Supera, solo per questi placeholder, la decisione
   precedente «un placeholder mancante non blocca mai»: resta vera per tutti gli altri, e
   `invia_email_template()`/`sostituisci_placeholder()` continuano a non bloccare mai
   l'invio (un placeholder sconosciuto diventa vuoto, il template vuoto usa il testo

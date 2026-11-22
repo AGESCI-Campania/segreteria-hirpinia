@@ -179,3 +179,43 @@ class TestNotificaLiquidazione:
 
         assert len(mail.outbox) == 1
         assert str(nota.numero) in mail.outbox[0].body
+
+
+class TestTemplateIncompleto:
+    """Placeholder obbligatori: senza motivo o causale il capo non saprebbe
+    perché la nota torna indietro; la transizione non avviene."""
+
+    def test_rilievo_bloccato(self, gruppo, capo, evento, categoria, capo_utente, segreteria):
+        from django.core.exceptions import ValidationError
+
+        from apps.core.models import CodiceTemplateEmail, TemplateEmail
+
+        TemplateEmail.objects.filter(codice=CodiceTemplateEmail.NOTA_SPESE_RILIEVO).update(
+            corpo_testo="Nota {{ numero }}: vedi {{ link }}", corpo_html=""
+        )
+        nota = prendi_in_carico(
+            invia_nota(_nota_con_riga(gruppo, capo, evento, categoria), capo_utente), segreteria
+        )
+        stato = nota.stato
+        mail.outbox.clear()
+        with pytest.raises(ValidationError, match="motivo"):
+            richiedi_integrazione(nota, segreteria, nota.righe.get(), "Manca lo scontrino")
+        nota.refresh_from_db()
+        assert nota.stato == stato and mail.outbox == []
+
+    def test_respingimento_bloccato(self, gruppo, capo, evento, categoria, capo_utente, segreteria):
+        from django.core.exceptions import ValidationError
+
+        from apps.core.models import CodiceTemplateEmail, TemplateEmail
+
+        TemplateEmail.objects.filter(codice=CodiceTemplateEmail.NOTA_SPESE_RESPINTA).update(
+            corpo_testo="Nota {{ numero }} respinta.", corpo_html=""
+        )
+        nota = prendi_in_carico(
+            invia_nota(_nota_con_riga(gruppo, capo, evento, categoria), capo_utente), segreteria
+        )
+        stato = nota.stato
+        with pytest.raises(ValidationError, match="causale"):
+            respingi(nota, segreteria, "Documentazione insufficiente")
+        nota.refresh_from_db()
+        assert nota.stato == stato
