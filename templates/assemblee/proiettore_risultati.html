@@ -16,8 +16,10 @@ assemblee/proiettore.html.
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
   <link href="{% static 'agesci_theme/css/agesci.min.css' %}" rel="stylesheet">
 </head>
+{# Da 1024px in su il tema blocca lo scroll del body: scorre .ag-scroll-area, come in agesci_theme/base.html (molti candidati non entrano in una schermata). #}
 <body class="d-flex flex-column min-vh-100">
-  <main class="container-fluid px-7 py-7 flex-grow-1">
+  <div class="ag-scroll-area flex-grow-1">
+  <main class="container-fluid px-7 py-7">
     <div class="d-flex align-items-center justify-content-center gap-5 mb-7">
       <img src="{% static 'pdf/img/logo_zona.png' %}" alt="AGESCI Zona Hirpinia" width="96" height="96">
       <div>
@@ -64,5 +66,6 @@ assemblee/proiettore.html.
       {% endfor %}
     </div>
   </main>
+  </div>
 </body>
 </html>
