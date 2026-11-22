@@ -72,6 +72,14 @@ Il **punto all'ordine del giorno** di una votazione si cambia dalla sua pagina i
 qualsiasi momento, anche dopo la chiusura e ad assemblea conclusa: scegli il punto e
 premi **Collega**. Serve al verbale, non cambia voti né maggioranze.
 
+Allo stesso modo si corregge il **tipo** di una votazione scelto per errore, per esempio
+un bilancio aperto come mozione: scegli il tipo giusto e premi **Correggi**. Si può solo
+fra mozione, raccomandazione, bilancio, modifica del regolamento e altra deliberazione,
+che hanno le stesse regole (alzata di mano, maggioranza dei presenti): voti ed esito non
+cambiano, cambia il nome nelle pagine e nel verbale. Per gli altri tipi la maggioranza o
+le voci sono diverse e il tipo non si corregge: controllalo prima di registrare i
+risultati, finché la votazione si può ancora annullare.
+
 ## Proiettare i risultati
 
 Per mostrare in sala i risultati, nell'elenco delle **Votazioni** spunta fino a tre

@@ -368,6 +368,10 @@ deve violare:
   (`odg.scrivi_discussione()`), ma **non** fanno operazioni di voto
   (`puo_operare()` resta a gestori e comitato elettorale) né la variazione del
   rappresentante legale (dati anagrafici dell'RdZ, solo gestori).
+- **Il tipo di una votazione si corregge solo con `votazioni.correggi_tipo()`**, fra
+  `TIPI_CORREGGIBILI` (le deliberazioni dell'art. 14: stesse voci, canale e soglia, un
+  test lo verifica). Come `collega_punto()`, anche a votazione chiusa e ad assemblea
+  conclusa. Non allargare il gruppo a tipi con regole diverse: cambierebbe l'esito.
 - **Una seduta di un'assemblea vera si apre solo dal giorno della convocazione** (conta
   il giorno, non l'ora; quelle di prova sempre): la regola è solo in
   `sedute.puo_aprire_oggi()`, controllata da `apri_seduta()`. Nei test la data di

@@ -1923,6 +1923,11 @@ class VotazioneView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
         in_app = assemblea.voto_catello and urna_voto.votazioni_in_app(votazione)
         return {
             "puo_collegare_punto": voto.puo_collegare_punto(request.user, votazione),
+            "tipi_correggibili": (
+                voto.tipi_correggibili(votazione)
+                if voto.puo_collegare_punto(request.user, votazione)
+                else []
+            ),
             "punti_odg": assemblea.punti_odg.order_by("ordine"),
             "urna": {
                 "prevista": in_app,
@@ -2001,8 +2006,8 @@ class VotazioneView(AccedeAssembleeMixin, BreadcrumbExtraMixin, View):
 
 
 class VotazioneAzioneView(LoginRequiredMixin, View):
-    """Ballottaggio, annullamento e punto dell'OdG: i permessi li controlla il
-    service layer."""
+    """Ballottaggio, annullamento, punto dell'OdG e correzione del tipo: i
+    permessi li controlla il service layer."""
 
     def post(self, request, pk, seduta_pk, votazione_pk):
         votazione = _votazione_visibile(request, pk, seduta_pk, votazione_pk)
@@ -2037,6 +2042,10 @@ class VotazioneAzioneView(LoginRequiredMixin, View):
                     request,
                     f"Collegata al punto {punto}." if punto else "Nessun punto collegato.",
                 )
+                return redirect(reverse("assemblee:votazione", args=[pk, seduta_pk, votazione_pk]))
+            if azione == "tipo":
+                voto.correggi_tipo(votazione, request.user, request.POST.get("tipo", ""))
+                messages.success(request, f"Tipo corretto: {votazione.get_tipo_display()}.")
                 return redirect(reverse("assemblee:votazione", args=[pk, seduta_pk, votazione_pk]))
             if azione == "annulla" and request.POST.get("conferma") == "1":
                 voto.annulla_votazione(votazione, request.user)

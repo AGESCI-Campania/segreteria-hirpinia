@@ -25,6 +25,12 @@ seduta) o dal collegamento in cima alla pagina delle presenze. Con il voto in ap
 codice di voto parte subito per email; in alternativa **Rigenera e mostra** lo mostra a
 schermo, con l'etichetta da stampare. I dettagli sono nel manuale per il banco e i seggi.
 
+Se l'email del codice di voto (Impostazioni › Template email, «Assemblea — codice di
+voto») non contiene `{{ codice }}`, nel testo o nella versione HTML, la pagina delle
+presenze lo segnala in rosso e non registra nessuno, finché il template non è corretto:
+chi viene registrato riceverebbe un'email senza codice. Controlla il template prima
+dell'assemblea, con un'assemblea di prova.
+
 ![Presenze](img/presenze.jpg)
 
 ## Deleghe degli AE

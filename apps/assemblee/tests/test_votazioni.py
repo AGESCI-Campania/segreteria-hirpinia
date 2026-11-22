@@ -467,6 +467,79 @@ class TestPuntoOdG:
             votazioni.collega_punto(votazione, capo, punto)
 
 
+class TestCorreggiTipo:
+    """Assemblea di Zona del 22/11/2026: un bilancio aperto come mozione."""
+
+    def test_i_tipi_correggibili_hanno_le_stesse_regole(self, seduta):
+        """Se uno di questi tipi avesse regole diverse, correggerlo cambierebbe
+        l'esito: il gruppo va rivisto."""
+        regole = {
+            (
+                tuple(votazioni.canali(v)),
+                votazioni.voci(v, votazioni.canali(v)[0]),
+                votazioni.soglia(v),
+            )
+            for v in (_votazione(seduta, tipo) for tipo in votazioni.TIPI_CORREGGIBILI)
+        }
+        assert regole == {
+            (
+                (CanaleVoto.PALESE,),
+                ("favorevoli", "contrari", "astenuti"),
+                ("presenti", PRESENTI, PRESENTI // 2 + 1),
+            )
+        }
+
+    def test_mozione_diventa_bilancio_a_votazione_chiusa(self, client, seduta, segreteria):
+        v = votazioni.apri_votazione(
+            seduta, segreteria, tipo=TipoVotazione.MOZIONE, oggetto="Bilancio consuntivo"
+        )
+        _palese(v, segreteria, 2, 1, 0)
+        frase = votazioni.frase_esito(v)
+        client.force_login(segreteria)
+        base = f"/assemblee/{seduta.assemblea_id}/sedute/{seduta.pk}/votazioni/{v.pk}/"
+        assert 'name="tipo"' in client.get(base).content.decode()
+        client.post(base + "azione/", {"azione": "tipo", "tipo": TipoVotazione.BILANCIO})
+        v.refresh_from_db()
+        assert v.tipo == TipoVotazione.BILANCIO
+        assert votazioni.frase_esito(v) == frase
+
+    def test_anche_ad_assemblea_conclusa(self, seduta, segreteria):
+        v = _votazione(seduta, TipoVotazione.MOZIONE)
+        Assemblea.objects.filter(pk=seduta.assemblea_id).update(
+            conclusa_il=datetime.datetime(2026, 11, 22, 18, tzinfo=datetime.UTC)
+        )
+        v = Votazione.objects.get(pk=v.pk)
+        votazioni.correggi_tipo(v, segreteria, TipoVotazione.BILANCIO)
+        v.refresh_from_db()
+        assert v.tipo == TipoVotazione.BILANCIO
+
+    @pytest.mark.parametrize(
+        ("da", "a"),
+        [
+            (TipoVotazione.MOZIONE, TipoVotazione.MOZIONE_ORDINE),
+            (TipoVotazione.MOZIONE, TipoVotazione.ELEZIONE),
+            (TipoVotazione.REVOCA, TipoVotazione.MOZIONE),
+            (TipoVotazione.MOZIONE, "INVENTATO"),
+        ],
+    )
+    def test_non_fra_tipi_con_regole_diverse(self, seduta, segreteria, da, a):
+        v = _votazione(seduta, da)
+        with pytest.raises(ValidationError):
+            votazioni.correggi_tipo(v, segreteria, a)
+        v.refresh_from_db()
+        assert v.tipo == da
+
+    def test_nessuna_scelta_per_gli_altri_tipi(self, seduta):
+        assert votazioni.tipi_correggibili(_votazione(seduta, TipoVotazione.ELEZIONE)) == []
+        assert len(votazioni.tipi_correggibili(_votazione(seduta, TipoVotazione.BILANCIO))) == 5
+
+    def test_solo_chi_opera_o_compila_il_verbale(self, seduta):
+        v = _votazione(seduta, TipoVotazione.MOZIONE)
+        capo = Utente.objects.create(username="capo-tipo", email="ct@example.it")
+        with pytest.raises(PermissionDenied):
+            votazioni.correggi_tipo(v, capo, TipoVotazione.BILANCIO)
+
+
 class TestPalese:
     def test_approvata_palese(self, client, seduta, segreteria):
         v = votazioni.apri_votazione(

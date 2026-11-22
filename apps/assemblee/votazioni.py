@@ -515,6 +515,50 @@ def collega_punto(votazione: Votazione, utente: Utente, punto: PuntoOdG | None) 
     votazione.save(update_fields=["punto"])
 
 
+# Deliberazioni dell'art. 14 (tabella di D-70): palesi, favorevoli/contrari/
+# astenuti, maggioranza sui presenti. Fra questi tipi la correzione di un tipo
+# sbagliato non cambia voci, canali né soglia, solo il nome nelle pagine e nel
+# verbale; da e verso gli altri tipi sì, quindi lì non si corregge.
+TIPI_CORREGGIBILI = frozenset(
+    {
+        TipoVotazione.MOZIONE,
+        TipoVotazione.RACCOMANDAZIONE,
+        TipoVotazione.BILANCIO,
+        TipoVotazione.REGOLAMENTO,
+        TipoVotazione.ALTRA_DELIBERA,
+    }
+)
+
+
+def tipi_correggibili(votazione: Votazione) -> list[tuple[str, str]]:
+    """Tipi fra cui si può correggere quello di `votazione` (scelte per il
+    form), nell'ordine di `TipoVotazione`; vuoto se il tipo non si corregge."""
+    if votazione.tipo not in TIPI_CORREGGIBILI:
+        return []
+    return [(valore, nome) for valore, nome in TipoVotazione.choices if valore in TIPI_CORREGGIBILI]
+
+
+@transaction.atomic
+def correggi_tipo(votazione: Votazione, utente: Utente, tipo: str) -> None:
+    """Corregge un tipo scelto per errore (es. una mozione che era un
+    bilancio), solo fra `TIPI_CORREGGIBILI`. Come il punto dell'OdG si cambia
+    in qualsiasi momento, anche a votazione chiusa e ad assemblea conclusa:
+    voti ed esito restano gli stessi, cambia solo il verbale. La modifica
+    resta nel registro operazioni (auditlog)."""
+    if not puo_collegare_punto(utente, votazione):
+        raise PermissionDenied
+    if votazione.tipo not in TIPI_CORREGGIBILI or tipo not in TIPI_CORREGGIBILI:
+        raise ValidationError(
+            "Il tipo si può correggere solo fra mozione, raccomandazione, bilancio, "
+            "modifica del regolamento e altra deliberazione: le altre votazioni hanno "
+            "regole diverse."
+        )
+    if tipo == votazione.tipo:
+        return
+    votazione.tipo = tipo
+    votazione.save(update_fields=["tipo"])
+
+
 def _voti(n: int, singolare: str, plurale: str) -> str:
     return f"{n} {singolare if n == 1 else plurale}"
 

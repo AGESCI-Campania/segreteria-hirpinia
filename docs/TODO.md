@@ -123,7 +123,7 @@ Per l'assemblea primaverile. Piano in `docs/plan_voto.md`, decisioni in D-71.
 
 - [x] Scheda di voto che non scorre su Chrome ed Edge da desktop (body bloccato dal tema da 1024px in su)
 - [x] Email del codice di voto: senza corpo HTML niente versione HTML (prima partiva con la sola firma e il codice restava nascosto); presenze, invio dei codici e salvataggio del template bloccati se il template non contiene `{{ codice }}`
-- [ ] Correzione del tipo di una votazione già fatta (es. Mozione → Bilancio) fra tipi con le stesse regole
+- [x] Correzione del tipo di una votazione già fatta (es. Mozione → Bilancio) fra tipi con le stesse regole
 - [ ] «Concludi assemblea» da interfaccia
 - [ ] Placeholder obbligatori in tutti i template email (`PLACEHOLDER_OBBLIGATORI`): verificare i template esistenti e le azioni che li inviano, oggi c'è solo il codice di voto
 
