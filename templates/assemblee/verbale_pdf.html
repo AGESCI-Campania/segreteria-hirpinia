@@ -18,7 +18,7 @@
   ol.odg ol, ol.sottopunti { margin: 0 0 0.2cm 0; list-style-type: lower-alpha; }
   ul.votazioni { margin: 0 0 0.3cm 0; padding-left: 0.6cm; }
   .mancante { color: #b00; }
-  .firme { width: 100%; margin-top: 1.2cm; border-collapse: collapse; break-inside: avoid; }
+  .firme { width: 100%; margin-top: 1.2cm; border-collapse: collapse; break-inside: avoid; table-layout: fixed; }
   .firme td { width: 50%; padding: 0 0.4cm 1.4cm 0; vertical-align: top; }
   .firme .linea { border-bottom: 1px solid #333; height: 1cm; }
 </style>
@@ -114,9 +114,13 @@
   <p>{% if verbale.luogo %}{{ verbale.luogo }}{% else %}<span class="mancante">[…]</span>{% endif %}, {{ seduta.data|date:"d/m/Y" }}</p>
 
   <table class="firme">
+    {# Due colonne sempre, anche con un solo presidente: righe da una sola firma restano a metà pagina. #}
+    <colgroup><col style="width: 50%"><col style="width: 50%"></colgroup>
     <tr>
       <td>Il Presidente<br>{{ verbale.presidente }}<div class="linea"></div></td>
       {% if verbale.presidente_2 %}<td>Il Presidente<br>{{ verbale.presidente_2 }}<div class="linea"></div></td>{% endif %}
+    {# Con due presidenti il segretario va su una riga sua, sotto: una terza colonna era troppo stretta per nome e firma. #}
+    {% if verbale.presidente_2 %}</tr><tr>{% endif %}
       <td>Il Segretario<br>{{ verbale.segretario }}<div class="linea"></div></td>
     </tr>
     {% if verbale.rdz_femminile or verbale.rdz_maschile %}

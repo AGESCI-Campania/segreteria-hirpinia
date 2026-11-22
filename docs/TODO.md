@@ -126,7 +126,7 @@ Per l'assemblea primaverile. Piano in `docs/plan_voto.md`, decisioni in D-71.
 - [x] Correzione del tipo di una votazione già fatta (es. Mozione → Bilancio) fra tipi con le stesse regole
 - [x] «Concludi assemblea» da interfaccia (e «Riapri», per tutti i gestori)
 - [x] Placeholder obbligatori in tutti i template email (`PLACEHOLDER_OBBLIGATORI`): invito, codice di voto, rilievo e respingimento bloccano l'azione; promemoria, report e nomina solo il salvataggio del template
-- [ ] Firme nel verbale: il segretario va sotto i presidenti, non in una terza colonna schiacciata
+- [x] Firme nel verbale (e nella variazione del rappresentante legale): con due presidenti il segretario va sotto, non in una terza colonna schiacciata
 
 ## Gap noti (scoperti in verifica, non da una milestone)
 - [ ] `apps/core/email/microsoft.py` (provider `microsoft_graph`) non è implementato:
