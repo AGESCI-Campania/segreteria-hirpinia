@@ -1483,6 +1483,20 @@ non la riceve. Un invio fallito non annulla la nomina. I manuali sono pubblicati
 stesso sito della guida dei capigruppo (`assemblea/`) e allegati in PDF solo alle release
 che li cambiano.
 
+**Statistiche di partecipazione** (decisioni di Andrea del 2026-11-23): solo i gestori,
+dati aggregati per gruppo. Per un'assemblea **conclusa** (anche di prova): aventi diritto,
+presenti, presenti per delega, percentuale, presenti per sesso, gruppo rappresentato sì/no.
+Presente = **presente a fine lavori** (appello effettivo finale) della seduta in cui si sono
+svolti i lavori (la costituita, altrimenti l'ultima convocazione), di persona o per delega
+(art. 4 c.2) con colonna a parte per le deleghe; il gruppo è quello **attuale** nell'elenco
+(dopo i trasferimenti); il Comitato di Zona è una riga a parte, nel totale di Zona ma non
+fra i gruppi rappresentati. **Serie storica**: solo assemblee vere e concluse, tabella
+gruppi × assemblee e grafico a linee della percentuale di Zona; il dato complessivo di un
+gruppo è la somma dei presenti sulla somma degli aventi (non la media delle percentuali).
+Entrambe hanno un report PDF sulla carta intestata con grafici; solo quello della singola
+assemblea contiene l'elenco nominativo dei presenti per gruppo. Unico punto del calcolo:
+`apps/assemblee/partecipazione.py`; grafici SVG generati lato server, nessuna libreria.
+
 ### D-71 — Voto elettronico di Catello per le elezioni
 
 Decisione del 2026-11-10 (piano completo e storia delle scelte in `docs/plan_voto.md`),

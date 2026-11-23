@@ -1,0 +1,12 @@
+<div class="gruppo-presenti">
+  <h3>{{ riga.gruppo.nome }} — {{ riga.conteggio.presenti }} su {{ riga.conteggio.aventi_diritto }}</h3>
+  {% if riga.presenti %}
+    <ol>
+      {% for presente in riga.presenti %}
+        <li>{{ presente.avente.cognome }} {{ presente.avente.nome }}{% if presente.delegato %} <span class="piccolo">(per delega a {{ presente.delegato.cognome }} {{ presente.delegato.nome }})</span>{% endif %}</li>
+      {% endfor %}
+    </ol>
+  {% else %}
+    <p class="nota">Nessun presente.</p>
+  {% endif %}
+</div>

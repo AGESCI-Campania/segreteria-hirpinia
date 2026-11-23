@@ -1,0 +1,9 @@
+{# Riga della serie storica (pagina): `riga` = RigaSerie, celle per assemblea. #}
+<tr>
+  <td>{{ riga.gruppo.nome }}</td>
+  {% for c in riga.celle %}
+    <td class="text-end">{% if c is None %}<span class="fg-2">—</span>{% else %}{{ c.percentuale|floatformat:1 }}%<br><span class="fg-2">{{ c.presenti }}/{{ c.aventi_diritto }}</span>{% endif %}</td>
+  {% endfor %}
+  <td class="text-end">{% if riga.complessivo.percentuale is not None %}{{ riga.complessivo.percentuale|floatformat:1 }}%{% endif %}<br><span class="fg-2">{{ riga.complessivo.presenti }}/{{ riga.complessivo.aventi_diritto }}</span></td>
+  <td class="text-end">{% if mostra_rappresentato %}{{ riga.assemblee_rappresentato }} su {{ riga.assemblee_con_aventi }}{% endif %}</td>
+</tr>

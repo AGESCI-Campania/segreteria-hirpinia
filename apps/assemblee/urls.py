@@ -7,6 +7,26 @@ app_name = "assemblee"
 urlpatterns = [
     path("", views.AssembleaListaView.as_view(), name="assemblea_lista"),
     path("nuova/", views.AssembleaCreaView.as_view(), name="assemblea_crea"),
+    path(
+        "partecipazione/",
+        views.PartecipazioneSerieView.as_view(),
+        name="partecipazione_serie",
+    ),
+    path(
+        "partecipazione/report.pdf",
+        views.PartecipazioneSeriePdfView.as_view(),
+        name="partecipazione_serie_pdf",
+    ),
+    path(
+        "<int:pk>/partecipazione/",
+        views.PartecipazioneAssembleaView.as_view(),
+        name="partecipazione",
+    ),
+    path(
+        "<int:pk>/partecipazione/report.pdf",
+        views.PartecipazioneAssembleaPdfView.as_view(),
+        name="partecipazione_pdf",
+    ),
     path("<int:pk>/", views.AssembleaDettaglioView.as_view(), name="assemblea_dettaglio"),
     path("<int:pk>/duplica/", views.AssembleaDuplicaView.as_view(), name="assemblea_duplica"),
     path("<int:pk>/elimina/", views.AssembleaEliminaView.as_view(), name="assemblea_elimina"),

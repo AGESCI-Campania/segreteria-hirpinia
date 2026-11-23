@@ -1,0 +1,21 @@
+{# Regole comuni dei PDF di partecipazione: da includere dentro <style>, dopo la carta intestata. #}
+  @page {
+    @bottom-right { content: "Pagina " counter(page) " di " counter(pages); font-family: sans-serif; font-size: 7.5pt; color: #555; }
+  }
+  body { font-family: sans-serif; font-size: 9pt; color: #222; }
+  h1 { font-size: 14pt; margin: 0 0 0.15cm 0; }
+  h2 { font-size: 11pt; margin: 0.6cm 0 0.2cm 0; color: #45387E; }
+  .sottotitolo { color: #555; margin: 0 0 0.4cm 0; }
+  .sintesi { display: flex; gap: 0.4cm; margin: 0 0 0.4cm 0; }
+  .sintesi div { flex: 1; border: 1px solid #ccc; border-radius: 3px; padding: 0.2cm 0.3cm; }
+  .sintesi strong { display: block; font-size: 13pt; color: #45387E; }
+  table { width: 100%; border-collapse: collapse; }
+  thead { display: table-header-group; }
+  th { text-align: left; font-size: 8pt; border-bottom: 1.5px solid #333; padding: 0.1cm 0.12cm; }
+  td { border-bottom: 1px solid #ccc; padding: 0.1cm 0.12cm; }
+  tr { break-inside: avoid; }
+  .numero { text-align: right; }
+  tfoot td, .fw-bold td, tr.fw-bold td { font-weight: bold; border-top: 1.5px solid #333; }
+  .nota { color: #555; font-size: 8pt; }
+  .grafico { margin: 0.2cm 0 0.4cm 0; break-inside: avoid; }
+  .piccolo { color: #666; font-size: 7.5pt; }

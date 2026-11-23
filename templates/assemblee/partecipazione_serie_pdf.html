@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Partecipazione dei gruppi alle assemblee</title>
+<style>
+  {% include "pdf/carta_intestata_stile.html" %}
+  {% include "assemblee/_partecipazione_pdf_stile.html" %}
+  table.serie { font-size: 8pt; margin-bottom: 0.4cm; }
+  table.serie th { font-size: 7.5pt; }
+  .blocco + .blocco { margin-top: 0.4cm; }
+</style>
+</head>
+<body>
+  {% include "pdf/carta_intestata.html" %}
+
+  <h1>Partecipazione dei gruppi alle assemblee</h1>
+  <p class="sottotitolo">Assemblee concluse, escluse quelle di prova: {{ serie.assemblee|length }}.</p>
+
+  {% if serie.assemblee %}
+    <h2>Presenti della Zona</h2>
+    <div class="grafico">{% include "assemblee/_grafico_linee.html" %}</div>
+
+    <h2>Per gruppo</h2>
+    {% for blocco in blocchi %}
+      <div class="blocco">
+        <table class="serie">
+          <thead>
+            <tr>
+              <th>Gruppo</th>
+              {% for p in blocco.assemblee %}<th class="numero">{{ p.assemblea }}</th>{% endfor %}
+              {% if blocco.ultimo %}<th class="numero">Complessivo</th><th class="numero">Rappresentato</th>{% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for riga, celle in blocco.gruppi %}
+              {% include "assemblee/_partecipazione_serie_pdf_riga.html" with mostra_rappresentato=True %}
+            {% endfor %}
+            {% if blocco.comitato %}
+              {% include "assemblee/_partecipazione_serie_pdf_riga.html" with riga=blocco.comitato.0 celle=blocco.comitato.1 mostra_rappresentato=False %}
+            {% endif %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>Totale di Zona</td>
+              {% for p in blocco.assemblee %}
+                <td class="numero">{% if p.totale.percentuale is not None %}{{ p.totale.percentuale|floatformat:1 }}%{% else %}—{% endif %}<br><span class="piccolo">{{ p.totale.presenti }}/{{ p.totale.aventi_diritto }}</span></td>
+              {% endfor %}
+              {% if blocco.ultimo %}<td></td><td></td>{% endif %}
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    {% endfor %}
+    <p class="nota">Percentuale di presenti a fine lavori (di persona o per delega) sugli aventi diritto; «—» se il gruppo non aveva aventi diritto in quell'assemblea. Il dato complessivo è il totale dei presenti sul totale degli aventi diritto; «Rappresentato» conta le assemblee con almeno un presente del gruppo.</p>
+  {% endif %}
+
+  <p class="piccolo">Generato da Catello il {{ generato_il|date:"d/m/Y H:i" }}.</p>
+</body>
+</html>

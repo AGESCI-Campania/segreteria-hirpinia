@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Partecipazione dei gruppi — {{ assemblea }}</title>
+<style>
+  {% include "pdf/carta_intestata_stile.html" %}
+  {% include "assemblee/_partecipazione_pdf_stile.html" %}
+  .gruppo-presenti { break-inside: avoid; margin-bottom: 0.25cm; }
+  .gruppo-presenti h3 { font-size: 9.5pt; margin: 0 0 0.05cm 0; border-bottom: 1px solid #5C5291; }
+  .gruppo-presenti ol { margin: 0; padding-left: 0.7cm; columns: 2; column-gap: 0.6cm; }
+</style>
+</head>
+<body>
+  {% include "pdf/carta_intestata.html" %}
+
+  <h1>Partecipazione dei gruppi</h1>
+  <p class="sottotitolo">{{ assemblea }}{% if p.seduta %} — {{ p.seduta }}{% if p.seduta.luogo %}, {{ p.seduta.luogo }}{% endif %}{% endif %}</p>
+
+  <div class="sintesi">
+    <div>Presenti<strong>{{ p.totale.presenti }} su {{ p.totale.aventi_diritto }}{% if p.totale.percentuale is not None %} ({{ p.totale.percentuale|floatformat:1 }}%){% endif %}</strong></div>
+    <div>Gruppi rappresentati<strong>{{ p.gruppi_rappresentati }} su {{ p.gruppi|length }}</strong></div>
+    <div>Presenti per delega<strong>{{ p.totale.per_delega }}</strong></div>
+  </div>
+
+  {% if grafico.barre %}
+    <div class="grafico">{% include "assemblee/_grafico_barre.html" %}</div>
+  {% endif %}
+
+  <table>
+    <thead>{% include "assemblee/_partecipazione_intestazione.html" %}</thead>
+    <tbody>
+      {% for riga in p.gruppi %}
+        {% include "assemblee/_partecipazione_riga.html" with nome=riga.gruppo.nome c=riga.conteggio mostra_rappresentato=True classe="" %}
+      {% endfor %}
+      {% if p.comitato %}
+        {% include "assemblee/_partecipazione_riga.html" with nome=p.comitato.gruppo.nome c=p.comitato.conteggio mostra_rappresentato=False classe="" %}
+      {% endif %}
+    </tbody>
+    <tfoot>
+      {% include "assemblee/_partecipazione_riga.html" with nome="Totale di Zona" c=p.totale mostra_rappresentato=False classe="" %}
+    </tfoot>
+  </table>
+  <p class="nota">Presenti a fine lavori, di persona o per delega (art. 4 c.2 del regolamento); ogni capo conta nel gruppo in cui è nell'elenco degli aventi diritto.{% if p.comitato %} Il Comitato di Zona conta nel totale di Zona, non fra i gruppi rappresentati.{% endif %}</p>
+
+  <h2>Elenco dei presenti</h2>
+  {% for riga in p.gruppi %}{% include "assemblee/_partecipazione_pdf_nomi.html" %}{% endfor %}
+  {% if p.comitato %}{% include "assemblee/_partecipazione_pdf_nomi.html" with riga=p.comitato %}{% endif %}
+
+  <p class="piccolo">Generato da Catello il {{ generato_il|date:"d/m/Y H:i" }}.</p>
+</body>
+</html>

@@ -441,4 +441,13 @@ def test_schermate(live_server, browser, settings):
     f.accedi(presidente)
     f.apri(f"/assemblee/{pk}/")
     f.scatta("gestione", "presidenza-assemblea")
+
+    # Assemblea conclusa: partecipazione dei gruppi.
+    seduta.refresh_from_db()
+    sedute.chiudi_lavori(seduta, segreteria)
+    assemblea.refresh_from_db()
+    sedute.concludi_assemblea(assemblea, segreteria)
+    f.accedi(segreteria)
+    f.apri(f"/assemblee/{pk}/partecipazione/")
+    f.scatta("gestione", "partecipazione")
     assert os.listdir(CARTELLA / "gestione" / "img")

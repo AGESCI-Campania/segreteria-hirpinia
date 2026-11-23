@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load bootstrap_icons %}
+
+{% block page_title %}Statistiche di partecipazione{% endblock %}
+
+{% block content %}
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <h1 class="mb-0">Statistiche di partecipazione</h1>
+    {% if serie.assemblee %}
+      <a href="{% url 'assemblee:partecipazione_serie_pdf' %}" class="btn-solid theme-primary">{% bs_icon "file-earmark-pdf" %} Report PDF</a>
+    {% endif %}
+  </div>
+  <p class="fg-2 mb-7">Percentuale di presenti a fine lavori sugli aventi diritto, gruppo per gruppo, nelle assemblee concluse (non quelle di prova). Il dato complessivo è il totale dei presenti sul totale degli aventi diritto.</p>
+
+  {% if not serie.assemblee %}
+    <div class="alert theme-info">Non c'è ancora nessuna assemblea conclusa.</div>
+  {% else %}
+    <div class="text-ag-viola mb-7">{% include "assemblee/_grafico_linee.html" %}</div>
+
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Gruppo</th>
+            {% for p in serie.assemblee %}
+              <th class="text-end"><a href="{% url 'assemblee:partecipazione' p.assemblea.pk %}" title="{{ p.assemblea }}">{{ p.assemblea }}</a></th>
+            {% endfor %}
+            <th class="text-end">Complessivo</th>
+            <th class="text-end">Rappresentato</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for riga in serie.gruppi %}
+            {% include "assemblee/_partecipazione_serie_riga.html" with mostra_rappresentato=True %}
+          {% endfor %}
+          {% if serie.comitato %}
+            {% include "assemblee/_partecipazione_serie_riga.html" with riga=serie.comitato mostra_rappresentato=False %}
+          {% endif %}
+        </tbody>
+        <tfoot>
+          <tr class="fw-bold">
+            <td>Totale di Zona</td>
+            {% for c in serie.totali %}
+              <td class="text-end">{% if c.percentuale is not None %}{{ c.percentuale|floatformat:1 }}%{% else %}—{% endif %}<br><span class="fg-2 fw-normal">{{ c.presenti }}/{{ c.aventi_diritto }}</span></td>
+            {% endfor %}
+            <td></td><td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

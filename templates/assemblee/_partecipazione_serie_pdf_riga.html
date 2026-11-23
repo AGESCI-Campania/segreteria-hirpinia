@@ -1,0 +1,10 @@
+<tr>
+  <td>{{ riga.gruppo.nome }}</td>
+  {% for c in celle %}
+    <td class="numero">{% if c is None %}—{% else %}{{ c.percentuale|floatformat:1 }}%<br><span class="piccolo">{{ c.presenti }}/{{ c.aventi_diritto }}</span>{% endif %}</td>
+  {% endfor %}
+  {% if blocco.ultimo %}
+    <td class="numero">{{ riga.complessivo.percentuale|floatformat:1 }}%<br><span class="piccolo">{{ riga.complessivo.presenti }}/{{ riga.complessivo.aventi_diritto }}</span></td>
+    <td class="numero">{% if mostra_rappresentato %}{{ riga.assemblee_rappresentato }} su {{ riga.assemblee_con_aventi }}{% endif %}</td>
+  {% endif %}
+</tr>

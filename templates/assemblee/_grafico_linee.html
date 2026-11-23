@@ -1,0 +1,17 @@
+{% load l10n %}{# Percentuale di presenti della Zona nelle assemblee della serie storica: SVG generato lato server (apps/assemblee/partecipazione.py::grafico_linee), usato dalla pagina e dal PDF. Coordinate senza localizzazione (punto decimale). #}
+{% localize off %}
+<svg viewBox="0 0 {{ grafico.larghezza }} {{ grafico.altezza }}" width="100%" role="img" aria-label="Percentuale di presenti della Zona per assemblea" font-family="sans-serif" font-size="10">
+  {% for valore, y, y_testo in grafico.griglia %}
+    <line x1="{{ grafico.x_inizio }}" y1="{{ y }}" x2="{{ grafico.x_fine }}" y2="{{ y }}" stroke="{{ colore }}" stroke-opacity="0.15"/>
+    <text x="{{ grafico.x_etichette }}" y="{{ y_testo }}" text-anchor="end" fill="{{ colore }}" fill-opacity="0.7">{{ valore }}%</text>
+  {% endfor %}
+  {% if grafico.punti|length > 1 %}
+    <polyline points="{{ grafico.polilinea }}" fill="none" stroke="{{ colore }}" stroke-width="2"/>
+  {% endif %}
+  {% for punto in grafico.punti %}
+    <circle cx="{{ punto.x }}" cy="{{ punto.y }}" r="3.5" fill="{{ colore }}"/>
+    <text x="{{ punto.x }}" y="{{ punto.y_valore }}" text-anchor="middle" fill="{{ colore }}">{% localize on %}{{ punto.valore|floatformat:1 }}%{% endlocalize %}</text>
+    <text x="{{ punto.x }}" y="{{ grafico.y_etichette_asse }}" text-anchor="middle" fill="{{ colore }}">{{ punto.etichetta }}</text>
+  {% endfor %}
+</svg>
+{% endlocalize %}

@@ -32,6 +32,24 @@ Dalla pagina dell'assemblea:
   reimportare;
 - **Tracciato per l'app di voto**, solo con l'app del Nazionale.
 
+## Partecipazione dei gruppi
+
+Ad assemblea conclusa, dalla sua pagina, **Partecipazione dei gruppi** mostra per ogni
+gruppo gli aventi diritto, i presenti (e quanti per delega), la percentuale, i presenti per
+sesso e se il gruppo era rappresentato; un grafico mette a confronto i gruppi con la
+percentuale di Zona. Contano i presenti a fine lavori della seduta in cui si sono svolti i
+lavori, di persona o per delega, nel gruppo in cui sono nell'elenco; il Comitato di Zona è
+una riga a parte, nel totale ma non fra i gruppi rappresentati. **Report PDF** scarica le
+stesse statistiche sulla carta intestata, con l'elenco dei presenti gruppo per gruppo.
+
+![Partecipazione dei gruppi](img/partecipazione.jpg)
+
+**Statistiche di partecipazione** (dal menu Assemblee o dall'elenco delle assemblee)
+mette in fila tutte le assemblee concluse, escluse quelle di prova: la percentuale di ogni
+gruppo in ciascuna, il dato complessivo e in quante assemblee il gruppo era
+rappresentato, con il grafico dell'andamento della Zona. Anche qui c'è il **Report PDF**,
+senza nomi. Le statistiche le vedono solo i gestori.
+
 ## Assemblee di prova
 
 Un'assemblea di prova si elimina del tutto con **Elimina assemblea** (gli account creati

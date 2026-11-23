@@ -1,0 +1,12 @@
+{# Una riga della tabella di partecipazione (pagina e PDF): `nome`, `c` = Conteggio, `mostra_rappresentato`. #}
+<tr{% if classe %} class="{{ classe }}"{% endif %}>
+  <td>{{ nome }}</td>
+  <td class="numero text-end">{{ c.aventi_diritto }}</td>
+  <td class="numero text-end">{{ c.presenti }}</td>
+  <td class="numero text-end">{{ c.per_delega }}</td>
+  <td class="numero text-end">{% if c.percentuale is not None %}{{ c.percentuale|floatformat:1 }}%{% else %}—{% endif %}</td>
+  <td class="numero text-end">{{ c.maschi }}</td>
+  <td class="numero text-end">{{ c.femmine }}</td>
+  <td class="numero text-end">{{ c.sesso_non_noto }}</td>
+  <td>{% if mostra_rappresentato %}{{ c.rappresentato|yesno:"Sì,No" }}{% endif %}</td>
+</tr>

@@ -1,0 +1,15 @@
+{% load l10n %}{# Barre orizzontali della % di presenti per gruppo, con la linea della % di Zona: SVG generato lato server (apps/assemblee/partecipazione.py::barre_grafico), usato dalla pagina e dal PDF. `colore`: currentColor nella pagina, esadecimale nel PDF. Coordinate senza localizzazione (punto decimale). #}
+{% localize off %}
+<svg viewBox="0 0 {{ grafico.larghezza }} {{ grafico.altezza }}" width="100%" role="img" aria-label="Percentuale di presenti per gruppo" font-family="sans-serif" font-size="10">
+  {% for barra in grafico.barre %}
+    <text x="{{ grafico.x_etichette }}" y="{{ barra.y_testo }}" text-anchor="end" fill="{{ colore }}">{{ barra.etichetta|truncatechars:26 }}</text>
+    <rect x="{{ grafico.x_inizio }}" y="{{ barra.y }}" width="{{ grafico.larghezza_utile }}" height="{{ grafico.altezza_barra }}" fill="{{ colore }}" fill-opacity="0.08"/>
+    <rect x="{{ grafico.x_inizio }}" y="{{ barra.y }}" width="{{ barra.larghezza }}" height="{{ grafico.altezza_barra }}" fill="{{ colore }}" fill-opacity="0.75"/>
+    <text x="{{ grafico.x_valori }}" y="{{ barra.y_testo }}" fill="{{ colore }}">{% if barra.valore is not None %}{% localize on %}{{ barra.valore|floatformat:1 }}%{% endlocalize %}{% else %}—{% endif %}</text>
+  {% endfor %}
+  {% if grafico.x_zona is not None %}
+    <line x1="{{ grafico.x_zona }}" y1="4" x2="{{ grafico.x_zona }}" y2="{{ grafico.y_fine_linea }}" stroke="{{ colore }}" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <text x="{{ grafico.x_zona }}" y="{{ grafico.y_testo_zona }}" text-anchor="middle" fill="{{ colore }}">Zona {% localize on %}{{ grafico.valore_zona|floatformat:1 }}%{% endlocalize %}</text>
+  {% endif %}
+</svg>
+{% endlocalize %}

@@ -35,6 +35,7 @@ from . import (
     email_aventi,
     nomina,
     odg,
+    partecipazione,
     presidenza,
     programma,
     prova,
@@ -2544,3 +2545,83 @@ class VariazioneRappresentantePdfView(GestisceAssembleeMixin, View):
         nome = f"verbale-rappresentante-legale-{seduta.data:%Y%m%d}.pdf"
         risposta["Content-Disposition"] = f'attachment; filename="{nome}"'
         return risposta
+
+
+# --- Statistiche di partecipazione -------------------------------------------------
+
+
+def _risposta_pdf(contenuto: bytes, nome: str) -> HttpResponse:
+    risposta = HttpResponse(contenuto, content_type="application/pdf")
+    risposta["Content-Disposition"] = f'attachment; filename="{nome}"'
+    return risposta
+
+
+class PartecipazioneAssembleaView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+    """Partecipazione dei gruppi a un'assemblea conclusa: solo i gestori."""
+
+    template_name = "assemblee/partecipazione.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return _breadcrumb_assemblea(request, {"label": "Partecipazione dei gruppi"})
+
+    def get(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        try:
+            partecipazione.verifica_disponibile(assemblea)
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+            return redirect("assemblee:assemblea_dettaglio", pk=assemblea.pk)
+        p = partecipazione.partecipazione(assemblea)
+        return render(
+            request,
+            self.template_name,
+            {
+                "assemblea": assemblea,
+                "p": p,
+                "grafico": partecipazione.barre_grafico(p),
+                "colore": "currentColor",
+            },
+        )
+
+
+class PartecipazioneAssembleaPdfView(GestisceAssembleeMixin, View):
+    def get(self, request, pk):
+        assemblea = get_object_or_404(Assemblea, pk=pk)
+        try:
+            contenuto = partecipazione.genera_pdf_assemblea(assemblea, request.user)
+        except ValidationError as errore:
+            messages.error(request, " ".join(errore.messages))
+            return redirect("assemblee:assemblea_dettaglio", pk=assemblea.pk)
+        nome = f"partecipazione-{assemblea.anno_scout}-{assemblea.pk}.pdf"
+        return _risposta_pdf(contenuto, nome)
+
+
+class PartecipazioneSerieView(GestisceAssembleeMixin, BreadcrumbExtraMixin, View):
+    """Serie storica della partecipazione dei gruppi alle assemblee vere e
+    concluse: solo i gestori."""
+
+    template_name = "assemblee/partecipazione_serie.html"
+
+    @classmethod
+    def breadcrumb_extra(cls, request):
+        return [*_breadcrumb_assemblee(), {"label": "Statistiche di partecipazione"}]
+
+    def get(self, request):
+        serie = partecipazione.serie_storica()
+        return render(
+            request,
+            self.template_name,
+            {
+                "serie": serie,
+                "grafico": partecipazione.grafico_linee(serie),
+                "colore": "currentColor",
+            },
+        )
+
+
+class PartecipazioneSeriePdfView(GestisceAssembleeMixin, View):
+    def get(self, request):
+        contenuto = partecipazione.genera_pdf_serie(request.user)
+        nome = f"partecipazione-assemblee-{timezone.localdate():%Y%m%d}.pdf"
+        return _risposta_pdf(contenuto, nome)

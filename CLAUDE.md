@@ -392,6 +392,13 @@ deve violare:
   la Segreteria. Un modello nuovo del modulo va registrato in auditlog in `apps.py`
   **e** aggiunto a `GENITORE`. I `bulk_create` (import dell'elenco) non passano da
   auditlog e quindi non compaiono.
+- **Statistiche di partecipazione** (pagina e PDF dell'assemblea conclusa, serie storica
+  e suo PDF): solo da `apps/assemblee/partecipazione.py`, che prende i presenti da
+  `quorum.py` (presenti a fine lavori della seduta dei lavori, deleghe comprese) e non li
+  ricalcola. Solo gestori; la serie storica conta solo le assemblee vere e concluse; i nomi
+  dei presenti solo nel PDF della singola assemblea, mai nella serie storica. I grafici sono
+  SVG costruiti in Python (coordinate già calcolate: il filtro `add` dei template tronca i
+  decimali) e resi con `{% localize off %}`, altrimenti escono con la virgola decimale.
 - **Tempo reale = polling ogni 3 secondi**, nessuna infrastruttura nuova (D-17 vale
   ancora).
 - **Carta intestata dei PDF** (nota spese, foglio presenze, verbali, riepilogo dei
