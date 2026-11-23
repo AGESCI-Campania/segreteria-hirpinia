@@ -8,6 +8,35 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.19.0] - 2026-11-23
+
+### Aggiunto
+
+- Assemblee: statistiche di partecipazione dei gruppi, solo per i gestori.
+  Per un'assemblea conclusa: aventi diritto, presenti (di cui per delega),
+  percentuale, presenti per sesso e gruppo rappresentato, con grafico e
+  report PDF che contiene anche l'elenco dei presenti per gruppo. Serie
+  storica delle assemblee concluse (escluse quelle di prova) con tabella per
+  gruppo, grafico dell'andamento della Zona e report PDF.
+- Assemblee: i gestori concludono l'assemblea dalla sua pagina, a lavori
+  chiusi e senza votazioni aperte, e la riaprono se conclusa per errore; la
+  pagina mostra lo stato (in preparazione, in corso, lavori chiusi,
+  conclusa).
+- Assemblee: il tipo di una deliberazione scelto per errore (mozione,
+  raccomandazione, bilancio, modifica del regolamento, altra deliberazione)
+  si corregge dalla pagina della votazione, anche a votazione chiusa.
+- Email: i template non si salvano senza i dati indispensabili (codice di
+  voto, codice e link di attivazione, causale, link…), e invito, recupero,
+  codici di voto, rilievo e respingimento non procedono finché mancano.
+
+### Corretto
+
+- Email: un corpo HTML che mostra solo la firma non si invia più (i
+  programmi di posta lo mostravano al posto del testo con il codice di voto).
+- Voto: la scheda e i risultati al proiettore scorrono anche su Chrome ed
+  Edge da desktop.
+- Verbali: con due presidenti la firma del segretario va su una riga sua.
+
 ## [1.18.0] - 2026-11-16
 
 ### Aggiunto
