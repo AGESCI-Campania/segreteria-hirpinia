@@ -9,6 +9,7 @@
   </div>
   <form method="post" action="{% url 'organizzazione:allowlist_invita_massivo' %}">
     {% csrf_token %}
+    <div class="table-responsive mb-5">
     <table class="table">
       <thead>
         <tr>
@@ -58,6 +59,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
     {% if numero_candidati %}
       <button type="submit" class="btn-solid theme-primary">Invia inviti selezionati</button>
     {% endif %}

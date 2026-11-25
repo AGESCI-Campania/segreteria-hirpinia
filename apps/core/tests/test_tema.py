@@ -15,3 +15,10 @@ def test_valori_sono_tutti_branche_valide_del_tema():
 def test_nessun_valore_duplicato():
     valori = [valore for valore, _ in SCELTE_BRANCA_TEMA]
     assert len(valori) == len(set(valori))
+
+
+def test_voce_vuota_dei_menu_a_tendina_in_italiano():
+    """Django 6.1 non traduce «- Select an option -»: lo ridefinisce CoreConfig.ready()."""
+    from apps.accounts.forms import DelegaForm
+
+    assert DelegaForm().fields["ruolo"].empty_label == "- Seleziona -"

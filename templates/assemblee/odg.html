@@ -73,7 +73,7 @@
       {% for titolo in proposte %}
         <form method="post">
           {% csrf_token %}<input type="hidden" name="azione" value="aggiungi"><input type="hidden" name="titolo" value="{{ titolo }}">
-          <button type="submit" class="btn-outline theme-primary btn-sm">+ {{ titolo }}</button>
+          <button type="submit" class="btn-outline theme-primary btn-sm text-wrap text-start">+ {{ titolo }}</button>
         </form>
       {% endfor %}
     </div>

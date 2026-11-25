@@ -8,6 +8,11 @@ class CoreConfig(AppConfig):
 
     def ready(self):
         from auditlog.registry import auditlog
+        from django.db.models import fields
+
+        # Voce vuota dei menu a tendina: Django 6.1 non ne ha la traduzione
+        # italiana; ridefinirla in ready() è il modo previsto da Django.
+        fields.BLANK_CHOICE_LABEL = "- Seleziona -"
 
         from .models import ImpostazioniPiattaforma, TemplateEmail
 
