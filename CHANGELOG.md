@@ -8,6 +8,28 @@ progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 Le versioni precedenti alla 1.1.16 non sono documentate qui: la cronologia
 completa resta disponibile con `git log`.
 
+## [1.20.0] - 2026-11-25
+
+### Aggiunto
+
+- Avviso nei browser troppo vecchi per Bootstrap 6, anche nelle pagine del
+  voto (dove rimanda al comitato elettorale). È solo un avviso: non blocca
+  nessuna operazione.
+
+### Modificato
+
+- Tema aggiornato alla 3.0.0a5 (Bootstrap 6.0.0-alpha.2), comprese le pagine
+  autonome: voto, proiettore e pagina di errore. I browser minimi ufficiali
+  diventano Chrome/Edge 138, Firefox 147 e Safari 26.
+
+### Corretto
+
+- Su mobile il menu laterale e quello dell'intestazione, da chiusi, non
+  restano più attivi e non superano la larghezza dello schermo.
+- Ordine del giorno dell'assemblea e allowlist dei gruppi: niente più
+  scorrimento orizzontale della pagina su mobile.
+- Menu a tendina: la voce vuota è in italiano («- Seleziona -»).
+
 ## [1.19.0] - 2026-11-23
 
 ### Aggiunto
