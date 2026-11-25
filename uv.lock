@@ -281,7 +281,7 @@ docs = [
 requires-dist = [
     { name = "bleach", extras = ["css"], specifier = ">=6.2" },
     { name = "django", specifier = ">=6.0" },
-    { name = "django-agesci-campania-theme", extras = ["icons"], specifier = ">=3.0.0a3" },
+    { name = "django-agesci-campania-theme", extras = ["icons"], specifier = ">=3.0.0a5" },
     { name = "django-allauth", extras = ["mfa"], specifier = ">=65.0" },
     { name = "django-auditlog", specifier = ">=3.0" },
     { name = "django-axes", specifier = ">=8.3" },
@@ -684,14 +684,14 @@ wheels = [
 
 [[package]]
 name = "django-agesci-campania-theme"
-version = "3.0.0a3"
+version = "3.0.0a5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/be/08/5886308476d3d4f449c532ea8bf532b4682e7ab0bf49b1aaefa6abec1617/django_agesci_campania_theme-3.0.0a3.tar.gz", hash = "sha256:35c76231f0e0f801d157e17cfeec39519a7c0450f2f0d278c07864a242608c99", size = 1513194, upload-time = "2026-11-03T12:00:56.391Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e3/f3/9c274ab41bb55af151c544f79bdaa6c7b60747d7ba617f4de5b6aa68dd6a/django_agesci_campania_theme-3.0.0a5.tar.gz", hash = "sha256:b5394d7ec27200c3a40434084c2c0631a590b31263ba25b5937eb70514dec7d1", size = 1514922, upload-time = "2026-11-25T07:48:30.594Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c2/4d/c3d042a1af988456b5292bfff8ebb47199fd28a07dea0d311168f442d6aa/django_agesci_campania_theme-3.0.0a3-py3-none-any.whl", hash = "sha256:fa04a6f9e055f03029bb0829fe9ff90cb8dda0448131e6ce85fbeeb137d66ed0", size = 1543743, upload-time = "2026-11-03T12:00:54.797Z" },
+    { url = "https://files.pythonhosted.org/packages/6d/84/b17a9f67277f709bd44350ec42a99aa00fe9e05a885e7dfb2798c330a6fe/django_agesci_campania_theme-3.0.0a5-py3-none-any.whl", hash = "sha256:13b0cfb71aa46f00ed73c43b92f44498b17057b2812b05c85177eeea7830f531", size = 1545607, upload-time = "2026-11-25T07:48:28.784Z" },
 ]
 
 [package.optional-dependencies]
