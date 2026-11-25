@@ -297,6 +297,16 @@ def test_pagine_del_voto_non_mandano_origin_null(client):
 
 
 @pytest.mark.django_db
+def test_pagine_del_voto_avvisano_i_browser_vecchi(client, settings):
+    """base_voto.html non estende la base del tema: l'avviso va incluso lì, e
+    l'impostazione del tema deve poterlo spegnere."""
+    pagina = client.get("/voto/").content.decode()
+    assert "agesci_theme/js/browser-check.js" in pagina
+    settings.AGESCI_THEME_AVVISO_BROWSER = False
+    assert "browser-check.js" not in client.get("/voto/").content.decode()
+
+
+@pytest.mark.django_db
 def test_chi_arriva_a_urna_aperta_vota_e_conta(elezione, costituita, assemblea, segreteria):
     from apps.assemblee.models import CanaleVoto
     from apps.voto import scrutinio

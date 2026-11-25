@@ -31,6 +31,8 @@ della pagina, niente script di terze parti.
     {% block content %}{% endblock %}
   </main>
   </div>
+  {# Avviso del tema per i browser troppo vecchi per Bootstrap 6 (script locale, classico e senza defer perché usa document.currentScript): è solo un avviso, il voto non si blocca. #}
+  {% if agesci_theme_avviso_browser %}<script src="{% static 'agesci_theme/js/browser-check.js' %}" data-testo="Il tuo browser non è aggiornato. Se la pagina non si vede bene, usa un altro dispositivo o chiedi al comitato elettorale."></script>{% endif %}
   {% block extra_js %}{% endblock %}
 </body>
 </html>
